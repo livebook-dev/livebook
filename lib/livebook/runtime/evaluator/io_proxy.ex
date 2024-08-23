@@ -146,7 +146,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     state = update_in(state.tracer_info, &Evaluator.Tracer.apply_updates(&1, updates))
 
     modules_defined =
-      for {:module_defined, module, _vars} <- updates,
+      for {:module_defined, module, _vars, _line} <- updates,
           into: state.modules_defined,
           do: module
 

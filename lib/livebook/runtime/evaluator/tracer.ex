@@ -93,7 +93,7 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
         module = env.module
         vars = Map.keys(env.versioned_vars)
         Evaluator.write_module!(module, bytecode)
-        [{:module_defined, module, vars}, {:alias_used, module}]
+        [{:module_defined, module, vars, env.line}, {:alias_used, module}]
 
       _ ->
         []
@@ -112,8 +112,8 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
     update_in(info.modules_used, &MapSet.put(&1, module))
   end
 
-  defp apply_update(info, {:module_defined, module, vars}) do
-    put_in(info.modules_defined[module], vars)
+  defp apply_update(info, {:module_defined, module, vars, line}) do
+    put_in(info.modules_defined[module], {line, vars})
   end
 
   defp apply_update(info, {:alias_used, alias}) do

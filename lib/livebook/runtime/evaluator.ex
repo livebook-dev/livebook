@@ -439,7 +439,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     %{tracer_info: tracer_info} = Evaluator.IOProxy.after_evaluation(state.io_proxy)
 
-    {new_context, result, identifiers_used, identifiers_defined} =
+    {new_context, result, identifiers_used, identifiers_defined, identifier_definitions} =
       case eval_result do
         {:ok, value, binding, env} ->
           context_id = random_long_id()
@@ -454,8 +454,10 @@ defmodule Livebook.Runtime.Evaluator do
           {identifiers_used, identifiers_defined} =
             identifier_dependencies(new_context, tracer_info, context)
 
+          identifier_definitions = definitions(new_context, tracer_info)
+
           result = {:ok, value}
-          {new_context, result, identifiers_used, identifiers_defined}
+          {new_context, result, identifiers_used, identifiers_defined, identifier_definitions}
 
         {:error, kind, error, stacktrace} ->
           for {module, _} <- tracer_info.modules_defined do
@@ -465,9 +467,10 @@ defmodule Livebook.Runtime.Evaluator do
           result = {:error, kind, error, stacktrace}
           identifiers_used = :unknown
           identifiers_defined = %{}
+          identifier_definitions = []
           # Empty context
           new_context = initial_context()
-          {new_context, result, identifiers_used, identifiers_defined}
+          {new_context, result, identifiers_used, identifiers_defined, identifier_definitions}
       end
 
     if ebin_path() do
@@ -475,7 +478,6 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     state = put_context(state, ref, new_context)
-
     output = Evaluator.Formatter.format_result(result, language)
 
     metadata = %{
@@ -485,7 +487,8 @@ defmodule Livebook.Runtime.Evaluator do
       memory_usage: memory(),
       code_markers: code_markers,
       identifiers_used: identifiers_used,
-      identifiers_defined: identifiers_defined
+      identifiers_defined: identifiers_defined,
+      identifier_definitions: identifier_definitions
     }
 
     send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
@@ -890,7 +893,7 @@ defmodule Livebook.Runtime.Evaluator do
           into: identifiers_used
 
     identifiers_defined =
-      for {module, _vars} <- tracer_info.modules_defined,
+      for {module, _line_vars} <- tracer_info.modules_defined,
           version = module.__info__(:md5),
           do: {{:module, module}, version},
           into: identifiers_defined
@@ -968,7 +971,7 @@ defmodule Livebook.Runtime.Evaluator do
     # Note that :prune_binding removes variables used by modules
     # (unless used outside), so we get those from the tracer
     module_used_vars =
-      for {_module, vars} <- tracer_info.modules_defined,
+      for {_module, {_line, vars}} <- tracer_info.modules_defined,
           var <- vars,
           into: MapSet.new(),
           do: var
@@ -1037,5 +1040,17 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp ebin_path() do
     Process.get(@ebin_path_key)
+  end
+
+  defp definitions(context, tracer_info) do
+    for {module, {line, _vars}} <- tracer_info.modules_defined,
+        do: %{label: module_name(module), file: context.env.file, line: line}
+  end
+
+  defp module_name(module) do
+    case Atom.to_string(module) do
+      "Elixir." <> name -> name
+      name -> name
+    end
   end
 end
