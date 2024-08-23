@@ -586,24 +586,13 @@ const Session = {
       section.scrollIntoView({ behavior: "instant", block: "start" });
     }
 
-    const sectionDefinitionButton = event.target.closest(`[data-el-sections-list-definition-item]`);
+    const sectionDefinitionButton = event.target.closest(
+      `[data-el-sections-list-definition-item]`,
+    );
 
     if (sectionDefinitionButton) {
       const file = sectionDefinitionButton.getAttribute("data-file");
       const line = sectionDefinitionButton.getAttribute("data-line");
-
-      this.jumpToLine(file, line);
-    }
-  },
-
-  /**
-   * Handles section module link clicks in the section list.
-   */
-  handleSectionsListModuleClick(event) {
-    const sectionButton = event.target.closest(`[data-el-sections-list-module-item]`);
-    if (sectionButton) {
-      const file = sectionButton.getAttribute("data-file");
-      const line = sectionButton.getAttribute("data-line");
 
       this.jumpToLine(file, line);
     }
