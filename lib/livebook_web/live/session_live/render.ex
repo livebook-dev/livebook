@@ -507,26 +507,24 @@ defmodule LivebookWeb.SessionLive.Render do
         <div :for={section_item <- @data_view.sections_items} class="flex flex-col">
           <div class="flex justify-between items-center">
             <button
-              class="grow flex items-center text-gray-500 hover:text-gray-900 text-left"
+              class="grow flex items-center gap-1 text-gray-500 hover:text-gray-900 text-left"
               data-el-sections-list-item
               data-section-id={section_item.id}
             >
-              <span class="flex items-center space-x-1">
-                <.remix_icon icon="font-size" class="text-lg font-normal leading-none" />
-                <span><%= section_item.name %></span>
-                <%!--
+              <.remix_icon icon="font-size" class="text-lg font-normal leading-none" />
+              <span><%= section_item.name %></span>
+              <%!--
                 Note: the container has overflow-y auto, so we cannot set overflow-x visible,
                 consequently we show the tooltip wrapped to a fixed number of characters
                 --%>
-                <span
-                  :if={section_item.parent}
-                  {branching_tooltip_attrs(section_item.name, section_item.parent.name)}
-                >
-                  <.remix_icon
-                    icon="git-branch-line"
-                    class="text-lg font-normal leading-none flip-horizontally"
-                  />
-                </span>
+              <span
+                :if={section_item.parent}
+                {branching_tooltip_attrs(section_item.name, section_item.parent.name)}
+              >
+                <.remix_icon
+                  icon="git-branch-line"
+                  class="text-lg font-normal leading-none flip-horizontally"
+                />
               </span>
             </button>
 
