@@ -373,7 +373,7 @@ const Session = {
         }
       } else if (keyBuffer.tryMatch(["e", "s"])) {
         this.queueFocusedSectionEvaluation();
-      } else if (keyBuffer.tryMatch(["s", "s"])) {
+      } else if (keyBuffer.tryMatch(["s", "o"])) {
         this.toggleSectionsList();
       } else if (keyBuffer.tryMatch(["s", "e"])) {
         this.toggleSecretsList();

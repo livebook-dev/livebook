@@ -332,7 +332,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
       <.button_item
         icon="node-tree"
-        label="Sections (ss)"
+        label="Outline (so)"
         button_attrs={["data-el-sections-list-toggle": true]}
       />
 
@@ -420,7 +420,7 @@ defmodule LivebookWeb.SessionLive.Render do
       data-el-side-panel
     >
       <div data-el-sections-list>
-        <.sections_list data_view={@data_view} />
+        <.outline_list data_view={@data_view} />
       </div>
       <div data-el-clients-list>
         <.clients_list data_view={@data_view} client_id={@client_id} />
@@ -497,11 +497,11 @@ defmodule LivebookWeb.SessionLive.Render do
     """
   end
 
-  defp sections_list(assigns) do
+  defp outline_list(assigns) do
     ~H"""
     <div class="flex flex-col grow">
       <h3 class="uppercase text-sm font-semibold text-gray-500">
-        Sections
+        Outline
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
         <div :for={section_item <- @data_view.sections_items} class="flex flex-col">
