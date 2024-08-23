@@ -331,8 +331,8 @@ defmodule LivebookWeb.SessionLive.Render do
       <%!-- Local functionality --%>
 
       <.button_item
-        icon="booklet-fill"
-        label="Sections (ss)"
+        icon="node-tree"
+        label="Outline (so)"
         button_attrs={["data-el-sections-list-toggle": true]}
       />
 
@@ -419,8 +419,8 @@ defmodule LivebookWeb.SessionLive.Render do
       class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-8"
       data-el-side-panel
     >
-      <div class="flex grow" data-el-sections-list>
-        <.sections_list data_view={@data_view} />
+      <div data-el-sections-list>
+        <.outline_list data_view={@data_view} />
       </div>
       <div data-el-clients-list>
         <.clients_list data_view={@data_view} client_id={@client_id} />
@@ -497,25 +497,26 @@ defmodule LivebookWeb.SessionLive.Render do
     """
   end
 
-  defp sections_list(assigns) do
+  defp outline_list(assigns) do
     ~H"""
     <div class="flex flex-col grow">
       <h3 class="uppercase text-sm font-semibold text-gray-500">
-        Sections
+        Outline
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
-        <div :for={section_item <- @data_view.sections_items} class="flex items-center">
-          <button
-            class="grow flex items-center text-gray-500 hover:text-gray-900 text-left"
-            data-el-sections-list-item
-            data-section-id={section_item.id}
-          >
-            <span class="flex items-center space-x-1">
+        <div :for={section_item <- @data_view.sections_items} class="flex flex-col">
+          <div class="flex justify-between items-center">
+            <button
+              class="grow flex items-center gap-1 text-gray-500 hover:text-gray-900 text-left"
+              data-el-sections-list-item
+              data-section-id={section_item.id}
+            >
+              <.remix_icon icon="font-size" class="text-lg font-normal leading-none" />
               <span><%= section_item.name %></span>
               <%!--
-              Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-              consequently we show the tooltip wrapped to a fixed number of characters
-              --%>
+                Note: the container has overflow-y auto, so we cannot set overflow-x visible,
+                consequently we show the tooltip wrapped to a fixed number of characters
+                --%>
               <span
                 :if={section_item.parent}
                 {branching_tooltip_attrs(section_item.name, section_item.parent.name)}
@@ -525,12 +526,30 @@ defmodule LivebookWeb.SessionLive.Render do
                   class="text-lg font-normal leading-none flip-horizontally"
                 />
               </span>
-            </span>
-          </button>
-          <.section_status
-            status={elem(section_item.status, 0)}
-            cell_id={elem(section_item.status, 1)}
-          />
+            </button>
+
+            <.section_status
+              status={elem(section_item.status, 0)}
+              cell_id={elem(section_item.status, 1)}
+            />
+          </div>
+
+          <ul :if={section_item.identifier_definitions != []} class="mt-2 ml-5 list-none items-center">
+            <li :for={definition <- section_item.identifier_definitions}>
+              <button
+                class="flex items-center max-w-full text-gray-500 hover:text-gray-900 text-sm gap-1"
+                data-el-sections-list-definition-item
+                data-file={definition.file}
+                data-line={definition.line}
+                title={definition.label}
+              >
+                <.remix_icon icon="braces-line" class="font-normal" />
+                <span class="font-mono truncate">
+                  <%= definition.label %>
+                </span>
+              </button>
+            </li>
+          </ul>
         </div>
       </div>
       <button
@@ -558,7 +577,7 @@ defmodule LivebookWeb.SessionLive.Render do
     wrapped_name = Livebook.Utils.wrap_line("”" <> parent_name <> "”", 16)
     label = "Branches from\n#{wrapped_name}"
 
-    [class: "tooltip #{direction}", data_tooltip: label]
+    [class: "tooltip #{direction}", "data-tooltip": label]
   end
 
   defp clients_list(assigns) do

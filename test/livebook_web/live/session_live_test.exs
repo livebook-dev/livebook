@@ -2632,4 +2632,66 @@ defmodule LivebookWeb.SessionLiveTest do
       assert File.read!(dockerfile_path) =~ "COPY notebook.livemd /apps"
     end
   end
+
+  test "defined modules under sections", %{conn: conn, session: session} do
+    Code.put_compiler_option(:debug_info, true)
+
+    Session.subscribe(session.id)
+
+    {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+    refute render(view) =~ "LivebookWeb.SessionLiveTest.MyBigModuleName"
+
+    cell_id =
+      insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
+      defmodule LivebookWeb.SessionLiveTest.MyBigModuleName do
+        def bar, do: :baz
+      end
+      ''')
+
+    Session.queue_cell_evaluation(session.pid, cell_id)
+    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+    assert has_element?(
+             view,
+             "[data-el-sections-list-definition-item] span",
+             "LivebookWeb.SessionLiveTest.MyBigModuleName"
+           )
+
+    assert render(view) =~
+             ~s'data-file="#cell:#{cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.MyBigModuleName"'
+
+    second_cell_id =
+      insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
+      defmodule LivebookWeb.SessionLiveTest.AnotherModule do
+        def bar, do: :baz
+      end
+
+      defmodule LivebookWeb.SessionLiveTest.Foo do
+        def bar, do: :baz
+      end
+      ''')
+
+    Session.queue_cell_evaluation(session.pid, second_cell_id)
+    assert_receive {:operation, {:add_cell_evaluation_response, _, ^second_cell_id, _, _}}
+
+    assert has_element?(
+             view,
+             "[data-el-sections-list-definition-item] span",
+             "LivebookWeb.SessionLiveTest.AnotherModule"
+           )
+
+    assert has_element?(
+             view,
+             "[data-el-sections-list-definition-item] span",
+             "LivebookWeb.SessionLiveTest.Foo"
+           )
+
+    assert render(view) =~
+             ~s'data-file="#cell:#{second_cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.AnotherModule"'
+
+    assert render(view) =~
+             ~s'data-file="#cell:#{second_cell_id}" data-line="5" title="LivebookWeb.SessionLiveTest.Foo"'
+  after
+    Code.put_compiler_option(:debug_info, false)
+  end
 end

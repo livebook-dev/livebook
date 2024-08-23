@@ -373,7 +373,7 @@ const Session = {
         }
       } else if (keyBuffer.tryMatch(["e", "s"])) {
         this.queueFocusedSectionEvaluation();
-      } else if (keyBuffer.tryMatch(["s", "s"])) {
+      } else if (keyBuffer.tryMatch(["s", "o"])) {
         this.toggleSectionsList();
       } else if (keyBuffer.tryMatch(["s", "e"])) {
         this.toggleSecretsList();
@@ -579,10 +579,22 @@ const Session = {
    */
   handleSectionsListClick(event) {
     const sectionButton = event.target.closest(`[data-el-sections-list-item]`);
+
     if (sectionButton) {
       const sectionId = sectionButton.getAttribute("data-section-id");
       const section = this.getSectionById(sectionId);
       section.scrollIntoView({ behavior: "instant", block: "start" });
+    }
+
+    const sectionDefinitionButton = event.target.closest(
+      `[data-el-sections-list-definition-item]`,
+    );
+
+    if (sectionDefinitionButton) {
+      const file = sectionDefinitionButton.getAttribute("data-file");
+      const line = sectionDefinitionButton.getAttribute("data-line");
+
+      this.jumpToLine(file, line);
     }
   },
 

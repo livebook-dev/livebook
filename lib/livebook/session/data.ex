@@ -118,6 +118,8 @@ defmodule Livebook.Session.Data do
           new_bound_to_inputs: %{input_id() => input_hash()},
           identifiers_used: list(identifier :: term()) | :unknown,
           identifiers_defined: %{(identifier :: term()) => version :: term()},
+          identifier_definitions:
+            list(%{label: String.t(), file: String.t(), line: pos_integer()}),
           data: t()
         }
 
@@ -1401,7 +1403,8 @@ defmodule Livebook.Session.Data do
             identifiers_defined: metadata.identifiers_defined,
             bound_to_inputs: eval_info.new_bound_to_inputs,
             evaluation_end: DateTime.utc_now(),
-            code_markers: metadata.code_markers
+            code_markers: metadata.code_markers,
+            identifier_definitions: metadata.identifier_definitions
         }
       end)
       |> update_cell_evaluation_snapshot(cell, section)
@@ -2380,6 +2383,7 @@ defmodule Livebook.Session.Data do
       data: nil,
       code_markers: [],
       doctest_reports: %{},
+      identifier_definitions: [],
       reevaluates_automatically: false
     }
   end
