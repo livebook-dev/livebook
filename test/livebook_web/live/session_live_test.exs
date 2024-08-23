@@ -2658,7 +2658,7 @@ defmodule LivebookWeb.SessionLiveTest do
            )
 
     assert render(view) =~
-             ~s'data-file="#cell:#{cell_id}" data-line="1" data-tooltip="LivebookWeb.SessionLiveTest.MyBigModuleName"'
+             ~s'data-file="#cell:#{cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.MyBigModuleName"'
 
     second_cell_id =
       insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
@@ -2687,10 +2687,10 @@ defmodule LivebookWeb.SessionLiveTest do
            )
 
     assert render(view) =~
-             ~s'data-file="#cell:#{second_cell_id}" data-line="1" data-tooltip="LivebookWeb.SessionLiveTest.AnotherModule"'
+             ~s'data-file="#cell:#{second_cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.AnotherModule"'
 
     assert render(view) =~
-             ~s'data-file="#cell:#{second_cell_id}" data-line="5" data-tooltip="LivebookWeb.SessionLiveTest.Foo"'
+             ~s'data-file="#cell:#{second_cell_id}" data-line="5" title="LivebookWeb.SessionLiveTest.Foo"'
   after
     Code.put_compiler_option(:debug_info, false)
   end
