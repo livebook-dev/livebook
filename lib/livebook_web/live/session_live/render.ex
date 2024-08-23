@@ -419,7 +419,7 @@ defmodule LivebookWeb.SessionLive.Render do
       class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-8"
       data-el-side-panel
     >
-      <div class="flex grow" data-el-sections-list>
+      <div data-el-sections-list>
         <.sections_list data_view={@data_view} />
       </div>
       <div data-el-clients-list>
@@ -499,7 +499,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
   defp sections_list(assigns) do
     ~H"""
-    <div class="flex flex-col grow max-w-[271px]">
+    <div class="flex flex-col grow">
       <h3 class="uppercase text-sm font-semibold text-gray-500">
         Sections
       </h3>
@@ -539,7 +539,7 @@ defmodule LivebookWeb.SessionLive.Render do
           <ul :if={section_item.identifier_definitions != []} class="mt-2 ml-5 list-none items-center">
             <li :for={definition <- section_item.identifier_definitions}>
               <button
-                class="flex max-w-60 items-center text-gray-500 hover:text-gray-900 text-sm gap-1 tooltip top"
+                class="flex items-center max-w-full text-gray-500 hover:text-gray-900 text-sm gap-1 tooltip top"
                 data-el-sections-list-definition-item
                 data-file={definition.file}
                 data-line={definition.line}
