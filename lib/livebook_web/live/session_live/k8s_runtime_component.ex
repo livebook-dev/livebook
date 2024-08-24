@@ -694,7 +694,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp reconnecting?(namespace, runtime) do
-    match?(%Runtime.Fly{config: %{namespace: ^namespace}}, runtime)
+    match?(%Runtime.K8s{config: %{namespace: ^namespace}}, runtime)
   end
 
   defp create_pvc(socket, pvc) do

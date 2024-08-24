@@ -121,7 +121,7 @@ defmodule Livebook.Runtime.K8s do
              create_pod(req, config, runtime_data)
            end),
          {:ok, pod_ip} <-
-           with_log(caller, "Wait for pod", fn ->
+           with_log(caller, "Waiting for pod", fn ->
              await_pod_ready(req, namespace, pod_name)
            end),
          child_node <- :"#{cluster_data.node_base}@#{pod_ip}",
@@ -330,6 +330,7 @@ defmodule Livebook.Runtime.K8s do
                  {:error, "The Pod was deleted before it started running."}
 
                pod ->
+                 # send(caller, {:runtime_connect_info, pid, pod[]})
                  get_in(pod, [
                    "status",
                    "conditions",
