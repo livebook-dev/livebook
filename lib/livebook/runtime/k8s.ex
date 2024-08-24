@@ -337,7 +337,8 @@ defmodule Livebook.Runtime.K8s do
                    "status"
                  ]) == ["True"]
              end,
-             15_000
+             #  5 minutes
+             300_000
            ),
          {:ok, %{status: 200, body: pod}} <- Kubereq.get(req, namespace, pod_name) do
       {:ok, pod["status"]["podIP"]}
