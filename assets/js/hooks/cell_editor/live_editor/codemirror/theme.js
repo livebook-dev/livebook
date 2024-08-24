@@ -348,6 +348,7 @@ function buildEditorTheme(colors, { dark }) {
         alignItems: "center",
         flexWrap: "wrap",
         padding: "8px",
+        background: colors.background,
 
         "& br": {
           content: '" "',
@@ -358,12 +359,20 @@ function buildEditorTheme(colors, { dark }) {
         "& .cm-textfield": {
           borderRadius: "4px",
           border: `1px solid ${colors.border}`,
+
+          "&:focus": {
+            outline: "none",
+          },
         },
 
         "& .cm-button": {
           borderRadius: "4px",
           background: colors.backgroundLightest,
           border: "none",
+
+          "&:focus-visible": {
+            outline: `1px solid ${colors.text}`,
+          },
         },
 
         "& label:first-of-type": {
@@ -387,6 +396,10 @@ function buildEditorTheme(colors, { dark }) {
             backgroundImage: `url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e")`,
             backgroundColor: colors.backgroundLightest,
             borderColor: "transparent",
+          },
+
+          "&:focus-visible": {
+            outline: `1px solid ${colors.text}`,
           },
         },
 
