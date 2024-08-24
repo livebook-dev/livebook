@@ -119,13 +119,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             label="Namespace"
             options={@namespace_options}
           />
-          <.text_field
-            :if={@namespace_options == nil}
-            name="namespace"
-            value={@namespace}
-            label="Namespace"
-            phx-debounce="600"
-          />
+          <div :if={@namespace_options == nil}>
+            <.text_field name="namespace" value={@namespace} label="Namespace" phx-debounce="600" />
+            <div class="text-sm text-amber-600">
+              You don't have permission to list namespaces. But you can enter a name of an existing namespace.
+            </div>
+          </div>
         </form>
 
         <.rbac_error :if={@rbac_error} error={@rbac_error} />
@@ -226,7 +225,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         entry and a <code>.template.spec.containers[name="livebook-runtime"].volumeMounts[]</code>
         entry to the Pod template below.
       </div>
-      <div class="mt-4 flex flex-col gap-4">
+
+      <div class="mt-4 flex flex-col">
         <div class="flex items-start gap-1">
           <form phx-change="set_home_pvc" phx-target={@myself} class="grow">
             <.select_field
@@ -236,12 +236,21 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               label="Persistent Volume Claim"
               options={[{"None", nil} | @pvcs]}
             />
+            <div :if={!@rbac_permissions.list_pvc}>
+              <.text_field value={@home_pvc} name="home_pvc" label="Persistent Volume Claim" />
+              <div class="text-sm text-amber-600">
+                You don't have permission to list PVCs. But you can enter a name of an existing PVC to be attached.
+              </div>
+            </div>
           </form>
 
           <div class="mt-7 flex items-center gap-1">
-            <span class="tooltip left" data-tooltip="Delete selected PVC">
+            <span
+              :if={@rbac_permissions.delete_pvc}
+              class="tooltip left"
+              data-tooltip="Delete selected PVC"
+            >
               <.icon_button
-                :if={@rbac_permissions.delete_pvc}
                 phx-click="delete_pvc"
                 phx-target={@myself}
                 disabled={@home_pvc == nil or @pvc_action != nil}
@@ -249,7 +258,11 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
                 <.remix_icon icon="delete-bin-6-line" />
               </.icon_button>
             </span>
-            <span class="tooltip left" data-tooltip="Create new PVC">
+            <span
+              :if={@rbac_permissions.create_pvc}
+              class="tooltip left"
+              data-tooltip="Create new PVC"
+            >
               <.icon_button phx-click="new_pvc" phx-target={@myself}>
                 <.remix_icon icon="add-line" />
               </.icon_button>
@@ -258,7 +271,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         </div>
         <div
           :if={@pvc_action[:type] == :delete}
-          class="px-4 py-3 flex space-x-4 items-center border border-gray-200 rounded-lg"
+          class="px-4 py-3 mt-4 flex space-x-4 items-center border border-gray-200 rounded-lg"
         >
           <p class="grow text-gray-700 text-sm">
             Are you sure you want to irreversibly delete Persistent Volume Claim <span class="font-semibold"><%= @home_pvc %></span>?
@@ -289,7 +302,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           phx-submit="create_pvc"
           phx-change="validate_pvc"
           phx-target={@myself}
-          class="flex gap-2 items-center"
+          class="flex gap-2 mt-4 items-center"
           autocomplete="off"
           spellcheck="false"
           errors={["asdf"]}
@@ -313,9 +326,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             Cancel
           </.button>
         </.form>
+        <.error :if={@pvc_action[:error]}><%= @pvc_action[:error] %></.error>
       </div>
-
-      <.error :if={@pvc_action[:error]}><%= @pvc_action[:error] %></.error>
     </div>
     """
   end
@@ -561,11 +573,15 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           |> assign(home_pvc: nil, pvc_action: nil)
           |> pvc_options()
 
-        _ ->
-          socket
+        {:ok, %{body: %{"message" => message}}} ->
+          assign_nested(socket, :pvc_action, error: message)
       end
 
     {:noreply, socket}
+  end
+
+  def handle_event("cancel_delete_pvc", %{}, socket) do
+    {:noreply, assign(socket, pvc_action: nil)}
   end
 
   def handle_event("init", %{}, socket) do
@@ -704,7 +720,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     end
   end
 
-  defp set_context(socket, nil), do: socket
+  defp set_context(socket, nil), do: assign(socket, :context, nil)
 
   defp set_context(socket, context) do
     kubeconfig = Kubereq.Kubeconfig.set_current_context(socket.assigns.kubeconfig, context)
@@ -740,11 +756,18 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   defp set_namespace(socket, ns) do
     reqs = socket.assigns.reqs
 
-    with :ok <- Auth.can_i?(reqs, verb: "create", version: "v1", resource: "pods", namespace: ns),
-         :ok <- Auth.can_i?(reqs, verb: "get", version: "v1", resource: "pods", namespace: ns),
-         :ok <- Auth.can_i?(reqs, verb: "list", version: "v1", resource: "pods", namespace: ns) do
+    with :ok <- Auth.can_i?(reqs, verb: "get", version: "v1", resource: "pods", namespace: ns),
+         :ok <- Auth.can_i?(reqs, verb: "list", version: "v1", resource: "pods", namespace: ns),
+         :ok <- Auth.can_i?(reqs, verb: "watch", version: "v1", resource: "pods", namespace: ns),
+         :ok <- Auth.can_i?(reqs, verb: "create", version: "v1", resource: "pods", namespace: ns),
+         :ok <-
+           Auth.can_i?(reqs,
+             verb: "create",
+             version: "v1",
+             resource: "pods/portforward",
+             namespace: ns
+           ) do
       rbac_checks = [
-        {:get_pvc, {"get", "v1", "persistentvolumeclaims"}},
         {:list_pvc, {"list", "v1", "persistentvolumeclaims"}},
         {:create_pvc, {"create", "v1", "persistentvolumeclaims"}},
         {:delete_pvc, {"delete", "v1", "persistentvolumeclaims"}},
@@ -762,7 +785,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       |> assign(namespace: ns, rbac_permissions: rbac_permissions)
       |> pvc_options()
     else
-      {:error, error} -> assign(socket, rbac_error: error)
+      {:error, error} -> assign(socket, rbac_error: error, namespace: ns)
     end
   end
 
@@ -837,12 +860,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
     socket
     |> assign(
-      context: config_defaults["context"],
-      namespace: config_defaults["namespace"],
       home_pvc: config_defaults["home_pvc"],
-      docker_tag: config_defaults["docker_tag"],
-      pod_template: config_defaults["pod_template"]
+      docker_tag: config_defaults["docker_tag"]
     )
+    |> set_context(config_defaults["context"])
+    |> set_namespace(config_defaults["namespace"])
+    |> set_pod_template(config_defaults["pod_template"].template)
   end
 
   defp config_secret_changeset(socket, attrs) do
