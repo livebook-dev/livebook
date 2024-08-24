@@ -230,6 +230,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 language={@cell_view.editor.language}
                 rounded={@cell_view.editor.placement}
                 intellisense={@cell_view.editor.language == "elixir"}
+                hidden={not @cell_view.editor.visible}
               />
             </div>
           <% :dead -> %>
@@ -609,12 +610,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   attr :intellisense, :boolean, default: false
   attr :read_only, :boolean, default: false
   attr :rounded, :atom, default: :both
+  attr :hidden, :boolean, default: false
 
   defp cell_editor(assigns) do
     ~H"""
     <div
+      class={[@hidden && "hidden"]}
       id={"cell-editor-#{@cell_id}-#{@tag}"}
-      phx-update="ignore"
       phx-hook="CellEditor"
       data-p-cell-id={hook_prop(@cell_id)}
       data-p-tag={hook_prop(@tag)}
@@ -622,7 +624,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-p-intellisense={hook_prop(@intellisense)}
       data-p-read-only={hook_prop(@read_only)}
     >
-      <div class={["bg-editor", rounded_class(@rounded)]} data-el-editor-container>
+      <div
+        id={"cell-editor-#{@cell_id}-#{@tag}-container"}
+        phx-update="ignore"
+        class={["bg-editor", rounded_class(@rounded)]}
+        data-el-editor-container
+      >
         <div data-el-skeleton>
           <div class="py-3 px-8">
             <.content_skeleton bg_class="bg-gray-500" empty={@empty} />

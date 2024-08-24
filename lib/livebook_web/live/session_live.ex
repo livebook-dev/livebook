@@ -1935,7 +1935,8 @@ defmodule LivebookWeb.SessionLive do
           %{
             empty: cell.editor.source == "",
             language: cell.editor.language,
-            placement: cell.editor.placement
+            placement: cell.editor.placement,
+            visible: cell.editor.visible
           }
     }
   end
