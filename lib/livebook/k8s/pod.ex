@@ -86,9 +86,7 @@ defmodule Livebook.K8s.Pod do
     end
   end
 
-  def validate_pod_template(other_input, _namespace) do
-    dbg(other_input)
-
+  def validate_pod_template(_other_input, _namespace) do
     {:error, ~s'Make sure to define a valid resource of apiVersion "v1" and kind "Pod"'}
   end
 

@@ -48,7 +48,7 @@ defmodule Livebook.Runtime.K8s do
   # configuration `inet_dist_listen_options` -> `ipv6_v6only`, which
   # has OS-specific value. However, we don't rely on this here.
 
-  defstruct [:config, :node, :req, :server_pid]
+  defstruct [:config, :node, :req, :server_pid, :lv_pid]
 
   @type config :: %{
           context: String.t(),
@@ -61,7 +61,8 @@ defmodule Livebook.Runtime.K8s do
   @type t :: %__MODULE__{
           node: node() | nil,
           req: Req.Request.t(),
-          server_pid: pid() | nil
+          server_pid: pid() | nil,
+          lv_pid: pid()
         }
 
   use GenServer, restart: :temporary
@@ -73,7 +74,7 @@ defmodule Livebook.Runtime.K8s do
   """
   @spec new(config :: map(), req :: Req.Request.t()) :: t()
   def new(config, req) do
-    %__MODULE__{config: config, req: req}
+    %__MODULE__{config: config, req: req, lv_pid: self()}
   end
 
   def __connect__(runtime) do
@@ -120,10 +121,24 @@ defmodule Livebook.Runtime.K8s do
            with_log(caller, "create pod", fn ->
              create_pod(req, config, runtime_data)
            end),
+         _ <-
+           Phoenix.LiveView.send_update(
+             runtime.lv_pid,
+             LivebookWeb.SessionLive.K8sRuntimeComponent,
+             id: "runtime-config-k8s",
+             pod_name: pod_name
+           ),
          {:ok, pod_ip} <-
-           with_log(caller, "Waiting for pod", fn ->
+           with_log(caller, "Waiting for pod #{pod_name}", fn ->
              await_pod_ready(req, namespace, pod_name)
            end),
+         _ <-
+           Phoenix.LiveView.send_update(
+             runtime.lv_pid,
+             LivebookWeb.SessionLive.K8sRuntimeComponent,
+             id: "runtime-config-k8s",
+             pod_name: nil
+           ),
          child_node <- :"#{cluster_data.node_base}@#{pod_ip}",
          :ok <-
            with_log(caller, "start proxy", fn ->
@@ -347,7 +362,10 @@ defmodule Livebook.Runtime.K8s do
       {:error, :watch_timeout} ->
         {:error, "Timed out waiting for Pod to start up."}
 
-      _ ->
+      {:error, error} ->
+        {:error, error}
+
+      _other ->
         {:error, "Failed getting the Pod's IP address."}
     end
   end

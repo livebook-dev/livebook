@@ -34,7 +34,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        pvc_action: nil,
        home_pvc: nil,
        docker_tag: hd(Livebook.Config.docker_images()).tag,
-       pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil}
+       pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil},
+       pod_name: nil
      )
      |> set_context(kubeconfig.current_context)}
   end
@@ -184,14 +185,17 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           </form>
         </div>
 
-        <div class="mt-8">
-          <.button
-            :if={@rbac_permissions}
-            phx-click="init"
-            phx-target={@myself}
-            disabled={@runtime_status == :connecting}
-          >
+        <div :if={@rbac_permissions} class="mt-8">
+          <.button phx-click="init" phx-target={@myself} disabled={@runtime_status == :connecting}>
             <%= label(@namespace, @runtime, @runtime_status) %>
+          </.button>
+          <.button
+            :if={@runtime_status == :connecting && @pod_name}
+            phx-click="stop"
+            phx-target={@myself}
+            color="red"
+          >
+            Abort Connection
           </.button>
           <div
             :if={reconnecting?(@namespace, @runtime) && @runtime_connect_info}
@@ -592,6 +596,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     {:noreply, socket}
   end
 
+  def handle_event("stop", %{}, socket) do
+    %{reqs: %{pod: req}, namespace: namespace, pod_name: pod_name} = socket.assigns
+    Kubereq.delete(req, namespace, pod_name)
+    {:noreply, socket}
+  end
+
   def handle_event("open_save_config", %{}, socket) do
     changeset = config_secret_changeset(socket, %{name: @config_secret_prefix})
     save_config = %{changeset: changeset, inflight: false, error: false}
@@ -760,6 +770,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
          :ok <- Auth.can_i?(reqs, verb: "list", version: "v1", resource: "pods", namespace: ns),
          :ok <- Auth.can_i?(reqs, verb: "watch", version: "v1", resource: "pods", namespace: ns),
          :ok <- Auth.can_i?(reqs, verb: "create", version: "v1", resource: "pods", namespace: ns),
+         :ok <- Auth.can_i?(reqs, verb: "delete", version: "v1", resource: "pods", namespace: ns),
          :ok <-
            Auth.can_i?(reqs,
              verb: "create",
