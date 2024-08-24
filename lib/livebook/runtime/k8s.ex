@@ -97,7 +97,7 @@ defmodule Livebook.Runtime.K8s do
   @impl true
   def handle_continue({:init, runtime, caller}, state) do
     config = runtime.config
-    namespace = config.namespace
+    %{namespace: namespace, context: context} = config
     req = runtime.req
 
     kubeconfig =
@@ -122,13 +122,14 @@ defmodule Livebook.Runtime.K8s do
            end),
          {:ok, pod_ip} <-
            with_log(caller, "Wait for pod", fn ->
-             await_pod_running(req, namespace, pod_name)
+             await_pod_ready(req, namespace, pod_name)
            end),
          child_node <- :"#{cluster_data.node_base}@#{pod_ip}",
          :ok <-
            with_log(caller, "start proxy", fn ->
              k8s_forward_port(
                kubeconfig,
+               context,
                cluster_data,
                pod_name,
                namespace
@@ -245,10 +246,11 @@ defmodule Livebook.Runtime.K8s do
     %{node_base: "remote_runtime_#{local_port}", remote_port: 44444, local_port: local_port}
   end
 
-  defp k8s_forward_port(nil, _, _, _), do: :ok
+  defp k8s_forward_port(nil, _, _, _, _), do: :ok
 
   defp k8s_forward_port(
          kubeconfig,
+         context,
          %{local_port: local_port, remote_port: remote_port},
          pod_name,
          namespace
@@ -265,17 +267,20 @@ defmodule Livebook.Runtime.K8s do
           "127.0.0.1"
         end
 
-      args = [
-        "port-forward",
-        "--kubeconfig",
-        Path.expand(kubeconfig),
-        "-n",
-        namespace,
-        pod_name,
-        ports,
-        "--address",
-        bind_addr
-      ]
+      args =
+        [
+          "port-forward",
+          "--kubeconfig",
+          Path.expand(kubeconfig),
+          "--context",
+          context,
+          "-n",
+          namespace,
+          pod_name,
+          ports,
+          "--address",
+          bind_addr
+        ]
 
       port =
         Port.open(
@@ -314,14 +319,23 @@ defmodule Livebook.Runtime.K8s do
     end
   end
 
-  defp await_pod_running(req, namespace, pod_name) do
+  defp await_pod_ready(req, namespace, pod_name) do
     with :ok <-
            Kubereq.wait_until(
              req,
              namespace,
              pod_name,
-             fn pod ->
-               pod["status"]["phase"] == "Running"
+             fn
+               :deleted ->
+                 {:error, "The Pod was deleted before it started running."}
+
+               pod ->
+                 get_in(pod, [
+                   "status",
+                   "conditions",
+                   Access.filter(&(&1["type"] == "Ready")),
+                   "status"
+                 ]) == ["True"]
              end,
              15_000
            ),
