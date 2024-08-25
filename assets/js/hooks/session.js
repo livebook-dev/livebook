@@ -375,7 +375,7 @@ const Session = {
         this.queueFocusedSectionEvaluation();
       } else if (keyBuffer.tryMatch(["s", "o"])) {
         this.toggleOutline();
-      } else if (keyBuffer.tryMatch(["s", "e"])) {
+      } else if (keyBuffer.tryMatch(["s", "s"])) {
         this.toggleSecretsList();
       } else if (keyBuffer.tryMatch(["s", "a"])) {
         this.toggleAppInfo();

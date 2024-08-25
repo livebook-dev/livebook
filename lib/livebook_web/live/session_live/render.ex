@@ -362,7 +362,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
       <.button_item
         icon="lock-password-line"
-        label="Secrets (se)"
+        label="Secrets (ss)"
         button_attrs={["data-el-secrets-list-toggle": true]}
       />
 
