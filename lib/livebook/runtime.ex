@@ -712,7 +712,8 @@ defprotocol Livebook.Runtime do
           language: String.t() | nil,
           placement: :bottom | :top,
           source: String.t(),
-          intellisense_node: {atom(), atom()} | nil
+          intellisense_node: {atom(), atom()} | nil,
+          visible: boolean()
         }
 
   @typedoc """
@@ -1030,7 +1031,7 @@ defprotocol Livebook.Runtime do
   The cell can also update some of the editor configuration or source
   by sending:
 
-    * `{:runtime_smart_cell_editor_update, ref, %{optional(:source) => String.t(), optional(:intellisense_node) => {atom(), atom()} | nil}}`
+    * `{:runtime_smart_cell_editor_update, ref, %{optional(:source) => String.t(), optional(:intellisense_node) => {atom(), atom()} | nil}, optional(:visible) => boolean()}`
 
   """
   @spec start_smart_cell(

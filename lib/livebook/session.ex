@@ -1828,9 +1828,9 @@ defmodule Livebook.Session do
           end
 
         state =
-          case options do
-            %{intellisense_node: intellisense_node} ->
-              editor = %{cell.editor | intellisense_node: intellisense_node}
+          case Map.take(options, [:intellisense_node, :visible]) do
+            updates when updates != %{} ->
+              editor = Map.merge(cell.editor, updates)
               operation = {:set_cell_attributes, @client_id, cell.id, %{editor: editor}}
               handle_operation(state, operation)
 
@@ -3262,6 +3262,11 @@ defmodule Livebook.Session do
   defp normalize_smart_cell_started_info(info)
        when info.editor != nil and not is_map_key(info.editor, :intellisense_node) do
     normalize_smart_cell_started_info(put_in(info.editor[:intellisense_node], nil))
+  end
+
+  defp normalize_smart_cell_started_info(info)
+       when info.editor != nil and not is_map_key(info.editor, :visible) do
+    normalize_smart_cell_started_info(put_in(info.editor[:visible], true))
   end
 
   defp normalize_smart_cell_started_info(info), do: info
