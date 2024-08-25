@@ -2653,7 +2653,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     assert has_element?(
              view,
-             "[data-el-sections-list-definition-item] span",
+             "[data-el-outline-definition-item] span",
              "LivebookWeb.SessionLiveTest.MyBigModuleName"
            )
 
@@ -2676,13 +2676,13 @@ defmodule LivebookWeb.SessionLiveTest do
 
     assert has_element?(
              view,
-             "[data-el-sections-list-definition-item] span",
+             "[data-el-outline-definition-item] span",
              "LivebookWeb.SessionLiveTest.AnotherModule"
            )
 
     assert has_element?(
              view,
-             "[data-el-sections-list-definition-item] span",
+             "[data-el-outline-definition-item] span",
              "LivebookWeb.SessionLiveTest.Foo"
            )
 

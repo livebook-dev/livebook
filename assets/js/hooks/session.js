@@ -107,8 +107,8 @@ const Session = {
     document.addEventListener("focus", this._handleDocumentFocus, true);
     document.addEventListener("click", this._handleDocumentClick);
 
-    this.getElement("sections-list").addEventListener("click", (event) => {
-      this.handleSectionsListClick(event);
+    this.getElement("outline").addEventListener("click", (event) => {
+      this.handleOutlineClick(event);
       this.handleCellIndicatorsClick(event);
     });
 
@@ -116,8 +116,8 @@ const Session = {
       this.handleClientsListClick(event),
     );
 
-    this.getElement("sections-list-toggle").addEventListener("click", (event) =>
-      this.toggleSectionsList(),
+    this.getElement("outline-toggle").addEventListener("click", (event) =>
+      this.toggleOutline(),
     );
 
     this.getElement("clients-list-toggle").addEventListener("click", (event) =>
@@ -374,7 +374,7 @@ const Session = {
       } else if (keyBuffer.tryMatch(["e", "s"])) {
         this.queueFocusedSectionEvaluation();
       } else if (keyBuffer.tryMatch(["s", "o"])) {
-        this.toggleSectionsList();
+        this.toggleOutline();
       } else if (keyBuffer.tryMatch(["s", "e"])) {
         this.toggleSecretsList();
       } else if (keyBuffer.tryMatch(["s", "a"])) {
@@ -575,10 +575,10 @@ const Session = {
   },
 
   /**
-   * Handles section link clicks in the section list.
+   * Handles link clicks in the outline panel.
    */
-  handleSectionsListClick(event) {
-    const sectionButton = event.target.closest(`[data-el-sections-list-item]`);
+  handleOutlineClick(event) {
+    const sectionButton = event.target.closest(`[data-el-outline-item]`);
 
     if (sectionButton) {
       const sectionId = sectionButton.getAttribute("data-section-id");
@@ -587,7 +587,7 @@ const Session = {
     }
 
     const sectionDefinitionButton = event.target.closest(
-      `[data-el-sections-list-definition-item]`,
+      `[data-el-outline-definition-item]`,
     );
 
     if (sectionDefinitionButton) {
@@ -695,7 +695,7 @@ const Session = {
    */
   updateSectionListHighlight() {
     const currentListItem = this.el.querySelector(
-      `[data-el-sections-list-item][data-js-is-viewed]`,
+      `[data-el-outline-item][data-js-is-viewed]`,
     );
 
     if (currentListItem) {
@@ -714,7 +714,7 @@ const Session = {
     if (viewedSection) {
       const sectionId = viewedSection.getAttribute("data-section-id");
       const listItem = this.el.querySelector(
-        `[data-el-sections-list-item][data-section-id="${sectionId}"]`,
+        `[data-el-outline-item][data-section-id="${sectionId}"]`,
       );
       listItem.setAttribute("data-js-is-viewed", "");
     }
@@ -830,8 +830,8 @@ const Session = {
 
   // User action handlers (mostly keybindings)
 
-  toggleSectionsList(force = null) {
-    this.toggleSidePanelContent("sections-list", force);
+  toggleOutline(force = null) {
+    this.toggleSidePanelContent("outline", force);
   },
 
   toggleClientsList(force = null) {
