@@ -423,7 +423,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_info({message, _node, _info}, state) when message in [:nodeup, :nodedown] do
+  def handle_info({message, _node, _info}, state)
+      when message in [:nodeup, :nodedown] and state.owner != nil do
     report_connected_nodes(state)
     {:noreply, state}
   end

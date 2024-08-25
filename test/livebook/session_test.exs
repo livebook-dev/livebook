@@ -1079,6 +1079,18 @@ defmodule Livebook.SessionTest do
                  sections: [%{cells: [%{editor: %{intellisense_node: {:test@test, :test}}}]}]
                }
              } = Session.get_data(session.pid)
+
+      # Update visibility
+      send(
+        session.pid,
+        {:runtime_smart_cell_editor_update, smart_cell.id, %{visible: false}}
+      )
+
+      assert %{
+               notebook: %{
+                 sections: [%{cells: [%{editor: %{visible: false}}]}]
+               }
+             } = Session.get_data(session.pid)
     end
 
     test "pings the smart cell before evaluation to await all incoming messages" do
