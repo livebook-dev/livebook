@@ -333,7 +333,7 @@ defmodule LivebookWeb.SessionLive.Render do
       <.button_item
         icon="node-tree"
         label="Outline (so)"
-        button_attrs={["data-el-sections-list-toggle": true]}
+        button_attrs={["data-el-outline-toggle": true]}
       />
 
       <.button_item
@@ -419,7 +419,7 @@ defmodule LivebookWeb.SessionLive.Render do
       class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-8"
       data-el-side-panel
     >
-      <div class="flex grow" data-el-sections-list>
+      <div class="flex grow" data-el-outline>
         <.outline_list data_view={@data_view} />
       </div>
       <div data-el-clients-list>
@@ -508,7 +508,7 @@ defmodule LivebookWeb.SessionLive.Render do
           <div class="flex justify-between items-center">
             <button
               class="grow flex items-center gap-1 text-gray-500 hover:text-gray-900 text-left"
-              data-el-sections-list-item
+              data-el-outline-item
               data-section-id={section_item.id}
             >
               <.remix_icon icon="h-2" class="text-lg font-normal leading-none" />
@@ -538,7 +538,7 @@ defmodule LivebookWeb.SessionLive.Render do
             <li :for={definition <- section_item.identifier_definitions}>
               <button
                 class="flex items-center max-w-full text-gray-500 hover:text-gray-900 text-sm gap-1"
-                data-el-sections-list-definition-item
+                data-el-outline-definition-item
                 data-file={definition.file}
                 data-line={definition.line}
                 title={definition.label}

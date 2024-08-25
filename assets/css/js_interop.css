@@ -115,7 +115,7 @@ solely client-side operations.
   @apply invisible;
 }
 
-[data-el-sections-list-item][data-js-is-viewed] {
+[data-el-outline-item][data-js-is-viewed] {
   @apply text-gray-900;
 }
 
@@ -219,8 +219,8 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-el-session]:not([data-js-side-panel-content="sections-list"])
-  [data-el-sections-list] {
+[data-el-session]:not([data-js-side-panel-content="outline"])
+  [data-el-outline] {
   @apply hidden;
 }
 
@@ -254,8 +254,8 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-el-session][data-js-side-panel-content="sections-list"]
-  [data-el-sections-list-toggle] {
+[data-el-session][data-js-side-panel-content="outline"]
+  [data-el-outline-toggle] {
   @apply text-gray-50 bg-gray-700;
 }
 
