@@ -419,7 +419,7 @@ defmodule LivebookWeb.SessionLive.Render do
       class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-8"
       data-el-side-panel
     >
-      <div data-el-sections-list>
+      <div class="flex grow" data-el-sections-list>
         <.outline_list data_view={@data_view} />
       </div>
       <div data-el-clients-list>
@@ -511,7 +511,7 @@ defmodule LivebookWeb.SessionLive.Render do
               data-el-sections-list-item
               data-section-id={section_item.id}
             >
-              <.remix_icon icon="font-size" class="text-lg font-normal leading-none" />
+              <.remix_icon icon="h-2" class="text-lg font-normal leading-none" />
               <span><%= section_item.name %></span>
               <%!--
                 Note: the container has overflow-y auto, so we cannot set overflow-x visible,
