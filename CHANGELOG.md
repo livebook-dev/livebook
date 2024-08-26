@@ -23,7 +23,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Bumped versions to Elixir 1.17.2 in the Docker image and the desktop app
 * Change the scroll behavior to immediate jump when clicking a notebook sections ([#2705](https://github.com/livebook-dev/livebook/pull/2705))
 * Reduced the size of CUDA-enabled images by including only a subset of the CUDA toolkit ([#2724](https://github.com/livebook-dev/livebook/pull/2724))
-* Improved error message in the Fly runtime config when the app name is taken
 * (Desktop) The Windows installer to execute as normal user ([#2628](https://github.com/livebook-dev/livebook/pull/2628))
 * New Docker images with CUDA 12 are now tagged `*-cuda12` ([#2739](https://github.com/livebook-dev/livebook/pull/2739))
 * Restored browser-default outlines on tab-navigation ([#2749](https://github.com/livebook-dev/livebook/pull/2749))
@@ -41,9 +40,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 * (Desktop) Fixed opening an already open notebook ([#2709](https://github.com/livebook-dev/livebook/pull/2709))
 * Fixed horizontal editor scrollbar to not overlap content in Firefox
-* Page crash when creating a Fly volume fails
-* Fly runtime failing to reconnect when volume is not detached on time ([#2737](https://github.com/livebook-dev/livebook/pull/2737))
-* Slow file transfer when reading file and image inputs from a Fly runtime ([#2738](https://github.com/livebook-dev/livebook/pull/2738))
 
 ## v0.13
 
