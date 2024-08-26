@@ -66,6 +66,21 @@ defmodule Livebook.K8s.Pod do
     put_in(manifest, ["spec", "containers", access_main_container(), "image"], image)
   end
 
+  def add_container_port(manifest, port) do
+    readiness_probe = %{
+      "tcpSocket" => %{"port" => port},
+      "initialDelaySeconds" => 1,
+      "periodSeconds" => 1
+    }
+
+    manifest
+    |> update_in(
+      ["spec", "containers", access_main_container(), Access.key("ports", [])],
+      &[%{"containerPort" => port} | &1]
+    )
+    |> put_in(["spec", "containers", access_main_container(), "readinessProbe"], readiness_probe)
+  end
+
   def pod_from_template(pod_template) do
     pod_template
     |> YamlElixir.read_from_string!()

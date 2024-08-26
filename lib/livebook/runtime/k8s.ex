@@ -119,7 +119,7 @@ defmodule Livebook.Runtime.K8s do
 
     with {:ok, pod_name} <-
            with_log(caller, "create pod", fn ->
-             create_pod(req, config, runtime_data)
+             create_pod(req, config, runtime_data, cluster_data.remote_port)
            end),
          _ <-
            Phoenix.LiveView.send_update(
@@ -209,7 +209,7 @@ defmodule Livebook.Runtime.K8s do
     result
   end
 
-  defp create_pod(req, config, runtime_data) do
+  defp create_pod(req, config, runtime_data, remote_port) do
     %{
       pod_template: pod_template,
       docker_tag: docker_tag,
@@ -241,6 +241,7 @@ defmodule Livebook.Runtime.K8s do
       |> Pod.set_docker_tag(docker_tag)
       |> Pod.set_home_pvc(home_pvc)
       |> Pod.set_namespace(namespace)
+      |> Pod.add_container_port(remote_port)
 
     case Kubereq.create(req, manifest) do
       {:ok, %{status: 201, body: %{"metadata" => %{"name" => pod_name}}}} ->
