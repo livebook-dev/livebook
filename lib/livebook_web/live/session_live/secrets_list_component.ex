@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col grow">
+    <div class="flex flex-col grow" data-el-secrets-list>
       <div class="flex justify-between items-center">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Secrets

@@ -25,7 +25,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col grow">
+    <div class="flex flex-col grow" data-el-files-list>
       <h3 class="uppercase text-sm font-semibold text-gray-500">
         Files
       </h3>

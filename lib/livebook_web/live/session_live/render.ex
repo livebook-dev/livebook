@@ -419,46 +419,34 @@ defmodule LivebookWeb.SessionLive.Render do
       class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-8"
       data-el-side-panel
     >
-      <div class="flex grow" data-el-outline>
-        <.outline_list data_view={@data_view} />
-      </div>
-      <div data-el-clients-list>
-        <.clients_list data_view={@data_view} client_id={@client_id} />
-      </div>
-      <div data-el-files-list>
-        <.live_component
-          module={LivebookWeb.SessionLive.FilesListComponent}
-          id="files-list"
-          session={@session}
-          file_entries={@data_view.file_entries}
-          quarantine_file_entry_names={@data_view.quarantine_file_entry_names}
-        />
-      </div>
-      <div data-el-secrets-list>
-        <.live_component
-          module={LivebookWeb.SessionLive.SecretsListComponent}
-          id="secrets-list"
-          session={@session}
-          secrets={@data_view.secrets}
-          hub_secrets={@data_view.hub_secrets}
-          hub={@data_view.hub}
-        />
-      </div>
-      <div data-el-app-info>
-        <.live_component
-          module={LivebookWeb.SessionLive.AppInfoComponent}
-          id="app-info"
-          session={@session}
-          settings={@data_view.app_settings}
-          app={@app}
-          deployed_app_slug={@data_view.deployed_app_slug}
-          any_session_secrets?={@data_view.any_session_secrets?}
-          hub={@data_view.hub}
-        />
-      </div>
-      <div data-el-runtime-info>
-        <.runtime_info data_view={@data_view} session={@session} />
-      </div>
+      <.outline_list data_view={@data_view} />
+      <.clients_list data_view={@data_view} client_id={@client_id} />
+      <.live_component
+        module={LivebookWeb.SessionLive.FilesListComponent}
+        id="files-list"
+        session={@session}
+        file_entries={@data_view.file_entries}
+        quarantine_file_entry_names={@data_view.quarantine_file_entry_names}
+      />
+      <.live_component
+        module={LivebookWeb.SessionLive.SecretsListComponent}
+        id="secrets-list"
+        session={@session}
+        secrets={@data_view.secrets}
+        hub_secrets={@data_view.hub_secrets}
+        hub={@data_view.hub}
+      />
+      <.live_component
+        module={LivebookWeb.SessionLive.AppInfoComponent}
+        id="app-info"
+        session={@session}
+        settings={@data_view.app_settings}
+        app={@app}
+        deployed_app_slug={@data_view.deployed_app_slug}
+        any_session_secrets?={@data_view.any_session_secrets?}
+        hub={@data_view.hub}
+      />
+      <.runtime_info data_view={@data_view} session={@session} />
     </div>
     """
   end
@@ -499,7 +487,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
   defp outline_list(assigns) do
     ~H"""
-    <div class="flex flex-col grow">
+    <div class="flex flex-col grow" data-el-outline>
       <h3 class="uppercase text-sm font-semibold text-gray-500">
         Outline
       </h3>
@@ -582,7 +570,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
   defp clients_list(assigns) do
     ~H"""
-    <div class="flex flex-col grow">
+    <div class="flex flex-col grow" data-el-clients-list>
       <div class="flex items-center justify-between space-x-4 -mt-1">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Users
@@ -645,7 +633,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
   defp runtime_info(assigns) do
     ~H"""
-    <div class="flex flex-col grow">
+    <div class="flex flex-col grow" data-el-runtime-info>
       <div class="flex items-center justify-between">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Runtime
