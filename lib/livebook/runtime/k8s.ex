@@ -129,7 +129,7 @@ defmodule Livebook.Runtime.K8s do
              pod_name: pod_name
            ),
          {:ok, pod_ip} <-
-           with_log(caller, "Waiting for pod #{pod_name}", fn ->
+           with_pod_events(caller, "Waiting for pod to get ready", req, namespace, pod_name, fn ->
              await_pod_ready(req, namespace, pod_name)
            end),
          _ <-
@@ -207,6 +207,39 @@ defmodule Livebook.Runtime.K8s do
     end
 
     result
+  end
+
+  defp with_pod_events(caller, name, req, namespace, pod_name, fun) do
+    with_log(caller, name, fn ->
+      runtime_pid = self()
+
+      event_watcher_pid =
+        spawn(fn ->
+          event_req =
+            Req.merge(req,
+              resource_path: "api/v1/namespaces/:namespace/events/:name",
+              resource_list_path: "api/v1/namespaces/:namespace/events"
+            )
+
+          {:ok, stream} =
+            Kubereq.watch(event_req, namespace,
+              field_selectors: [
+                {"involvedObject.kind", "Pod"},
+                {"involvedObject.name", pod_name}
+              ]
+            )
+
+          stream
+          |> Enum.each(fn event ->
+            Logger.debug("[K8s runtime] Pod event: \"#{event["object"]["message"]}\"")
+            send(caller, {:runtime_connect_info, runtime_pid, event["object"]["message"]})
+          end)
+        end)
+
+      result = fun.()
+      Process.exit(event_watcher_pid, :normal)
+      result
+    end)
   end
 
   defp create_pod(req, config, runtime_data, remote_port) do
@@ -354,8 +387,8 @@ defmodule Livebook.Runtime.K8s do
                    "status"
                  ]) == ["True"]
              end,
-             #  5 minutes
-             300_000
+             # 24 hours (try "forever" and let peopel stop manually)
+             86_400_000
            ),
          {:ok, %{status: 200, body: pod}} <- Kubereq.get(req, namespace, pod_name) do
       {:ok, pod["status"]["podIP"]}
