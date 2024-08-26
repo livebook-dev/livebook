@@ -79,7 +79,7 @@ jobs:
         with:
           images: ghcr.io/livebook-dev/livebook
           flavor: |
-            suffix=${{ matrix.tag_suffix }}
+            suffix=${{ matrix.tag_suffix }},onlatest=true
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=nightly,enable=${{ github.ref_type != 'tag' }}
