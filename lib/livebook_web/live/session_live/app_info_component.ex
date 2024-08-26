@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col">
+    <div class="flex flex-col" data-el-app-info>
       <div class="flex items-center justify-between">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           App
