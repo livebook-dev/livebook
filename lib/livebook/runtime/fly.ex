@@ -201,7 +201,8 @@ defmodule Livebook.Runtime.Fly do
       mounts: config.volume_id && [%{volume: config.volume_id, path: "/home/livebook"}],
       auto_destroy: true,
       restart: %{policy: "no"},
-      env: env
+      env: env,
+      metadata: %{livebook_runtime: true}
     }
 
     case Livebook.FlyAPI.create_machine(
