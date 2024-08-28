@@ -223,11 +223,11 @@ defmodule Livebook.Runtime.Definitions do
       name: "FLAME runner cell",
       requirement_presets: [
         %{
-          name: "Fly Backend",
+          name: "Fly",
           packages: [kino_flame]
         },
         %{
-          name: "Kubernetes Backend",
+          name: "Kubernetes",
           packages: [kino_flame, flame_k8s_backend, yaml_elixir]
         }
       ]
