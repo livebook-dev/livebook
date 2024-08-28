@@ -60,6 +60,16 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:kino_flame, "~> 0.1.0"}, config: []}
   }
 
+  flame_k8s_backend = %{
+    name: "kino_flame",
+    dependency: %{dep: {:flame_k8s_backend, "~> 0.5.1"}, config: []}
+  }
+
+  yaml_elixir = %{
+    name: "kino_flame",
+    dependency: %{dep: {:yaml_elixir, "~> 2.11.0"}, config: []}
+  }
+
   jason = %{
     name: "jason",
     dependency: %{dep: {:jason, "~> 1.4"}, config: []}
@@ -213,8 +223,12 @@ defmodule Livebook.Runtime.Definitions do
       name: "FLAME runner cell",
       requirement_presets: [
         %{
-          name: "Default",
+          name: "Fly Backend",
           packages: [kino_flame]
+        },
+        %{
+          name: "Kubernetes Backend",
+          packages: [kino_flame, flame_k8s_backend, yaml_elixir]
         }
       ]
     }
