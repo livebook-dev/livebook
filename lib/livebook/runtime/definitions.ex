@@ -62,12 +62,7 @@ defmodule Livebook.Runtime.Definitions do
 
   flame_k8s_backend = %{
     name: "kino_flame",
-    dependency: %{dep: {:flame_k8s_backend, "~> 0.5.1"}, config: []}
-  }
-
-  yaml_elixir = %{
-    name: "kino_flame",
-    dependency: %{dep: {:yaml_elixir, "~> 2.11.0"}, config: []}
+    dependency: %{dep: {:flame_k8s_backend, "~> 0.5"}, config: []}
   }
 
   jason = %{
@@ -228,7 +223,7 @@ defmodule Livebook.Runtime.Definitions do
         },
         %{
           name: "Kubernetes",
-          packages: [kino_flame, flame_k8s_backend, yaml_elixir]
+          packages: [kino_flame, flame_k8s_backend]
         }
       ]
     }
