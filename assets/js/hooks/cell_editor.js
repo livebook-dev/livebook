@@ -87,6 +87,9 @@ const CellEditor = {
     // to clean up and mount a fresh hook, which we force by ensuring
     // the DOM id doesn't match
     this.el.removeAttribute("id");
+    // The container element has phx-update="ignore", so we want to
+    // make sure it is also replaced
+    this.el.querySelector(`[data-el-editor-container]`).removeAttribute("id");
   },
 
   destroyed() {
