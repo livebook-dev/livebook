@@ -28,10 +28,13 @@ defmodule LivebookCLI.Server do
         will be imported
 
       * If the open-command is a directory, the browser window will point
-        to the open page with the directory selected
+        to the open page with the directory selected and that directory
+        will become the Livebook home path (overriden with `LIVEBOOK_HOME`,
+        see below)
 
       * If the open-command is a notebook file, the browser window will point
-        to the opened notebook
+        to the opened notebook and that notebook's directory will become
+        the Livebook home path (overriden with `LIVEBOOK_HOME`, see below)
 
     The open-command runs after the server is started. If a server is
     already running, the browser window will point to the server
@@ -60,6 +63,10 @@ defmodule LivebookCLI.Server do
     Starts a server and opens up a browser at a new notebook:
 
         livebook server @new
+
+    Starts a server and opens up a browser at an existing notebook:
+
+        livebook server notebooks/my-notebook.livemd
 
     Starts a server and imports the notebook at the given URL:
 
@@ -100,6 +107,8 @@ defmodule LivebookCLI.Server do
   end
 
   defp start_server(extra_args) do
+    maybe_set_home_from_args(extra_args)
+
     # We configure the endpoint with `server: true`,
     # so it's gonna start listening
     case Application.ensure_all_started(:livebook) do
@@ -143,6 +152,24 @@ defmodule LivebookCLI.Server do
         :available
     end
   end
+
+  defp maybe_set_home_from_args([maybe_file_or_dir]) do
+    path = Path.expand(maybe_file_or_dir)
+    home_already_set? = !!Application.get_env(:livebook, :home)
+
+    cond do
+      File.dir?(path) and not home_already_set? ->
+        Application.put_env(:livebook, :home, path)
+
+      File.regular?(path) and not home_already_set? ->
+        Application.put_env(:livebook, :home, Path.dirname(path))
+
+      true ->
+        :ok
+    end
+  end
+
+  defp maybe_set_home_from_args(_), do: :ok
 
   defp open_from_args(_base_url, []) do
     :ok
