@@ -116,7 +116,7 @@ solely client-side operations.
 }
 
 [data-el-outline-item][data-js-is-viewed] {
-  @apply text-gray-900;
+  @apply text-gray-950;
 }
 
 [data-el-cell]:not([data-js-focused])[data-js-hover]
