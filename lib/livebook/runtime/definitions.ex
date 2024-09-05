@@ -81,7 +81,7 @@ defmodule Livebook.Runtime.Definitions do
   }
 
   yaml_elixir = %{
-    name: "kino_flame",
+    name: "yaml_elixir",
     dependency: %{dep: {:yaml_elixir, "~> 2.0"}, config: []}
   }
 
