@@ -80,6 +80,11 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:xlsx_reader, "~> 0.8.5"}, config: []}
   }
 
+  yaml_elixir = %{
+    name: "kino_flame",
+    dependency: %{dep: {:yaml_elixir, "~> 2.0"}, config: []}
+  }
+
   windows? = match?({:win32, _}, :os.type())
   nx_backend_package = if(windows?, do: torchx, else: exla)
 
@@ -223,7 +228,7 @@ defmodule Livebook.Runtime.Definitions do
         },
         %{
           name: "Kubernetes",
-          packages: [kino_flame, flame_k8s_backend]
+          packages: [kino_flame, flame_k8s_backend, yaml_elixir]
         }
       ]
     }
