@@ -442,8 +442,8 @@ defmodule Livebook.Hubs.Dockerfile do
   defp config_warnings(config) do
     [
       if config.clustering == nil do
-        "The deployment is not configured for clustering. Make sure to run only one instance" <>
-          " of Livebook, or configure clustering."
+        "Clustering has not been configured for this deployment. " <>
+          "You must either configure it below or make sure to run only one instance of this server."
       end
     ]
   end
