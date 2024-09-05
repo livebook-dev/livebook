@@ -335,3 +335,22 @@ export function wait(milliseconds) {
 export function isSafari() {
   return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 }
+
+/**
+ * Alters element style with the given properties for the callback
+ * execution.
+ *
+ * After the callback is executed, the initial style is restored.
+ */
+export function withStyle(element, style, callback) {
+  const initialStyle = {};
+
+  for (const key in style) {
+    initialStyle[key] = element.style[key];
+    element.style[key] = style[key];
+  }
+
+  callback();
+
+  Object.assign(element.style, initialStyle);
+}

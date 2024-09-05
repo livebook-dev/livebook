@@ -1,11 +1,7 @@
 import { parseHookProps } from "../lib/attribute";
 import Markdown from "../lib/markdown";
 import { globalPubsub } from "../lib/pubsub";
-import {
-  md5Base64,
-  smoothlyScrollToElement,
-  waitUntilInViewport,
-} from "../lib/utils";
+import { md5Base64, smoothlyScrollToElement, withStyle } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
 import { isEvaluable } from "../lib/notebook";
 
@@ -366,15 +362,13 @@ const Cell = {
     const element = this.currentEditor().getElementAtCursor();
 
     // Scroll to the cursor, positioning it near the top of the viewport
-    element.style.scrollMarginTop = "128px";
-
-    scrollIntoView(element, {
-      scrollMode: "if-needed",
-      behavior: "instant",
-      block: "start",
+    withStyle(element, { scrollMarginTop: "128px" }, () => {
+      scrollIntoView(element, {
+        scrollMode: "if-needed",
+        behavior: "instant",
+        block: "start",
+      });
     });
-
-    element.style.scrollMarginTop = undefined;
   },
 };
 
