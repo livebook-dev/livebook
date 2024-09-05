@@ -495,11 +495,11 @@ defmodule LivebookWeb.SessionLive.Render do
         <div :for={section_item <- @data_view.sections_items} class="flex flex-col">
           <div class="flex justify-between items-center">
             <button
-              class="grow flex items-baseline gap-1 text-gray-500 hover:text-gray-900 text-left"
+              class="grow flex items-baseline gap-1 text-gray-600 hover:text-gray-900 text-left"
               data-el-outline-item
               data-section-id={section_item.id}
             >
-              <.remix_icon icon="h-2" class="text-lg font-normal leading-none" />
+              <.remix_icon icon="h-2" class="text-lg font-normal leading-none opacity-50" />
               <span><%= section_item.name %></span>
               <%!--
                 Note: the container has overflow-y auto, so we cannot set overflow-x visible,
@@ -525,13 +525,13 @@ defmodule LivebookWeb.SessionLive.Render do
           <ul :if={section_item.identifier_definitions != []} class="mt-2 ml-5 list-none items-center">
             <li :for={definition <- section_item.identifier_definitions}>
               <button
-                class="flex items-center max-w-full text-gray-500 hover:text-gray-900 text-sm gap-1"
+                class="flex items-center max-w-full text-gray-600 hover:text-gray-900 text-sm gap-1"
                 data-el-outline-definition-item
                 data-file={definition.file}
                 data-line={definition.line}
                 title={definition.label}
               >
-                <.remix_icon icon="braces-line" class="font-normal" />
+                <.remix_icon icon="braces-line" class="font-normal opacity-50" />
                 <span class="font-mono truncate">
                   <%= definition.label %>
                 </span>
