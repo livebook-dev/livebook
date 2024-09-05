@@ -365,11 +365,16 @@ const Cell = {
   scrollEditorCursorIntoViewIfNeeded() {
     const element = this.currentEditor().getElementAtCursor();
 
+    // Scroll to the cursor, positioning it near the top of the viewport
+    element.style.scrollMarginTop = "128px";
+
     scrollIntoView(element, {
       scrollMode: "if-needed",
       behavior: "instant",
-      block: "center",
+      block: "start",
     });
+
+    element.style.scrollMarginTop = undefined;
   },
 };
 
