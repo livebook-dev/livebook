@@ -385,7 +385,7 @@ defmodule Livebook.Hubs.DockerfileTest do
       app_settings = Livebook.Notebook.AppSettings.new()
 
       assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
-      assert warning =~ "The deployment is not configured for clustering"
+      assert warning =~ "Clustering has not been configured for this deployment"
 
       config = %{config | clustering: :auto}
 

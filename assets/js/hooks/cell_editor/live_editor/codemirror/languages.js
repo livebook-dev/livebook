@@ -9,6 +9,7 @@ import { json } from "@codemirror/lang-json";
 import { xml } from "@codemirror/lang-xml";
 import { css } from "@codemirror/lang-css";
 import { html } from "@codemirror/lang-html";
+import { python } from "@codemirror/lang-python";
 import { yaml } from "@codemirror/lang-yaml";
 import { javascript } from "@codemirror/lang-javascript";
 import { erlang } from "@codemirror/legacy-modes/mode/erlang";
@@ -28,6 +29,11 @@ const erlangDesc = LanguageDescription.of({
 const sqlDesc = LanguageDescription.of({
   name: "SQL",
   support: sql(),
+});
+
+const pythonDesc = LanguageDescription.of({
+  name: "Python",
+  support: python(),
 });
 
 const yamlDesc = LanguageDescription.of({
@@ -73,6 +79,7 @@ const markdownDesc = LanguageDescription.of({
       elixirDesc,
       erlangDesc,
       sqlDesc,
+      pythonDesc,
       yamlDesc,
       jsonDesc,
       xmlDesc,
@@ -88,6 +95,7 @@ export const languages = [
   elixirDesc,
   erlangDesc,
   sqlDesc,
+  pythonDesc,
   yamlDesc,
   jsonDesc,
   xmlDesc,

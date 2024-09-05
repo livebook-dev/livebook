@@ -57,7 +57,12 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_flame = %{
     name: "kino_flame",
-    dependency: %{dep: {:kino_flame, "~> 0.1.0"}, config: []}
+    dependency: %{dep: {:kino_flame, "~> 0.1.3"}, config: []}
+  }
+
+  flame_k8s_backend = %{
+    name: "flame_k8s_backend",
+    dependency: %{dep: {:flame_k8s_backend, "~> 0.5"}, config: []}
   }
 
   jason = %{
@@ -73,6 +78,11 @@ defmodule Livebook.Runtime.Definitions do
   xlsx_reader = %{
     name: "xlsx_reader",
     dependency: %{dep: {:xlsx_reader, "~> 0.8.5"}, config: []}
+  }
+
+  yaml_elixir = %{
+    name: "yaml_elixir",
+    dependency: %{dep: {:yaml_elixir, "~> 2.0"}, config: []}
   }
 
   windows? = match?({:win32, _}, :os.type())
@@ -213,8 +223,12 @@ defmodule Livebook.Runtime.Definitions do
       name: "FLAME runner cell",
       requirement_presets: [
         %{
-          name: "Default",
+          name: "Fly",
           packages: [kino_flame]
+        },
+        %{
+          name: "Kubernetes",
+          packages: [kino_flame, flame_k8s_backend, yaml_elixir]
         }
       ]
     }
