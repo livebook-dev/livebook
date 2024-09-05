@@ -92,6 +92,20 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               phx-debounce
             />
 
+            <.text_field
+              label="URL"
+              help={
+                ~S'''
+                If you provide the URL you
+                will host your instances at,
+                Livebook will use it to
+                generate direct links
+                throughout its interface
+                '''
+              }
+              field={@form[:url]}
+            />
+
             <.hidden_field field={@form[:hub_id]} value={@hub.id} />
 
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={@form} />
