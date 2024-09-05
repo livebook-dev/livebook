@@ -495,7 +495,7 @@ defmodule LivebookWeb.SessionLive.Render do
         <div :for={section_item <- @data_view.sections_items} class="flex flex-col">
           <div class="flex justify-between items-center">
             <button
-              class="grow flex items-center gap-1 text-gray-500 hover:text-gray-900 text-left"
+              class="grow flex items-baseline gap-1 text-gray-500 hover:text-gray-900 text-left"
               data-el-outline-item
               data-section-id={section_item.id}
             >
