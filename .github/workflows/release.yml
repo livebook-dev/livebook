@@ -55,7 +55,7 @@ jobs:
             tag_suffix: "-cuda12"
             build_args: |
               VARIANT=cuda
-              CUDA_VERSION=12-1
+              CUDA_VERSION=12-6
     steps:
       - uses: actions/checkout@v4
       - run: |
