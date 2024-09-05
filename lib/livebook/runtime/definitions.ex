@@ -61,7 +61,7 @@ defmodule Livebook.Runtime.Definitions do
   }
 
   flame_k8s_backend = %{
-    name: "kino_flame",
+    name: "flame_k8s_backend",
     dependency: %{dep: {:flame_k8s_backend, "~> 0.5"}, config: []}
   }
 
