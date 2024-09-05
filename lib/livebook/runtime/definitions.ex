@@ -104,6 +104,16 @@ defmodule Livebook.Runtime.Definitions do
           ]
         },
         %{
+          name: "DuckDB",
+          packages: [
+            kino_db,
+            %{
+              name: "adbc",
+              dependency: %{dep: {:adbc, ">= 0.0.0"}, config: []}
+            }
+          ]
+        },
+        %{
           name: "Google BigQuery",
           packages: [
             kino_db,
