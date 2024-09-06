@@ -202,7 +202,7 @@ defmodule Livebook.Runtime.Fly do
       auto_destroy: true,
       restart: %{policy: "no"},
       env: env,
-      metadata: %{livebook_runtime: true}
+      metadata: %{livebook_runtime: "true"}
     }
 
     case Livebook.FlyAPI.create_machine(
