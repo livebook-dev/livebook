@@ -130,7 +130,7 @@ defmodule LivebookCLI.Server do
     health_url = set_path(base_url, "/public/health")
 
     case Livebook.Utils.HTTP.request(:get, health_url) do
-      {:ok, status, _headers, body} ->
+      {:ok, %{status: status, body: body}} ->
         with 200 <- status,
              {:ok, body} <- Jason.decode(body),
              %{"application" => "livebook"} <- body do

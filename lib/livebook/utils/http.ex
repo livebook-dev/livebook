@@ -1,26 +1,17 @@
 defmodule Livebook.Utils.HTTP do
   @type status :: non_neg_integer()
-  @type headers :: list(header())
+  @type headers :: %{String.t() => list(String.t())}
   @type header :: {String.t(), String.t()}
-
-  @doc """
-  Retrieves the header value from response headers.
-  """
-  @spec fetch_header(headers(), String.t()) :: {:ok, String.t()} | :error
-  def fetch_header(headers, key) do
-    case Enum.find(headers, &match?({^key, _}, &1)) do
-      {_, value} -> {:ok, value}
-      _ -> :error
-    end
-  end
 
   @doc """
   Retrieves content type from response headers.
   """
   @spec fetch_content_type(headers()) :: {:ok, String.t()} | :error
   def fetch_content_type(headers) do
-    with {:ok, value} <- fetch_header(headers, "content-type") do
+    with {:ok, [value]} <- Map.fetch(headers, "content-type") do
       {:ok, value |> String.split(";") |> hd()}
+    else
+      _ -> :error
     end
   end
 
@@ -37,7 +28,7 @@ defmodule Livebook.Utils.HTTP do
 
   """
   @spec request(atom(), String.t(), keyword()) ::
-          {:ok, status(), headers(), binary()} | {:error, term()}
+          {:ok, %{status: status(), headers: headers(), body: binary()}} | {:error, term()}
   def request(method, url, opts \\ [])
       when is_atom(method) and is_binary(url) and is_list(opts) do
     headers = build_headers(opts[:headers] || [])
@@ -59,7 +50,7 @@ defmodule Livebook.Utils.HTTP do
 
     case :httpc.request(method, request, http_opts, opts) do
       {:ok, {{_, status, _}, headers, body}} ->
-        {:ok, status, parse_headers(headers), body}
+        {:ok, %{status: status, headers: parse_headers(headers), body: body}}
 
       {:error, error} ->
         {:error, error}
@@ -76,9 +67,12 @@ defmodule Livebook.Utils.HTTP do
   end
 
   defp parse_headers(headers) do
-    Enum.map(headers, fn {key, val} ->
+    headers
+    |> Enum.map(fn {key, val} ->
       {String.downcase(to_string(key)), to_string(val)}
     end)
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Map.new()
   end
 
   @doc """

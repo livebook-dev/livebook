@@ -132,7 +132,7 @@ defmodule Livebook.UpdateCheck do
     headers = [{"accept", "application/vnd.github.v3+json"}]
 
     case Livebook.Utils.HTTP.request(:get, url, headers: headers) do
-      {:ok, status, _headers, body} ->
+      {:ok, %{status: status, body: body}} ->
         with 200 <- status,
              {:ok, release} <- Jason.decode(body) do
           {:ok, release}

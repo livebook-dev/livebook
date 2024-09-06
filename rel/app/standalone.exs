@@ -143,7 +143,7 @@ defmodule Standalone do
     Logger.debug("Downloading #{url}")
 
     case Livebook.Utils.HTTP.request(:get, url, timeout: :infinity) do
-      {:ok, 200, _headers, body} ->
+      {:ok, %{status: 200, body: body}} ->
         body
 
       {:error, error} ->
