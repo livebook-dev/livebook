@@ -2468,6 +2468,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, session} = Sessions.create_session(notebook: notebook)
 
+      Session.subscribe(session.id)
+
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       assert view
@@ -2479,6 +2481,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       render_confirm(view)
+
+      assert_receive {:operation, {:allow_file_entry, _client_id, "document.pdf"}}
 
       refute view
              |> element(~s/[data-el-files-list]/)
