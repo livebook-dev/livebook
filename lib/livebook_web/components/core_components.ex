@@ -193,7 +193,7 @@ defmodule LivebookWeb.CoreComponents do
         <.focus_wrap
           id={"#{@id}-content"}
           class={[
-            "relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl",
+            "relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl focus-visible:outline-none",
             "w-full p-6",
             modal_width_class(@width)
           ]}
