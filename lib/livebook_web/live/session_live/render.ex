@@ -794,6 +794,9 @@ defmodule LivebookWeb.SessionLive.Render do
     <div class="mt-8 flex flex-col gap-2">
       <span class="text-sm text-gray-500 font-semibold uppercase">
         Connected nodes
+        <%= if @runtime_connected_nodes != [] do %>
+          (<%= length(@runtime_connected_nodes) %>)
+        <% end %>
       </span>
       <%= if @runtime_connected_nodes == [] do %>
         <div class="text-sm text-gray-800 flex flex-col">
