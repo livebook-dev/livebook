@@ -54,7 +54,7 @@ defmodule Livebook.Notebook.ContentLoader do
   @spec fetch_content(String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def fetch_content(url) do
     case HTTP.request(:get, url) do
-      {:ok, 200, headers, body} ->
+      {:ok, %{status: 200, headers: headers, body: body}} ->
         valid_content? =
           case HTTP.fetch_content_type(headers) do
             {:ok, content_type} ->

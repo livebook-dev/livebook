@@ -284,7 +284,7 @@ defmodule Livebook.Runtime.Dependencies do
     url = api_url <> "/packages?" <> URI.encode_query(params)
 
     case Livebook.Utils.HTTP.request(:get, url) do
-      {:ok, status, _headers, body} ->
+      {:ok, %{status: status, body: body}} ->
         with 200 <- status, {:ok, packages} <- Jason.decode(body) do
           packages =
             packages
