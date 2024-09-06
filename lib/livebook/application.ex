@@ -130,7 +130,8 @@ defmodule Livebook.Application do
 
       _ ->
         Livebook.Config.abort!("""
-        You must set the environment variable ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD"
+        You must set the environment variable ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD" \
+        before the command (and exclusively before the command)
         """)
     end
   end
