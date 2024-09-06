@@ -2122,6 +2122,12 @@ defmodule LivebookWeb.SessionLiveTest do
       # Use the standalone runtime, to encapsulate env var changes
       Session.set_runtime(session.pid, Runtime.Standalone.new())
 
+      # We start the runtime before adding the env var setting,
+      # otherwise a concurrent embedded runtime server could set PATH
+      # in this node and the standalone runtime would inherit it
+      Session.subscribe(session.id)
+      connect_and_await_runtime(session.pid)
+
       separator =
         case :os.type() do
           {:win32, _} -> ";"
@@ -2134,7 +2140,6 @@ defmodule LivebookWeb.SessionLiveTest do
       attrs = params_for(:env_var, name: "PATH", value: tmp_dir)
       Settings.set_env_var(attrs)
 
-      Session.subscribe(session.id)
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
