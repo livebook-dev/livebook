@@ -27,8 +27,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        cluster_check: %{status: :initial, error: nil},
        namespace: nil,
        namespace_options: nil,
-       rbac_permissions: nil,
-       rbac_error: nil,
+       rbac: %{status: :inflight, errors: [], permissions: []},
        save_config: nil,
        pvcs: nil,
        pvc_action: nil,
@@ -123,12 +122,16 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           <div :if={@namespace_options == nil}>
             <.text_field name="namespace" value={@namespace} label="Namespace" phx-debounce="600" />
             <div class="text-sm text-amber-600">
-              You don't have permission to list namespaces. But you can enter a name of an existing namespace.
+              Authenticated user has no permission to list namespaces. But you can enter a name of an existing namespace.
             </div>
           </div>
         </form>
 
-        <.rbac_error :if={@rbac_error} error={@rbac_error} />
+        <.message_box :if={@rbac.status === :errors} kind={:error}>
+          <%= for error <- @rbac.errors do %>
+            <.rbac_error error={error} />
+          <% end %>
+        </.message_box>
 
         <form
           :if={@cluster_check.status == :ok}
@@ -138,7 +141,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           class="mt-8"
         >
           <.radio_field
-            :if={@rbac_permissions}
+            :if={@rbac.status == :ok}
             name="docker_tag"
             value={@docker_tag}
             label="Base Docker image"
@@ -147,15 +150,15 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         </form>
 
         <.storage_config
-          :if={@rbac_permissions}
+          :if={@rbac.status == :ok}
           myself={@myself}
           home_pvc={@home_pvc}
           pvcs={@pvcs}
           pvc_action={@pvc_action}
-          rbac_permissions={@rbac_permissions}
+          rbac={@rbac}
         />
 
-        <div :if={@rbac_permissions} class="mt-8">
+        <div :if={@rbac.status == :ok} class="mt-8">
           <div class="mt-4 text-base text-gray-800 font-medium">
             Pod Template
           </div>
@@ -185,7 +188,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           </form>
         </div>
 
-        <div :if={@rbac_permissions} class="mt-8">
+        <div :if={@rbac.status == :ok} class="mt-8">
           <.button phx-click="init" phx-target={@myself} disabled={@runtime_status == :connecting}>
             <%= label(@namespace, @runtime, @runtime_status) %>
           </.button>
@@ -234,23 +237,23 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         <div class="flex items-start gap-1">
           <form phx-change="set_home_pvc" phx-target={@myself} class="grow">
             <.select_field
-              :if={@rbac_permissions.list_pvc}
+              :if={@rbac.permissions.list_pvc}
               value={@home_pvc}
               name="home_pvc"
               label="Persistent Volume Claim"
               options={[{"None", nil} | @pvcs]}
             />
-            <div :if={!@rbac_permissions.list_pvc}>
+            <div :if={!@rbac.permissions.list_pvc}>
               <.text_field value={@home_pvc} name="home_pvc" label="Persistent Volume Claim" />
               <div class="text-sm text-amber-600">
-                You don't have permission to list PVCs. But you can enter a name of an existing PVC to be attached.
+                Authenticated user has no permission to list PVCs. But you can enter a name of an existing PVC to be attached.
               </div>
             </div>
           </form>
 
           <div class="mt-7 flex items-center gap-1">
             <span
-              :if={@rbac_permissions.delete_pvc}
+              :if={@rbac.permissions.delete_pvc}
               class="tooltip left"
               data-tooltip="Delete selected PVC"
             >
@@ -263,7 +266,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               </.icon_button>
             </span>
             <span
-              :if={@rbac_permissions.create_pvc}
+              :if={@rbac.permissions.create_pvc}
               class="tooltip left"
               data-tooltip="Create new PVC"
             >
@@ -482,15 +485,13 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     assigns = assign(assigns, verb: verb, gkv: gkv, namespace: namespace)
 
     ~H"""
-    <.message_box kind={:error}>
-      <div class="flex items-center justify-between">
-        <div>
-          User has no permission to <span class="font-semibold"><%= @verb %></span>
-          <code><%= @gkv %></code>
-          <span :if={@namespace}> in namespace <code><%= @namespace %></code> (or the namespace doesn't exist)</span>.
-        </div>
+    <div class="flex items-center justify-between">
+      <div>
+        Authenticated user has no permission to <span class="font-semibold"><%= @verb %></span>
+        <code><%= @gkv %></code>
+        <span :if={@namespace}> in namespace <code><%= @namespace %></code> (or the namespace doesn't exist)</span>.
       </div>
-    </.message_box>
+    </div>
     """
   end
 
@@ -649,6 +650,11 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   @impl true
+  def handle_async(:rbac_check, {:ok, %{errors: errors, permissions: permissions}}, socket) do
+    status = if errors === [], do: :ok, else: :errors
+    {:noreply, assign(socket, :rbac, %{status: status, errors: errors, permissions: permissions})}
+  end
+
   def handle_async(:load_namespace_options, {:ok, result}, socket) do
     socket =
       with :ok <- result,
@@ -746,7 +752,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
     socket
     |> start_async(:load_namespace_options, fn ->
-      Livebook.K8s.Auth.create_access_reviews(reqs)
+      Livebook.K8s.Auth.can_i?(reqs.access_reviews,
+        verb: "create",
+        group: "authorization.k8s.io",
+        version: "v1",
+        resource: "selfsubjectaccessreviews"
+      )
     end)
     |> assign(
       kubeconfig: kubeconfig,
@@ -760,44 +771,49 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp set_namespace(socket, nil) do
-    assign(socket, namespace: nil, rbac_permissions: nil)
+    assign(socket, namespace: nil, rbac: %{status: :inflight, errors: [], permissions: []})
   end
 
   defp set_namespace(socket, ns) do
     reqs = socket.assigns.reqs
 
-    with :ok <- Auth.can_i?(reqs, verb: "get", version: "v1", resource: "pods", namespace: ns),
-         :ok <- Auth.can_i?(reqs, verb: "list", version: "v1", resource: "pods", namespace: ns),
-         :ok <- Auth.can_i?(reqs, verb: "watch", version: "v1", resource: "pods", namespace: ns),
-         :ok <- Auth.can_i?(reqs, verb: "create", version: "v1", resource: "pods", namespace: ns),
-         :ok <- Auth.can_i?(reqs, verb: "delete", version: "v1", resource: "pods", namespace: ns),
-         :ok <-
-           Auth.can_i?(reqs,
-             verb: "create",
-             version: "v1",
-             resource: "pods/portforward",
-             namespace: ns
-           ) do
-      rbac_checks = [
-        {:list_pvc, {"list", "v1", "persistentvolumeclaims"}},
-        {:create_pvc, {"create", "v1", "persistentvolumeclaims"}},
-        {:delete_pvc, {"delete", "v1", "persistentvolumeclaims"}},
-        {:list_sc, {"list", "v1", "storageclasses"}}
-      ]
+    socket
+    |> start_async(:rbac_check, fn ->
+      {required_permissions, optional_permissions} =
+        Auth.batch_check(reqs.access_reviews, [
+          # required permissions:
+          [verb: "get", version: "v1", resource: "pods", namespace: ns],
+          [verb: "list", version: "v1", resource: "pods", namespace: ns],
+          [verb: "watch", version: "v1", resource: "pods", namespace: ns],
+          [verb: "create", version: "v1", resource: "pods", namespace: ns],
+          [verb: "delete", version: "v1", resource: "pods", namespace: ns],
+          [verb: "create", version: "v1", resource: "pods/portforward", namespace: ns],
+          # optional permissions:
+          [verb: "list", version: "v1", resource: "persistentvolumeclaims", namespace: ns],
+          [verb: "create", version: "v1", resource: "persistentvolumeclaims", namespace: ns],
+          [verb: "delete", version: "v1", resource: "persistentvolumeclaims", namespace: ns],
+          [verb: "list", version: "v1", resource: "storageclasses", namespace: ns]
+        ])
+        |> Enum.split(6)
 
-      rbac_permissions =
-        for {key, {verb, version, resource}} <- rbac_checks, into: %{} do
-          {key,
-           :ok ==
-             Auth.can_i?(reqs, verb: verb, version: version, resource: resource, namespace: ns)}
-        end
+      errors =
+        required_permissions
+        |> Enum.reject(&(&1 === :ok))
+        |> Enum.map(fn {:error, error} -> error end)
 
-      socket
-      |> assign(namespace: ns, rbac_permissions: rbac_permissions)
-      |> pvc_options()
-    else
-      {:error, error} -> assign(socket, rbac_error: error, namespace: ns)
-    end
+      permissions =
+        optional_permissions
+        |> Enum.map(&(&1 === :ok))
+        |> then(&Enum.zip([:list_pvc, :create_pvc, :delete_pvc, :list_sc], &1))
+        |> Map.new()
+
+      %{errors: errors, permissions: permissions}
+    end)
+    |> assign(
+      namespace: ns,
+      rbac: %{status: :inflight, errors: :inflight, permissions: :inflight}
+    )
+    |> pvc_options()
   end
 
   def set_pod_template(socket, pod_template_yaml) do

@@ -1,26 +1,30 @@
 defmodule Livebook.K8s.Auth do
-  def create_access_reviews(reqs) do
-    can_i?(reqs,
-      verb: "create",
-      group: "authorization.k8s.io",
-      version: "v1",
-      resource: "selfsubjectaccessreviews"
-    )
-  end
+  @moduledoc """
+  Implementation of Access Review checks for the authenticated user using the
+  [`SelfSubjectAccessReview`](https://kubernetes.io/docs/reference/kubernetes-api/authorization-resources/self-subject-access-review-v1/#SelfSubjectAccessReviewSpec)
+  resource
+  """
 
-  def create_namespaces(reqs) do
-    can_i?(reqs, verb: "create", version: "v1", resource: "namespaces")
-  end
-
-  def create_pods(reqs, namespace) do
-    can_i?(reqs, verb: "create", version: "v1", resource: "pods", namespace: namespace)
+  @doc """
+  Concurrently reviews access according to a list of `resource_attributes`.
+  Expects `req` to be prepared for `SelfSubjectAccessReview`.
+  """
+  @spec batch_check(Req.Request.t(), [keyword()]) ::
+          [:ok | {:error, %Req.Response{}} | {:error, Exception.t()}]
+  def batch_check(req, resource_attribute_list) do
+    resource_attribute_list
+    |> Enum.map(&Task.async(fn -> can_i?(req, &1) end))
+    # 30 second timeout
+    |> Task.await_many(30_000)
   end
 
   @doc """
-  Validates the resource attributes according to the documentation
-  https://kubernetes.io/docs/reference/kubernetes-api/authorization-resources/self-subject-access-review-v1/#SelfSubjectAccessReviewSpec
+  Reviews access according to `resource_attributes`.
+  Expects `req` to be prepared for `SelfSubjectAccessReview`.
   """
-  def can_i?(reqs, resource_attributes) do
+  @spec can_i?(Req.Request.t(), keyword()) ::
+          :ok | {:error, %Req.Response{}} | {:error, Exception.t()}
+  def can_i?(req, resource_attributes) do
     resource_attributes =
       resource_attributes
       |> Keyword.validate!([
@@ -43,11 +47,11 @@ defmodule Livebook.K8s.Auth do
       }
     }
 
-    create_self_subject_access_review(reqs, access_review)
+    create_self_subject_access_review(req, access_review)
   end
 
-  defp create_self_subject_access_review(reqs, access_review) do
-    case Kubereq.create(reqs.access_reviews, access_review) do
+  defp create_self_subject_access_review(req, access_review) do
+    case Kubereq.create(req, access_review) do
       {:ok, %Req.Response{status: 201, body: %{"status" => %{"allowed" => true}}}} ->
         :ok
 
