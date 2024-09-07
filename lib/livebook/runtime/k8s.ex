@@ -214,26 +214,30 @@ defmodule Livebook.Runtime.K8s do
       runtime_pid = self()
 
       event_watcher_pid =
-        spawn(fn ->
-          event_req =
-            Req.merge(req,
+        spawn_link(fn ->
+          watch_result =
+            req
+            |> Req.merge(
               resource_path: "api/v1/namespaces/:namespace/events/:name",
               resource_list_path: "api/v1/namespaces/:namespace/events"
             )
-
-          {:ok, stream} =
-            Kubereq.watch(event_req, namespace,
+            |> Kubereq.watch(namespace,
               field_selectors: [
                 {"involvedObject.kind", "Pod"},
                 {"involvedObject.name", pod_name}
               ]
             )
 
-          stream
-          |> Enum.each(fn event ->
-            Logger.debug("[K8s runtime] Pod event: \"#{event["object"]["message"]}\"")
-            send(caller, {:runtime_connect_info, runtime_pid, event["object"]["message"]})
-          end)
+          case watch_result do
+            {:ok, stream} ->
+              Enum.each(stream, fn event ->
+                Logger.debug(~s'[K8s runtime] Pod event: "#{event["object"]["message"]}"')
+                send(caller, {:runtime_connect_info, runtime_pid, event["object"]["message"]})
+              end)
+
+            _error ->
+              :ok
+          end
         end)
 
       result = fun.()
@@ -379,7 +383,6 @@ defmodule Livebook.Runtime.K8s do
                  {:error, "The Pod was deleted before it started running."}
 
                pod ->
-                 # send(caller, {:runtime_connect_info, pid, pod[]})
                  get_in(pod, [
                    "status",
                    "conditions",
@@ -387,8 +390,8 @@ defmodule Livebook.Runtime.K8s do
                    "status"
                  ]) == ["True"]
              end,
-             # 24 hours (try "forever" and let peopel stop manually)
-             86_400_000
+             # 10 minutes
+             600_000
            ),
          {:ok, %{status: 200, body: pod}} <- Kubereq.get(req, namespace, pod_name) do
       {:ok, pod["status"]["podIP"]}
