@@ -33,8 +33,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        pvc_action: nil,
        home_pvc: nil,
        docker_tag: hd(Livebook.Config.docker_images()).tag,
-       pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil},
-       pod_name: nil
+       pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil}
      )
      |> set_context(kubeconfig.current_context)}
   end
@@ -191,14 +190,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         <div :if={@rbac.status == :ok} class="mt-8">
           <.button phx-click="init" phx-target={@myself} disabled={@runtime_status == :connecting}>
             <%= label(@namespace, @runtime, @runtime_status) %>
-          </.button>
-          <.button
-            :if={@runtime_status == :connecting && @pod_name}
-            phx-click="stop"
-            phx-target={@myself}
-            color="red"
-          >
-            Abort Connection
           </.button>
           <div
             :if={reconnecting?(@namespace, @runtime) && @runtime_connect_info}
@@ -496,14 +487,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   @impl true
-  def handle_event("validate_kubeconfig", _params, socket) do
-    {:noreply, socket}
-  end
-
-  def handle_event("save_kubeconfig", _params, socket) do
-    {:noreply, socket}
-  end
-
   def handle_event("set_context", %{"context" => context}, socket) do
     {:noreply, socket |> set_context(context) |> set_namespace(nil)}
   end
@@ -594,12 +577,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     runtime = Runtime.K8s.new(config, socket.assigns.reqs.pod)
     Session.set_runtime(socket.assigns.session.pid, runtime)
     Session.connect_runtime(socket.assigns.session.pid)
-    {:noreply, socket}
-  end
-
-  def handle_event("stop", %{}, socket) do
-    %{reqs: %{pod: req}, namespace: namespace, pod_name: pod_name} = socket.assigns
-    Kubereq.delete(req, namespace, pod_name)
     {:noreply, socket}
   end
 

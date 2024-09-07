@@ -48,7 +48,7 @@ defmodule Livebook.Runtime.K8s do
   # configuration `inet_dist_listen_options` -> `ipv6_v6only`, which
   # has OS-specific value. However, we don't rely on this here.
 
-  defstruct [:config, :node, :req, :server_pid, :lv_pid]
+  defstruct [:config, :node, :req, :server_pid, :lv_pid, :pod_name]
 
   @type config :: %{
           context: String.t(),
@@ -62,7 +62,8 @@ defmodule Livebook.Runtime.K8s do
           node: node() | nil,
           req: Req.Request.t(),
           server_pid: pid() | nil,
-          lv_pid: pid()
+          lv_pid: pid(),
+          pod_name: String.t() | nil
         }
 
   use GenServer, restart: :temporary
@@ -121,24 +122,10 @@ defmodule Livebook.Runtime.K8s do
            with_log(caller, "create pod", fn ->
              create_pod(req, config, runtime_data, cluster_data.remote_port)
            end),
-         _ <-
-           Phoenix.LiveView.send_update(
-             runtime.lv_pid,
-             LivebookWeb.SessionLive.K8sRuntimeComponent,
-             id: "runtime-config-k8s",
-             pod_name: pod_name
-           ),
          {:ok, pod_ip} <-
            with_pod_events(caller, "Waiting for pod to get ready", req, namespace, pod_name, fn ->
              await_pod_ready(req, namespace, pod_name)
            end),
-         _ <-
-           Phoenix.LiveView.send_update(
-             runtime.lv_pid,
-             LivebookWeb.SessionLive.K8sRuntimeComponent,
-             id: "runtime-config-k8s",
-             pod_name: nil
-           ),
          child_node <- :"#{cluster_data.node_base}@#{pod_ip}",
          :ok <-
            with_log(caller, "start proxy", fn ->
@@ -164,7 +151,7 @@ defmodule Livebook.Runtime.K8s do
 
       send(primary_pid, :node_initialized)
 
-      runtime = %{runtime | node: child_node, server_pid: server_pid}
+      runtime = %{runtime | node: child_node, server_pid: server_pid, pod_name: pod_name}
       send(caller, {:runtime_connect_done, self(), {:ok, runtime}})
 
       {:noreply, %{state | primary_ref: primary_ref}}
@@ -447,10 +434,13 @@ end
 defimpl Livebook.Runtime, for: Livebook.Runtime.K8s do
   alias Livebook.Runtime.ErlDist.RuntimeServer
 
-  def describe(_) do
-    [
-      {"Type", "K8s Pod"}
-    ]
+  def describe(runtime) do
+    [{"Type", "K8s Pod"}] ++
+      if runtime.node do
+        [{"Pod name", runtime.pod_name}, {"Node name", Atom.to_string(runtime.node)}]
+      else
+        []
+      end
   end
 
   def connect(runtime) do

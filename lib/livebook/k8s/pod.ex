@@ -19,13 +19,11 @@ defmodule Livebook.K8s.Pod do
             memory: 1Gi
   """
 
-  defmacrop access_main_container() do
-    quote do
-      Access.filter(&(&1["name"] == @main_container_name))
-    end
+  def access_main_container() do
+    Access.filter(&(&1["name"] == @main_container_name))
   end
 
-  defguardp is_empty(value) when is_nil(value) or value == "" or value == []
+  defguardp is_empty(value) when value in [nil, "", []]
 
   def default_pod_template(), do: @default_pod_template
 
