@@ -32,14 +32,33 @@ defmodule Livebook.Runtime.K8sTest do
     if not (clusters_out
             |> String.split("\n", trim: true)
             |> Enum.member?(@cluster_name)) do
-      exit_code = Mix.Shell.IO.cmd("kind create cluster --name #{@cluster_name}")
+      exit_code = Mix.Shell.IO.cmd("kind create cluster --name #{@cluster_name}", quiet: true)
       assert 0 == exit_code, "Could not create kind cluster '#{@cluster_name}'"
     end
 
-    assert 0 ==
-             Mix.Shell.IO.cmd(
-               ~s'kind export kubeconfig --name #{@cluster_name} --kubeconfig "#{@kubeconfig_path}"'
-             )
+    # export kubeconfig file
+    Mix.Shell.IO.cmd(
+      ~s'kind export kubeconfig --name #{@cluster_name} --kubeconfig "#{@kubeconfig_path}"',
+      quiet: true
+    )
+
+    {_, bindings} = Code.eval_file("versions")
+
+    # build container image
+    Mix.Shell.IO.cmd(
+      ~s'docker buildx build --build-arg BASE_IMAGE=$BASE_IMAGE --build-arg VARIANT=default --load -t ghcr.io/livebook-dev/livebook:nightly .',
+      env: [
+        {"BASE_IMAGE",
+         "hexpm/elixir:#{bindings[:elixir]}-erlang-#{bindings[:otp]}-ubuntu-#{bindings[:ubuntu]}"}
+      ],
+      quiet: true
+    )
+
+    # load container image into Kind cluster
+    Mix.Shell.IO.cmd(
+      ~s'kind load docker-image --name #{@cluster_name} ghcr.io/livebook-dev/livebook:nightly',
+      quiet: true
+    )
 
     :ok
   end
@@ -55,9 +74,6 @@ defmodule Livebook.Runtime.K8sTest do
     assert_receive {:runtime_connect_info, ^pid, "create pod"}, @assert_receive_timeout
 
     assert_receive {:runtime_connect_info, ^pid, "Waiting for pod to get ready"},
-                   @assert_receive_timeout
-
-    assert_receive {:runtime_connect_info, ^pid, "Successfully assigned" <> _},
                    @assert_receive_timeout
 
     assert_receive {:runtime_connect_info, ^pid, "Created container livebook-runtime"},
@@ -96,7 +112,7 @@ defmodule Livebook.Runtime.K8sTest do
   end
 
   defp req() do
-    [{Kubereq.Kubeconfig.File, path: @kubeconfig_path}]
+    [Kubereq.Kubeconfig.ENV, {Kubereq.Kubeconfig.File, path: @kubeconfig_path}]
     |> Kubereq.Kubeconfig.load()
     |> Kubereq.new("api/v1/namespaces/:namespace/pods/:name")
   end

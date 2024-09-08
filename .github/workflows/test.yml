@@ -11,6 +11,7 @@ jobs:
     env:
       MIX_ENV: test
       ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD"
+      KUBECONFIG: /home/runner/.kube/config
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v4
@@ -40,6 +41,12 @@ jobs:
         run: mix format --check-formatted
       - name: Check warnings
         run: mix compile --warnings-as-errors
+      - name: Install kind
+        uses: engineerd/setup-kind@v0.5.0
+        id: kind
+        with:
+          version: v0.24.0
+          name: livebook-runtime-test
       - name: Run tests
         run: mix test
       - name: Install Node
