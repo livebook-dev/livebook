@@ -320,6 +320,8 @@ defmodule Livebook.Utils do
   @doc """
   Changes the first letter in the given string to lower case.
 
+  If the second letter is uppercase, the first letter case is kept.
+
   ## Examples
 
       iex> Livebook.Utils.downcase_first("Sippin tea")
@@ -328,6 +330,9 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.downcase_first("Short URL")
       "short URL"
 
+      iex> Livebook.Utils.downcase_first("URL invalid")
+      "URL invalid"
+
       iex> Livebook.Utils.downcase_first("")
       ""
 
@@ -335,7 +340,17 @@ defmodule Livebook.Utils do
   @spec downcase_first(String.t()) :: String.t()
   def downcase_first(string) do
     {first, rest} = String.split_at(string, 1)
-    String.downcase(first) <> rest
+
+    should_downcase? =
+      if second = String.at(rest, 0) do
+        second == String.downcase(second)
+      end
+
+    if should_downcase? do
+      String.downcase(first) <> rest
+    else
+      string
+    end
   end
 
   @doc """
