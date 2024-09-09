@@ -1,4 +1,6 @@
 defmodule Livebook.K8s.Pod do
+  # Kubernetes runtime pod manifest functionality
+
   @main_container_name "livebook-runtime"
   @home_pvc_volume_name "lb-home-folder"
   @default_pod_template """
@@ -21,12 +23,25 @@ defmodule Livebook.K8s.Pod do
 
   defguardp is_empty(value) when value in [nil, "", []]
 
+  @doc """
+  Returns the default pod template.
+  """
+  @spec default_pod_template() :: String.t()
   def default_pod_template(), do: @default_pod_template
 
+  @doc """
+  Set the namespace on the given manifest
+  """
+  @spec set_namespace(manifest :: map(), namespace :: String.t()) :: map()
   def set_namespace(manifest, namespace) do
     put_in(manifest, ~w(metadata namespace), namespace)
   end
 
+  @doc """
+  Adds volume and volumeMount configurations to `manifest` in
+  order to mount `home_pvc` under /home/livebook on the pod.
+  """
+  @spec set_home_pvc(manifest :: map(), home_pvc :: String.t()) :: map()
   def set_home_pvc(manifest, home_pvc) when is_empty(home_pvc), do: manifest
 
   def set_home_pvc(manifest, home_pvc) do
@@ -47,6 +62,10 @@ defmodule Livebook.K8s.Pod do
     )
   end
 
+  @doc """
+  Adds the list of `env_vars` to the main container of the given `manifest`.
+  """
+  @spec add_env_vars(manifest :: map(), env_vars :: list()) :: map()
   def add_env_vars(manifest, env_vars) do
     update_in(
       manifest,
@@ -55,11 +74,19 @@ defmodule Livebook.K8s.Pod do
     )
   end
 
+  @doc """
+  Sets the tag of the main container's image.
+  """
+  @spec set_docker_tag(manifest :: map(), docker_tag :: String.t()) :: map()
   def set_docker_tag(manifest, docker_tag) do
     image = "ghcr.io/livebook-dev/livebook:#{docker_tag}"
     put_in(manifest, ["spec", "containers", access_main_container(), "image"], image)
   end
 
+  @doc """
+  Adds the `port` to the main container and adds a readiness probe.
+  """
+  @spec add_container_port(manifest :: map(), port :: non_neg_integer()) :: map()
   def add_container_port(manifest, port) do
     readiness_probe = %{
       "tcpSocket" => %{"port" => port},
@@ -75,10 +102,14 @@ defmodule Livebook.K8s.Pod do
     |> put_in(["spec", "containers", access_main_container(), "readinessProbe"], readiness_probe)
   end
 
+  @doc """
+  Turns the given `pod_template` into a Pod manifest.
+  """
+  @spec pod_from_template(pod_template :: String.t()) :: map()
   def pod_from_template(pod_template) do
     pod_template
     |> YamlElixir.read_from_string!()
-    |> do_pod_from_template
+    |> do_pod_from_template()
   end
 
   defp do_pod_from_template(pod) do
@@ -87,6 +118,10 @@ defmodule Livebook.K8s.Pod do
     |> put_in(~w(spec restartPolicy), "Never")
   end
 
+  @doc """
+  Validates the given pod manifest.
+  """
+  @spec validate_pod_template(pod :: map(), namespace :: String.t()) :: :ok | {:error, String.t()}
   def validate_pod_template(%{"apiVersion" => "v1", "kind" => "Pod"} = pod, namespace) do
     with :ok <- validate_basics(pod),
          :ok <- validate_main_container(pod),

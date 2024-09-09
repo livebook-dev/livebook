@@ -1,9 +1,7 @@
 defmodule Livebook.K8s.Auth do
-  @moduledoc """
-  Implementation of Access Review checks for the authenticated user using the
-  [`SelfSubjectAccessReview`](https://kubernetes.io/docs/reference/kubernetes-api/authorization-resources/self-subject-access-review-v1/#SelfSubjectAccessReviewSpec)
-  resource
-  """
+  # Implementation of Access Review checks for the authenticated user using the
+  # [`SelfSubjectAccessReview`](https://kubernetes.io/docs/reference/kubernetes-api/authorization-resources/self-subject-access-review-v1/#SelfSubjectAccessReviewSpec)
+  # resource
 
   @doc """
   Concurrently reviews access according to a list of `resource_attributes`.

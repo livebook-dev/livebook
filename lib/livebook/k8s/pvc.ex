@@ -21,6 +21,9 @@ defmodule Livebook.K8s.PVC do
   @fields ~w(name size_gb access_mode storage_class)a
   @required ~w(name size_gb access_mode)a
 
+  @doc """
+  Build a PVC changeset for the given `attrs`.
+  """
   @spec changeset(map()) :: Ecto.Changeset.t()
   def changeset(attrs \\ %{}) do
     %__MODULE__{}
@@ -28,6 +31,10 @@ defmodule Livebook.K8s.PVC do
     |> validate_required(@required)
   end
 
+  @doc """
+  Build PVC manifest for the given `pvc` and `namespace` to be applied to a
+  cluster.
+  """
   @spec manifest(pvc :: t(), namespace: String.t()) :: manifest :: map()
   def manifest(pvc, namespace) do
     %{
