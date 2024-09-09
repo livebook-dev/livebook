@@ -73,7 +73,7 @@ defmodule Livebook.Runtime.K8sTest do
 
     assert_receive {:runtime_connect_info, ^pid, "create pod"}, @assert_receive_timeout
 
-    assert_receive {:runtime_connect_info, ^pid, "Waiting for pod to get ready"},
+    assert_receive {:runtime_connect_info, ^pid, "waiting for pod"},
                    @assert_receive_timeout
 
     assert_receive {:runtime_connect_info, ^pid, "Created container livebook-runtime"},

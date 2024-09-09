@@ -123,7 +123,7 @@ defmodule Livebook.Runtime.K8s do
              create_pod(req, config, runtime_data, cluster_data.remote_port)
            end),
          {:ok, pod_ip} <-
-           with_pod_events(caller, "Waiting for pod to get ready", req, namespace, pod_name, fn ->
+           with_pod_events(caller, "waiting for pod", req, namespace, pod_name, fn ->
              await_pod_ready(req, namespace, pod_name)
            end),
          child_node <- :"#{cluster_data.node_base}@#{pod_ip}",
@@ -246,7 +246,6 @@ defmodule Livebook.Runtime.K8s do
       |> Pod.pod_from_template()
       |> Pod.add_env_vars([
         %{"name" => "LIVEBOOK_RUNTIME", "value" => runtime_data},
-        %{"name" => "ERL_AFLAGS", "value" => "-proto_dist inet6_tcp"},
         %{
           "name" => "POD_IP",
           "valueFrom" => %{"fieldRef" => %{"apiVersion" => "v1", "fieldPath" => "status.podIP"}}
