@@ -116,6 +116,14 @@ defmodule Livebook.Runtime.Fly do
       |> :erlang.term_to_binary()
       |> Base.encode64()
 
+    parent = self()
+
+    {:ok, watcher_pid} =
+      DynamicSupervisor.start_child(
+        Livebook.RuntimeSupervisor,
+        {Task, fn -> watcher(parent, config) end}
+      )
+
     with :ok <-
            (if config.volume_id && runtime.previous_machine_id do
               with_log(caller, "await resources", fn ->
@@ -128,6 +136,7 @@ defmodule Livebook.Runtime.Fly do
            with_log(caller, "create machine", fn ->
              create_machine(config, runtime_data)
            end),
+         _ <- send(watcher_pid, {:machine_created, machine_id}),
          child_node <- :"#{node_base}@#{machine_id}.vm.#{config.app_name}.internal",
          {:ok, proxy_port} <-
            with_log(caller, "start proxy", fn ->
@@ -151,6 +160,8 @@ defmodule Livebook.Runtime.Fly do
 
       send(primary_pid, :node_initialized)
 
+      send(watcher_pid, :done)
+
       runtime = %{runtime | node: child_node, server_pid: server_pid, machine_id: machine_id}
       send(caller, {:runtime_connect_done, self(), {:ok, runtime}})
 
@@ -170,6 +181,29 @@ defmodule Livebook.Runtime.Fly do
 
   def handle_info({port, _message}, state) when state.proxy_port == port do
     {:noreply, state}
+  end
+
+  defp watcher(parent, config) do
+    ref = Process.monitor(parent)
+    watcher_loop(%{ref: ref, config: config, machine_id: nil})
+  end
+
+  defp watcher_loop(state) do
+    receive do
+      {:DOWN, ref, :process, _pid, _reason} when ref == state.ref ->
+        # If the parent process is killed, we try to eagerly free the
+        # created resources
+        if machine_id = state.machine_id do
+          config = state.config
+          _ = Livebook.FlyAPI.delete_machine(config.token, config.app_name, machine_id)
+        end
+
+      {:machine_created, machine_id} ->
+        watcher_loop(%{state | machine_id: machine_id})
+
+      :done ->
+        :ok
+    end
   end
 
   defp create_machine(config, runtime_data) do

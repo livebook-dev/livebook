@@ -2424,9 +2424,15 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:disconnect_runtime, runtime}) do
-    Runtime.disconnect(runtime)
-    state = %{state | runtime_monitor_ref: nil}
-    after_runtime_disconnected(state)
+    if state.runtime_connect do
+      Process.demonitor(state.runtime_connect.ref, [:flush])
+      Process.exit(state.runtime_connect.pid, :kill)
+      %{state | runtime_connect: nil}
+    else
+      Runtime.disconnect(runtime)
+      state = %{state | runtime_monitor_ref: nil}
+      after_runtime_disconnected(state)
+    end
   end
 
   defp handle_action(state, {:start_evaluation, cell, section, evaluation_opts}) do

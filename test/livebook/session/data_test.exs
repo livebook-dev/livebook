@@ -3940,11 +3940,8 @@ defmodule Livebook.Session.DataTest do
   end
 
   describe "apply_operation/2 given :disconnect_runtime" do
-    test "returns an error if the runtime is not connected" do
-      data =
-        data_after_operations!([
-          {:connect_runtime, @cid}
-        ])
+    test "returns an error if the runtime is disconnected" do
+      data = Data.new()
 
       operation = {:disconnect_runtime, @cid}
 
