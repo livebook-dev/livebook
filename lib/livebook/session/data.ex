@@ -921,7 +921,7 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:disconnect_runtime, _client_id}) do
-    with :connected <- data.runtime_status do
+    with true <- data.runtime_status in [:connecting, :connected] do
       data
       |> with_actions()
       |> disconnect_runtime()

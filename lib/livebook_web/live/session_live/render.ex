@@ -676,7 +676,7 @@ defmodule LivebookWeb.SessionLive.Render do
           </.button>
 
           <.button
-            :if={@data_view.runtime_status == :connected}
+            :if={@data_view.runtime_status in [:connected, :connecting]}
             color="red"
             outlined
             type="button"

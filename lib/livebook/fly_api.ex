@@ -189,6 +189,22 @@ defmodule Livebook.FlyAPI do
   end
 
   @doc """
+  Deletes the given machine.
+  """
+  @spec delete_machine(String.t(), String.t(), String.t()) :: :ok | {:error, error}
+  def delete_machine(token, app_name, machine_id) do
+    params = %{force: true}
+
+    with {:ok, _data} <-
+           flaps_request(token, "/v1/apps/#{app_name}/machines/#{machine_id}",
+             method: :delete,
+             params: params
+           ) do
+      :ok
+    end
+  end
+
+  @doc """
   Waits for the machine to start.
   """
   @spec await_machine_started(String.t(), String.t(), String.t()) :: :ok | {:error, error}
