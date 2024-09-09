@@ -19,10 +19,6 @@ defmodule Livebook.K8s.Pod do
             memory: 1Gi
   """
 
-  def access_main_container() do
-    Access.filter(&(&1["name"] == @main_container_name))
-  end
-
   defguardp is_empty(value) when value in [nil, "", []]
 
   def default_pod_template(), do: @default_pod_template
@@ -164,5 +160,9 @@ defmodule Livebook.K8s.Pod do
       {:error,
        "The field .template.metadata.namespace has to be omitted or set to the namespace you selected."}
     end
+  end
+
+  defp access_main_container() do
+    Access.filter(&(&1["name"] == @main_container_name))
   end
 end

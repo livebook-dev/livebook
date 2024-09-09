@@ -229,8 +229,9 @@ defmodule Livebook.Runtime.K8s do
           case watch_result do
             {:ok, stream} ->
               Enum.each(stream, fn event ->
-                Logger.debug(~s'[K8s runtime] Pod event: "#{event["object"]["message"]}"')
-                send(caller, {:runtime_connect_info, runtime_pid, event["object"]["message"]})
+                message = Livebook.Utils.downcase_first(event["object"]["message"])
+                Logger.debug(~s'[K8s runtime] Pod event: "#{message}"')
+                send(caller, {:runtime_connect_info, runtime_pid, message})
               end)
 
             _error ->

@@ -76,10 +76,10 @@ defmodule Livebook.Runtime.K8sTest do
     assert_receive {:runtime_connect_info, ^pid, "waiting for pod"},
                    @assert_receive_timeout
 
-    assert_receive {:runtime_connect_info, ^pid, "Created container livebook-runtime"},
+    assert_receive {:runtime_connect_info, ^pid, "created container livebook-runtime"},
                    @assert_receive_timeout
 
-    assert_receive {:runtime_connect_info, ^pid, "Started container livebook-runtime"},
+    assert_receive {:runtime_connect_info, ^pid, "started container livebook-runtime"},
                    @assert_receive_timeout
 
     assert_receive {:runtime_connect_info, ^pid, "start proxy"}, @assert_receive_timeout
