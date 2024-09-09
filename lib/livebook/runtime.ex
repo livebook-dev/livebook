@@ -806,13 +806,20 @@ defprotocol Livebook.Runtime do
   The `runtime` should be the struct updated with all information
   necessary for further communication.
 
-  In case the initialization is a particularly involved process, the
-  process may send updates to the caller:
+  In case the initialization is a particularly involved, the process
+  may send updates to the caller:
 
       * `{:runtime_connect_info, pid, info}`
 
   Where `info` is a few word text describing the current initialization
   step.
+
+  If the caller decides to abort the initialization, they can forecefully
+  kill the process. The runtime resources should already be tolerant
+  to abrupt Livebook termination and autodestroy through monitoring
+  and timeouts. However, when the initialization process gets killed,
+  it may be desirable to eagerly remove the resources it has already
+  allocated, which can be achieved with an additional watcher process.
   """
   @spec connect(t()) :: pid()
   def connect(runtime)

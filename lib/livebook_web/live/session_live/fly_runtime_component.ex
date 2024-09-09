@@ -122,16 +122,27 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           />
 
           <div class="mt-8">
-            <.button
-              phx-click="init"
-              phx-target={@myself}
-              disabled={
-                @runtime_status == :connecting or not @specs_changeset.valid? or
-                  volume_errors(@volume_id, @volumes, @region) != []
-              }
-            >
-              <%= label(@app_name, @runtime, @runtime_status) %>
-            </.button>
+            <div class="flex gap-2">
+              <.button
+                phx-click="init"
+                phx-target={@myself}
+                disabled={
+                  @runtime_status == :connecting or not @specs_changeset.valid? or
+                    volume_errors(@volume_id, @volumes, @region) != []
+                }
+              >
+                <%= label(@app_name, @runtime, @runtime_status) %>
+              </.button>
+              <.button
+                :if={@runtime_status == :connecting}
+                color="red"
+                outlined
+                phx-click="disconnect"
+                phx-target={@myself}
+              >
+                Disconnect
+              </.button>
+            </div>
             <div
               :if={reconnecting?(@app_name, @runtime) && @runtime_connect_info}
               class="mt-4 scroll-mb-8"
@@ -579,6 +590,11 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
     runtime = Runtime.Fly.new(config)
     Session.set_runtime(socket.assigns.session.pid, runtime)
     Session.connect_runtime(socket.assigns.session.pid)
+    {:noreply, socket}
+  end
+
+  def handle_event("disconnect", %{}, socket) do
+    Session.disconnect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
