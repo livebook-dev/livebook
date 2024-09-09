@@ -26,38 +26,39 @@ defmodule Livebook.Runtime.K8sTest do
   """
 
   setup_all do
-    {clusters_out, exit_code} = System.cmd("kind", ~w(get clusters))
+    {clusters_out, exit_code} = System.cmd("kind", ~w(get clusters), stderr_to_stdout: true)
     assert 0 == exit_code, "kind is not installed. Please install kind."
 
-    if not (clusters_out
-            |> String.split("\n", trim: true)
-            |> Enum.member?(@cluster_name)) do
-      exit_code = Mix.Shell.IO.cmd("kind create cluster --name #{@cluster_name}", quiet: true)
+    clusters = String.split(clusters_out, "\n", trim: true)
+
+    if @cluster_name not in clusters do
+      {_, exit_code} =
+        System.cmd("kind", ["create", "cluster", "--name", @cluster_name], stderr_to_stdout: true)
+
       assert 0 == exit_code, "Could not create kind cluster '#{@cluster_name}'"
     end
 
     # export kubeconfig file
-    Mix.Shell.IO.cmd(
-      ~s'kind export kubeconfig --name #{@cluster_name} --kubeconfig "#{@kubeconfig_path}"',
-      quiet: true
+    System.cmd(
+      "kind",
+      ["export", "kubeconfig", "--name", @cluster_name, "--kubeconfig", @kubeconfig_path],
+      stderr_to_stdout: true
     )
 
     {_, bindings} = Code.eval_file("versions")
 
     # build container image
-    Mix.Shell.IO.cmd(
-      ~s'docker buildx build --build-arg BASE_IMAGE=$BASE_IMAGE --build-arg VARIANT=default --load -t ghcr.io/livebook-dev/livebook:nightly .',
-      env: [
-        {"BASE_IMAGE",
-         "hexpm/elixir:#{bindings[:elixir]}-erlang-#{bindings[:otp]}-ubuntu-#{bindings[:ubuntu]}"}
-      ],
-      quiet: true
+    System.cmd(
+      "docker",
+      ~w(buildx build --build-arg BASE_IMAGE=hexpm/elixir:#{bindings[:elixir]}-erlang-#{bindings[:otp]}-ubuntu-#{bindings[:ubuntu]} --build-arg VARIANT=default --load -t ghcr.io/livebook-dev/livebook:nightly .),
+      stderr_to_stdout: true
     )
 
     # load container image into Kind cluster
-    Mix.Shell.IO.cmd(
-      ~s'kind load docker-image --name #{@cluster_name} ghcr.io/livebook-dev/livebook:nightly',
-      quiet: true
+    System.cmd(
+      "kind",
+      ["load", "docker-image", "--name", @cluster_name, "ghcr.io/livebook-dev/livebook:nightly"],
+      stderr_to_stdout: true
     )
 
     :ok
