@@ -118,10 +118,19 @@ defmodule Livebook.Runtime.K8s do
       |> :erlang.term_to_binary()
       |> Base.encode64()
 
+    parent = self()
+
+    {:ok, watcher_pid} =
+      DynamicSupervisor.start_child(
+        Livebook.RuntimeSupervisor,
+        {Task, fn -> watcher(parent, req, config) end}
+      )
+
     with {:ok, pod_name} <-
            with_log(caller, "create pod", fn ->
              create_pod(req, config, runtime_data, cluster_data.remote_port)
            end),
+         _ <- send(watcher_pid, {:pod_created, pod_name}),
          {:ok, pod_ip} <-
            with_pod_events(caller, "waiting for pod", req, namespace, pod_name, fn ->
              await_pod_ready(req, namespace, pod_name)
@@ -150,6 +159,8 @@ defmodule Livebook.Runtime.K8s do
         end)
 
       send(primary_pid, :node_initialized)
+
+      send(watcher_pid, :done)
 
       runtime = %{runtime | node: child_node, server_pid: server_pid, pod_name: pod_name}
       send(caller, {:runtime_connect_done, self(), {:ok, runtime}})
@@ -231,6 +242,29 @@ defmodule Livebook.Runtime.K8s do
       Process.exit(event_watcher_pid, :normal)
       result
     end)
+  end
+
+  defp watcher(parent, req, config) do
+    ref = Process.monitor(parent)
+    watcher_loop(%{ref: ref, config: config, req: req, pod_name: nil})
+  end
+
+  defp watcher_loop(state) do
+    receive do
+      {:DOWN, ref, :process, _pid, _reason} when ref == state.ref ->
+        # If the parent process is killed, we try to eagerly free the
+        # created resources
+        if pod_name = state.pod_name do
+          namespace = state.config.namespace
+          _ = Kubereq.delete(state.req, namespace, pod_name)
+        end
+
+      {:pod_created, pod_name} ->
+        watcher_loop(%{state | pod_name: pod_name})
+
+      :done ->
+        :ok
+    end
   end
 
   defp create_pod(req, config, runtime_data, remote_port) do

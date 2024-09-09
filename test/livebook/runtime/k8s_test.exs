@@ -91,7 +91,7 @@ defmodule Livebook.Runtime.K8sTest do
 
     assert [_] = list_pods(req)
 
-    # Verify that we can actually evaluate code on the Fly machine
+    # Verify that we can actually evaluate code on the Kubernetes Pod
     Runtime.evaluate_code(runtime, :elixir, ~s/System.fetch_env!("TEST_VAR")/, {:c1, :e1}, [])
     assert_receive {:runtime_evaluation_response, :e1, %{type: :terminal_text, text: text}, _meta}
     assert text =~ "present"

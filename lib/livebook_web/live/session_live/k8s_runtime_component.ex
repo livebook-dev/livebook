@@ -188,9 +188,20 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         </div>
 
         <div :if={@rbac.status == :ok} class="mt-8">
-          <.button phx-click="init" phx-target={@myself} disabled={@runtime_status == :connecting}>
-            <%= label(@namespace, @runtime, @runtime_status) %>
-          </.button>
+          <div class="flex gap-2">
+            <.button phx-click="init" phx-target={@myself} disabled={@runtime_status == :connecting}>
+              <%= label(@namespace, @runtime, @runtime_status) %>
+            </.button>
+            <.button
+              :if={@runtime_status == :connecting}
+              color="red"
+              outlined
+              phx-click="disconnect"
+              phx-target={@myself}
+            >
+              Disconnect
+            </.button>
+          </div>
           <div
             :if={reconnecting?(@namespace, @runtime) && @runtime_connect_info}
             class="mt-4 scroll-mb-8"
@@ -505,6 +516,11 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_event("set_home_pvc", %{"home_pvc" => home_pvc}, socket) do
     {:noreply, assign(socket, :home_pvc, home_pvc)}
+  end
+
+  def handle_event("disconnect", %{}, socket) do
+    Session.disconnect_runtime(socket.assigns.session.pid)
+    {:noreply, socket}
   end
 
   def handle_event("new_pvc", %{}, socket) do
