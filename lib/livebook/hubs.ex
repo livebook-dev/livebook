@@ -207,7 +207,7 @@ defmodule Livebook.Hubs do
   """
   @spec create_secret(Provider.t(), Secret.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, Provider.field_errors()}
           | {:transport_error, String.t()}
   def create_secret(hub, %Secret{} = secret) do
     Provider.create_secret(hub, secret)
@@ -218,7 +218,7 @@ defmodule Livebook.Hubs do
   """
   @spec update_secret(Provider.t(), Secret.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, Provider.field_errors()}
           | {:transport_error, String.t()}
   def update_secret(hub, %Secret{} = secret) do
     Provider.update_secret(hub, secret)
@@ -279,7 +279,7 @@ defmodule Livebook.Hubs do
   """
   @spec create_file_system(Provider.t(), FileSystem.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, Provider.field_errors()}
           | {:transport_error, String.t()}
   def create_file_system(hub, file_system) do
     Provider.create_file_system(hub, file_system)
@@ -290,7 +290,7 @@ defmodule Livebook.Hubs do
   """
   @spec update_file_system(Provider.t(), FileSystem.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, Provider.field_errors()}
           | {:transport_error, String.t()}
   def update_file_system(hub, file_system) do
     Provider.update_file_system(hub, file_system)

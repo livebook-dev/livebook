@@ -3,8 +3,8 @@ defmodule Livebook.Secrets.Secret do
   import Ecto.Changeset
 
   @type t :: %__MODULE__{
-          name: String.t(),
-          value: String.t(),
+          name: String.t() | nil,
+          value: String.t() | nil,
           hub_id: String.t() | nil,
           deployment_group_id: String.t() | nil
         }
