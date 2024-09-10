@@ -41,7 +41,7 @@ jobs:
       - name: Check warnings
         run: mix compile --warnings-as-errors
       - name: Run tests
-        run: mix test --exclude k8s
+        run: mix test
       - name: Install Node
         uses: actions/setup-node@v4
         with:
