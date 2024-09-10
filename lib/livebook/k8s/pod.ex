@@ -18,7 +18,7 @@ defmodule Livebook.K8s.Pod do
             memory: 1Gi
           requests:
             cpu: "1"
-            memory: 1Gi
+            memory: 1Gi\
   """
 
   defguardp is_empty(value) when value in [nil, "", []]

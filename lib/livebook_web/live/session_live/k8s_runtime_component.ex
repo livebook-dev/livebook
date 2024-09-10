@@ -95,7 +95,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           phx-change="set_context"
           phx-nosubmit
           phx-target={@myself}
-          class="mt-4"
+          class="mt-1"
         >
           <.select_field name="context" value={@context} label="Context" options={@context_options} />
         </form>
@@ -132,51 +132,42 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           <% end %>
         </.message_box>
 
-        <form
-          :if={@cluster_check.status == :ok}
-          phx-change="set_docker_tag"
-          phx-nosubmit
-          phx-target={@myself}
-          class="mt-8"
-        >
-          <.radio_field
-            :if={@rbac.status == :ok}
-            name="docker_tag"
-            value={@docker_tag}
-            label="Base Docker image"
-            options={LivebookWeb.AppComponents.docker_tag_options()}
-          />
-        </form>
-
-        <.storage_config
-          :if={@rbac.status == :ok}
-          myself={@myself}
-          home_pvc={@home_pvc}
-          pvcs={@pvcs}
-          pvc_action={@pvc_action}
-          rbac={@rbac}
-        />
-
         <div :if={@rbac.status == :ok} class="mt-8">
-          <div class="mt-4 text-base text-gray-800 font-medium">
-            Pod Template
+          <div class="text-lg text-gray-800 font-semibold">
+            Pod
           </div>
           <div class="mt-1 text-gray-700">
-            This is template is used to generate the manifest for the runtime pod.
+            You can fully customize the runtime pod by editing the pod template.
           </div>
+          <form
+            :if={@cluster_check.status == :ok}
+            phx-change="set_docker_tag"
+            phx-nosubmit
+            phx-target={@myself}
+            class="mt-4"
+          >
+            <.radio_field
+              :if={@rbac.status == :ok}
+              name="docker_tag"
+              value={@docker_tag}
+              label="Base Docker image"
+              options={LivebookWeb.AppComponents.docker_tag_options()}
+            />
+          </form>
           <form
             :if={@cluster_check.status == :ok}
             phx-change="set_pod_template"
             phx-nosubmit
             phx-target={@myself}
+            class="mt-4"
           >
             <.textarea_field
               name="pod_template"
+              label="Template"
               value={@pod_template.template}
               phx-debounce={500}
               monospace={true}
-              rows="20"
-              class="resize-y"
+              phx-hook="TextareaAutosize"
             />
 
             <.message_box :if={@pod_template.status != :valid} kind={@pod_template.status}>
@@ -186,6 +177,15 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             </.message_box>
           </form>
         </div>
+
+        <.storage_config
+          :if={@rbac.status == :ok}
+          myself={@myself}
+          home_pvc={@home_pvc}
+          pvcs={@pvcs}
+          pvc_action={@pvc_action}
+          rbac={@rbac}
+        />
 
         <div :if={@rbac.status == :ok} class="mt-8">
           <div class="flex gap-2">
@@ -222,17 +222,17 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   defp storage_config(assigns) do
     ~H"""
-    <div>
-      <div class="mt-4 text-base text-gray-800 font-medium">
+    <div class="mt-8">
+      <div class="text-lg text-gray-800 font-semibold">
         Storage
       </div>
       <div class="mt-1 text-gray-700">
         Every time you connect to the runtime, a fresh machine is created.
         In order to persist data and caches, you can optionally mount a
         volume at <code>/home/livebook</code>. Setting a Persistent Volume
-        Claim will add a <code>.template.spec.volumes[]</code>
+        Claim will automatically add a <code>.template.spec.volumes[]</code>
         entry and a <code>.template.spec.containers[name="livebook-runtime"].volumeMounts[]</code>
-        entry to the Pod template below.
+        entry to the pod template.
       </div>
 
       <div class="mt-4 flex flex-col">
