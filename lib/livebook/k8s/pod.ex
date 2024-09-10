@@ -10,8 +10,7 @@ defmodule Livebook.K8s.Pod do
     generateName: livebook-runtime-
   spec:
     containers:
-      - image: ghcr.io/livebook-dev/livebook:nightly
-        name: livebook-runtime
+      - name: livebook-runtime
         resources:
           limits:
             cpu: "1"
@@ -154,35 +153,20 @@ defmodule Livebook.K8s.Pod do
   end
 
   defp validate_main_container(pod_template) do
-    if get_in(pod_template, ["template", "spec", "containers", access_main_container()]) == [] do
+    if get_in(pod_template, ["spec", "containers", access_main_container()]) do
+      :ok
+    else
       {:error,
        "Main container is missing. The main container should be named '#{@main_container_name}'."}
-    else
-      :ok
     end
   end
 
   defp validate_container_image(pod) do
-    image =
-      pod
-      |> get_in(["spec", "containers", access_main_container(), "image"])
-      |> List.first()
-
-    case image do
-      nil ->
-        :ok
-
-      "ghcr.io/livebook-dev/livebook:" <> _tag ->
-        :ok
-
-      custom_image ->
-        supported_images =
-          Livebook.Config.docker_images()
-          |> Enum.map(&"ghcr.io/livebook-dev/livebook:#{&1.tag}")
-          |> Enum.join(", ")
-
-        {:warning,
-         "Make sure your container image '#{custom_image}' is based off on of the following image: #{supported_images}"}
+    if get_in(pod, ["spec", "containers", access_main_container(), "image"]) do
+      {:warning,
+       "You can't set the container image of the main container. It's going to be overridden."}
+    else
+      :ok
     end
   end
 
@@ -198,6 +182,6 @@ defmodule Livebook.K8s.Pod do
   end
 
   defp access_main_container() do
-    Access.filter(&(&1["name"] == @main_container_name))
+    Kubereq.Access.find(&(&1["name"] == @main_container_name))
   end
 end
