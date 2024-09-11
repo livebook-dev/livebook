@@ -381,7 +381,7 @@ defmodule LivebookWeb.FileSelectComponent do
       <:toggle>
         <button
           type="button"
-          class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
+          class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400 focus-visible:outline-none"
           data-toggle
           aria-label={"#{if @file_info.name == "..", do: "parent directory", else: @file_info.name}"}
           phx-click="set_path"
