@@ -1315,6 +1315,53 @@ defmodule LivebookWeb.SessionLiveTest do
       # real API separately
     end
 
+    test "populates k8s runtime config form existing runtime", %{conn: conn, session: session} do
+      pod_template = """
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        generateName: livebook-runtime-
+        labels:
+          livebook.dev/component: test
+      spec:
+        containers:
+          - name: livebook-runtime\
+      """
+
+      runtime =
+        Runtime.K8s.new(
+          %{
+            context: "default",
+            namespace: "default",
+            home_pvc: "foo-pvc",
+            docker_tag: "nightly",
+            pod_template: pod_template
+          },
+          nil
+        )
+
+      Req.Test.stub(Livebook.Runtime.K8s, Livebook.ClusterStub)
+      Req.Test.stub(Livebook.Runtime.K8s.NoPermissionCluster, Livebook.NoPermissionClusterStub)
+
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      assert render_async(view) =~ "You can fully customize"
+
+      assert view
+             |> element(~s{select[name="home_pvc"] option[value="foo-pvc"][selected]})
+             |> has_element?()
+
+      assert view
+             |> element(~s{select[name="home_pvc"] option[value="new-pvc"]})
+             |> has_element?()
+
+      assert view
+             |> element(~s{button[phx-click="init"]:not([disabled])})
+             |> has_element?()
+    end
+
     test "saving and loading config from secret", %{conn: conn, session: session} do
       runtime =
         Runtime.Fly.new(%{

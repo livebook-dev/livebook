@@ -277,7 +277,7 @@ defmodule Livebook.Runtime.K8s do
     } = config
 
     manifest =
-      pod_template.template
+      pod_template
       |> Pod.pod_from_template()
       |> Pod.add_env_vars([
         %{"name" => "LIVEBOOK_RUNTIME", "value" => runtime_data},

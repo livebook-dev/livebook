@@ -7,6 +7,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   alias Livebook.K8s.{Auth, Pod, PVC}
 
   @config_secret_prefix "K8S_RUNTIME_"
+  @kubeconfig_pipeline Application.compile_env(:livebook, :k8s_kubeconfig_pipeline)
 
   @impl true
   def mount(socket) do
@@ -14,8 +15,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       raise "runtime module not allowed"
     end
 
-    kubeconfig_pipeline = Application.get_env(:livebook, :k8s_kubeconfig_pipeline)
-    kubeconfig = Kubereq.Kubeconfig.load(kubeconfig_pipeline)
+    kubeconfig = Kubereq.Kubeconfig.load(@kubeconfig_pipeline)
     context_options = Enum.map(kubeconfig.contexts, & &1["name"])
 
     {:ok,
@@ -886,7 +886,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     )
     |> set_context(config_defaults["context"])
     |> set_namespace(config_defaults["namespace"])
-    |> set_pod_template(config_defaults["pod_template"].template)
+    |> set_pod_template(config_defaults["pod_template"])
   end
 
   defp config_secret_changeset(socket, attrs) do
@@ -936,7 +936,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       namespace: socket.assigns.namespace,
       home_pvc: socket.assigns.home_pvc,
       docker_tag: socket.assigns.docker_tag,
-      pod_template: socket.assigns.pod_template
+      pod_template: socket.assigns.pod_template.template
     }
   end
 end
