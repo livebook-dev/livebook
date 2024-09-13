@@ -649,30 +649,34 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     {:noreply, assign(socket, :rbac, %{status: status, errors: errors, permissions: permissions})}
   end
 
-  def handle_async(:load_namespace_options, {:ok, result}, socket) do
+  def handle_async(:load_namespace_options, {:ok, [:ok, {:ok, resp}]}, socket) do
     socket =
-      with :ok <- result,
-           {:ok, %Req.Response{status: 200, body: %{"items" => resources}}} <-
-             Kubereq.list(socket.assigns.reqs.namespaces, nil) do
-        namespace_options = Enum.map(resources, & &1["metadata"]["name"])
+      case resp do
+        %Req.Response{status: 200, body: %{"items" => resources}} ->
+          namespace_options = Enum.map(resources, & &1["metadata"]["name"])
 
-        socket
-        |> assign(:namespace_options, namespace_options)
-        |> set_namespace(List.first(namespace_options))
-        |> assign(:cluster_check, %{status: :ok, error: nil})
-      else
-        {:ok, _response} ->
+          socket
+          |> assign(:namespace_options, namespace_options)
+          |> set_namespace(List.first(namespace_options))
+          |> assign(:cluster_check, %{status: :ok, error: nil})
+
+        %Req.Response{status: _other} ->
           # cannot list namespaces
           socket
           |> assign(:namespace_options, nil)
           |> assign(:cluster_check, %{status: :ok, error: nil})
-
-        {:error, error} ->
-          # cannot connect to cluster
-          socket
-          |> assign(:namespace_options, nil)
-          |> assign(:cluster_check, %{status: :error, error: error})
       end
+
+    {:noreply, socket}
+  end
+
+  def handle_async(:load_namespace_options, {:ok, results}, socket) do
+    {:error, error} = List.first(results, &match?({:error, _}, &1))
+
+    socket =
+      socket
+      |> assign(:namespace_options, nil)
+      |> assign(:cluster_check, %{status: :error, error: error})
 
     {:noreply, socket}
   end
@@ -746,12 +750,18 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
     socket
     |> start_async(:load_namespace_options, fn ->
-      Livebook.K8s.Auth.can_i?(reqs.access_reviews,
-        verb: "create",
-        group: "authorization.k8s.io",
-        version: "v1",
-        resource: "selfsubjectaccessreviews"
-      )
+      [
+        Task.async(fn ->
+          Livebook.K8s.Auth.can_i?(reqs.access_reviews,
+            verb: "create",
+            group: "authorization.k8s.io",
+            version: "v1",
+            resource: "selfsubjectaccessreviews"
+          )
+        end),
+        Task.async(fn -> Kubereq.list(reqs.namespaces, nil) end)
+      ]
+      |> Task.await_many(30_000)
     end)
     |> assign(
       kubeconfig: kubeconfig,
