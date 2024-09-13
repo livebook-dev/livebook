@@ -44,6 +44,8 @@ config :livebook,
 
 config :livebook, Livebook.Apps.Manager, retry_backoff_base_ms: 5_000
 
+config :livebook, :k8s_kubeconfig_pipeline, Kubereq.Kubeconfig.Default
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

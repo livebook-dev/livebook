@@ -14,7 +14,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       raise "runtime module not allowed"
     end
 
-    kubeconfig = Kubereq.Kubeconfig.load(Kubereq.Kubeconfig.Default)
+    kubeconfig_pipeline = Application.get_env(:livebook, :k8s_kubeconfig_pipeline)
+    kubeconfig = Kubereq.Kubeconfig.load(kubeconfig_pipeline)
     context_options = Enum.map(kubeconfig.contexts, & &1["name"])
 
     {:ok,

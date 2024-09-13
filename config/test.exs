@@ -27,3 +27,11 @@ config :livebook,
   agent_name: "chonky-cat"
 
 config :livebook, Livebook.Apps.Manager, retry_backoff_base_ms: 0
+
+config :livebook,
+       :k8s_kubeconfig_pipeline,
+       {Kubereq.Kubeconfig.Stub,
+        plugs: %{
+          "default" => {Req.Test, Livebook.Runtime.K8s},
+          "no-permission" => {Req.Test, Livebook.Runtime.K8s.NoPermissionCluster}
+        }}
