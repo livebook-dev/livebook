@@ -1200,6 +1200,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{form[phx-change="set_context"]})
       |> render_change(%{context: "default"})
 
+      render_async(view)
+
       view
       |> element(~s{form[phx-change="set_namespace"]})
       |> render_change(%{namespace: "default"})
