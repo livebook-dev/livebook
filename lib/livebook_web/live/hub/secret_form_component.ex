@@ -36,7 +36,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
         <%= @title %>
       </h3>
       <p class="text-gray-700">
-        A notebook can read the secret value from LB_ prefixed environment variable.
+        A notebook can read the secret value as a LB_ prefixed environment variable.
       </p>
       <div :if={@error_message} class="error-box">
         <%= @error_message %>
