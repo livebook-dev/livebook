@@ -900,7 +900,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     end
   end
 
-  defp storage_classes(%{rbac_permissions: %{list_sc: false}}), do: []
+  defp storage_classes(%{rbac: %{permissions: %{list_sc: false}}}), do: []
 
   defp storage_classes(assigns) do
     %{reqs: %{sc: req}} = assigns

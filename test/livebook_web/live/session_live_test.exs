@@ -1099,7 +1099,6 @@ defmodule LivebookWeb.SessionLiveTest do
       # againast the real API separately
     end
 
-    @tag :wip
     test "populates fly runtime config form existing runtime", %{conn: conn, session: session} do
       runtime =
         Runtime.Fly.new(%{
@@ -1322,7 +1321,6 @@ defmodule LivebookWeb.SessionLiveTest do
       # real API separately
     end
 
-    @tag :wip
     test "populates k8s runtime config form existing runtime", %{conn: conn, session: session} do
       pod_template = """
       apiVersion: v1
