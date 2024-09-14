@@ -32,6 +32,6 @@ config :livebook,
        :k8s_kubeconfig_pipeline,
        {Kubereq.Kubeconfig.Stub,
         plugs: %{
-          "default" => {Req.Test, Livebook.Runtime.K8s},
-          "no-permission" => {Req.Test, Livebook.Runtime.K8s.NoPermissionCluster}
+          "default" => {Req.Test, :k8s_cluster},
+          "no-permission" => {Req.Test, :k8s_no_permission_cluster}
         }}

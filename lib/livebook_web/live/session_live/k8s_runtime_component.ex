@@ -35,8 +35,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        home_pvc: nil,
        docker_tag: hd(Livebook.Config.docker_images()).tag,
        pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil}
-     )
-     |> set_context(kubeconfig.current_context)}
+     )}
   end
 
   @impl true
@@ -62,7 +61,9 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           |> load_config_defaults()
 
         true ->
-          assign(socket, config_defaults: nil)
+          socket
+          |> assign(config_defaults: nil)
+          |> set_context(socket.assigns.kubeconfig.current_context)
       end
 
     {:ok, socket}
@@ -280,7 +281,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           </div>
         </div>
         <div
-          :if={@pvc_action[:type] == :delete}
+          :if={@pvc_action[:type] in [:delete, :delete_inflight]}
           class="px-4 py-3 mt-4 flex space-x-4 items-center border border-gray-200 rounded-lg"
         >
           <p class="grow text-gray-700 text-sm">
@@ -291,13 +292,16 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               class="text-red-600 font-medium text-sm whitespace-nowrap"
               phx-click="confirm_delete_pvc"
               phx-target={@myself}
+              disabled={@pvc_action[:type] == :delete_inflight}
             >
-              <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" /> Delete
+              <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" />
+              <%= if @pvc_action[:type] == :delete, do: "Delete", else: "Deleting..." %>
             </button>
             <button
               class="text-gray-600 font-medium text-sm"
               phx-click="cancel_delete_pvc"
               phx-target={@myself}
+              disabled={@pvc_action[:type] == :delete_inflight}
             >
               Cancel
             </button>
@@ -306,7 +310,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
         <.form
           :let={pvcf}
-          :if={@pvc_action[:type] == :new}
+          :if={@pvc_action[:type] in [:new, :new_inflight]}
           for={@pvc_action.changeset}
           as={:pvc}
           phx-submit="create_pvc"
@@ -315,7 +319,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           class="flex gap-2 mt-4 items-center"
           autocomplete="off"
           spellcheck="false"
-          errors={["asdf"]}
         >
           <div>
             <.remix_icon icon="corner-down-right-line" class="text-gray-400 text-lg" />
@@ -329,10 +332,22 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             />
             <.select_field field={pvcf[:storage_class]} options={@pvc_action.storage_classes} />
           </div>
-          <.button type="submit" disabled={not @pvc_action.changeset.valid?}>
-            Create
+          <.button
+            :if={@pvc_action[:type] == :new}
+            type="submit"
+            disabled={not @pvc_action.changeset.valid? or @pvc_action[:type] == :new_inflight}
+          >
+            <%= if @pvc_action[:type] == :new, do: "Create", else: "Creating..." %>
           </.button>
-          <.button type="button" color="gray" outlined phx-click="cancel_new_pvc" phx-target={@myself}>
+          <.button
+            :if={@pvc_action[:type] == :new}
+            type="button"
+            color="gray"
+            outlined
+            phx-click="cancel_new_pvc"
+            phx-target={@myself}
+            disabled={@pvc_action[:type] == :new_inflight}
+          >
             Cancel
           </.button>
         </.form>
@@ -572,15 +587,9 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     req = socket.assigns.reqs.pvc
 
     socket =
-      case Kubereq.delete(req, namespace, name) do
-        {:ok, %{status: 200}} ->
-          socket
-          |> assign(home_pvc: nil, pvc_action: nil)
-          |> pvc_options()
-
-        {:ok, %{body: %{"message" => message}}} ->
-          assign_nested(socket, :pvc_action, error: message)
-      end
+      socket
+      |> start_async(:delete_pvc, fn -> Kubereq.delete(req, namespace, name) end)
+      |> assign_nested(:pvc_action, type: :delete_inflight)
 
     {:noreply, socket}
   end
@@ -670,6 +679,47 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     {:noreply, socket}
   end
 
+  def handle_async(:delete_pvc, {:ok, result}, socket) do
+    socket =
+      case result do
+        {:ok, %{status: 200}} ->
+          socket
+          |> assign(home_pvc: nil, pvc_action: nil)
+          |> pvc_options()
+
+        {:ok, %{body: %{"message" => message}}} ->
+          assign_nested(socket, :pvc_action, error: message, type: :delete)
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_async(:create_pvc, {:ok, result}, socket) do
+    socket =
+      case result do
+        {:ok, %{status: 201, body: created_pvc}} ->
+          socket
+          |> assign(home_pvc: created_pvc["metadata"]["name"], pvc_action: nil)
+          |> pvc_options()
+
+        {:ok, %{body: body}} ->
+          socket
+          |> assign_nested(:pvc_action,
+            error: "Creating the PVC failed: #{body["message"]}",
+            type: :new
+          )
+
+        {:error, error} when is_exception(error) ->
+          socket
+          |> assign_nested(:pvc_action,
+            error: "Creating the PVC failed: #{Exception.message(error)}",
+            type: :new
+          )
+      end
+
+    {:noreply, socket}
+  end
+
   def handle_async(:load_namespace_options, {:ok, results}, socket) do
     {:error, error} = List.first(results, &match?({:error, _}, &1))
 
@@ -716,22 +766,9 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     manifest = PVC.manifest(pvc, namespace)
     req = socket.assigns.reqs.pvc
 
-    case Kubereq.create(req, manifest) do
-      {:ok, %{status: 201, body: created_pvc}} ->
-        socket
-        |> assign(home_pvc: created_pvc["metadata"]["name"], pvc_action: nil)
-        |> pvc_options()
-
-      {:ok, %{body: body}} ->
-        socket
-        |> assign_nested(:pvc_action, error: "Creating the PVC failed: #{body["message"]}")
-
-      {:error, error} when is_exception(error) ->
-        socket
-        |> assign_nested(:pvc_action,
-          error: "Creating the PVC failed: #{Exception.message(error)}"
-        )
-    end
+    socket
+    |> start_async(:create_pvc, fn -> Kubereq.create(req, manifest) end)
+    |> assign_nested(:pvc_action, type: :new_inflight)
   end
 
   defp set_context(socket, nil), do: assign(socket, :context, nil)
@@ -761,7 +798,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         end),
         Task.async(fn -> Kubereq.list(reqs.namespaces, nil) end)
       ]
-      |> Task.await_many(30_000)
+      |> Task.await_many(:infinity)
     end)
     |> assign(
       kubeconfig: kubeconfig,
@@ -841,7 +878,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     end
   end
 
-  defp pvc_options(%{assigns: %{rbac_permissions: %{list_pvc: false}}} = socket) do
+  defp pvc_options(%{assigns: %{rbac: %{permissions: %{list_pvc: false}}}} = socket) do
     assign(socket, :pvcs, [])
   end
 

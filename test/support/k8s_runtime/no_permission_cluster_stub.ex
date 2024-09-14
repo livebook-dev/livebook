@@ -1,4 +1,4 @@
-defmodule Livebook.NoPermissionClusterStub do
+defmodule Livebook.K8sNoPermissionClusterStub do
   use Plug.Router
 
   require Logger

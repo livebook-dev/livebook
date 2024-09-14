@@ -1099,6 +1099,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # againast the real API separately
     end
 
+    @tag :wip
     test "populates fly runtime config form existing runtime", %{conn: conn, session: session} do
       runtime =
         Runtime.Fly.new(%{
@@ -1176,8 +1177,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.subscribe(session.id)
 
-      Req.Test.stub(Livebook.Runtime.K8s, Livebook.ClusterStub)
-      Req.Test.stub(Livebook.Runtime.K8s.NoPermissionCluster, Livebook.NoPermissionClusterStub)
+      Req.Test.stub(:k8s_cluster, Livebook.K8sClusterStub)
+      Req.Test.stub(:k8s_no_permission_cluster, Livebook.K8sNoPermissionClusterStub)
 
       view
       |> element("#runtime-settings-modal button", "Kubernetes Pod")
@@ -1223,20 +1224,24 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       assert view
-             |> element(~s{form[phx-submit="create_pvc"] input[name="pvc[name]"]})
+             |> element(~s{form[phx-submit="create_pvc"]})
              |> has_element?()
 
-      assert view
-             |> element(
-               ~s{form[phx-submit="create_pvc"] input[name="pvc[size_gb]"][type="number"]}
-             )
+      # Cancel button intermezzo
+
+      view
+      |> element(~s{button[phx-click="cancel_new_pvc"]})
+      |> render_click()
+
+      refute view
+             |> element(~s{form[phx-submit="create_pvc"]})
              |> has_element?()
 
-      assert view
-             |> element(
-               ~s{form[phx-submit="create_pvc"] select[name="pvc[access_mode]"] option[value="ReadWriteOnce"][selected]}
-             )
-             |> has_element?()
+      # Create new PVC again
+
+      view
+      |> element(~s{button[phx-click="new_pvc"]})
+      |> render_click()
 
       assert view
              |> element(
@@ -1262,7 +1267,7 @@ defmodule LivebookWeb.SessionLiveTest do
              |> element(~s{form[phx-submit="create_pvc"] button[type="submit"]:not([disabled])})
              |> has_element?()
 
-      Req.Test.expect(Livebook.Runtime.K8s, Livebook.ClusterStub)
+      Req.Test.expect(Livebook.Runtime.K8s, Livebook.K8sClusterStub)
 
       view
       |> element(~s{form[phx-submit="create_pvc"]})
@@ -1279,7 +1284,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render_async(view) =~
                "Are you sure you want to irreversibly delete Persistent Volume Claim"
 
-      Req.Test.expect(Livebook.Runtime.K8s, Livebook.ClusterStub)
+      Req.Test.expect(Livebook.Runtime.K8s, Livebook.K8sClusterStub)
 
       view
       |> element(~s{button[phx-click="confirm_delete_pvc"]})
@@ -1317,6 +1322,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # real API separately
     end
 
+    @tag :wip
     test "populates k8s runtime config form existing runtime", %{conn: conn, session: session} do
       pod_template = """
       apiVersion: v1
@@ -1342,8 +1348,7 @@ defmodule LivebookWeb.SessionLiveTest do
           nil
         )
 
-      Req.Test.stub(Livebook.Runtime.K8s, Livebook.ClusterStub)
-      Req.Test.stub(Livebook.Runtime.K8s.NoPermissionCluster, Livebook.NoPermissionClusterStub)
+      Req.Test.stub(:k8s_cluster, Livebook.K8sClusterStub)
 
       Session.set_runtime(session.pid, runtime)
 

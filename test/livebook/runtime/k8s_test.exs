@@ -124,7 +124,7 @@ defmodule Livebook.Runtime.K8sTest do
       namespace: "default",
       home_pvc: nil,
       docker_tag: "nightly",
-      pod_template: %{template: @default_pod_template}
+      pod_template: @default_pod_template
     }
 
     Map.merge(defaults, attrs)

@@ -12,8 +12,7 @@ defmodule Livebook.K8s.Auth do
   def batch_check(req, resource_attribute_list) do
     resource_attribute_list
     |> Enum.map(&Task.async(fn -> can_i?(req, &1) end))
-    # 30 second timeout
-    |> Task.await_many(30_000)
+    |> Task.await_many(:infinity)
   end
 
   @doc """

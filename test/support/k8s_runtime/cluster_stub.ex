@@ -1,4 +1,4 @@
-defmodule Livebook.ClusterStub do
+defmodule Livebook.K8sClusterStub do
   use Plug.Router
 
   require Logger
