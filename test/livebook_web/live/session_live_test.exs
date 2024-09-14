@@ -1177,7 +1177,6 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.subscribe(session.id)
 
       Req.Test.stub(:k8s_cluster, Livebook.K8sClusterStub)
-      Req.Test.stub(:k8s_no_permission_cluster, Livebook.K8sNoPermissionClusterStub)
 
       view
       |> element("#runtime-settings-modal button", "Kubernetes Pod")
@@ -1266,7 +1265,7 @@ defmodule LivebookWeb.SessionLiveTest do
              |> element(~s{form[phx-submit="create_pvc"] button[type="submit"]:not([disabled])})
              |> has_element?()
 
-      Req.Test.expect(Livebook.Runtime.K8s, Livebook.K8sClusterStub)
+      Req.Test.expect(:k8s_cluster, Livebook.K8sClusterStub)
 
       view
       |> element(~s{form[phx-submit="create_pvc"]})
@@ -1283,7 +1282,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render_async(view) =~
                "Are you sure you want to irreversibly delete Persistent Volume Claim"
 
-      Req.Test.expect(Livebook.Runtime.K8s, Livebook.K8sClusterStub)
+      Req.Test.expect(:k8s_cluster, Livebook.K8sClusterStub)
 
       view
       |> element(~s{button[phx-click="confirm_delete_pvc"]})

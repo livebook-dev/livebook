@@ -12,16 +12,23 @@ defmodule Livebook.K8sClusterStub do
   plug :dispatch
 
   post "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews" do
+    resource = conn.body_params["spec"]["resourceAttributes"]["resource"]
+    allowed = conn.host == "default" or resource == "selfsubjectaccessreviews"
+
     conn
     |> put_status(201)
-    |> Req.Test.json(%{"status" => %{"allowed" => true}})
+    |> Req.Test.json(%{"status" => %{"allowed" => allowed}})
   end
 
-  get "/api/v1/namespaces" do
+  get "/api/v1/namespaces", host: "default" do
     Req.Test.json(conn, %{"items" => [%{"metadata" => %{"name" => "default"}}]})
   end
 
-  get "apis/storage.k8s.io/v1/storageclasses" do
+  get "/api/v1/namespaces", host: "no-permission" do
+    send_resp(conn, 403, "")
+  end
+
+  get "apis/storage.k8s.io/v1/storageclasses", host: "default" do
     Req.Test.json(conn, %{
       "items" => [
         %{"metadata" => %{"name" => "first-storage-class"}},
@@ -30,7 +37,7 @@ defmodule Livebook.K8sClusterStub do
     })
   end
 
-  get "/api/v1/namespaces/default/persistentvolumeclaims" do
+  get "/api/v1/namespaces/default/persistentvolumeclaims", host: "default" do
     Req.Test.json(conn, %{
       "items" => [
         %{"metadata" => %{"name" => "foo-pvc"}},
@@ -39,11 +46,11 @@ defmodule Livebook.K8sClusterStub do
     })
   end
 
-  delete "/api/v1/namespaces/default/persistentvolumeclaims/:name" do
+  delete "/api/v1/namespaces/default/persistentvolumeclaims/:name", host: "default" do
     send_resp(conn, 200, "")
   end
 
-  post "/api/v1/namespaces/default/persistentvolumeclaims" do
+  post "/api/v1/namespaces/default/persistentvolumeclaims", host: "default" do
     conn
     |> put_status(201)
     |> Req.Test.json(%{"metadata" => %{"name" => "new-pvc"}})
