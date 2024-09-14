@@ -41,6 +41,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= @title %>
       </h3>
+      <p class="text-gray-700">
+        The notebook can read the secret value from LB_ prefixed environment variable.
+      </p>
       <.grant_access_message
         :if={@grant_access_secret}
         secret={@grant_access_secret}
