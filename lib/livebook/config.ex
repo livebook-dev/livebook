@@ -414,12 +414,19 @@ defmodule Livebook.Config do
     Application.get_env(:livebook, :warn_on_live_teams_server, false)
   end
 
-  @app_version Mix.Project.config()[:version]
+  @livebook_version Mix.Project.config()[:version]
 
   @doc """
-  Returns the current version of running Livebook.
+  Livebook can be used as both an application as well as a library embedded
+  in other appilcations. This function always returns the version of the library
   """
-  def app_version(), do: @app_version
+  def livebook_version(), do: @livebook_version
+
+  @doc """
+  Returns the current version of the running Livebook application. Note: this version
+  can be different from the livebook_version when livebook is used as a library.
+  """
+  def app_version(), do: Application.get_env(:livebook, :app_version, livebook_version())
 
   @doc """
   Returns the GitHub org/repo where the releases are created.
