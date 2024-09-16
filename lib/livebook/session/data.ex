@@ -2507,7 +2507,7 @@ defmodule Livebook.Session.Data do
 
   Considers only cells that have already been evaluated.
   """
-  @spec cell_evaluation_parents(Data.t(), Cell.t()) :: list({Cell.t(), Section.t()})
+  @spec cell_evaluation_parents(t(), Cell.t()) :: list({Cell.t(), Section.t()})
   def cell_evaluation_parents(data, cell) do
     for {cell, section} <- Notebook.parent_cells_with_section(data.notebook, cell.id),
         info = data.cell_infos[cell.id],
@@ -2782,8 +2782,14 @@ defmodule Livebook.Session.Data do
   defp app_recover({data, _} = data_actions) do
     evaluable_cells_with_section = Notebook.evaluable_cells_with_section(data.notebook)
 
+    data_actions =
+      if data.runtime_status == :connected do
+        disconnect_runtime(data_actions)
+      else
+        data_actions
+      end
+
     data_actions
-    |> disconnect_runtime()
     |> connect_runtime()
     |> erase_outputs()
     |> garbage_collect_input_infos()
