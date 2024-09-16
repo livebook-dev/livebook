@@ -207,6 +207,11 @@ defmodule Livebook.Utils do
   @doc """
   Validates if the given URL is syntactically valid.
 
+  ## Options
+
+    * `:allow_file_scheme` - also accepts `file://` URLs. Defaults to
+      `flase`
+
   ## Examples
 
       iex> Livebook.Utils.valid_url?("not_a_url")
@@ -221,22 +226,39 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.valid_url?("http://")
       false
 
+      iex> Livebook.Utils.valid_url?("file:///tmp/test")
+      false
+
+      iex> Livebook.Utils.valid_url?("file:///tmp/test", allow_file_scheme: true)
+      true
+
   """
-  @spec valid_url?(String.t()) :: boolean()
-  def valid_url?(url) do
+  @spec valid_url?(String.t(), keyword()) :: boolean()
+  def valid_url?(url, opts \\ []) do
+    opts = Keyword.validate!(opts, allow_file_scheme: false)
+    allow_file_scheme = opts[:allow_file_scheme]
+
     case URI.new(url) do
-      {:ok, uri} -> uri.scheme != nil and uri.host not in [nil, ""]
-      {:error, _} -> false
+      {:ok, uri} when uri.scheme in ["http", "https"] ->
+        uri.host not in [nil, ""]
+
+      {:ok, uri} when allow_file_scheme and uri.scheme == "file" ->
+        String.starts_with?(url, "file://") and uri.path not in [nil, ""]
+
+      _ ->
+        false
     end
   end
 
   @doc """
   Validates a change is a valid URL.
+
+  See `valid_url?/2` for valid options.
   """
-  @spec validate_url(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
-  def validate_url(changeset, field) do
+  @spec validate_url(Ecto.Changeset.t(), atom(), keyword()) :: Ecto.Changeset.t()
+  def validate_url(changeset, field, opts \\ []) do
     Ecto.Changeset.validate_change(changeset, field, fn ^field, url ->
-      if valid_url?(url) do
+      if valid_url?(url, opts) do
         []
       else
         [{field, "must be a valid URL"}]
