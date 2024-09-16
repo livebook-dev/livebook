@@ -369,8 +369,8 @@ defmodule Livebook.Runtime.K8s do
           {^port, {:data, "Forwarding from " <> _}} ->
             :ok
 
-          {^port, {:data, "Error: " <> error}} ->
-            {:error, "failed to port-forward. Error: #{String.trim(error)}"}
+          {^port, {:data, "Error " <> _ = message}} ->
+            {:error, "failed to port-forward. #{String.trim(message)}"}
 
           {:DOWN, ^port_ref, :port, _object, reason} ->
             {:error, "failed to port-forward. Process terminated, reason: #{inspect(reason)}"}
