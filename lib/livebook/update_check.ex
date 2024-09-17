@@ -147,8 +147,8 @@ defmodule Livebook.UpdateCheck do
   end
 
   defp new_version(release) do
-  with current_version <- Keyword.fetch!(Livebook.Config.github_release_info(), :version),
-        %{
+    with current_version <- Keyword.fetch!(Livebook.Config.github_release_info(), :version),
+         %{
            "tag_name" => "v" <> version,
            "published_at" => published_at,
            "draft" => false
