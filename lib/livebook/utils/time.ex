@@ -3,16 +3,18 @@ defmodule Livebook.Utils.Time do
 
   @doc """
   Formats the given point in time relatively to present.
+
+  ## Examples
+
+  To deal with clock-drifts when receiving timestamps from the server, we accept future times:
+
+        iex> Livebook.Utils.Time.time_ago_in_words(~N[2100-06-20 18:15:00])
+        "less than 5 seconds"
+
   """
   @spec time_ago_in_words(NaiveDateTime.t()) :: String.t()
   def time_ago_in_words(naive_date_time) when is_struct(naive_date_time, NaiveDateTime) do
-    now = NaiveDateTime.utc_now()
-
-    if NaiveDateTime.compare(naive_date_time, now) == :gt do
-      raise ArgumentError, "expected a datetime in the past, got: #{inspect(naive_date_time)}"
-    end
-
-    distance_of_time_in_words(naive_date_time, now)
+    distance_of_time_in_words(naive_date_time, NaiveDateTime.utc_now())
   end
 
   @doc """
