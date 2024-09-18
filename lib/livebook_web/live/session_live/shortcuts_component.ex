@@ -113,6 +113,12 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         seq_mac: ["⌘", "k"],
         press_all: true,
         desc: "Toggle keyboard control in cell output"
+      },
+      %{
+        seq: ["ctrl", "alt", "-"],
+        seq_mac: ["⌥", "-"],
+        press_all: true,
+        desc: "Go back"
       }
     ],
     universal: [
