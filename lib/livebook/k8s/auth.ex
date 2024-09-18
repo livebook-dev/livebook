@@ -6,6 +6,7 @@ defmodule Livebook.K8s.Auth do
 
   @doc """
   Concurrently reviews access according to a list of `resource_attributes`.
+
   Expects `req` to be prepared for `SelfSubjectAccessReview`.
   """
   @spec batch_check(Req.Request.t(), [keyword()]) ::
@@ -18,6 +19,7 @@ defmodule Livebook.K8s.Auth do
 
   @doc """
   Reviews access according to `resource_attributes`.
+
   Expects `req` to be prepared for `SelfSubjectAccessReview`.
   """
   @spec can_i?(Req.Request.t(), keyword()) ::

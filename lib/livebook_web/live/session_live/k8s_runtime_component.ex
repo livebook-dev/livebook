@@ -858,21 +858,24 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   def set_pod_template(socket, pod_template_yaml) do
-    with {:ok, pod_template} <- YamlElixir.read_from_string(pod_template_yaml),
-         :ok <- Pod.validate_pod_template(pod_template, socket.assigns.namespace) do
+    namespace = socket.assigns.namespace
+
+    with {:parse, {:ok, pod_template}} <-
+           {:parse, YamlElixir.read_from_string(pod_template_yaml)},
+         {:validate, :ok} <- {:validate, Pod.validate_pod_template(pod_template, namespace)} do
       assign(socket, :pod_template, %{template: pod_template_yaml, status: :valid, message: nil})
     else
-      {:error, error} when is_exception(error) ->
+      {:parse, {:error, error}} ->
         assign(socket, :pod_template, %{
           template: pod_template_yaml,
           status: :error,
           message: Exception.message(error)
         })
 
-      {status, message} ->
+      {:validate, {:error, message}} ->
         assign(socket, :pod_template, %{
           template: pod_template_yaml,
-          status: status,
+          status: :error,
           message: message
         })
     end

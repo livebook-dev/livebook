@@ -11,7 +11,7 @@ defmodule Livebook.Runtime.K8s do
   @type config :: %{
           context: String.t(),
           namespace: String.t(),
-          home_pvc: String.t(),
+          home_pvc: String.t() | nil,
           docker_tag: String.t(),
           pod_template: String.t()
         }
@@ -253,9 +253,15 @@ defmodule Livebook.Runtime.K8s do
         }
       ])
       |> Pod.set_docker_tag(docker_tag)
-      |> Pod.set_home_pvc(home_pvc)
       |> Pod.set_namespace(namespace)
       |> Pod.add_container_port(remote_port)
+
+    manifest =
+      if home_pvc do
+        Pod.set_home_pvc(manifest, home_pvc)
+      else
+        manifest
+      end
 
     case Kubereq.create(req, manifest) do
       {:ok, %{status: 201, body: %{"metadata" => %{"name" => pod_name}}}} ->
