@@ -147,8 +147,9 @@ defmodule Livebook.UpdateCheck do
   end
 
   defp new_version(release) do
-    with current_version <- Livebook.Config.github_release_info().version,
-         %{
+    current_version = Livebook.Config.github_release_info().version
+
+    with %{
            "tag_name" => "v" <> version,
            "published_at" => published_at,
            "draft" => false
