@@ -25,42 +25,35 @@ defmodule Livebook.Runtime.K8sTest do
             value: present
 
   """
-
   setup_all do
-    {clusters_out, exit_code} = System.cmd("kind", ~w(get clusters), stderr_to_stdout: true)
-    assert 0 == exit_code, "kind is not installed. Please install kind."
+    unless System.find_executable("kind") do
+      raise "kind is not installed"
+    end
 
-    clusters = String.split(clusters_out, "\n", trim: true)
+    clusters = cmd!(~w(kind get clusters)) |> String.split("\n", trim: true)
 
     if @cluster_name not in clusters do
-      {_, exit_code} =
-        System.cmd("kind", ["create", "cluster", "--name", @cluster_name], stderr_to_stdout: true)
-
-      assert 0 == exit_code, "Could not create kind cluster '#{@cluster_name}'"
+      cmd!(~w(kind create cluster --name #{@cluster_name}))
     end
 
     # Export kubeconfig file
-    System.cmd(
-      "kind",
-      ["export", "kubeconfig", "--name", @cluster_name, "--kubeconfig", @kubeconfig_path],
-      stderr_to_stdout: true
-    )
+    cmd!(~w(kind export kubeconfig --name #{@cluster_name} --kubeconfig #{@kubeconfig_path}))
 
-    {_, bindings} = Code.eval_file("versions")
+    # In most cases we can use the existing image, but when making
+    # changes to the remote runtime code, we need to build a new image
+    if System.get_env("TEST_K8S_BUILD_IMAGE") in ~w(true 1) do
+      {_, versions} = Code.eval_file("versions")
 
-    # Build container image
-    System.cmd(
-      "docker",
-      ~w(buildx build --build-arg BASE_IMAGE=hexpm/elixir:#{bindings[:elixir]}-erlang-#{bindings[:otp]}-ubuntu-#{bindings[:ubuntu]} --build-arg VARIANT=default --load -t ghcr.io/livebook-dev/livebook:nightly .),
-      stderr_to_stdout: true
-    )
+      cmd!(~w(docker build
+          --build-arg BASE_IMAGE=hexpm/elixir:#{versions[:elixir]}-erlang-#{versions[:otp]}-ubuntu-#{versions[:ubuntu]}
+          --build-arg VARIANT=default
+          -t ghcr.io/livebook-dev/livebook:nightly .))
+    else
+      cmd!(~w(docker image pull ghcr.io/livebook-dev/livebook:nightly))
+    end
 
     # Load container image into Kind cluster
-    System.cmd(
-      "kind",
-      ["load", "docker-image", "--name", @cluster_name, "ghcr.io/livebook-dev/livebook:nightly"],
-      stderr_to_stdout: true
-    )
+    cmd!(~w(kind load docker-image --name #{@cluster_name} ghcr.io/livebook-dev/livebook:nightly))
 
     :ok
   end
@@ -75,8 +68,7 @@ defmodule Livebook.Runtime.K8sTest do
 
     assert_receive {:runtime_connect_info, ^pid, "create pod"}, @assert_receive_timeout
 
-    assert_receive {:runtime_connect_info, ^pid, "waiting for pod"},
-                   @assert_receive_timeout
+    assert_receive {:runtime_connect_info, ^pid, "waiting for pod"}, @assert_receive_timeout
 
     assert_receive {:runtime_connect_info, ^pid, "created container livebook-runtime"},
                    @assert_receive_timeout
@@ -139,5 +131,15 @@ defmodule Livebook.Runtime.K8sTest do
       )
 
     resp.body["items"]
+  end
+
+  defp cmd!([command | args]) do
+    {output, status} = System.cmd(command, args, stderr_to_stdout: true)
+
+    if status != 0 do
+      raise "command #{inspect(command)} #{inspect(args)} failed"
+    end
+
+    output
   end
 end
