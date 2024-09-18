@@ -8,6 +8,7 @@ defmodule Livebook.Runtime.K8sTest do
   @assert_receive_timeout 10_000
   @cluster_name "livebook-runtime-test"
   @kubeconfig_path "tmp/k8s_runtime/kubeconfig.yaml"
+
   @default_pod_template """
   apiVersion: v1
   kind: Pod
@@ -38,7 +39,7 @@ defmodule Livebook.Runtime.K8sTest do
       assert 0 == exit_code, "Could not create kind cluster '#{@cluster_name}'"
     end
 
-    # export kubeconfig file
+    # Export kubeconfig file
     System.cmd(
       "kind",
       ["export", "kubeconfig", "--name", @cluster_name, "--kubeconfig", @kubeconfig_path],
@@ -47,14 +48,14 @@ defmodule Livebook.Runtime.K8sTest do
 
     {_, bindings} = Code.eval_file("versions")
 
-    # build container image
+    # Build container image
     System.cmd(
       "docker",
       ~w(buildx build --build-arg BASE_IMAGE=hexpm/elixir:#{bindings[:elixir]}-erlang-#{bindings[:otp]}-ubuntu-#{bindings[:ubuntu]} --build-arg VARIANT=default --load -t ghcr.io/livebook-dev/livebook:nightly .),
       stderr_to_stdout: true
     )
 
-    # load container image into Kind cluster
+    # Load container image into Kind cluster
     System.cmd(
       "kind",
       ["load", "docker-image", "--name", @cluster_name, "ghcr.io/livebook-dev/livebook:nightly"],
@@ -99,7 +100,7 @@ defmodule Livebook.Runtime.K8sTest do
 
     Runtime.disconnect(runtime)
 
-    #  Wait for Pod to terminate (i.e status.phase == "Succeeded")
+    # Wait for Pod to terminate
     assert :ok ==
              Kubereq.wait_until(
                req,
@@ -108,7 +109,7 @@ defmodule Livebook.Runtime.K8sTest do
                &(&1["status"]["phase"] == "Succeeded")
              )
 
-    # Finally, delete the Pod object.
+    # Finally, delete the Pod object
     Kubereq.delete(req, "default", runtime.pod_name)
   end
 

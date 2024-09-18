@@ -1,8 +1,9 @@
 defmodule Livebook.K8s.Pod do
-  # Kubernetes runtime pod manifest functionality
+  # Kubernetes runtime pod manifest functionality.
 
   @main_container_name "livebook-runtime"
-  @home_pvc_volume_name "lb-home-folder"
+  @home_pvc_volume_name "livebook-home"
+
   @default_pod_template """
   apiVersion: v1
   kind: Pod
@@ -135,10 +136,10 @@ defmodule Livebook.K8s.Pod do
 
   defp validate_basics(pod) do
     cond do
-      !is_map(pod["metadata"]) ->
+      not is_map(pod["metadata"]) ->
         {:error, ".metadata is missing in your pod template."}
 
-      !is_map(pod["spec"]) or
+      not is_map(pod["spec"]) or
           !is_list(pod["spec"]["containers"]) ->
         {:error, ".spec.containers is missing in your pod template."}
 
