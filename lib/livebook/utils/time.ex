@@ -75,6 +75,11 @@ defmodule Livebook.Utils.Time do
       iex> Livebook.Utils.Time.distance_of_time_in_words(~N[2020-06-20 18:15:00], ~N[2021-08-22 18:15:00])
       "about 14 months"
 
+  To deal with clock-drifts when receiving timestamps from the server, we accept future times:
+
+      iex> Livebook.Utils.Time.distance_of_time_in_words(~N[2020-06-20 18:15:06], ~N[2020-06-20 18:15:04])
+      "less than 5 seconds"
+
   """
   @spec distance_of_time_in_words(NaiveDateTime.t(), NaiveDateTime.t()) :: String.t()
   def distance_of_time_in_words(from_ndt, to_ndt)
@@ -92,7 +97,7 @@ defmodule Livebook.Utils.Time do
 
   defp maybe_convert_to_minutes(duration), do: duration
 
-  defp duration_in_words({:seconds, seconds}) when seconds in 0..4 do
+  defp duration_in_words({:seconds, seconds}) when seconds <= 4 do
     "less than 5 seconds"
   end
 
