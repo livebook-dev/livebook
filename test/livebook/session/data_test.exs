@@ -4491,6 +4491,29 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
+    test "when fully executed and then runtime down, recovers by evaluating from scratch" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup", "c1", "c2"])
+        ])
+
+      operation = {:runtime_down, @cid}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "setup" => %{eval: %{status: :queued}},
+                  "c1" => %{eval: %{status: :queued}},
+                  "c2" => %{eval: %{status: :queued}}
+                },
+                app_data: %{status: %{execution: :executing}}
+              }, [:app_report_status, :connect_runtime]} = Data.apply_operation(data, operation)
+    end
+
     test "changes status back to :executed after recovery" do
       data =
         data_after_operations!(Data.new(mode: :app), [

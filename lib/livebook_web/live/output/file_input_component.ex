@@ -43,7 +43,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
     ~H"""
     <form id={"#{@id}-root"} phx-change="validate" phx-target={@myself}>
       <label
-        class="inline-flex flex-col gap-4 p-4 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer"
+        class="min-w-[50%] inline-flex flex-col gap-4 p-4 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer"
         phx-drop-target={@uploads.file.ref}
         phx-hook="Dropzone"
         id={"#{@id}-upload-dropzone"}
@@ -56,6 +56,9 @@ defmodule LivebookWeb.Output.FileInputComponent do
           <% end %>
         </div>
         <.live_file_input upload={@uploads.file} class="hidden" accept={@accept} />
+        <div :for={entry <- @uploads.file.entries} class="delay-200 flex flex-col gap-1">
+          <.file_entry name="File" entry={entry} on_clear={JS.push("clear_file", target: @myself)} />
+        </div>
       </label>
       <p
         :for={msg <- LivebookWeb.HTMLHelpers.upload_error_messages(@uploads.file)}
@@ -70,6 +73,10 @@ defmodule LivebookWeb.Output.FileInputComponent do
   @impl true
   def handle_event("validate", %{}, socket) do
     {:noreply, socket}
+  end
+
+  def handle_event("clear_file", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :file, ref)}
   end
 
   defp handle_progress(:file, entry, socket) do
