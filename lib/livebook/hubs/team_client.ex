@@ -469,7 +469,7 @@ defmodule Livebook.Hubs.TeamClient do
       deployment_group_id: app_deployment.deployment_group_id,
       file: nil,
       deployed_by: app_deployment.deployed_by,
-      deployed_at: NaiveDateTime.from_gregorian_seconds(app_deployment.deployed_at)
+      deployed_at: DateTime.from_gregorian_seconds(app_deployment.deployed_at)
     }
   end
 

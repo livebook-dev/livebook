@@ -73,7 +73,7 @@ defmodule LivebookWeb.HTMLHelpers do
   Formats the given UTC datetime relatively to present.
   """
   @spec format_datetime_relatively(DateTime.t() | NaiveDateTime.t()) :: String.t()
-  def format_datetime_relatively(%DateTime{} = date) do
+  def format_datetime_relatively(%DateTime{time_zone: "Etc/UTC"} = date) do
     date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
   end
 

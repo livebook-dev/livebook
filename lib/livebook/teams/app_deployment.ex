@@ -16,7 +16,7 @@ defmodule Livebook.Teams.AppDeployment do
           deployment_group_id: String.t() | nil,
           file: binary() | nil,
           deployed_by: String.t() | nil,
-          deployed_at: NaiveDateTime.t() | nil
+          deployed_at: DateTime.t() | nil
         }
 
   @access_types Livebook.Notebook.AppSettings.access_types()
@@ -33,8 +33,7 @@ defmodule Livebook.Teams.AppDeployment do
     field :deployment_group_id, :string
     field :file, :string
     field :deployed_by, :string
-
-    timestamps(updated_at: nil, inserted_at: :deployed_at)
+    field :deployed_at, :utc_datetime
   end
 
   @doc """
