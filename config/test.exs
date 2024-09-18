@@ -24,14 +24,12 @@ end
 
 config :livebook,
   data_path: data_path,
-  agent_name: "chonky-cat"
+  agent_name: "chonky-cat",
+  k8s_kubeconfig_pipeline:
+    {Kubereq.Kubeconfig.Stub,
+     plugs: %{
+       "default" => {Req.Test, :k8s_cluster},
+       "no-permission" => {Req.Test, :k8s_cluster}
+     }}
 
 config :livebook, Livebook.Apps.Manager, retry_backoff_base_ms: 0
-
-config :livebook,
-       :k8s_kubeconfig_pipeline,
-       {Kubereq.Kubeconfig.Stub,
-        plugs: %{
-          "default" => {Req.Test, :k8s_cluster},
-          "no-permission" => {Req.Test, :k8s_cluster}
-        }}
