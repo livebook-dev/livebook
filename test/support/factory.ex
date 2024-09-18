@@ -106,10 +106,10 @@ defmodule Livebook.Factory do
     shasum = Base.encode16(md5_hash, case: :lower)
 
     deployed_at =
-      NaiveDateTime.utc_now()
-      |> NaiveDateTime.truncate(:second)
+      DateTime.utc_now()
+      |> DateTime.truncate(:second)
 
-    {seconds, 0} = NaiveDateTime.to_gregorian_seconds(deployed_at)
+    {seconds, 0} = DateTime.to_gregorian_seconds(deployed_at)
 
     %Livebook.Teams.AppDeployment{
       id: "1",
