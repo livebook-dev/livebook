@@ -63,9 +63,11 @@ defmodule Livebook.Runtime.K8s do
     req = runtime.req
 
     kubeconfig =
-      if System.get_env("KUBERNETES_SERVICE_HOST"),
-        do: nil,
-        else: System.get_env("KUBECONFIG") || Path.join(System.user_home!(), ".kube/config")
+      if System.get_env("KUBERNETES_SERVICE_HOST") do
+        nil
+      else
+        System.get_env("KUBECONFIG") || Path.join(System.user_home!(), ".kube/config")
+      end
 
     cluster_data = get_cluster_data(kubeconfig)
 
@@ -98,13 +100,7 @@ defmodule Livebook.Runtime.K8s do
          child_node <- :"#{cluster_data.node_base}@#{pod_ip}",
          :ok <-
            with_log(caller, "start proxy", fn ->
-             k8s_forward_port(
-               kubeconfig,
-               context,
-               cluster_data,
-               pod_name,
-               namespace
-             )
+             k8s_forward_port(kubeconfig, context, cluster_data, pod_name, namespace)
            end),
          :ok <-
            with_log(caller, "connect to node", fn ->
@@ -273,22 +269,22 @@ defmodule Livebook.Runtime.K8s do
     end
   end
 
-  defp get_cluster_data(nil), do: %{node_base: "k8s_runtime", remote_port: 44444}
+  defp get_cluster_data(_kubeconfig = nil) do
+    # When already running within Kubernetes we don't need the proxy,
+    # the node is reachable directly
+    %{node_base: "k8s_runtime", remote_port: 44444}
+  end
 
   defp get_cluster_data(_kubeconfig) do
     local_port = get_free_port!()
     %{node_base: "remote_runtime_#{local_port}", remote_port: 44444, local_port: local_port}
   end
 
-  defp k8s_forward_port(nil, _, _, _, _), do: :ok
+  defp k8s_forward_port(_kubeconfig = nil, _, _, _, _), do: :ok
 
-  defp k8s_forward_port(
-         kubeconfig,
-         context,
-         %{local_port: local_port, remote_port: remote_port},
-         pod_name,
-         namespace
-       ) do
+  defp k8s_forward_port(kubeconfig, context, cluster_data, pod_name, namespace) do
+    %{local_port: local_port, remote_port: remote_port} = cluster_data
+
     with {:ok, kubectl_path} <- find_kubectl_executable() do
       ports = "#{local_port}:#{remote_port}"
 
