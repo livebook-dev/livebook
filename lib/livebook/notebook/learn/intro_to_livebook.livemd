@@ -34,7 +34,7 @@ the status indicator on the bottom right of the second cell become yellow.
 ## Sections
 
 You can leverage so called **sections** to nicely group related cells together.
-Click on the "Book" icon (<i class="ri-livebook-sections"></i>) in the sidebar
+Click on the "Outline" icon (<i class="ri-node-tree"></i>) in the sidebar
 to reveal a list of all sections. As you can see, this approach helps to easily
 jump around the notebook, especially once it grows.
 
