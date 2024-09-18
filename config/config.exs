@@ -38,7 +38,7 @@ config :livebook,
   shutdown_callback: nil,
   teams_auth?: false,
   teams_url: "https://teams.livebook.dev",
-  github_release_info: [repo: "livebook-dev/livebook", version: Mix.Project.config()[:version]],
+  github_release_info: %{repo: "livebook-dev/livebook", version: Mix.Project.config()[:version]},
   update_instructions_url: nil,
   within_iframe: false
 

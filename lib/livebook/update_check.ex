@@ -128,7 +128,7 @@ defmodule Livebook.UpdateCheck do
   end
 
   defp fetch_latest_version() do
-    repo = Keyword.fetch!(Livebook.Config.github_release_info(), :repo)
+    repo = Livebook.Config.github_release_info().repo
     url = "https://api.github.com/repos/#{repo}/releases/latest"
     headers = [{"accept", "application/vnd.github.v3+json"}]
 
@@ -147,7 +147,7 @@ defmodule Livebook.UpdateCheck do
   end
 
   defp new_version(release) do
-    with current_version <- Keyword.fetch!(Livebook.Config.github_release_info(), :version),
+    with current_version <- Livebook.Config.github_release_info().version,
          %{
            "tag_name" => "v" <> version,
            "published_at" => published_at,
