@@ -77,7 +77,7 @@ defmodule Livebook.Utils.Time do
       iex> Livebook.Utils.Time.distance_of_time_in_words(~N[2020-06-20 18:15:00], ~N[2021-08-22 18:15:00])
       "about 14 months"
 
-  To deal with clock-drifts when receiving timestamps from the server, we accept future times:
+  To deal with clock-drifts when receiving timestamps from another machine, we accept future times:
 
       iex> Livebook.Utils.Time.distance_of_time_in_words(~N[2020-06-20 18:15:06], ~N[2020-06-20 18:15:04])
       "less than 5 seconds"
