@@ -6,7 +6,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   alias Livebook.{Session, Runtime}
   alias Livebook.K8s.{Auth, Pod, PVC}
 
-  @config_secret_prefix "K8S_RUNTIME_"
   @kubeconfig_pipeline Application.compile_env(:livebook, :k8s_kubeconfig_pipeline)
 
   @impl true
@@ -29,13 +28,29 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        namespace: nil,
        namespace_options: nil,
        rbac: %{status: :inflight, errors: [], permissions: []},
-       save_config: nil,
        pvcs: nil,
        pvc_action: nil,
-       home_pvc: nil,
+       pvc_name: nil,
        docker_tag: hd(Livebook.Config.docker_images()).tag,
-       pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil}
+       pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil},
+       save_config_payload: nil
      )}
+  end
+
+  @impl true
+  def update(%{event: :open_save_config}, socket) do
+    {:ok, assign(socket, save_config_payload: build_config(socket))}
+  end
+
+  def update(%{event: :close_save_config}, socket) do
+    {:ok, assign(socket, save_config_payload: nil)}
+  end
+
+  def update(%{event: {:load_config, config_defaults}}, socket) do
+    {:ok,
+     socket
+     |> assign(config_defaults: config_defaults)
+     |> load_config_defaults()}
   end
 
   @impl true
@@ -78,11 +93,17 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         The Pod is automatically deleted, once you disconnect the runtime.
       </p>
 
-      <.save_config_form :if={@save_config} save_config={@save_config} hub={@hub} myself={@myself} />
+      <.live_component
+        module={LivebookWeb.SessionLive.SaveRuntimeConfigComponent}
+        id="save-runtime-config"
+        hub={@hub}
+        hub_secrets={@hub_secrets}
+        target={{__MODULE__, @id}}
+        save_config_payload={@save_config_payload}
+        secret_prefix="K8S_RUNTIME_"
+      />
 
-      <div :if={@save_config == nil}>
-        <.config_actions hub_secrets={@hub_secrets} myself={@myself} />
-
+      <div :if={@save_config_payload == nil}>
         <.message_box :if={@kubeconfig.current_cluster == nil} kind={:error}>
           In order to use the Kubernetes context, you need to set the <code>KUBECONFIG</code>
           environment variable to a path pointing to a <a
@@ -183,7 +204,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         <.storage_config
           :if={@rbac.status == :ok}
           myself={@myself}
-          home_pvc={@home_pvc}
+          pvc_name={@pvc_name}
           pvcs={@pvcs}
           pvc_action={@pvc_action}
           rbac={@rbac}
@@ -239,16 +260,16 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
       <div class="mt-4 flex flex-col">
         <div class="flex items-start gap-1">
-          <form phx-change="set_home_pvc" phx-target={@myself} class="grow">
+          <form phx-change="set_pvc_name" phx-target={@myself} class="grow">
             <.select_field
               :if={@rbac.permissions.list_pvc}
-              value={@home_pvc}
-              name="home_pvc"
+              value={@pvc_name}
+              name="pvc_name"
               label="Persistent Volume Claim"
               options={[{"None", nil} | @pvcs]}
             />
             <div :if={!@rbac.permissions.list_pvc}>
-              <.text_field value={@home_pvc} name="home_pvc" label="Persistent Volume Claim" />
+              <.text_field value={@pvc_name} name="pvc_name" label="Persistent Volume Claim" />
               <div class="text-sm text-amber-600">
                 Authenticated user has no permission to list PVCs. But you can enter a name of an existing PVC to be attached.
               </div>
@@ -264,7 +285,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               <.icon_button
                 phx-click="delete_pvc"
                 phx-target={@myself}
-                disabled={@home_pvc == nil or @pvc_action != nil}
+                disabled={@pvc_name == nil or @pvc_action != nil}
               >
                 <.remix_icon icon="delete-bin-6-line" />
               </.icon_button>
@@ -285,7 +306,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           class="px-4 py-3 mt-4 flex space-x-4 items-center border border-gray-200 rounded-lg"
         >
           <p class="grow text-gray-700 text-sm">
-            Are you sure you want to irreversibly delete Persistent Volume Claim <span class="font-semibold"><%= @home_pvc %></span>?
+            Are you sure you want to irreversibly delete Persistent Volume Claim <span class="font-semibold"><%= @pvc_name %></span>?
           </p>
           <div class="flex space-x-4">
             <button
@@ -353,99 +374,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         </.form>
         <.error :if={@pvc_action[:error]}><%= @pvc_action[:error] %></.error>
       </div>
-    </div>
-    """
-  end
-
-  defp save_config_form(assigns) do
-    ~H"""
-    <.form
-      :let={f}
-      for={@save_config.changeset}
-      as={:secret}
-      class="mt-4 flex flex-col"
-      phx-change="validate_save_config"
-      phx-submit="save_config"
-      phx-target={@myself}
-      autocomplete="off"
-      spellcheck="false"
-    >
-      <div class="text-lg text-gray-800 font-semibold">
-        Save config
-      </div>
-      <div class="mt-1 text-gray-700">
-        Store the config in a secret in the <.workspace hub={@hub} /> workspace to reuse it later.
-      </div>
-      <div :if={error = @save_config.error} class="mt-4">
-        <.message_box kind={:error} message={error} />
-      </div>
-      <div class="mt-4 grid grid-cols-3">
-        <.text_field field={f[:name]} label="Secret name" class="uppercase" autofocus />
-      </div>
-      <div class="mt-6 flex gap-2">
-        <.button type="submit" disabled={not @save_config.changeset.valid? or @save_config.inflight}>
-          <%= if(@save_config.inflight, do: "Saving...", else: "Save") %>
-        </.button>
-        <.button
-          color="gray"
-          outlined
-          type="button"
-          phx-click="cancel_save_config"
-          phx-target={@myself}
-        >
-          Cancel
-        </.button>
-      </div>
-    </.form>
-    """
-  end
-
-  defp workspace(assigns) do
-    ~H"""
-    <span class="font-medium">
-      <span class="text-lg"><%= @hub.hub_emoji %></span>
-      <span><%= @hub.hub_name %></span>
-    </span>
-    """
-  end
-
-  defp config_actions(assigns) do
-    ~H"""
-    <div class="mt-1 flex justify-end gap-1">
-      <.button
-        color="gray"
-        outlined
-        small
-        type="button"
-        phx-click="open_save_config"
-        phx-target={@myself}
-      >
-        Save config
-      </.button>
-      <.menu id="config-secret-menu">
-        <:toggle>
-          <.button color="gray" outlined small type="button">
-            <span>Load config</span>
-            <.remix_icon icon="arrow-down-s-line" class="text-base leading-none" />
-          </.button>
-        </:toggle>
-        <div
-          :if={config_secret_names(@hub_secrets) == []}
-          class="px-3 py-1 whitespace-nowrap text-gray-600 text-sm"
-        >
-          No configs saved yet
-        </div>
-        <.menu_item :for={name <- config_secret_names(@hub_secrets)}>
-          <button
-            class="text-gray-500 text-sm"
-            type="button"
-            role="menuitem"
-            phx-click={JS.push("load_config", value: %{name: name}, target: @myself)}
-          >
-            <%= name %>
-          </button>
-        </.menu_item>
-      </.menu>
     </div>
     """
   end
@@ -530,13 +458,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     {:noreply, set_pod_template(socket, pod_template)}
   end
 
-  def handle_event("set_home_pvc", %{"home_pvc" => home_pvc}, socket) do
-    {:noreply, assign(socket, :home_pvc, home_pvc)}
-  end
-
-  def handle_event("disconnect", %{}, socket) do
-    Session.disconnect_runtime(socket.assigns.session.pid)
-    {:noreply, socket}
+  def handle_event("set_pvc_name", %{"pvc_name" => pvc_name}, socket) do
+    {:noreply, assign(socket, :pvc_name, pvc_name)}
   end
 
   def handle_event("new_pvc", %{}, socket) do
@@ -583,7 +506,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   def handle_event("confirm_delete_pvc", %{}, socket) do
-    %{namespace: namespace, home_pvc: name} = socket.assigns
+    %{namespace: namespace, pvc_name: name} = socket.assigns
     req = socket.assigns.reqs.pvc
 
     socket =
@@ -600,56 +523,15 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_event("init", %{}, socket) do
     config = build_config(socket)
-    runtime = Runtime.K8s.new(config, socket.assigns.reqs.pod)
+    runtime = Runtime.K8s.new(config)
     Session.set_runtime(socket.assigns.session.pid, runtime)
     Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
-  def handle_event("open_save_config", %{}, socket) do
-    changeset = config_secret_changeset(socket, %{name: @config_secret_prefix})
-    save_config = %{changeset: changeset, inflight: false, error: false}
-    {:noreply, assign(socket, save_config: save_config)}
-  end
-
-  def handle_event("cancel_save_config", %{}, socket) do
-    {:noreply, assign(socket, save_config: nil)}
-  end
-
-  def handle_event("validate_save_config", %{"secret" => secret}, socket) do
-    changeset =
-      socket
-      |> config_secret_changeset(secret)
-      |> Map.replace!(:action, :validate)
-
-    {:noreply, assign_nested(socket, :save_config, changeset: changeset)}
-  end
-
-  def handle_event("save_config", %{"secret" => secret}, socket) do
-    changeset = config_secret_changeset(socket, secret)
-
-    case Ecto.Changeset.apply_action(changeset, :insert) do
-      {:ok, secret} ->
-        {:noreply, save_config_secret(socket, secret, changeset)}
-
-      {:error, changeset} ->
-        {:noreply, assign_nested(socket, :save_config, changeset: changeset)}
-    end
-  end
-
-  def handle_event("load_config", %{"name" => name}, socket) do
-    secret = Enum.find(socket.assigns.hub_secrets, &(&1.name == name))
-
-    case Jason.decode(secret.value) do
-      {:ok, config_defaults} ->
-        {:noreply,
-         socket
-         |> assign(config_defaults: config_defaults)
-         |> load_config_defaults()}
-
-      {:error, _} ->
-        {:noreply, socket}
-    end
+  def handle_event("disconnect", %{}, socket) do
+    Session.disconnect_runtime(socket.assigns.session.pid)
+    {:noreply, socket}
   end
 
   @impl true
@@ -684,7 +566,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       case result do
         {:ok, %{status: 200}} ->
           socket
-          |> assign(home_pvc: nil, pvc_action: nil)
+          |> assign(pvc_name: nil, pvc_action: nil)
           |> pvc_options()
 
         {:ok, %{body: %{"message" => message}}} ->
@@ -699,7 +581,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       case result do
         {:ok, %{status: 201, body: created_pvc}} ->
           socket
-          |> assign(home_pvc: created_pvc["metadata"]["name"], pvc_action: nil)
+          |> assign(pvc_name: created_pvc["metadata"]["name"], pvc_action: nil)
           |> pvc_options()
 
         {:ok, %{body: body}} ->
@@ -727,22 +609,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       socket
       |> assign(:namespace_options, nil)
       |> assign(:cluster_check, %{status: :error, error: error})
-
-    {:noreply, socket}
-  end
-
-  def handle_async(:save_config, {:ok, result}, socket) do
-    socket =
-      case result do
-        :ok ->
-          assign(socket, save_config: nil)
-
-        {:error, %Ecto.Changeset{} = changeset} ->
-          assign_nested(socket, :save_config, changeset: changeset, inflight: false)
-
-        {:transport_error, error} ->
-          assign_nested(socket, :save_config, error: error, inflight: false)
-      end
 
     {:noreply, socket}
   end
@@ -780,7 +646,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       access_reviews:
         Kubereq.new(kubeconfig, "apis/authorization.k8s.io/v1/selfsubjectaccessreviews"),
       namespaces: Kubereq.new(kubeconfig, "api/v1/namespaces/:name"),
-      pod: Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/pods/:name"),
       pvc: Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/persistentvolumeclaims/:name"),
       sc: Kubereq.new(kubeconfig, "apis/storage.k8s.io/v1/storageclasses/:name")
     }
@@ -917,21 +782,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     end
   end
 
-  defp config_secret_names(hub_secrets) do
-    names =
-      for %{name: name} <- hub_secrets,
-          String.starts_with?(name, @config_secret_prefix),
-          do: name
-
-    Enum.sort(names)
-  end
-
   defp load_config_defaults(socket) do
     config_defaults = socket.assigns.config_defaults
 
     socket
     |> assign(
-      home_pvc: config_defaults["home_pvc"],
+      pvc_name: config_defaults["pvc_name"],
       docker_tag: config_defaults["docker_tag"]
     )
     |> set_context(config_defaults["context"])
@@ -939,52 +795,11 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     |> set_pod_template(config_defaults["pod_template"])
   end
 
-  defp config_secret_changeset(socket, attrs) do
-    hub = socket.assigns.hub
-    value = socket |> build_config() |> Jason.encode!()
-    secret = %Livebook.Secrets.Secret{hub_id: hub.id, name: nil, value: value}
-
-    secret
-    |> Livebook.Secrets.change_secret(attrs)
-    |> validate_format(:name, ~r/^#{@config_secret_prefix}\w+$/,
-      message: "must be in the format #{@config_secret_prefix}*"
-    )
-  end
-
-  defp save_config_secret(socket, secret, changeset) do
-    hub = socket.assigns.hub
-    exists? = Enum.any?(socket.assigns.hub_secrets, &(&1.name == secret.name))
-
-    socket
-    |> start_async(:save_config, fn ->
-      result =
-        if exists? do
-          Livebook.Hubs.update_secret(hub, secret)
-        else
-          Livebook.Hubs.create_secret(hub, secret)
-        end
-
-      with {:error, errors} <- result do
-        {:error,
-         changeset
-         |> Livebook.Utils.put_changeset_errors(errors)
-         |> Map.replace!(:action, :validate)}
-      end
-    end)
-    |> assign_nested(:save_config, inflight: true)
-  end
-
-  defp assign_nested(socket, key, keyword) do
-    update(socket, key, fn map ->
-      Enum.reduce(keyword, map, fn {key, value}, map -> Map.replace!(map, key, value) end)
-    end)
-  end
-
   defp build_config(socket) do
     %{
       context: socket.assigns.context,
       namespace: socket.assigns.namespace,
-      home_pvc: socket.assigns.home_pvc,
+      pvc_name: socket.assigns.pvc_name,
       docker_tag: socket.assigns.docker_tag,
       pod_template: socket.assigns.pod_template.template
     }

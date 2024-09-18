@@ -1017,6 +1017,34 @@ defmodule LivebookWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Updates keys in a map assign.
+  """
+  def assign_nested(socket, key, keyword) do
+    update(socket, key, fn map ->
+      Enum.reduce(keyword, map, fn {key, value}, map -> Map.replace!(map, key, value) end)
+    end)
+  end
+
+  @doc """
+  Sends an event to the given target.
+
+  Given:
+
+    * a LV pid, sends the event as a regular message to the process
+
+    * a component `{module, id}` tuple, the event is sent as an update
+      with `:event` assign
+
+  """
+  def send_event(target, event) when is_pid(target) do
+    send(target, event)
+  end
+
+  def send_event({module, id}, event) when is_atom(module) and is_binary(id) do
+    Phoenix.LiveView.send_update(module, id: id, event: event)
+  end
+
   # JS commands
 
   @doc """
