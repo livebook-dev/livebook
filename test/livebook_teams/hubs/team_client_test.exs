@@ -663,10 +663,10 @@ defmodule Livebook.Hubs.TeamClientTest do
           version: Livebook.Utils.random_id(),
           file: nil,
           deployed_by: teams_app_deployment.app_revision.created_by.name,
-          deployed_at: teams_app_deployment.updated_at
+          deployed_at: DateTime.from_naive!(teams_app_deployment.updated_at, "Etc/UTC")
       }
 
-      {seconds, 0} = NaiveDateTime.to_gregorian_seconds(app_deployment.deployed_at)
+      {seconds, 0} = DateTime.to_gregorian_seconds(app_deployment.deployed_at)
 
       livebook_proto_app_deployment =
         %LivebookProto.AppDeployment{
