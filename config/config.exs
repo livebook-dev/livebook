@@ -40,7 +40,8 @@ config :livebook,
   teams_url: "https://teams.livebook.dev",
   github_release_info: %{repo: "livebook-dev/livebook", version: Mix.Project.config()[:version]},
   update_instructions_url: nil,
-  within_iframe: false
+  within_iframe: false,
+  k8s_kubeconfig_pipeline: Kubereq.Kubeconfig.Default
 
 config :livebook, Livebook.Apps.Manager, retry_backoff_base_ms: 5_000
 

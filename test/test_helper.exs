@@ -15,7 +15,8 @@ Application.put_env(:livebook, :runtime_modules, [
   Livebook.Runtime.Standalone,
   Livebook.Runtime.Attached,
   Livebook.Runtime.Embedded,
-  Livebook.Runtime.Fly
+  Livebook.Runtime.Fly,
+  Livebook.Runtime.K8s
 ])
 
 defmodule Livebook.Runtime.Embedded.Packages do
@@ -75,5 +76,5 @@ fly_exclude = if System.get_env("TEST_FLY_API_TOKEN"), do: [], else: [:fly]
 
 ExUnit.start(
   assert_receive_timeout: if(windows?, do: 5_000, else: 1_500),
-  exclude: erl_docs_exclude ++ windows_exclude ++ teams_exclude ++ fly_exclude
+  exclude: erl_docs_exclude ++ windows_exclude ++ teams_exclude ++ fly_exclude ++ [:k8s]
 )
