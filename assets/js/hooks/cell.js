@@ -211,6 +211,15 @@ const Cell = {
         // gives it focus
         if (!this.isFocused || !this.insertMode) {
           this.currentEditor().blur();
+        } else if (this.insertMode) {
+          const lineNumber = this.currentEditor().getLineNumberAtCursor();
+
+          if (lineNumber !== null)
+            globalPubsub.broadcast("history", {
+              type: "navigation",
+              cellId: this.props.cellId,
+              line: lineNumber.toString(),
+            });
         }
       }, 0);
     });

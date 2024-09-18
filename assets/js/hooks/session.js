@@ -18,6 +18,7 @@ import { leaveChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 import { settingsStore } from "../lib/settings";
 import { LiveStore } from "../lib/live_store";
+import History from "../lib/history";
 
 /**
  * A hook managing the whole session.
@@ -81,6 +82,7 @@ const Session = {
     this.viewOptions = null;
     this.keyBuffer = new KeyBuffer();
     this.lastLocationReportByClientId = {};
+    this.history = new History();
     this.followedClientId = null;
     this.store = LiveStore.create("session");
 
@@ -161,6 +163,7 @@ const Session = {
       globalPubsub.subscribe("jump_to_editor", ({ line, file }) =>
         this.jumpToLine(file, line),
       ),
+      globalPubsub.subscribe("history", this.handleHistoryEvent.bind(this)),
     ];
 
     this.initializeDragAndDrop();
@@ -278,6 +281,7 @@ const Session = {
 
     this.subscriptions.forEach((subscription) => subscription.destroy());
     this.store.destroy();
+    this.history.destroy();
   },
 
   getProps() {
@@ -1227,6 +1231,8 @@ const Session = {
   },
 
   handleCellDeleted(cellId, siblingCellId) {
+    this.history.removeAllFromCell(cellId);
+
     if (this.focusedId === cellId) {
       if (this.view) {
         const visibleSiblingId = this.ensureVisibleFocusableEl(siblingCellId);
@@ -1321,6 +1327,14 @@ const Session = {
       ) {
         this.setFocusedEl(report.focusableId);
       }
+    }
+  },
+
+  handleHistoryEvent(payload) {
+    if (payload.type === "back") {
+      this.goBackNavigationHistory();
+    } else if (payload.type === "navigation") {
+      this.saveNavigationHistory(payload);
     }
   },
 
@@ -1447,7 +1461,22 @@ const Session = {
 
   jumpToLine(file, line) {
     const [_filename, cellId] = file.split("#cell:");
+    this.doJumpToLine(cellId, line);
+  },
 
+  saveNavigationHistory({ cellId, line }) {
+    if (cellId === null || line === null) return;
+    this.history.saveCell(cellId, line);
+  },
+
+  goBackNavigationHistory() {
+    if (this.history.canGoBack()) {
+      const { cellId, line } = this.history.goBack();
+      this.doJumpToLine(cellId, line);
+    }
+  },
+
+  doJumpToLine(cellId, line) {
     this.setFocusedEl(cellId, { scroll: false });
     this.setInsertMode(true);
 

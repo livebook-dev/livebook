@@ -167,6 +167,18 @@ export default class LiveEditor {
   }
 
   /**
+   * Returns line number from the current main cursor position.
+   */
+  getLineNumberAtCursor() {
+    if (!this.isMounted()) {
+      return null;
+    }
+
+    const pos = this.view.state.selection.main.head;
+    return this.view.state.doc.lineAt(pos).number;
+  }
+
+  /**
    * Focuses the editor.
    *
    * Note that this forces the editor to be mounted, if it is not already
