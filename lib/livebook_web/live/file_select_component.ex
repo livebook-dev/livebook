@@ -490,7 +490,7 @@ defmodule LivebookWeb.FileSelectComponent do
 
     file = FileSystem.File.new(file_system)
 
-    send_event(socket, {:set_file, file, %{exists: true}})
+    send_event(socket.assigns.target, {:set_file, file, %{exists: true}})
 
     {:noreply, socket}
   end
@@ -512,7 +512,7 @@ defmodule LivebookWeb.FileSelectComponent do
         _info -> %{exists: true}
       end
 
-    send_event(socket, {:set_file, file, info})
+    send_event(socket.assigns.target, {:set_file, file, info})
 
     {:noreply, socket}
   end
@@ -758,15 +758,5 @@ defmodule LivebookWeb.FileSelectComponent do
     new_name = if FileSystem.File.dir?(file), do: name <> "/", else: name
     new_file = FileSystem.File.resolve(parent_dir, new_name)
     FileSystem.File.rename(file, new_file)
-  end
-
-  defp send_event(socket, event) do
-    case socket.assigns.target do
-      {module, id} ->
-        send_update(module, id: id, event: event)
-
-      pid when is_pid(pid) ->
-        send(pid, event)
-    end
   end
 end

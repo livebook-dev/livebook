@@ -1,6 +1,6 @@
 defmodule Livebook.K8s.Pod do
   @main_container_name "livebook-runtime"
-  @home_pvc_volume_name "livebook-home"
+  @pvc_name_volume_name "livebook-home"
 
   @default_pod_template """
   apiVersion: v1
@@ -35,15 +35,15 @@ defmodule Livebook.K8s.Pod do
 
   @doc """
   Adds "volume" and "volumeMount" configurations to `manifest` in order
-  to mount `home_pvc` under /home/livebook on the pod.
+  to mount `pvc_name` under /home/livebook on the pod.
   """
-  @spec set_home_pvc(map(), String.t()) :: map()
-  def set_home_pvc(manifest, home_pvc) do
+  @spec set_pvc_name(map(), String.t()) :: map()
+  def set_pvc_name(manifest, pvc_name) do
     manifest
     |> update_in(["spec", Access.key("volumes", [])], fn volumes ->
       volume = %{
-        "name" => @home_pvc_volume_name,
-        "persistentVolumeClaim" => %{"claimName" => home_pvc}
+        "name" => @pvc_name_volume_name,
+        "persistentVolumeClaim" => %{"claimName" => pvc_name}
       }
 
       [volume | volumes]
@@ -51,7 +51,7 @@ defmodule Livebook.K8s.Pod do
     |> update_in(
       ["spec", "containers", access_main_container(), Access.key("volumeMounts", [])],
       fn volume_mounts ->
-        [%{"name" => @home_pvc_volume_name, "mountPath" => "/home/livebook"} | volume_mounts]
+        [%{"name" => @pvc_name_volume_name, "mountPath" => "/home/livebook"} | volume_mounts]
       end
     )
   end

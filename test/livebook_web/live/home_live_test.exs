@@ -99,7 +99,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "allows closing session after confirmation", %{conn: conn} do
-      {:ok, session} = Sessions.create_session()
+      {:ok, %{id: id} = session} = Sessions.create_session()
 
       {:ok, view, _} = live(conn, ~p"/")
 
@@ -109,7 +109,11 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element(~s{[data-test-session-id="#{session.id}"] button}, "Close")
       |> render_click()
 
+      Sessions.subscribe()
+
       render_confirm(view)
+
+      assert_receive {:session_closed, %{id: ^id}}
 
       refute render(view) =~ session.id
     end
