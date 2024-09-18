@@ -424,6 +424,7 @@ defmodule Livebook.Config do
   @doc """
   Returns the GitHub org/repo where the releases are created.
   """
+  @spec github_release_info() :: %{repo: String.t(), version: String.t()}
   def github_release_info() do
     Application.get_env(:livebook, :github_release_info)
   end
