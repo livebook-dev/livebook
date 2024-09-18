@@ -8,13 +8,12 @@ defmodule Livebook.Runtime.K8s do
 
   defstruct [:config, :node, :req, :server_pid, :lv_pid, :pod_name]
 
-  @type config :: %{
-          context: String.t(),
-          namespace: String.t(),
-          home_pvc: String.t() | nil,
-          docker_tag: String.t(),
-          pod_template: String.t()
-        }
+  use GenServer, restart: :temporary
+
+  require Logger
+
+  alias Livebook.Runtime.RemoteUtils
+  alias Livebook.K8s.Pod
 
   @type t :: %__MODULE__{
           node: node() | nil,
@@ -24,18 +23,20 @@ defmodule Livebook.Runtime.K8s do
           pod_name: String.t() | nil
         }
 
-  use GenServer, restart: :temporary
-
-  require Logger
-
-  alias Livebook.K8s.Pod
+  @type config :: %{
+          context: String.t(),
+          namespace: String.t(),
+          docker_tag: String.t(),
+          pod_template: String.t(),
+          pvc_name: String.t() | nil
+        }
 
   @doc """
   Returns a new runtime instance.
   """
-  @spec new(config :: map(), req :: Req.Request.t()) :: t()
-  def new(config, req) do
-    %__MODULE__{config: config, req: req, lv_pid: self()}
+  @spec new(map()) :: t()
+  def new(config) do
+    %__MODULE__{config: config, lv_pid: self()}
   end
 
   def __connect__(runtime) do
@@ -60,25 +61,26 @@ defmodule Livebook.Runtime.K8s do
   def handle_continue({:init, runtime, caller}, state) do
     config = runtime.config
     %{namespace: namespace, context: context} = config
-    req = runtime.req
 
-    kubeconfig =
-      if System.get_env("KUBERNETES_SERVICE_HOST") do
-        nil
+    within_kubernetes? = System.get_env("KUBERNETES_SERVICE_HOST") != nil
+
+    {node_base, local_port} =
+      if within_kubernetes? do
+        # When already running within Kubernetes we don't need the
+        # proxy, the node is reachable directly
+        {"k8s_runtime", nil}
       else
-        System.get_env("KUBECONFIG") || Path.join(System.user_home!(), ".kube/config")
+        local_port = RemoteUtils.get_free_port!()
+        {"remote_runtime_#{local_port}", local_port}
       end
 
-    cluster_data = get_cluster_data(kubeconfig)
+    req =
+      Kubereq.Kubeconfig.Default
+      |> Kubereq.Kubeconfig.load()
+      |> Kubereq.Kubeconfig.set_current_context(context)
+      |> Kubereq.new("api/v1/namespaces/:namespace/pods/:name")
 
-    runtime_data =
-      %{
-        node_base: cluster_data.node_base,
-        cookie: Node.get_cookie(),
-        dist_port: cluster_data.remote_port
-      }
-      |> :erlang.term_to_binary()
-      |> Base.encode64()
+    runtime_data = RemoteUtils.encode_runtime_data(node_base)
 
     parent = self()
 
@@ -90,28 +92,32 @@ defmodule Livebook.Runtime.K8s do
 
     with {:ok, pod_name} <-
            with_log(caller, "create pod", fn ->
-             create_pod(req, config, runtime_data, cluster_data.remote_port)
+             create_pod(req, config, runtime_data)
            end),
          _ <- send(watcher_pid, {:pod_created, pod_name}),
          {:ok, pod_ip} <-
            with_pod_events(caller, "waiting for pod", req, namespace, pod_name, fn ->
              await_pod_ready(req, namespace, pod_name)
            end),
-         child_node <- :"#{cluster_data.node_base}@#{pod_ip}",
+         child_node <- :"#{node_base}@#{pod_ip}",
          :ok <-
-           with_log(caller, "start proxy", fn ->
-             k8s_forward_port(kubeconfig, context, cluster_data, pod_name, namespace)
-           end),
+           (if within_kubernetes? do
+              :ok
+            else
+              with_log(caller, "start proxy", fn ->
+                k8s_forward_port(context, local_port, pod_name, namespace)
+              end)
+            end),
          :ok <-
            with_log(caller, "connect to node", fn ->
-             connect_loop(child_node, 40, 250)
+             RemoteUtils.connect(child_node)
            end),
-         {:ok, primary_pid} <- fetch_runtime_info(child_node) do
+         %{pid: primary_pid} <- RemoteUtils.fetch_runtime_info(child_node) do
       primary_ref = Process.monitor(primary_pid)
 
       server_pid =
         with_log(caller, "initialize node", fn ->
-          initialize_node(child_node)
+          RemoteUtils.initialize_node(child_node)
         end)
 
       send(primary_pid, :node_initialized)
@@ -139,30 +145,6 @@ defmodule Livebook.Runtime.K8s do
     {:noreply, state}
   end
 
-  defp get_free_port!() do
-    {:ok, socket} = :gen_tcp.listen(0, active: false, reuseaddr: true)
-    {:ok, port} = :inet.port(socket)
-    :gen_tcp.close(socket)
-    port
-  end
-
-  defp with_log(caller, name, fun) do
-    send(caller, {:runtime_connect_info, self(), name})
-
-    {microseconds, result} = :timer.tc(fun)
-    milliseconds = div(microseconds, 1000)
-
-    case result do
-      {:error, error} ->
-        Logger.debug("[K8s runtime] #{name} FAILED in #{milliseconds}ms, error: #{error}")
-
-      _ ->
-        Logger.debug("[K8s runtime] #{name} finished in #{milliseconds}ms")
-    end
-
-    result
-  end
-
   defp with_pod_events(caller, name, req, namespace, pod_name, fun) do
     with_log(caller, name, fn ->
       runtime_pid = self()
@@ -186,8 +168,8 @@ defmodule Livebook.Runtime.K8s do
             {:ok, stream} ->
               Enum.each(stream, fn event ->
                 message = Livebook.Utils.downcase_first(event["object"]["message"])
-                Logger.debug(~s'[K8s runtime] Pod event: "#{message}"')
                 send(caller, {:runtime_connect_info, runtime_pid, message})
+                Logger.debug(~s/[k8s runtime] Pod event: "#{message}"/)
               end)
 
             _error ->
@@ -224,11 +206,11 @@ defmodule Livebook.Runtime.K8s do
     end
   end
 
-  defp create_pod(req, config, runtime_data, remote_port) do
+  defp create_pod(req, config, runtime_data) do
     %{
       pod_template: pod_template,
       docker_tag: docker_tag,
-      home_pvc: home_pvc,
+      pvc_name: pvc_name,
       namespace: namespace
     } = config
 
@@ -254,11 +236,11 @@ defmodule Livebook.Runtime.K8s do
       ])
       |> Pod.set_docker_tag(docker_tag)
       |> Pod.set_namespace(namespace)
-      |> Pod.add_container_port(remote_port)
+      |> Pod.add_container_port(RemoteUtils.remote_port())
 
     manifest =
-      if home_pvc do
-        Pod.set_home_pvc(manifest, home_pvc)
+      if pvc_name do
+        Pod.set_pvc_name(manifest, pvc_name)
       else
         manifest
       end
@@ -275,24 +257,9 @@ defmodule Livebook.Runtime.K8s do
     end
   end
 
-  defp get_cluster_data(_kubeconfig = nil) do
-    # When already running within Kubernetes we don't need the proxy,
-    # the node is reachable directly
-    %{node_base: "k8s_runtime", remote_port: 44444}
-  end
-
-  defp get_cluster_data(_kubeconfig) do
-    local_port = get_free_port!()
-    %{node_base: "remote_runtime_#{local_port}", remote_port: 44444, local_port: local_port}
-  end
-
-  defp k8s_forward_port(_kubeconfig = nil, _, _, _, _), do: :ok
-
-  defp k8s_forward_port(kubeconfig, context, cluster_data, pod_name, namespace) do
-    %{local_port: local_port, remote_port: remote_port} = cluster_data
-
+  defp k8s_forward_port(context, local_port, pod_name, namespace) do
     with {:ok, kubectl_path} <- find_kubectl_executable() do
-      ports = "#{local_port}:#{remote_port}"
+      ports = "#{local_port}:#{RemoteUtils.remote_port()}"
 
       # We want the proxy to accept the same protocol that we are
       # going to use for distribution
@@ -302,6 +269,8 @@ defmodule Livebook.Runtime.K8s do
         else
           "127.0.0.1"
         end
+
+      kubeconfig = System.get_env("KUBECONFIG") || Path.join(System.user_home!(), ".kube/config")
 
       args =
         [
@@ -351,7 +320,7 @@ defmodule Livebook.Runtime.K8s do
     if path = System.find_executable("kubectl") do
       {:ok, path}
     else
-      {:error, "no kubectl executable found in PATH."}
+      {:error, "no kubectl executable found in PATH"}
     end
   end
 
@@ -363,7 +332,7 @@ defmodule Livebook.Runtime.K8s do
              pod_name,
              fn
                :deleted ->
-                 {:error, "The Pod was deleted before it started running."}
+                 {:error, "the Pod was deleted before it started running"}
 
                pod ->
                  get_in(pod, [
@@ -380,50 +349,19 @@ defmodule Livebook.Runtime.K8s do
       {:ok, pod["status"]["podIP"]}
     else
       {:error, :watch_timeout} ->
-        {:error, "Timed out waiting for Pod to start up."}
+        {:error, "timed out waiting for Pod to start up"}
 
       {:error, error} ->
         {:error, error}
 
       _other ->
-        {:error, "Failed getting the Pod's IP address."}
+        {:error, "tailed getting the Pod's IP address"}
     end
   end
 
-  defp connect_loop(_node, 0, _interval) do
-    {:error, "could not establish connection with the node"}
-  end
-
-  defp connect_loop(node, attempts, interval) do
-    if Node.connect(node) do
-      :ok
-    else
-      Process.sleep(interval)
-      connect_loop(node, attempts - 1, interval)
-    end
-  end
-
-  defp fetch_runtime_info(child_node) do
-    # Note: it is Livebook that starts the runtime node, so we know
-    # that the node runs Livebook release of the exact same version
-    #
-    # Also, the remote node already has all the runtime modules in
-    # the code path, compiled for its Elixir version, so we don't
-    # need to check for matching Elixir version.
-
-    %{pid: pid} = :erpc.call(child_node, :persistent_term, :get, [:livebook_runtime_info])
-
-    {:ok, pid}
-  end
-
-  defp initialize_node(child_node) do
-    init_opts = [
-      runtime_server_opts: [
-        extra_smart_cell_definitions: Livebook.Runtime.Definitions.smart_cell_definitions()
-      ]
-    ]
-
-    Livebook.Runtime.ErlDist.initialize(child_node, init_opts)
+  defp with_log(caller, name, fun) do
+    send(caller, {:runtime_connect_info, self(), name})
+    RemoteUtils.with_log("[k8s runtime] #{name}", fun)
   end
 end
 
@@ -453,7 +391,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.K8s do
   end
 
   def duplicate(runtime) do
-    Livebook.Runtime.K8s.new(runtime.config, runtime.req)
+    Livebook.Runtime.K8s.new(runtime.config)
   end
 
   def evaluate_code(runtime, language, code, locator, parent_locators, opts \\ []) do

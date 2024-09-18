@@ -1206,11 +1206,11 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{namespace: "default"})
 
       assert view
-             |> element(~s{select[name="home_pvc"] option[value="foo-pvc"]})
+             |> element(~s{select[name="pvc_name"] option[value="foo-pvc"]})
              |> has_element?()
 
       assert view
-             |> element(~s{select[name="home_pvc"] option[value="new-pvc"]})
+             |> element(~s{select[name="pvc_name"] option[value="new-pvc"]})
              |> has_element?()
 
       assert render_async(view) =~ "You can fully customize"
@@ -1334,16 +1334,13 @@ defmodule LivebookWeb.SessionLiveTest do
       """
 
       runtime =
-        Runtime.K8s.new(
-          %{
-            context: "default",
-            namespace: "default",
-            home_pvc: "foo-pvc",
-            docker_tag: "nightly",
-            pod_template: pod_template
-          },
-          nil
-        )
+        Runtime.K8s.new(%{
+          context: "default",
+          namespace: "default",
+          pvc_name: "foo-pvc",
+          docker_tag: "nightly",
+          pod_template: pod_template
+        })
 
       Req.Test.stub(:k8s_cluster, Livebook.K8sClusterStub)
 
@@ -1354,11 +1351,11 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render_async(view) =~ "You can fully customize"
 
       assert view
-             |> element(~s{select[name="home_pvc"] option[value="foo-pvc"][selected]})
+             |> element(~s{select[name="pvc_name"] option[value="foo-pvc"][selected]})
              |> has_element?()
 
       assert view
-             |> element(~s{select[name="home_pvc"] option[value="new-pvc"]})
+             |> element(~s{select[name="pvc_name"] option[value="new-pvc"]})
              |> has_element?()
 
       assert view

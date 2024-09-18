@@ -51,7 +51,7 @@ defmodule Livebook.Runtime.Fly do
 
   use GenServer, restart: :temporary
 
-  require Logger
+  alias Livebook.Runtime.RemoteUtils
 
   @type t :: %__MODULE__{
           config: config(),
@@ -103,18 +103,10 @@ defmodule Livebook.Runtime.Fly do
   @impl true
   def handle_continue({:init, runtime, caller}, state) do
     config = runtime.config
-    local_port = get_free_port!()
-    remote_port = 44444
+    local_port = RemoteUtils.get_free_port!()
     node_base = "remote_runtime_#{local_port}"
 
-    runtime_data =
-      %{
-        node_base: node_base,
-        cookie: Node.get_cookie(),
-        dist_port: remote_port
-      }
-      |> :erlang.term_to_binary()
-      |> Base.encode64()
+    runtime_data = RemoteUtils.encode_runtime_data(node_base)
 
     parent = self()
 
@@ -140,7 +132,7 @@ defmodule Livebook.Runtime.Fly do
          child_node <- :"#{node_base}@#{machine_id}.vm.#{config.app_name}.internal",
          {:ok, proxy_port} <-
            with_log(caller, "start proxy", fn ->
-             start_fly_proxy(config.app_name, machine_ip, local_port, remote_port, config.token)
+             start_fly_proxy(config.app_name, machine_ip, local_port, config.token)
            end),
          :ok <-
            with_log(caller, "machine starting", fn ->
@@ -148,14 +140,14 @@ defmodule Livebook.Runtime.Fly do
            end),
          :ok <-
            with_log(caller, "connect to node", fn ->
-             connect_loop(child_node, 40, 250)
+             RemoteUtils.connect(child_node)
            end),
-         {:ok, primary_pid} <- fetch_runtime_info(child_node) do
+         %{pid: primary_pid} <- RemoteUtils.fetch_runtime_info(child_node) do
       primary_ref = Process.monitor(primary_pid)
 
       server_pid =
         with_log(caller, "initialize node", fn ->
-          initialize_node(child_node)
+          RemoteUtils.initialize_node(child_node)
         end)
 
       send(primary_pid, :node_initialized)
@@ -274,29 +266,9 @@ defmodule Livebook.Runtime.Fly do
     end
   end
 
-  defp connect_loop(_node, 0, _interval) do
-    {:error, "could not establish connection with the node"}
-  end
-
-  defp connect_loop(node, attempts, interval) do
-    if Node.connect(node) do
-      :ok
-    else
-      Process.sleep(interval)
-      connect_loop(node, attempts - 1, interval)
-    end
-  end
-
-  defp get_free_port!() do
-    {:ok, socket} = :gen_tcp.listen(0, active: false, reuseaddr: true)
-    {:ok, port} = :inet.port(socket)
-    :gen_tcp.close(socket)
-    port
-  end
-
-  defp start_fly_proxy(app_name, host, local_port, remote_port, token) do
+  defp start_fly_proxy(app_name, host, local_port, token) do
     with {:ok, flyctl_path} <- find_fly_executable() do
-      ports = "#{local_port}:#{remote_port}"
+      ports = "#{local_port}:#{RemoteUtils.remote_port()}"
 
       # We want the proxy to accept the same protocol that we are
       # going to use for distribution
@@ -380,44 +352,9 @@ defmodule Livebook.Runtime.Fly do
     Enum.find(paths, fn path -> path && File.regular?(path) end)
   end
 
-  defp fetch_runtime_info(child_node) do
-    # Note: it is Livebook that starts the runtime node, so we know
-    # that the node runs Livebook release of the exact same version
-    #
-    # Also, the remote node already has all the runtime modules in
-    # the code path, compiled for its Elixir version, so we don't
-    # need to check for matching Elixir version.
-
-    %{pid: pid} = :erpc.call(child_node, :persistent_term, :get, [:livebook_runtime_info])
-
-    {:ok, pid}
-  end
-
-  defp initialize_node(child_node) do
-    init_opts = [
-      runtime_server_opts: [
-        extra_smart_cell_definitions: Livebook.Runtime.Definitions.smart_cell_definitions()
-      ]
-    ]
-
-    Livebook.Runtime.ErlDist.initialize(child_node, init_opts)
-  end
-
   defp with_log(caller, name, fun) do
     send(caller, {:runtime_connect_info, self(), name})
-
-    {microseconds, result} = :timer.tc(fun)
-    milliseconds = div(microseconds, 1000)
-
-    case result do
-      {:error, error} ->
-        Logger.debug("[fly runtime] #{name} FAILED in #{milliseconds}ms, error: #{error}")
-
-      _ ->
-        Logger.debug("[fly runtime] #{name} finished in #{milliseconds}ms")
-    end
-
-    result
+    RemoteUtils.with_log("[fly runtime] #{name}", fun)
   end
 end
 
