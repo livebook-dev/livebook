@@ -73,6 +73,15 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
           >
             Fly.io machine
           </.choice_button>
+          <.choice_button
+            :if={Livebook.Config.runtime_enabled?(Livebook.Runtime.K8s)}
+            active={@type == "k8s"}
+            phx-click="set_runtime_type"
+            phx-value-type="k8s"
+            phx-target={@myself}
+          >
+            Kubernetes Pod
+          </.choice_button>
         </div>
         <div
           :if={@error_message && @type == runtime_type(@runtime) && @runtime_status == :disconnected}
@@ -101,11 +110,13 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   defp runtime_type(%Runtime.Attached{}), do: "attached"
   defp runtime_type(%Runtime.Embedded{}), do: "embedded"
   defp runtime_type(%Runtime.Fly{}), do: "fly"
+  defp runtime_type(%Runtime.K8s{}), do: "k8s"
 
   defp component_for_type("standalone"), do: LivebookWeb.SessionLive.StandaloneRuntimeComponent
   defp component_for_type("attached"), do: LivebookWeb.SessionLive.AttachedRuntimeComponent
   defp component_for_type("embedded"), do: LivebookWeb.SessionLive.EmbeddedRuntimeComponent
   defp component_for_type("fly"), do: LivebookWeb.SessionLive.FlyRuntimeComponent
+  defp component_for_type("k8s"), do: LivebookWeb.SessionLive.K8sRuntimeComponent
 
   @impl true
   def handle_event("set_runtime_type", %{"type" => type}, socket) do

@@ -166,7 +166,8 @@ defmodule Livebook do
            [
              Livebook.Runtime.Standalone,
              Livebook.Runtime.Attached,
-             Livebook.Runtime.Fly
+             Livebook.Runtime.Fly,
+             Livebook.Runtime.K8s
            ]
 
     if home = Livebook.Config.writable_dir!("LIVEBOOK_HOME") do

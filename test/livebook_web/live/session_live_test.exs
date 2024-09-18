@@ -1171,6 +1171,201 @@ defmodule LivebookWeb.SessionLiveTest do
              |> has_element?()
     end
 
+    test "configuring k8s runtime", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      Session.subscribe(session.id)
+
+      Req.Test.stub(:k8s_cluster, Livebook.K8sClusterStub)
+
+      view
+      |> element("#runtime-settings-modal button", "Kubernetes Pod")
+      |> render_click()
+
+      # Check context switcher and switch to context with no permission
+
+      view
+      |> element(~s{form[phx-change="set_context"]})
+      |> render_change(%{context: "no-permission"})
+
+      rendered = render_async(view)
+
+      assert rendered =~ "Authenticated user has no permission to"
+      refute rendered =~ "You can fully customize"
+
+      # Test cluster with full access
+
+      view
+      |> element(~s{form[phx-change="set_context"]})
+      |> render_change(%{context: "default"})
+
+      render_async(view)
+
+      view
+      |> element(~s{form[phx-change="set_namespace"]})
+      |> render_change(%{namespace: "default"})
+
+      assert view
+             |> element(~s{select[name="home_pvc"] option[value="foo-pvc"]})
+             |> has_element?()
+
+      assert view
+             |> element(~s{select[name="home_pvc"] option[value="new-pvc"]})
+             |> has_element?()
+
+      assert render_async(view) =~ "You can fully customize"
+
+      # Create new PVC
+
+      view
+      |> element(~s{button[phx-click="new_pvc"]})
+      |> render_click()
+
+      assert view
+             |> element(~s{form[phx-submit="create_pvc"]})
+             |> has_element?()
+
+      # Cancel button intermezzo
+
+      view
+      |> element(~s{button[phx-click="cancel_new_pvc"]})
+      |> render_click()
+
+      refute view
+             |> element(~s{form[phx-submit="create_pvc"]})
+             |> has_element?()
+
+      # Create new PVC again
+
+      view
+      |> element(~s{button[phx-click="new_pvc"]})
+      |> render_click()
+
+      assert view
+             |> element(
+               ~s{form[phx-submit="create_pvc"] select[name="pvc[storage_class]"] option[value="first-storage-class"]}
+             )
+             |> has_element?()
+
+      assert view
+             |> element(
+               ~s{form[phx-submit="create_pvc"] select[name="pvc[storage_class]"] option[value="second-storage-class"]}
+             )
+             |> has_element?()
+
+      assert view
+             |> element(~s{form[phx-submit="create_pvc"] button[type="submit"][disabled]})
+             |> has_element?()
+
+      view
+      |> element(~s{form[phx-submit="create_pvc"]})
+      |> render_change(%{pvc: %{name: "new-pvc", size_gb: 1}})
+
+      assert view
+             |> element(~s{form[phx-submit="create_pvc"] button[type="submit"]:not([disabled])})
+             |> has_element?()
+
+      Req.Test.expect(:k8s_cluster, Livebook.K8sClusterStub)
+
+      view
+      |> element(~s{form[phx-submit="create_pvc"]})
+      |> render_submit(%{pvc: %{name: "new-pvc", size_gb: 1}})
+
+      Req.Test.verify!()
+
+      # Delete a PVC
+
+      view
+      |> element(~s{button[phx-click="delete_pvc"]})
+      |> render_click()
+
+      assert render_async(view) =~
+               "Are you sure you want to irreversibly delete Persistent Volume Claim"
+
+      Req.Test.expect(:k8s_cluster, Livebook.K8sClusterStub)
+
+      view
+      |> element(~s{button[phx-click="confirm_delete_pvc"]})
+      |> render_click()
+
+      Req.Test.verify!()
+
+      # Pod Template Validation
+
+      refute render_async(view) =~ ~s/Make sure to define a valid resource of apiVersion /
+
+      view
+      |> element(~s{form[phx-change="set_pod_template"]})
+      |> render_change(%{pod_template: ""})
+
+      assert render_async(view) =~ ~s/Make sure to define a valid resource of apiVersion /
+
+      view
+      |> element(~s{form[phx-change="set_pod_template"]})
+      |> render_change(%{
+        pod_template: """
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          generateName: livebook-runtime-
+        spec:
+          containers:
+            - name: other-name
+        """
+      })
+
+      assert render_async(view) =~ ~s/Main container is missing./
+
+      # We do not actually connect the runtime. We test connecting againast the
+      # real API separately
+    end
+
+    test "populates k8s runtime config form existing runtime", %{conn: conn, session: session} do
+      pod_template = """
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        generateName: livebook-runtime-
+        labels:
+          livebook.dev/component: test
+      spec:
+        containers:
+          - name: livebook-runtime\
+      """
+
+      runtime =
+        Runtime.K8s.new(
+          %{
+            context: "default",
+            namespace: "default",
+            home_pvc: "foo-pvc",
+            docker_tag: "nightly",
+            pod_template: pod_template
+          },
+          nil
+        )
+
+      Req.Test.stub(:k8s_cluster, Livebook.K8sClusterStub)
+
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      assert render_async(view) =~ "You can fully customize"
+
+      assert view
+             |> element(~s{select[name="home_pvc"] option[value="foo-pvc"][selected]})
+             |> has_element?()
+
+      assert view
+             |> element(~s{select[name="home_pvc"] option[value="new-pvc"]})
+             |> has_element?()
+
+      assert view
+             |> element(~s{button[phx-click="init"]:not([disabled])})
+             |> has_element?()
+    end
+
     test "saving and loading config from secret", %{conn: conn, session: session} do
       runtime =
         Runtime.Fly.new(%{
