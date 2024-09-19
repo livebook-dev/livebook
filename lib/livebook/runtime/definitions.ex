@@ -230,7 +230,7 @@ defmodule Livebook.Runtime.Definitions do
     },
     %{
       kind: "Elixir.KinoFLAME.RunnerCell",
-      name: "FLAME runner cell",
+      name: "FLAME runner",
       requirement_presets: [
         %{
           name: "Fly",
