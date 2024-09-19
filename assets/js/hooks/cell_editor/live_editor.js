@@ -401,7 +401,7 @@ export default class LiveEditor {
     // We dispatch escape event, but only if it is not consumed by any
     // registered handler in the editor, such as closing autocompletion
     // or escaping Vim insert mode
-    const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+    const ctrl = event.ctrlKey;
     const alt = event.altKey;
     const key = event.key;
 
@@ -409,10 +409,8 @@ export default class LiveEditor {
       this.container.dispatchEvent(
         new CustomEvent("lb:editor_escape", { bubbles: true }),
       );
-    } else if (
-      key === "-" &&
-      ((isMacOS() && cmd) || (!isMacOS() && cmd && alt))
-    ) {
+    // On macOS, ctrl+alt+- becomes an em-dash, so we check for the code
+    } else if (event.code === "Minus" && ctrl && alt) {
       globalPubsub.broadcast("history", { type: "back" });
     }
 
