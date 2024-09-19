@@ -85,7 +85,9 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
         </div>
         <div
           :if={@error_message && @type == runtime_type(@runtime) && @runtime_status == :disconnected}
-          class="error-box"
+          id="runtime-connection-error"
+          class="error-box scroll-mt-4"
+          phx-mounted={JS.dispatch("lb:scroll_into_view", detail: %{behavior: "instant"})}
         >
           <%= @error_message %>
         </div>
