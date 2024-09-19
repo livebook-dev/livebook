@@ -409,7 +409,7 @@ export default class LiveEditor {
       this.container.dispatchEvent(
         new CustomEvent("lb:editor_escape", { bubbles: true }),
       );
-    // On macOS, ctrl+alt+- becomes an em-dash, so we check for the code
+      // On macOS, ctrl+alt+- becomes an em-dash, so we check for the code
     } else if (event.code === "Minus" && ctrl && alt) {
       globalPubsub.broadcast("history", { type: "back" });
     }
