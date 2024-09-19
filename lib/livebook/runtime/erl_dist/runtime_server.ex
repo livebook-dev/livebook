@@ -330,6 +330,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @spec stop(pid()) :: :ok
   def stop(pid) do
     GenServer.stop(pid)
+  catch
+    # Gracefully handle lost connection to a remote node
+    :exit, _ -> :ok
   end
 
   @impl true
