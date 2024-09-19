@@ -116,7 +116,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       },
       %{
         seq: ["ctrl", "alt", "-"],
-        seq_mac: ["⌥", "-"],
+        seq_mac: ["⌃", "⌥", "-"],
         press_all: true,
         desc: "Go back"
       }
