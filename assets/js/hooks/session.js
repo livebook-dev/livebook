@@ -308,6 +308,7 @@ const Session = {
     }
 
     const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+    const ctrl = event.ctrlKey;
     const alt = event.altKey;
     const shift = event.shiftKey;
     const key = event.key;
@@ -320,7 +321,11 @@ const Session = {
         event.target.closest(`[data-el-outputs-container]`)
       )
     ) {
-      if (cmd && shift && !alt && key === "Enter") {
+      if (event.code === "Minus" && ctrl && alt) {
+        cancelEvent(event);
+        this.goBackNavigationHistory();
+        return;
+      } else if (cmd && shift && !alt && key === "Enter") {
         cancelEvent(event);
         this.queueFullCellsEvaluation(true);
         return;
