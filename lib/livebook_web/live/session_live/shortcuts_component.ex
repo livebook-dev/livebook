@@ -113,12 +113,6 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         seq_mac: ["⌘", "k"],
         press_all: true,
         desc: "Toggle keyboard control in cell output"
-      },
-      %{
-        seq: ["ctrl", "alt", "-"],
-        seq_mac: ["⌃", "⌥", "-"],
-        press_all: true,
-        desc: "Go back"
       }
     ],
     universal: [
@@ -149,6 +143,12 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         press_all: true,
         desc: "Save notebook",
         basic: true
+      },
+      %{
+        seq: ["ctrl", "alt", "-"],
+        seq_mac: ["⌃", "⌥", "-"],
+        press_all: true,
+        desc: "Go back (cursor)"
       }
     ]
   }
