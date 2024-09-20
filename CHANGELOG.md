@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.14.2](https://github.com/livebook-dev/livebook/tree/v0.14.2) (2024-09-20)
+
+### Fixed
+
+* Fixed warning about missing kubectl to show only when applicable
+
 ## [v0.14.1](https://github.com/livebook-dev/livebook/tree/v0.14.1) (2024-09-20)
 
 ### Added
