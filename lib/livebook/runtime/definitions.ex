@@ -57,7 +57,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_flame = %{
     name: "kino_flame",
-    dependency: %{dep: {:kino_flame, "~> 0.1.3"}, config: []}
+    dependency: %{dep: {:kino_flame, "~> 0.1.5"}, config: []}
   }
 
   flame_k8s_backend = %{
