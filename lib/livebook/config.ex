@@ -421,6 +421,14 @@ defmodule Livebook.Config do
   """
   def app_version(), do: @app_version
 
+  @app? Mix.target() == :app
+
+  @doc """
+  Returns whether running at the desktop app.
+  """
+  @spec app?() :: boolean()
+  def app?(), do: @app?
+
   @doc """
   Returns the GitHub org/repo where the releases are created.
   """
