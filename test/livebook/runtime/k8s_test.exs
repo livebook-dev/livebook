@@ -47,9 +47,8 @@ defmodule Livebook.Runtime.K8sTest do
 
   test "connecting flow" do
     config = config()
-    req = req()
 
-    assert [] = list_pods(req)
+    assert [] = list_pods()
 
     pid = Runtime.K8s.new(config) |> Runtime.connect()
 
@@ -70,7 +69,7 @@ defmodule Livebook.Runtime.K8sTest do
 
     Runtime.take_ownership(runtime)
 
-    assert [_] = list_pods(req)
+    assert [_] = list_pods()
 
     # Verify that we can actually evaluate code on the Kubernetes Pod
     Runtime.evaluate_code(runtime, :elixir, ~s/System.fetch_env!("POD_NAME")/, {:c1, :e1}, [])
@@ -80,23 +79,10 @@ defmodule Livebook.Runtime.K8sTest do
     Runtime.disconnect(runtime)
 
     # Wait for Pod to terminate
-    assert :ok ==
-             Kubereq.wait_until(
-               req,
-               "default",
-               runtime.pod_name,
-               &(&1["status"]["phase"] == "Succeeded")
-             )
+    cmd!(~w(kubectl wait --for=jsonpath={.status.phase}=Succeeded pod/#{runtime.pod_name}))
 
     # Finally, delete the Pod object
-    Kubereq.delete(req, "default", runtime.pod_name)
-  end
-
-  defp req() do
-    Kubereq.Kubeconfig.Default
-    |> Kubereq.Kubeconfig.load()
-    |> Kubereq.Kubeconfig.set_current_context("kind-#{@cluster_name}")
-    |> Kubereq.new("api/v1/namespaces/:namespace/pods/:name")
+    cmd!(~w(kubectl delete pod #{runtime.pod_name}))
   end
 
   defp config(attrs \\ %{}) do
@@ -123,21 +109,19 @@ defmodule Livebook.Runtime.K8sTest do
     Map.merge(defaults, attrs)
   end
 
-  defp list_pods(req) do
-    {:ok, resp} =
-      Kubereq.list(req, "default",
-        label_selectors: [{"livebook.dev/runtime", "integration-test"}],
-        field_selectors: [{"status.phase", "Running"}]
-      )
-
-    resp.body["items"]
+  defp list_pods() do
+    cmd!(
+      ~w(kubectl get pod --selector=livebook.dev/runtime=integration-test --field-selector=status.phase==Running --output json)
+    )
+    |> Jason.decode!()
+    |> Map.fetch!("items")
   end
 
   defp cmd!([command | args]) do
     {output, status} = System.cmd(command, args, stderr_to_stdout: true)
 
     if status != 0 do
-      raise "command #{inspect(command)} #{inspect(args)} failed"
+      raise "command #{inspect(command)} #{inspect(args)} failed with output:\n#{output}"
     end
 
     output

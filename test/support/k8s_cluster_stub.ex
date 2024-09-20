@@ -12,12 +12,16 @@ defmodule Livebook.K8sClusterStub do
   plug :dispatch
 
   post "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews" do
-    resource = conn.body_params["spec"]["resourceAttributes"]["resource"]
+    resource_attributes = conn.body_params["spec"]["resourceAttributes"]
+    resource = resource_attributes["resource"]
     allowed = conn.host == "default" or resource == "selfsubjectaccessreviews"
 
     conn
     |> put_status(201)
-    |> Req.Test.json(%{"status" => %{"allowed" => allowed}})
+    |> Req.Test.json(%{
+      "status" => %{"allowed" => allowed},
+      "spec" => %{"resourceAttributes" => resource_attributes}
+    })
   end
 
   get "/api/v1/namespaces", host: "default" do

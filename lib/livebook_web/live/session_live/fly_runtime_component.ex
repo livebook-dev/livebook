@@ -356,7 +356,9 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
               <.icon_button
                 phx-click="delete_volume"
                 phx-target={@myself}
-                disabled={@volume_id == nil or (@volume_action != nil and @volume_action.inflight)}
+                disabled={
+                  @volume_id == nil or (@volume_action != nil and @volume_action.status == :inflight)
+                }
               >
                 <.remix_icon icon="delete-bin-6-line" />
               </.icon_button>
@@ -380,7 +382,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
               class="text-red-600 font-medium text-sm whitespace-nowrap"
               phx-click="confirm_delete_volume"
               phx-target={@myself}
-              disabled={@volume_action.inflight}
+              disabled={@volume_action.status == :inflight}
             >
               <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" /> Delete
             </button>
@@ -388,7 +390,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
               class="text-gray-600 font-medium text-sm"
               phx-click="cancel_delete_volume"
               phx-target={@myself}
-              disabled={@volume_action.inflight}
+              disabled={@volume_action.status == :inflight}
             >
               Cancel
             </button>
@@ -415,9 +417,9 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           </div>
           <.button
             type="submit"
-            disabled={not @volume_action.changeset.valid? or @volume_action.inflight}
+            disabled={not @volume_action.changeset.valid? or @volume_action.status == :inflight}
           >
-            <%= if(@volume_action.inflight, do: "Creating...", else: "Create") %>
+            <%= if(@volume_action.status == :inflight, do: "Creating...", else: "Create") %>
           </.button>
           <.button
             type="button"
@@ -425,12 +427,13 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
             outlined
             phx-click="cancel_new_volume"
             phx-target={@myself}
+            disabled={@volume_action.status == :inflight}
           >
             Cancel
           </.button>
         </.form>
-        <div :if={error = @volume_action[:error]}>
-          <.message_box kind={:error} message={"Error: " <> error.message} />
+        <div :if={@volume_action[:status] == :error}>
+          <.message_box kind={:error} message={"Error: " <> @volume_action.error.message} />
         </div>
       </div>
     </div>
@@ -459,7 +462,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
   end
 
   def handle_event("delete_volume", %{}, socket) do
-    volume_action = %{type: :delete, inflight: false, error: nil}
+    volume_action = %{type: :delete, status: :initial, error: nil}
     {:noreply, assign(socket, volume_action: volume_action)}
   end
 
@@ -472,7 +475,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
   end
 
   def handle_event("new_volume", %{}, socket) do
-    volume_action = %{type: :new, changeset: volume_changeset(), inflight: false, error: false}
+    volume_action = %{type: :new, changeset: volume_changeset(), status: :initial, error: nil}
     {:noreply, assign(socket, volume_action: volume_action)}
   end
 
@@ -592,7 +595,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           assign(socket, volumes: volumes, volume_id: volume.id, volume_action: nil)
 
         {:error, error} ->
-          assign_nested(socket, :volume_action, error: error, inflight: false)
+          assign_nested(socket, :volume_action, error: error, status: :error)
       end
 
     {:noreply, socket}
@@ -608,7 +611,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           assign(socket, volumes: volumes, volume_id: nil, volume_action: nil)
 
         {:error, error} ->
-          assign_nested(socket, :volume_action, error: error, inflight: false)
+          assign_nested(socket, :volume_action, error: error, status: :error)
       end
 
     {:noreply, socket}
@@ -767,7 +770,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
     |> start_async(:delete_volume, fn ->
       Livebook.FlyAPI.delete_volume(token, app_name, volume_id)
     end)
-    |> assign_nested(:volume_action, inflight: true)
+    |> assign_nested(:volume_action, status: :inflight)
   end
 
   defp create_volume(socket, name, size_gb) do
@@ -787,7 +790,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
     |> start_async(:create_volume, fn ->
       Livebook.FlyAPI.create_volume(token, app_name, name, region, size_gb, compute)
     end)
-    |> assign_nested(:volume_action, inflight: true)
+    |> assign_nested(:volume_action, status: :inflight)
   end
 
   defp build_config(socket) do

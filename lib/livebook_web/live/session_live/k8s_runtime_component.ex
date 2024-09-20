@@ -4,7 +4,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   import Ecto.Changeset
 
   alias Livebook.{Session, Runtime}
-  alias Livebook.K8s.{Auth, Pod, PVC}
+  alias Livebook.K8s.{Pod, PVC}
 
   @kubeconfig_pipeline Application.compile_env(:livebook, :k8s_kubeconfig_pipeline)
 
@@ -23,7 +23,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        kubeconfig: kubeconfig,
        context_options: context_options,
        context: nil,
-       reqs: nil,
        cluster_check: %{status: :initial, error: nil},
        namespace: nil,
        namespace_options: nil,
@@ -118,14 +117,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           phx-change="set_context"
           phx-nosubmit
           phx-target={@myself}
-          class="mt-1"
+          class="mt-1 flex flex-col gap-4"
         >
           <.select_field name="context" value={@context} label="Context" options={@context_options} />
+          <.loader :if={@cluster_check.status == :inflight} />
+          <.cluster_check_error :if={@cluster_check.status == :error} error={@cluster_check.error} />
         </form>
-
-        <.loader :if={@cluster_check.status == :inflight} />
-
-        <.cluster_check_error :if={@cluster_check.status == :error} error={@cluster_check.error} />
 
         <form
           :if={@cluster_check.status == :ok}
@@ -149,7 +146,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           </div>
         </form>
 
-        <.message_box :if={@rbac.status === :errors} kind={:error}>
+        <.message_box :if={@rbac.status == :errors} kind={:error}>
           <%= for error <- @rbac.errors do %>
             <.rbac_error error={error} />
           <% end %>
@@ -260,7 +257,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
       <div class="mt-4 flex flex-col">
         <div class="flex items-start gap-1">
-          <form phx-change="set_pvc_name" phx-target={@myself} class="grow">
+          <form phx-change="set_pvc_name" phx-nosubmit phx-target={@myself} class="grow">
             <.select_field
               :if={@rbac.permissions.list_pvc}
               value={@pvc_name}
@@ -302,7 +299,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           </div>
         </div>
         <div
-          :if={@pvc_action[:type] in [:delete, :delete_inflight]}
+          :if={@pvc_action[:type] == :delete}
           class="px-4 py-3 mt-4 flex space-x-4 items-center border border-gray-200 rounded-lg"
         >
           <p class="grow text-gray-700 text-sm">
@@ -313,7 +310,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               class="text-red-600 font-medium text-sm whitespace-nowrap"
               phx-click="confirm_delete_pvc"
               phx-target={@myself}
-              disabled={@pvc_action[:type] == :delete_inflight}
+              disabled={@pvc_action.status == :inflight}
             >
               <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" />
               <%= if @pvc_action[:type] == :delete, do: "Delete", else: "Deleting..." %>
@@ -322,7 +319,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               class="text-gray-600 font-medium text-sm"
               phx-click="cancel_delete_pvc"
               phx-target={@myself}
-              disabled={@pvc_action[:type] == :delete_inflight}
+              disabled={@pvc_action.status == :inflight}
             >
               Cancel
             </button>
@@ -331,7 +328,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
         <.form
           :let={pvcf}
-          :if={@pvc_action[:type] in [:new, :new_inflight]}
+          :if={@pvc_action[:type] == :new}
           for={@pvc_action.changeset}
           as={:pvc}
           phx-submit="create_pvc"
@@ -354,25 +351,27 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             <.select_field field={pvcf[:storage_class]} options={@pvc_action.storage_classes} />
           </div>
           <.button
-            :if={@pvc_action[:type] == :new}
             type="submit"
-            disabled={not @pvc_action.changeset.valid? or @pvc_action[:type] == :new_inflight}
+            disabled={not @pvc_action.changeset.valid? or @pvc_action.status == :inflight}
           >
-            <%= if @pvc_action[:type] == :new, do: "Create", else: "Creating..." %>
+            <%= if(@pvc_action.status == :inflight, do: "Creating...", else: "Create") %>
           </.button>
           <.button
-            :if={@pvc_action[:type] == :new}
             type="button"
             color="gray"
             outlined
             phx-click="cancel_new_pvc"
             phx-target={@myself}
-            disabled={@pvc_action[:type] == :new_inflight}
+            disabled={@pvc_action.status == :inflight}
           >
             Cancel
           </.button>
         </.form>
-        <.error :if={@pvc_action[:error]}><%= @pvc_action[:error] %></.error>
+        <.message_box
+          :if={@pvc_action[:status] == :error}
+          kind={:error}
+          message={"Error: " <> @pvc_action.error.message}
+        />
       </div>
     </div>
     """
@@ -389,55 +388,44 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   defp cluster_check_error(%{error: %{status: 401}} = assigns) do
     ~H"""
-    <.message_box kind={:error}>
-      <div class="flex items-center justify-between">
-        <div>Authentication with cluster failed.</div>
-      </div>
-    </.message_box>
-    """
-  end
-
-  defp cluster_check_error(%{error: %{reason: :timeout}} = assigns) do
-    ~H"""
-    <.message_box kind={:error}>
-      <div class="flex items-center justify-between">
-        <div>Connection to cluster timed out.</div>
-      </div>
-    </.message_box>
+    <.message_box kind={:error} message="Authentication with cluster failed." />
     """
   end
 
   defp cluster_check_error(assigns) do
     ~H"""
-    <.message_box kind={:error}>
-      <div class="flex items-center justify-between">
-        <div>Connection to cluster failed.</div>
-      </div>
-    </.message_box>
+    <.message_box kind={:error} message={"Connection to cluster failed, reason: " <> @error.message} />
     """
   end
 
-  defp rbac_error(%{error: %Req.Response{status: 201} = resp} = assigns) do
-    resourceAttributes = resp.body["spec"]["resourceAttributes"]
-    verb = resourceAttributes["verb"]
-    namespace = resourceAttributes["namespace"]
+  defp rbac_error(%{error: {:ok, access_review}} = assigns) do
+    namespace = access_review.namespace
+    verb = access_review.verb
 
-    gkv =
+    path =
       String.trim(
-        "#{resourceAttributes["group"]}/#{resourceAttributes["version"]}/#{resourceAttributes["resource"]}",
+        "#{access_review.group}/#{access_review.version}/#{access_review.resource}",
         "/"
       )
 
-    assigns = assign(assigns, verb: verb, gkv: gkv, namespace: namespace)
+    assigns = assign(assigns, verb: verb, path: path, namespace: namespace)
 
     ~H"""
     <div class="flex items-center justify-between">
       <div>
         Authenticated user has no permission to <span class="font-semibold"><%= @verb %></span>
-        <code><%= @gkv %></code>
+        <code><%= @path %></code>
         <span :if={@namespace}> in namespace <code><%= @namespace %></code> (or the namespace doesn't exist)</span>.
       </div>
     </div>
+    """
+  end
+
+  defp rbac_error(%{error: {:error, %{message: message}}} = assigns) do
+    assigns = assign(assigns, :message, message)
+
+    ~H"""
+    <div><%= @message %></div>
     """
   end
 
@@ -467,8 +455,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       type: :new,
       changeset: PVC.changeset(),
       storage_classes: storage_classes(socket.assigns),
-      inflight: false,
-      error: false
+      status: :initial,
+      error: nil
     }
 
     {:noreply, assign(socket, pvc_action: pvc_action)}
@@ -501,18 +489,20 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   def handle_event("delete_pvc", %{}, socket) do
-    pvc_action = %{type: :delete, error: nil}
+    pvc_action = %{type: :delete, status: :initial, error: nil}
     {:noreply, assign(socket, pvc_action: pvc_action)}
   end
 
   def handle_event("confirm_delete_pvc", %{}, socket) do
     %{namespace: namespace, pvc_name: name} = socket.assigns
-    req = socket.assigns.reqs.pvc
+    kubeconfig = socket.assigns.kubeconfig
 
     socket =
       socket
-      |> start_async(:delete_pvc, fn -> Kubereq.delete(req, namespace, name) end)
-      |> assign_nested(:pvc_action, type: :delete_inflight)
+      |> start_async(:delete_pvc, fn ->
+        Livebook.K8sAPI.delete_pvc(kubeconfig, namespace, name)
+      end)
+      |> assign_nested(:pvc_action, status: :inflight)
 
     {:noreply, socket}
   end
@@ -536,26 +526,46 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   @impl true
   def handle_async(:rbac_check, {:ok, %{errors: errors, permissions: permissions}}, socket) do
-    status = if errors === [], do: :ok, else: :errors
+    status = if errors == [], do: :ok, else: :errors
     {:noreply, assign(socket, :rbac, %{status: status, errors: errors, permissions: permissions})}
   end
 
-  def handle_async(:load_namespace_options, {:ok, [:ok, {:ok, resp}]}, socket) do
+  def handle_async(:cluster_check, {:ok, results}, socket) do
+    [access_review_result, namespaces_result] = results
+
+    access_review_result =
+      case access_review_result do
+        {:ok, %{allowed: true}} -> :ok
+        {:ok, %{allowed: false}} -> {:error, %{message: "no access", status: nil}}
+        error -> error
+      end
+
+    namespaces_result =
+      case namespaces_result do
+        {:ok, namespaces} ->
+          namespace_options = Enum.map(namespaces, & &1.name)
+          {:ok, namespace_options, List.first(namespace_options)}
+
+        {:error, %{status: 403}} ->
+          # No access to list namespaces, we will show an input instead
+          {:ok, nil, nil}
+
+        other ->
+          other
+      end
+
     socket =
-      case resp do
-        %Req.Response{status: 200, body: %{"items" => resources}} ->
-          namespace_options = Enum.map(resources, & &1["metadata"]["name"])
-
-          socket
-          |> assign(:namespace_options, namespace_options)
-          |> set_namespace(List.first(namespace_options))
-          |> assign(:cluster_check, %{status: :ok, error: nil})
-
-        %Req.Response{status: _other} ->
-          # cannot list namespaces
+      with :ok <- access_review_result,
+           {:ok, namespace_options, namespace} <- namespaces_result do
+        socket
+        |> assign(:namespace_options, namespace_options)
+        |> set_namespace(namespace)
+        |> assign(:cluster_check, %{status: :ok, error: nil})
+      else
+        {:error, error} ->
           socket
           |> assign(:namespace_options, nil)
-          |> assign(:cluster_check, %{status: :ok, error: nil})
+          |> assign(:cluster_check, %{status: :error, error: error})
       end
 
     {:noreply, socket}
@@ -564,13 +574,13 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   def handle_async(:delete_pvc, {:ok, result}, socket) do
     socket =
       case result do
-        {:ok, %{status: 200}} ->
+        :ok ->
           socket
           |> assign(pvc_name: nil, pvc_action: nil)
           |> pvc_options()
 
-        {:ok, %{body: %{"message" => message}}} ->
-          assign_nested(socket, :pvc_action, error: message, type: :delete)
+        {:error, error} ->
+          assign_nested(socket, :pvc_action, status: :error, error: error)
       end
 
     {:noreply, socket}
@@ -579,36 +589,14 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   def handle_async(:create_pvc, {:ok, result}, socket) do
     socket =
       case result do
-        {:ok, %{status: 201, body: created_pvc}} ->
+        {:ok, %{name: name}} ->
           socket
-          |> assign(pvc_name: created_pvc["metadata"]["name"], pvc_action: nil)
+          |> assign(pvc_name: name, pvc_action: nil)
           |> pvc_options()
 
-        {:ok, %{body: body}} ->
-          socket
-          |> assign_nested(:pvc_action,
-            error: "Creating the PVC failed: #{body["message"]}",
-            type: :new
-          )
-
-        {:error, error} when is_exception(error) ->
-          socket
-          |> assign_nested(:pvc_action,
-            error: "Creating the PVC failed: #{Exception.message(error)}",
-            type: :new
-          )
+        {:error, error} ->
+          assign_nested(socket, :pvc_action, status: :error, error: error)
       end
-
-    {:noreply, socket}
-  end
-
-  def handle_async(:load_namespace_options, {:ok, results}, socket) do
-    {:error, error} = List.first(results, &match?({:error, _}, &1))
-
-    socket =
-      socket
-      |> assign(:namespace_options, nil)
-      |> assign(:cluster_check, %{status: :error, error: error})
 
     {:noreply, socket}
   end
@@ -630,11 +618,11 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   defp create_pvc(socket, pvc) do
     namespace = socket.assigns.namespace
     manifest = PVC.manifest(pvc, namespace)
-    req = socket.assigns.reqs.pvc
+    kubeconfig = socket.assigns.kubeconfig
 
     socket
-    |> start_async(:create_pvc, fn -> Kubereq.create(req, manifest) end)
-    |> assign_nested(:pvc_action, type: :new_inflight)
+    |> start_async(:create_pvc, fn -> Livebook.K8sAPI.create_pvc(kubeconfig, manifest) end)
+    |> assign_nested(:pvc_action, status: :inflight)
   end
 
   defp set_context(socket, nil), do: assign(socket, :context, nil)
@@ -642,26 +630,18 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   defp set_context(socket, context) do
     kubeconfig = Kubereq.Kubeconfig.set_current_context(socket.assigns.kubeconfig, context)
 
-    reqs = %{
-      access_reviews:
-        Kubereq.new(kubeconfig, "apis/authorization.k8s.io/v1/selfsubjectaccessreviews"),
-      namespaces: Kubereq.new(kubeconfig, "api/v1/namespaces/:name"),
-      pvc: Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/persistentvolumeclaims/:name"),
-      sc: Kubereq.new(kubeconfig, "apis/storage.k8s.io/v1/storageclasses/:name")
-    }
-
     socket
-    |> start_async(:load_namespace_options, fn ->
+    |> start_async(:cluster_check, fn ->
       [
         Task.async(fn ->
-          Livebook.K8s.Auth.can_i?(reqs.access_reviews,
+          Livebook.K8sAPI.create_access_review(kubeconfig,
             verb: "create",
             group: "authorization.k8s.io",
             version: "v1",
             resource: "selfsubjectaccessreviews"
           )
         end),
-        Task.async(fn -> Kubereq.list(reqs.namespaces, nil) end)
+        Task.async(fn -> Livebook.K8sAPI.list_namespaces(kubeconfig) end)
       ]
       |> Task.await_many(:infinity)
     end)
@@ -670,8 +650,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       context: context,
       namespace: nil,
       namespace_options: nil,
-      rbac_error: nil,
-      reqs: reqs,
       cluster_check: %{status: :inflight, error: nil}
     )
   end
@@ -681,36 +659,38 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp set_namespace(socket, ns) do
-    reqs = socket.assigns.reqs
+    kubeconfig = socket.assigns.kubeconfig
 
     socket
     |> start_async(:rbac_check, fn ->
+      resource_attribute_list = [
+        # Required permissions
+        [verb: "get", version: "v1", resource: "pods", namespace: ns],
+        [verb: "list", version: "v1", resource: "pods", namespace: ns],
+        [verb: "watch", version: "v1", resource: "pods", namespace: ns],
+        [verb: "create", version: "v1", resource: "pods", namespace: ns],
+        [verb: "delete", version: "v1", resource: "pods", namespace: ns],
+        [verb: "create", version: "v1", resource: "pods/portforward", namespace: ns],
+        # Optional permissions
+        [verb: "list", version: "v1", resource: "persistentvolumeclaims", namespace: ns],
+        [verb: "create", version: "v1", resource: "persistentvolumeclaims", namespace: ns],
+        [verb: "delete", version: "v1", resource: "persistentvolumeclaims", namespace: ns],
+        [verb: "list", version: "v1", resource: "storageclasses", namespace: ns]
+      ]
+
       {required_permissions, optional_permissions} =
-        Auth.batch_check(reqs.access_reviews, [
-          # required permissions:
-          [verb: "get", version: "v1", resource: "pods", namespace: ns],
-          [verb: "list", version: "v1", resource: "pods", namespace: ns],
-          [verb: "watch", version: "v1", resource: "pods", namespace: ns],
-          [verb: "create", version: "v1", resource: "pods", namespace: ns],
-          [verb: "delete", version: "v1", resource: "pods", namespace: ns],
-          [verb: "create", version: "v1", resource: "pods/portforward", namespace: ns],
-          # optional permissions:
-          [verb: "list", version: "v1", resource: "persistentvolumeclaims", namespace: ns],
-          [verb: "create", version: "v1", resource: "persistentvolumeclaims", namespace: ns],
-          [verb: "delete", version: "v1", resource: "persistentvolumeclaims", namespace: ns],
-          [verb: "list", version: "v1", resource: "storageclasses", namespace: ns]
-        ])
+        resource_attribute_list
+        |> Enum.map(&Task.async(fn -> Livebook.K8sAPI.create_access_review(kubeconfig, &1) end))
+        |> Task.await_many(:infinity)
         |> Enum.split(6)
 
       errors =
-        required_permissions
-        |> Enum.reject(&(&1 === :ok))
-        |> Enum.map(fn {:error, error} -> error end)
+        Enum.reject(required_permissions, &match?({:ok, %{allowed: true}}, &1))
 
       permissions =
         optional_permissions
-        |> Enum.map(&(&1 === :ok))
-        |> then(&Enum.zip([:list_pvc, :create_pvc, :delete_pvc, :list_sc], &1))
+        |> Enum.map(&match?({:ok, %{allowed: true}}, &1))
+        |> then(&Enum.zip([:list_pvc, :create_pvc, :delete_pvc, :list_storage_classes], &1))
         |> Map.new()
 
       %{errors: errors, permissions: permissions}
@@ -751,33 +731,26 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp pvc_options(socket) do
-    %{reqs: %{pvc: req}, namespace: ns} = socket.assigns
+    %{kubeconfig: kubeconfig, namespace: namespace} = socket.assigns
 
-    case Kubereq.list(req, ns) do
-      {:ok, %Req.Response{status: 200} = resp} ->
-        pvcs =
-          resp.body["items"]
-          |> Enum.reject(& &1["metadata"]["deletionTimestamp"])
-          |> Enum.map(& &1["metadata"]["name"])
+    case Livebook.K8sAPI.list_pvcs(kubeconfig, namespace) do
+      {:ok, pvcs} ->
+        pvcs = for pvc <- pvcs, pvc.deleted_at == nil, do: pvc.name
+        assign(socket, :pvcs, pvcs)
 
-        socket
-        |> assign(:pvcs, pvcs)
-
-      _ ->
+      _other ->
         assign(socket, :pvcs, [])
     end
   end
 
-  defp storage_classes(%{rbac: %{permissions: %{list_sc: false}}}), do: []
+  defp storage_classes(%{rbac: %{permissions: %{list_storage_classes: false}}}), do: []
 
-  defp storage_classes(assigns) do
-    %{reqs: %{sc: req}} = assigns
+  defp storage_classes(%{kubeconfig: kubeconfig}) do
+    case Livebook.K8sAPI.list_storage_classes(kubeconfig) do
+      {:ok, storage_classes} ->
+        Enum.map(storage_classes, & &1.name)
 
-    case Kubereq.list(req, nil) do
-      {:ok, %Req.Response{status: 200} = resp} ->
-        Enum.map(resp.body["items"], & &1["metadata"]["name"])
-
-      _ ->
+      _other ->
         []
     end
   end
