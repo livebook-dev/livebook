@@ -1205,6 +1205,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{form[phx-change="set_namespace"]})
       |> render_change(%{namespace: "default"})
 
+      render_async(view)
+
       assert view
              |> element(~s{select[name="pvc_name"] option[value="foo-pvc"]})
              |> has_element?()

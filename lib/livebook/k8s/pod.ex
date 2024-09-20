@@ -177,6 +177,38 @@ defmodule Livebook.K8s.Pod do
   end
 
   defp access_main_container() do
-    Kubereq.Access.find(&(&1["name"] == @main_container_name))
+    access_find(&(&1["name"] == @main_container_name))
+  end
+
+  # TODO: use Access.find/1 once we require Elixir v1.17
+  defp access_find(predicate) when is_function(predicate, 1) do
+    fn op, data, next -> find(op, data, predicate, next) end
+  end
+
+  defp find(:get, data, predicate, next) when is_list(data) do
+    data |> Enum.find(predicate) |> next.()
+  end
+
+  defp find(:get_and_update, data, predicate, next) when is_list(data) do
+    get_and_update_find(data, [], predicate, next)
+  end
+
+  defp find(_op, data, _predicate, _next) do
+    raise "Access.find/1 expected a list, got: #{inspect(data)}"
+  end
+
+  defp get_and_update_find([], updates, _predicate, _next) do
+    {nil, :lists.reverse(updates)}
+  end
+
+  defp get_and_update_find([head | rest], updates, predicate, next) do
+    if predicate.(head) do
+      case next.(head) do
+        {get, update} -> {get, :lists.reverse([update | updates], rest)}
+        :pop -> {head, :lists.reverse(updates, rest)}
+      end
+    else
+      get_and_update_find(rest, [head | updates], predicate, next)
+    end
   end
 end
