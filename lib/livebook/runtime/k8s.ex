@@ -6,7 +6,7 @@ defmodule Livebook.Runtime.K8s do
   # proxy a local port to the distribution port of the remote node.
   # See `Livebook.Runtime.Fly` for more design details.
 
-  defstruct [:config, :node, :req, :server_pid, :lv_pid, :pod_name]
+  defstruct [:config, :node, :server_pid, :lv_pid, :pod_name]
 
   use GenServer, restart: :temporary
 
@@ -17,7 +17,6 @@ defmodule Livebook.Runtime.K8s do
 
   @type t :: %__MODULE__{
           node: node() | nil,
-          req: Req.Request.t(),
           server_pid: pid() | nil,
           lv_pid: pid(),
           pod_name: String.t() | nil
@@ -74,11 +73,10 @@ defmodule Livebook.Runtime.K8s do
         {"remote_runtime_#{local_port}", local_port}
       end
 
-    req =
+    kubeconfig =
       Kubereq.Kubeconfig.Default
       |> Kubereq.Kubeconfig.load()
       |> Kubereq.Kubeconfig.set_current_context(context)
-      |> Kubereq.new("api/v1/namespaces/:namespace/pods/:name")
 
     runtime_data = RemoteUtils.encode_runtime_data(node_base)
 
@@ -87,17 +85,17 @@ defmodule Livebook.Runtime.K8s do
     {:ok, watcher_pid} =
       DynamicSupervisor.start_child(
         Livebook.RuntimeSupervisor,
-        {Task, fn -> watcher(parent, req, config) end}
+        {Task, fn -> watcher(parent, kubeconfig, config) end}
       )
 
     with {:ok, pod_name} <-
            with_log(caller, "create pod", fn ->
-             create_pod(req, config, runtime_data)
+             create_pod(kubeconfig, config, runtime_data)
            end),
          _ <- send(watcher_pid, {:pod_created, pod_name}),
          {:ok, pod_ip} <-
-           with_pod_events(caller, "waiting for pod", req, namespace, pod_name, fn ->
-             await_pod_ready(req, namespace, pod_name)
+           with_pod_events(caller, "waiting for pod", kubeconfig, namespace, pod_name, fn ->
+             await_pod_ready(kubeconfig, namespace, pod_name)
            end),
          child_node <- :"#{node_base}@#{pod_ip}",
          :ok <-
@@ -145,35 +143,18 @@ defmodule Livebook.Runtime.K8s do
     {:noreply, state}
   end
 
-  defp with_pod_events(caller, name, req, namespace, pod_name, fun) do
+  defp with_pod_events(caller, name, kubeconfig, namespace, pod_name, fun) do
     with_log(caller, name, fn ->
       runtime_pid = self()
 
       event_watcher_pid =
         spawn_link(fn ->
-          watch_result =
-            req
-            |> Req.merge(
-              resource_path: "api/v1/namespaces/:namespace/events/:name",
-              resource_list_path: "api/v1/namespaces/:namespace/events"
-            )
-            |> Kubereq.watch(namespace,
-              field_selectors: [
-                {"involvedObject.kind", "Pod"},
-                {"involvedObject.name", pod_name}
-              ]
-            )
-
-          case watch_result do
-            {:ok, stream} ->
-              Enum.each(stream, fn event ->
-                message = Livebook.Utils.downcase_first(event["object"]["message"])
-                send(caller, {:runtime_connect_info, runtime_pid, message})
-                Logger.debug(~s/[k8s runtime] Pod event: "#{message}"/)
-              end)
-
-            _error ->
-              :ok
+          with {:ok, stream} <- Livebook.K8sAPI.watch_pod_events(kubeconfig, namespace, pod_name) do
+            for event <- stream do
+              message = Livebook.Utils.downcase_first(event.message)
+              send(caller, {:runtime_connect_info, runtime_pid, message})
+              Logger.debug(~s/[k8s runtime] Pod event: "#{message}"/)
+            end
           end
         end)
 
@@ -183,9 +164,9 @@ defmodule Livebook.Runtime.K8s do
     end)
   end
 
-  defp watcher(parent, req, config) do
+  defp watcher(parent, kubeconfig, config) do
     ref = Process.monitor(parent)
-    watcher_loop(%{ref: ref, config: config, req: req, pod_name: nil})
+    watcher_loop(%{ref: ref, config: config, kubeconfig: kubeconfig, pod_name: nil})
   end
 
   defp watcher_loop(state) do
@@ -194,8 +175,7 @@ defmodule Livebook.Runtime.K8s do
         # If the parent process is killed, we try to eagerly free the
         # created resources
         if pod_name = state.pod_name do
-          namespace = state.config.namespace
-          _ = Kubereq.delete(state.req, namespace, pod_name)
+          _ = Livebook.K8sAPI.delete_pod(state.kubeconfig, state.config.namespace, pod_name)
         end
 
       {:pod_created, pod_name} ->
@@ -206,7 +186,7 @@ defmodule Livebook.Runtime.K8s do
     end
   end
 
-  defp create_pod(req, config, runtime_data) do
+  defp create_pod(kubeconfig, config, runtime_data) do
     %{
       pod_template: pod_template,
       docker_tag: docker_tag,
@@ -245,15 +225,12 @@ defmodule Livebook.Runtime.K8s do
         manifest
       end
 
-    case Kubereq.create(req, manifest) do
-      {:ok, %{status: 201, body: %{"metadata" => %{"name" => pod_name}}}} ->
-        {:ok, pod_name}
+    case Livebook.K8sAPI.create_pod(kubeconfig, manifest) do
+      {:ok, %{name: name}} ->
+        {:ok, name}
 
-      {:ok, %{body: body}} ->
-        {:error, "could not create Pod, reason: #{body["message"]}"}
-
-      {:error, error} ->
-        {:error, "could not create Pod, reason: #{Exception.message(error)}"}
+      {:error, %{message: message}} ->
+        {:error, "could not create Pod, reason: #{message}"}
     end
   end
 
@@ -324,38 +301,13 @@ defmodule Livebook.Runtime.K8s do
     end
   end
 
-  defp await_pod_ready(req, namespace, pod_name) do
-    with :ok <-
-           Kubereq.wait_until(
-             req,
-             namespace,
-             pod_name,
-             fn
-               :deleted ->
-                 {:error, "the Pod was deleted before it started running"}
-
-               pod ->
-                 get_in(pod, [
-                   "status",
-                   "conditions",
-                   Access.filter(&(&1["type"] == "Ready")),
-                   "status"
-                 ]) == ["True"]
-             end,
-             # 30 minutes
-             1_800_000
-           ),
-         {:ok, %{status: 200, body: pod}} <- Kubereq.get(req, namespace, pod_name) do
-      {:ok, pod["status"]["podIP"]}
+  defp await_pod_ready(kubeconfig, namespace, pod_name) do
+    with :ok <- Livebook.K8sAPI.await_pod_ready(kubeconfig, namespace, pod_name),
+         {:ok, %{ip: pod_ip}} <- Livebook.K8sAPI.get_pod(kubeconfig, namespace, pod_name) do
+      {:ok, pod_ip}
     else
-      {:error, :watch_timeout} ->
-        {:error, "timed out waiting for Pod to start up"}
-
-      {:error, error} ->
-        {:error, error}
-
-      _other ->
-        {:error, "tailed getting the Pod's IP address"}
+      {:error, %{message: message}} ->
+        {:error, "failed while waiting for the Pod to start, reason: #{message}"}
     end
   end
 
