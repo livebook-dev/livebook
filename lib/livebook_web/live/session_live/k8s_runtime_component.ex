@@ -87,6 +87,10 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   def render(assigns) do
     ~H"""
     <div>
+      <div :if={warning = kubectl_warning()} class="mb-2">
+        <.message_box kind={:warning} message={warning} />
+      </div>
+
       <p class="text-gray-700">
         Start a temporary Kubernetes Pod with an Elixir node to evaluate code.
         The Pod is automatically deleted, once you disconnect the runtime.
@@ -776,5 +780,36 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       docker_tag: socket.assigns.docker_tag,
       pod_template: socket.assigns.pod_template.template
     }
+  end
+
+  defp kubectl_warning() do
+    if System.find_executable("kubectl") == nil || true do
+      warning = "Could not find kubectl in PATH. Make sure to install it and add it to PATH."
+
+      if Livebook.Config.app?() || true do
+        windows? = match?({:win32, _}, :os.type())
+
+        {path, command} =
+          if windows? do
+            path = "#{System.get_env("USERPROFILE", "%USERPROFILE%")}\\.livebookdesktop.bat"
+            command = ~s|set "PATH=C:\\path\\to\\dir\\;%PATH%"|
+            {path, command}
+          else
+            path = "#{System.get_env("HOME", "$HOME")}/.livebookdesktop.sh"
+            command = ~s|export PATH="/path/to/dir:$PATH"|
+            {path, command}
+          end
+
+        """
+        #{warning}
+
+        For Livebook Desktop, this can be done by creating a file at #{path} with:
+
+            #{command}
+        """
+      else
+        warning
+      end
+    end
   end
 end
