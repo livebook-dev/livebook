@@ -2,6 +2,33 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.14.1](https://github.com/livebook-dev/livebook/tree/v0.14.1) (2024-09-20)
+
+### Added
+
+* Liveobok metadata to Fly runtime machines ([#2763](https://github.com/livebook-dev/livebook/pull/2763))
+* Added code highlighting for Python snippets ([#2772](https://github.com/livebook-dev/livebook/pull/2772))
+* Added menu option for FLAME runner cell to use Kubernetes backend ([#2762](https://github.com/livebook-dev/livebook/pull/2762))
+* Added menu option for Database connection cell to use DuckDB ([#2773](https://github.com/livebook-dev/livebook/pull/2773))
+* Ability to disconnect Fly runtime during initialization ([#2776](https://github.com/livebook-dev/livebook/pull/2776))
+* Progress indicator to the file input upload ([#2785](https://github.com/livebook-dev/livebook/pull/2785))
+* Introduced K8s runtime ([#2756](https://github.com/livebook-dev/livebook/pull/2756))
+
+### Changed
+
+* Updated CUDA version in the Docker image to 12.6
+* Improved go-to-definition scroll to position the cursor near the viewport top
+
+### Removed
+
+### Fixed
+
+* Editor rendering on socket reconnection ([#2765](https://github.com/livebook-dev/livebook/pull/2765))
+* Fixed URL validation when opening notebook from URL to allow file:// ([#2783](https://github.com/livebook-dev/livebook/pull/2783))
+* Fixed app recovery when the whole runtime goes down
+* Crash caused by clock drifts when showing timestamps from Livebook Teams server ([#2787](https://github.com/livebook-dev/livebook/pull/2787))
+* Crash when disconnecting remote runtime on unreachable node
+
 ## [v0.14.0](https://github.com/livebook-dev/livebook/tree/v0.14.0) (2024-08-26)
 
 ### Added
