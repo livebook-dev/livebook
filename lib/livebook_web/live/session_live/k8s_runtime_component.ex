@@ -783,10 +783,10 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp kubectl_warning() do
-    if System.find_executable("kubectl") == nil || true do
+    if System.find_executable("kubectl") == nil do
       warning = "Could not find kubectl in PATH. Make sure to install it and add it to PATH."
 
-      if Livebook.Config.app?() || true do
+      if Livebook.Config.app?() do
         windows? = match?({:win32, _}, :os.type())
 
         {path, command} =
