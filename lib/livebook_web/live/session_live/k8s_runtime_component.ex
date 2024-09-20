@@ -783,20 +783,30 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp kubectl_warning() do
-    if System.find_executable("kubectl") == nil do
+    if System.find_executable("kubectl") == nil || true do
       warning = "Could not find kubectl in PATH. Make sure to install it and add it to PATH."
 
-      if Livebook.Config.app?() do
+      if Livebook.Config.app?() || true do
         windows? = match?({:win32, _}, :os.type())
 
-        path =
+        {path, command} =
           if windows? do
-            "%USERPROFILE%\\.livebookdesktop.bat"
+            path = "#{System.get_env("USERPROFILE", "%USERPROFILE%")}\\.livebookdesktop.bat"
+            command = ~s|set "PATH=C:\\path\\to\\dir\\;%PATH%"|
+            {path, command}
           else
-            "~/.livebookdesktop.sh"
+            path = "#{System.get_env("HOME", "$HOME")}/.livebookdesktop.sh"
+            command = ~s|export PATH="/path/to/dir:$PATH"|
+            {path, command}
           end
 
-        warning <> " Set PATH in #{path} in order for Livebook Desktop to use it."
+        """
+        #{warning}
+
+        For livebook Desktop, this can be done by creating a file at #{path} with:
+
+            #{command}
+        """
       else
         warning
       end
