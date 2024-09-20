@@ -803,7 +803,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         """
         #{warning}
 
-        For livebook Desktop, this can be done by creating a file at #{path} with:
+        For Livebook Desktop, this can be done by creating a file at #{path} with:
 
             #{command}
         """
