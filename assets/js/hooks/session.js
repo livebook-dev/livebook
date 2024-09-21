@@ -1118,6 +1118,7 @@ const Session = {
       this.setView(view, {
         showSection: false,
         showMarkdown: false,
+        showCode: true,
         showOutput: true,
         spotlight: false,
       });
@@ -1125,6 +1126,7 @@ const Session = {
       this.setView(view, {
         showSection: true,
         showMarkdown: true,
+        showCode: true,
         showOutput: true,
         spotlight: true,
       });
@@ -1134,6 +1136,7 @@ const Session = {
           this.setView(view, {
             showSection: settings.custom_view_show_section,
             showMarkdown: settings.custom_view_show_markdown,
+            showCode: settings.custom_view_show_code,
             showOutput: settings.custom_view_show_output,
             spotlight: settings.custom_view_spotlight,
           });
@@ -1167,6 +1170,7 @@ const Session = {
 
     this.el.toggleAttribute("data-js-hide-section", !options.showSection);
     this.el.toggleAttribute("data-js-hide-markdown", !options.showMarkdown);
+    this.el.toggleAttribute("data-js-hide-code", !options.showCode);
     this.el.toggleAttribute("data-js-hide-output", !options.showOutput);
     this.el.toggleAttribute("data-js-spotlight", options.spotlight);
   },
@@ -1179,6 +1183,7 @@ const Session = {
 
     this.el.removeAttribute("data-js-hide-section");
     this.el.removeAttribute("data-js-hide-markdown");
+    this.el.removeAttribute("data-js-hide-code");
     this.el.removeAttribute("data-js-hide-output");
     this.el.removeAttribute("data-js-spotlight");
   },

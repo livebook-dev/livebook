@@ -23,6 +23,7 @@ defmodule LivebookWeb.SessionLive.CustomViewComponent do
       >
         <.switch_field name="show_section" label="Show sections" value={false} />
         <.switch_field name="show_markdown" label="Show markdown" value={false} />
+        <.switch_field name="show_code" label="Show code" value={false} />
         <.switch_field name="show_output" label="Show outputs" value={false} />
         <.switch_field name="spotlight" label="Spotlight focused" value={false} />
       </div>
