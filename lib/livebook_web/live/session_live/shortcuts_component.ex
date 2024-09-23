@@ -148,7 +148,13 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         seq: ["ctrl", "alt", "-"],
         seq_mac: ["⌃", "⌥", "-"],
         press_all: true,
-        desc: "Go back to last editor"
+        desc: "Go back to previous editor"
+      },
+      %{
+        seq: ["ctrl", "alt", "="],
+        seq_mac: ["⌃", "⌥", "="],
+        press_all: true,
+        desc: "Go forward to next editor"
       }
     ]
   }

@@ -2,7 +2,7 @@
  * Allows for recording a sequence of focused cells with the focused line
  * and navigate inside this stack.
  */
-export default class History {
+export default class CursorHistory {
   constructor() {
     this.entries = [];
     this.index = -1;
@@ -14,14 +14,19 @@ export default class History {
    * If the stack length is greater than the stack limit,
    * it will remove the oldest entries.
    */
-  saveCell(cellId, line) {
-    if (this.isTheSameLastEntry(cellId, line)) return;
+  push(cellId, line, column) {
+    const entry = { cellId, line, column };
 
-    if (this.entries[this.index + 1] !== undefined)
-      this.entries = this.entries.slice(0, this.index + 1);
+    if (this.isTheSameCell(cellId)) {
+      this.entries[this.index] = entry;
+    } else {
+      if (this.entries[this.index + 1] !== undefined) {
+        this.entries = this.entries.slice(0, this.index + 1);
+      }
 
-    this.entries.push({ cellId, line });
-    this.index++;
+      this.entries.push(entry);
+      this.index++;
+    }
 
     if (this.entries.length > 20) {
       this.entries.shift();
@@ -73,6 +78,23 @@ export default class History {
     return this.getFromHistory(-1);
   }
 
+  /**
+   * Checks if the current stack is available to navigate forward.
+   */
+  canGoForward() {
+    return this.canGetFromHistory(1);
+  }
+
+  /**
+   * Navigates forward in the current stack.
+   *
+   * If the navigation succeeds, it will return the entry from current index.
+   * Otherwise, returns null;
+   */
+  goForward() {
+    return this.getFromHistory(1);
+  }
+
   /** @private **/
   getFromHistory(direction) {
     if (!this.canGetFromHistory(direction)) return null;
@@ -83,7 +105,6 @@ export default class History {
 
   /** @private **/
   canGetFromHistory(direction) {
-    if (this.index === -1) return false;
     if (this.entries.length === 0) return false;
 
     const index = Math.max(0, this.index + direction);
@@ -91,13 +112,8 @@ export default class History {
   }
 
   /** @private **/
-  isTheSameLastEntry(cellId, line) {
+  isTheSameCell(cellId) {
     const lastEntry = this.entries[this.index];
-
-    return (
-      lastEntry !== undefined &&
-      cellId === lastEntry.cellId &&
-      line === lastEntry.line
-    );
+    return lastEntry !== undefined && cellId === lastEntry.cellId;
   }
 }

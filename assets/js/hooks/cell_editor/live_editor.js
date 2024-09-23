@@ -167,15 +167,22 @@ export default class LiveEditor {
   }
 
   /**
-   * Returns line number from the current main cursor position.
+   * Returns the current main cursor position.
    */
-  getLineNumberAtCursor() {
+  getCurrentCursorPosition() {
     if (!this.isMounted()) {
       return null;
     }
 
     const pos = this.view.state.selection.main.head;
-    return this.view.state.doc.lineAt(pos).number;
+    const line = this.view.state.doc.lineAt(pos);
+    const lineLength = line.to - line.from;
+    const column = pos - line.from;
+
+    if (column < 1 || column > lineLength)
+      return { line: line.number, column: 1 };
+
+    return { line: line.number, column };
   }
 
   /**
@@ -195,11 +202,13 @@ export default class LiveEditor {
   /**
    * Updates editor selection such that cursor points to the given line.
    */
-  moveCursorToLine(lineNumber) {
+  moveCursorToLine(lineNumber, column = "1") {
     const line = this.view.state.doc.line(lineNumber);
+    const columnNumber = parseInt(column);
+    const position = line.from + columnNumber;
 
     this.view.dispatch({
-      selection: EditorSelection.single(line.from),
+      selection: EditorSelection.single(position),
     });
   }
 
@@ -401,17 +410,10 @@ export default class LiveEditor {
     // We dispatch escape event, but only if it is not consumed by any
     // registered handler in the editor, such as closing autocompletion
     // or escaping Vim insert mode
-    const ctrl = event.ctrlKey;
-    const alt = event.altKey;
-    const key = event.key;
-
-    if (key === "Escape") {
+    if (event.key === "Escape") {
       this.container.dispatchEvent(
         new CustomEvent("lb:editor_escape", { bubbles: true }),
       );
-      // On macOS, ctrl+alt+- becomes an em-dash, so we check for the code
-    } else if (event.code === "Minus" && ctrl && alt) {
-      globalPubsub.broadcast("history", { type: "back" });
     }
 
     return false;

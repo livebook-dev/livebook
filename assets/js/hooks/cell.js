@@ -156,7 +156,13 @@ const Cell = {
     if (event.type === "dispatch_queue_evaluation") {
       this.handleDispatchQueueEvaluation(event.dispatch);
     } else if (event.type === "jump_to_line") {
-      this.handleJumpToLine(event.line);
+      if (this.isFocused) {
+        this.currentEditor().moveCursorToLine(event.line);
+      }
+    } else if (event.type === "jump_to_line_and_column") {
+      if (this.isFocused) {
+        this.currentEditor().moveCursorToLine(event.line, event.column);
+      }
     }
   },
 
@@ -170,12 +176,6 @@ const Cell = {
     } else if (this.isFocused) {
       this.isFocused = false;
       this.el.removeAttribute("data-js-focused");
-    }
-  },
-
-  handleJumpToLine(line) {
-    if (this.isFocused) {
-      this.currentEditor().moveCursorToLine(line);
     }
   },
 
@@ -198,6 +198,8 @@ const Cell = {
         if (this.isFocused && this.insertMode) {
           this.currentEditor().focus();
         }
+
+        this.sendCursorHistory();
       }, 0);
     });
 
@@ -212,14 +214,7 @@ const Cell = {
         if (!this.isFocused || !this.insertMode) {
           this.currentEditor().blur();
         } else if (this.insertMode) {
-          const lineNumber = this.currentEditor().getLineNumberAtCursor();
-
-          if (lineNumber !== null)
-            globalPubsub.broadcast("history", {
-              type: "navigation",
-              cellId: this.props.cellId,
-              line: lineNumber.toString(),
-            });
+          this.sendCursorHistory();
         }
       }, 0);
     });
@@ -377,6 +372,18 @@ const Cell = {
         behavior: "instant",
         block: "start",
       });
+    });
+  },
+
+  sendCursorHistory() {
+    const cursor = this.currentEditor().getCurrentCursorPosition();
+    if (cursor === null) return;
+
+    globalPubsub.broadcast("history", {
+      type: "navigation",
+      cellId: this.props.cellId,
+      line: cursor.line.toString(),
+      column: cursor.column.toString(),
     });
   },
 };

@@ -18,7 +18,7 @@ import { leaveChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 import { settingsStore } from "../lib/settings";
 import { LiveStore } from "../lib/live_store";
-import History from "../lib/history";
+import CursorHistory from "./session/cursor_history";
 
 /**
  * A hook managing the whole session.
@@ -82,7 +82,7 @@ const Session = {
     this.viewOptions = null;
     this.keyBuffer = new KeyBuffer();
     this.lastLocationReportByClientId = {};
-    this.history = new History();
+    this.cursorHistory = new CursorHistory();
     this.followedClientId = null;
     this.store = LiveStore.create("session");
 
@@ -281,7 +281,6 @@ const Session = {
 
     this.subscriptions.forEach((subscription) => subscription.destroy());
     this.store.destroy();
-    this.history.destroy();
   },
 
   getProps() {
@@ -321,9 +320,14 @@ const Session = {
         event.target.closest(`[data-el-outputs-container]`)
       )
     ) {
+      // On macOS, ctrl+alt+- becomes an em-dash, so we check for the code
       if (event.code === "Minus" && ctrl && alt) {
         cancelEvent(event);
         this.goBackNavigationHistory();
+        return;
+      } else if (key === "=" && ctrl && alt) {
+        cancelEvent(event);
+        this.goForwardNavigationHistory();
         return;
       } else if (cmd && shift && !alt && key === "Enter") {
         cancelEvent(event);
@@ -1236,7 +1240,7 @@ const Session = {
   },
 
   handleCellDeleted(cellId, siblingCellId) {
-    this.history.removeAllFromCell(cellId);
+    this.cursorHistory.removeAllFromCell(cellId);
 
     if (this.focusedId === cellId) {
       if (this.view) {
@@ -1336,9 +1340,7 @@ const Session = {
   },
 
   handleHistoryEvent(payload) {
-    if (payload.type === "back") {
-      this.goBackNavigationHistory();
-    } else if (payload.type === "navigation") {
+    if (payload.type === "navigation") {
       this.saveNavigationHistory(payload);
     }
   },
@@ -1466,26 +1468,43 @@ const Session = {
 
   jumpToLine(file, line) {
     const [_filename, cellId] = file.split("#cell:");
-    this.doJumpToLine(cellId, line);
-  },
-
-  saveNavigationHistory({ cellId, line }) {
-    if (cellId === null || line === null) return;
-    this.history.saveCell(cellId, line);
-  },
-
-  goBackNavigationHistory() {
-    if (this.history.canGoBack()) {
-      const { cellId, line } = this.history.goBack();
-      this.doJumpToLine(cellId, line);
-    }
-  },
-
-  doJumpToLine(cellId, line) {
     this.setFocusedEl(cellId, { scroll: false });
     this.setInsertMode(true);
 
     globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
+  },
+
+  saveNavigationHistory({ cellId, line, column }) {
+    if (cellId === null || line === null || column === null) return;
+    this.cursorHistory.push(cellId, line, column);
+  },
+
+  goBackNavigationHistory() {
+    if (this.cursorHistory.canGoBack()) {
+      const { cellId, line, column } = this.cursorHistory.goBack();
+      this.setFocusedEl(cellId, { scroll: false });
+      this.setInsertMode(true);
+
+      globalPubsub.broadcast(`cells:${cellId}`, {
+        type: "jump_to_line_and_column",
+        line,
+        column,
+      });
+    }
+  },
+
+  goForwardNavigationHistory() {
+    if (this.cursorHistory.canGoForward()) {
+      const { cellId, line, column } = this.cursorHistory.goForward();
+      this.setFocusedEl(cellId, { scroll: false });
+      this.setInsertMode(true);
+
+      globalPubsub.broadcast(`cells:${cellId}`, {
+        type: "jump_to_line_and_column",
+        line,
+        column,
+      });
+    }
   },
 };
 
