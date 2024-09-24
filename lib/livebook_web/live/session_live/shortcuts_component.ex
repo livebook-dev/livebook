@@ -82,8 +82,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     ],
     navigation_mode: [
       %{seq: ["?"], desc: "Open this help modal", basic: true},
-      %{seq: ["j"], desc: "Focus next cell", basic: true},
-      %{seq: ["k"], desc: "Focus previous cell", basic: true},
+      %{seq: ["j"], desc: "Focus cell below", basic: true},
+      %{seq: ["k"], desc: "Focus cell above", basic: true},
       %{seq: ["J"], desc: "Move cell down"},
       %{seq: ["K"], desc: "Move cell up"},
       %{seq: ["i"], desc: "Switch to insert mode", basic: true},
