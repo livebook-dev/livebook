@@ -33,7 +33,7 @@ const ImageOutput = {
         pixelBuffer,
         width,
         height,
-        channels
+        channels,
       );
 
       const canvas = document.createElement("canvas");

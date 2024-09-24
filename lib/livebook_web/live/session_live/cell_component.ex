@@ -1,7 +1,33 @@
 defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.SessionHelpers
+  import LivebookWeb.NotebookComponents
+
+  @impl true
+  def mount(socket) do
+    {:ok, stream(socket, :outputs, [])}
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
+
+    socket =
+      case assigns.cell_view do
+        %{eval: %{outputs: outputs}} ->
+          stream_items =
+            for {idx, output} <- Enum.reverse(outputs) do
+              %{id: Integer.to_string(idx), idx: idx, output: output}
+            end
+
+          stream(socket, :outputs, stream_items)
+
+        %{} ->
+          socket
+      end
+
+    {:ok, socket}
+  end
 
   @impl true
   def render(assigns) do
@@ -10,17 +36,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       class="flex flex-col relative scroll-mt-[50px] sm:scroll-mt-0"
       data-el-cell
       id={"cell-#{@cell_view.id}"}
-      phx-hook="Cell"
-      data-cell-id={@cell_view.id}
-      data-focusable-id={@cell_view.id}
       data-type={@cell_view.type}
-      data-session-path={~p"/sessions/#{@session_id}"}
-      data-evaluation-digest={get_in(@cell_view, [:eval, :evaluation_digest])}
+      data-focusable-id={@cell_view.id}
+      data-js-empty={@cell_view.empty}
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
       data-eval-errored={get_in(@cell_view, [:eval, :errored])}
-      data-js-empty={@cell_view.empty}
-      data-smart-cell-js-view-ref={smart_cell_js_view_ref(@cell_view)}
-      data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
+      phx-hook="Cell"
+      data-p-cell-id={hook_prop(@cell_view.id)}
+      data-p-type={hook_prop(@cell_view.type)}
+      data-p-session-path={hook_prop(~p"/sessions/#{@session_id}")}
+      data-p-evaluation-digest={hook_prop(get_in(@cell_view, [:eval, :evaluation_digest]))}
+      data-p-smart-cell-js-view-ref={hook_prop(smart_cell_js_view_ref(@cell_view))}
+      data-p-allowed-uri-schemes={hook_prop(@allowed_uri_schemes)}
     >
       <%= render_cell(assigns) %>
     </div>
@@ -48,7 +75,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         />
       </div>
       <div
-        class="markdown"
+        class="markdown break-words"
         data-el-markdown-container
         id={"markdown-container-#{@cell_view.id}"}
         phx-update="ignore"
@@ -99,6 +126,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
       <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
       <.evaluation_outputs
+        outputs={@streams.outputs}
         cell_view={@cell_view}
         session_id={@session_id}
         session_pid={@session_pid}
@@ -146,6 +174,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           </div>
         </div>
         <.evaluation_outputs
+          outputs={@streams.outputs}
           cell_view={@cell_view}
           session_id={@session_id}
           session_pid={@session_pid}
@@ -200,6 +229,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 empty={@cell_view.editor.empty}
                 language={@cell_view.editor.language}
                 rounded={@cell_view.editor.placement}
+                intellisense={@cell_view.editor.language == "elixir"}
+                hidden={not @cell_view.editor.visible}
               />
             </div>
           <% :dead -> %>
@@ -215,12 +246,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
               <span>
                 The Smart cell crashed unexpectedly, this is most likely a bug.
               </span>
-              <button
-                class="button-base button-gray"
+              <.button
+                color="gray"
                 phx-click={JS.push("recover_smart_cell", value: %{cell_id: @cell_view.id})}
               >
                 Restart Smart cell
-              </button>
+              </.button>
             </div>
           <% :starting -> %>
             <div class="delay-200">
@@ -248,6 +279,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
       </div>
       <.evaluation_outputs
+        outputs={@streams.outputs}
         cell_view={@cell_view}
         session_id={@session_id}
         session_pid={@session_pid}
@@ -284,7 +316,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <!-- By setting tabindex we can programmatically focus this element,
          also we actually want to make this element tab-focusable -->
-    <div class="flex relative" data-el-cell-body tabindex="0">
+    <div class="flex relative focus-visible:outline-none" data-el-cell-body tabindex="0">
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator></div>
       <div class="w-full">
         <%= render_slot(@inner_block) %>
@@ -297,7 +329,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="flex items-center space-x-1">
       <button
-        class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+        class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
         data-el-queue-cell-evaluation-button
         data-cell-id={@cell_id}
       >
@@ -315,7 +347,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </button>
       <.menu id={"cell-#{@cell_id}-evaluation-menu"} position={:bottom_left} distant>
         <:toggle>
-          <button class="flex text-gray-600 hover:text-gray-800 focus:text-gray-800">
+          <button class="flex text-gray-600 hover:text-gray-800">
             <.remix_icon icon="arrow-down-s-line" class="text-xl" />
           </button>
         </:toggle>
@@ -349,7 +381,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_evaluation_button(assigns) do
     ~H"""
     <button
-      class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+      class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
       phx-click="cancel_cell_evaluation"
       phx-value-cell_id={@cell_id}
     >
@@ -365,7 +397,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="flex items-center space-x-1">
       <button
-        class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+        class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
         data-el-queue-cell-evaluation-button
         data-cell-id={@cell_id}
       >
@@ -380,7 +412,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <%= unless Livebook.Runtime.fixed_dependencies?(@runtime) do %>
         <.menu id="setup-menu" position={:bottom_left} distant>
           <:toggle>
-            <button class="flex text-gray-600 hover:text-gray-800 focus:text-gray-800">
+            <button class="flex text-gray-600 hover:text-gray-800">
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
             </button>
           </:toggle>
@@ -404,7 +436,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp setup_cell_evaluation_button(assigns) do
     ~H"""
     <button
-      class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+      class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
       phx-click="cancel_cell_evaluation"
       phx-value-cell_id={@cell_id}
     >
@@ -419,9 +451,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp enable_insert_mode_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Edit content" data-el-enable-insert-mode-button>
-      <button class="icon-button" aria-label="edit content">
-        <.remix_icon icon="pencil-line" class="text-xl" />
-      </button>
+      <.icon_button aria-label="edit content">
+        <.remix_icon icon="pencil-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -429,9 +461,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp toggle_source_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Toggle source" data-el-toggle-source-button>
-      <button class="icon-button" aria-label="toggle source">
-        <.remix_icon icon="code-line" class="text-xl" />
-      </button>
+      <.icon_button aria-label="toggle source">
+        <.remix_icon icon="code-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -439,14 +471,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp convert_smart_cell_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Convert to Code cell">
-      <button
-        class="icon-button"
+      <.icon_button
         aria-label="toggle source"
         data-link-package-search
         phx-click={JS.push("convert_smart_cell", value: %{cell_id: @cell_id})}
       >
-        <.remix_icon icon="pencil-line" class="text-xl" />
-      </button>
+        <.remix_icon icon="pencil-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -458,20 +489,19 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         class="tooltip top"
         data-tooltip="The current runtime does not support adding dependencies"
       >
-        <button class="icon-button" disabled>
-          <.remix_icon icon="play-list-add-line" class="text-xl" />
-        </button>
+        <.icon_button disabled>
+          <.remix_icon icon="play-list-add-line" />
+        </.icon_button>
       </span>
     <% else %>
       <span class="tooltip top" data-tooltip="Add package (sp)">
-        <.link
+        <.icon_button
           patch={~p"/sessions/#{@session_id}/package-search"}
-          class="icon-button"
           role="button"
           data-btn-package-search
         >
-          <.remix_icon icon="play-list-add-line" class="text-xl" />
-        </.link>
+          <.remix_icon icon="play-list-add-line" />
+        </.icon_button>
       </span>
     <% end %>
     """
@@ -480,9 +510,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_link_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Link">
-      <a href={"#cell-#{@cell_id}"} class="icon-button" role="button" aria-label="link to cell">
-        <.remix_icon icon="link" class="text-xl" />
-      </a>
+      <.icon_button href={"#cell-#{@cell_id}"} role="button" aria-label="link to cell">
+        <.remix_icon icon="link" />
+      </.icon_button>
     </span>
     """
   end
@@ -490,9 +520,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def amplify_output_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Amplify output" data-el-amplify-outputs-button>
-      <button class="icon-button" aria-label="amplify outputs">
-        <.remix_icon icon="zoom-in-line" class="text-xl" />
-      </button>
+      <.icon_button aria-label="amplify outputs">
+        <.remix_icon icon="zoom-in-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -500,14 +530,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_settings_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Cell settings">
-      <.link
+      <.icon_button
         patch={~p"/sessions/#{@session_id}/cell-settings/#{@cell_id}"}
-        class="icon-button"
         aria-label="cell settings"
         role="button"
       >
-        <.remix_icon icon="settings-3-line" class="text-xl" />
-      </.link>
+        <.remix_icon icon="settings-3-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -515,15 +544,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp move_cell_up_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Move up">
-      <button
-        class="icon-button"
+      <.icon_button
         aria-label="move cell up"
         phx-click="move_cell"
         phx-value-cell_id={@cell_id}
         phx-value-offset="-1"
       >
-        <.remix_icon icon="arrow-up-s-line" class="text-xl" />
-      </button>
+        <.remix_icon icon="arrow-up-s-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -531,15 +559,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp move_cell_down_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Move down">
-      <button
-        class="icon-button"
+      <.icon_button
         aria-label="move cell down"
         phx-click="move_cell"
         phx-value-cell_id={@cell_id}
         phx-value-offset="1"
       >
-        <.remix_icon icon="arrow-down-s-line" class="text-xl" />
-      </button>
+        <.remix_icon icon="arrow-down-s-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -547,13 +574,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp delete_cell_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Delete">
-      <button
-        class="icon-button"
+      <.icon_button
         aria-label="delete cell"
         phx-click={JS.push("delete_cell", value: %{cell_id: @cell_id})}
       >
-        <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-      </button>
+        <.remix_icon icon="delete-bin-6-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -570,9 +596,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         '''
       }
     >
-      <span class="icon-button">
-        <.remix_icon icon="question-line" class="text-xl" />
-      </span>
+      <.icon_button>
+        <.remix_icon icon="question-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -584,22 +610,30 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   attr :intellisense, :boolean, default: false
   attr :read_only, :boolean, default: false
   attr :rounded, :atom, default: :both
+  attr :hidden, :boolean, default: false
 
   defp cell_editor(assigns) do
     ~H"""
     <div
+      class={[@hidden && "hidden"]}
       id={"cell-editor-#{@cell_id}-#{@tag}"}
-      phx-update="ignore"
       phx-hook="CellEditor"
-      data-cell-id={@cell_id}
-      data-tag={@tag}
-      data-language={@language}
-      data-intellisense={to_string(@intellisense)}
-      data-read-only={to_string(@read_only)}
+      data-p-cell-id={hook_prop(@cell_id)}
+      data-p-tag={hook_prop(@tag)}
+      data-p-language={hook_prop(@language)}
+      data-p-intellisense={hook_prop(@intellisense)}
+      data-p-read-only={hook_prop(@read_only)}
     >
-      <div class={["py-3 bg-editor", rounded_class(@rounded)]} data-el-editor-container>
-        <div class="px-8" data-el-skeleton>
-          <.content_skeleton bg_class="bg-gray-500" empty={@empty} />
+      <div
+        id={"cell-editor-#{@cell_id}-#{@tag}-container"}
+        phx-update="ignore"
+        class={["bg-editor", rounded_class(@rounded)]}
+        data-el-editor-container
+      >
+        <div data-el-skeleton>
+          <div class="py-3 px-8">
+            <.content_skeleton bg_class="bg-gray-500" empty={@empty} />
+          </div>
         </div>
       </div>
     </div>
@@ -621,7 +655,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp doctest_summary_message(%{doctests_count: total, failures_count: failed}) do
-    doctests_pl = pluralize(total, "doctest", "doctests")
+    doctests_pl = LivebookWeb.HTMLHelpers.pluralize(total, "doctest", "doctests")
     failures_pl = if failed == 1, do: "failure has", else: "failures have"
 
     "#{failed} out of #{doctests_pl} failed (#{failures_pl} been reported above)"
@@ -633,11 +667,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       class="flex flex-col"
       data-el-outputs-container
       id={"outputs-#{@cell_view.id}-#{@cell_view.eval.outputs_batch_number}"}
-      phx-update="append"
+      phx-update="stream"
     >
-      <LivebookWeb.Output.outputs
-        outputs={@cell_view.eval.outputs}
-        dom_id_map={%{}}
+      <LivebookWeb.Output.output
+        :for={{dom_id, output} <- @outputs}
+        id={dom_id}
+        output={output.output}
         session_id={@session_id}
         session_pid={@session_pid}
         client_id={@client_id}
@@ -656,7 +691,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         id={"#{@id}-cell-timer"}
         phx-hook="Timer"
         phx-update="ignore"
-        data-start={DateTime.to_iso8601(@cell_view.eval.evaluation_start)}
+        data-p-start={hook_prop(DateTime.to_iso8601(@cell_view.eval.evaluation_start))}
       >
       </span>
     </.cell_status_indicator>
@@ -676,7 +711,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <.cell_status_indicator
       variant={if(@cell_view.eval.errored, do: :error, else: :success)}
       change_indicator={true}
-      tooltip={evaluated_label(@cell_view.eval.evaluation_time_ms)}
+      tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
     >
       Evaluated
     </.cell_status_indicator>
@@ -685,7 +720,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{eval: %{validity: :stale}}} = assigns) do
     ~H"""
-    <.cell_status_indicator variant={:warning} change_indicator={true}>
+    <.cell_status_indicator
+      variant={:warning}
+      change_indicator={true}
+      tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
+    >
       Stale
     </.cell_status_indicator>
     """
@@ -693,7 +732,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{eval: %{validity: :aborted}}} = assigns) do
     ~H"""
-    <.cell_status_indicator variant={:inactive}>
+    <.cell_status_indicator
+      variant={:inactive}
+      tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
+    >
       Aborted
     </.cell_status_indicator>
     """
@@ -721,7 +763,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp evaluated_label(time_ms) when is_integer(time_ms) do
+  defp duration_label(time_ms) when is_integer(time_ms) do
     evaluation_time =
       if time_ms > 100 do
         seconds = time_ms |> Kernel./(1000) |> Float.floor(1)
@@ -733,7 +775,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     "Took " <> evaluation_time
   end
 
-  defp evaluated_label(_time_ms), do: nil
+  defp duration_label(_time_ms), do: nil
 
   defp smart_cell_js_view_ref(%{type: :smart, status: :started, js_view: %{ref: ref}}), do: ref
   defp smart_cell_js_view_ref(_cell_view), do: nil

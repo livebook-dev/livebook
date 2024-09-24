@@ -21,6 +21,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
           # allow_upload and override the accept attribute ourselves
           accept: :any,
           max_entries: 1,
+          max_file_size: 100_000_000_000,
           progress: &handle_progress/3,
           auto_upload: true
         )
@@ -42,7 +43,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
     ~H"""
     <form id={"#{@id}-root"} phx-change="validate" phx-target={@myself}>
       <label
-        class="inline-flex flex-col gap-4 p-4 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer"
+        class="min-w-[50%] inline-flex flex-col gap-4 p-4 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer"
         phx-drop-target={@uploads.file.ref}
         phx-hook="Dropzone"
         id={"#{@id}-upload-dropzone"}
@@ -55,7 +56,16 @@ defmodule LivebookWeb.Output.FileInputComponent do
           <% end %>
         </div>
         <.live_file_input upload={@uploads.file} class="hidden" accept={@accept} />
+        <div :for={entry <- @uploads.file.entries} class="delay-200 flex flex-col gap-1">
+          <.file_entry name="File" entry={entry} on_clear={JS.push("clear_file", target: @myself)} />
+        </div>
       </label>
+      <p
+        :for={msg <- LivebookWeb.HTMLHelpers.upload_error_messages(@uploads.file)}
+        class="mt-0.5 text-red-600 text-sm"
+      >
+        <%= msg %>
+      </p>
     </form>
     """
   end
@@ -65,37 +75,33 @@ defmodule LivebookWeb.Output.FileInputComponent do
     {:noreply, socket}
   end
 
+  def handle_event("clear_file", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :file, ref)}
+  end
+
   defp handle_progress(:file, entry, socket) do
     if entry.done? do
-      socket
-      |> consume_uploaded_entries(:file, fn %{path: path}, entry ->
-        {:ok, file_ref} =
-          if socket.assigns.local do
-            key = "#{socket.assigns.input_id}-#{socket.assigns.client_id}"
-
-            Livebook.Session.register_file(socket.assigns.session_pid, path, key,
-              linked_client_id: socket.assigns.client_id
+      {file_ref, client_name} =
+        consume_uploaded_entry(socket, entry, fn %{path: path} ->
+          {:ok, file_ref} =
+            LivebookWeb.SessionHelpers.register_input_file(
+              socket.assigns.session_pid,
+              path,
+              socket.assigns.input_id,
+              socket.assigns.local,
+              socket.assigns.client_id
             )
-          else
-            key = "#{socket.assigns.input_id}-global"
-            Livebook.Session.register_file(socket.assigns.session_pid, path, key)
-          end
 
-        {:ok, {file_ref, entry.client_name}}
-      end)
-      |> case do
-        [{file_ref, client_name}] ->
-          value = %{file_ref: file_ref, client_name: client_name}
+          {:ok, {file_ref, entry.client_name}}
+        end)
 
-          send_update(LivebookWeb.Output.InputComponent,
-            id: socket.assigns.input_component_id,
-            event: :change,
-            value: value
-          )
+      value = %{file_ref: file_ref, client_name: client_name}
 
-        [] ->
-          :ok
-      end
+      send_update(LivebookWeb.Output.InputComponent,
+        id: socket.assigns.input_component_id,
+        event: :change,
+        value: value
+      )
     end
 
     {:noreply, socket}

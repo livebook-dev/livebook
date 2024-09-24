@@ -1,5 +1,5 @@
-import { getAttributeOrThrow } from "../lib/attribute";
-import { globalPubSub } from "../lib/pub_sub";
+import { parseHookProps } from "../lib/attribute";
+import { globalPubsub } from "../lib/pubsub";
 import { smoothlyScrollToElement } from "../lib/utils";
 
 /**
@@ -7,15 +7,15 @@ import { smoothlyScrollToElement } from "../lib/utils";
  *
  * Similarly to cells the headline is focus/insert enabled.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-focusable-id` - an identifier for the focus/insert
- *     navigation
+ *   * `id` - an identifier for the focus/insert navigation
  *
- *   * `data-on-value-change` - name of the event pushed when the user
+ *   * `on-value-change` - name of the event pushed when the user
  *     edits heading value
  *
- *   * `data-metadata` - additional value to send with the change event
+ *   * `metadata` - additional value to send with the change event
+ *
  */
 const Headline = {
   mounted() {
@@ -26,11 +26,9 @@ const Headline = {
 
     this.initializeHeadingEl();
 
-    this.unsubscribeFromNavigationEvents = globalPubSub.subscribe(
+    this.navigationSubscription = globalPubsub.subscribe(
       "navigation",
-      (event) => {
-        this.handleNavigationEvent(event);
-      }
+      this.handleNavigationEvent.bind(this),
     );
   },
 
@@ -40,15 +38,11 @@ const Headline = {
   },
 
   destroyed() {
-    this.unsubscribeFromNavigationEvents();
+    this.navigationSubscription.destroy();
   },
 
   getProps() {
-    return {
-      focusableId: getAttributeOrThrow(this.el, "data-focusable-id"),
-      onValueChange: getAttributeOrThrow(this.el, "data-on-value-change"),
-      metadata: getAttributeOrThrow(this.el, "data-metadata"),
-    };
+    return parseHookProps(this.el, ["id", "on-value-change", "metadata"]);
   },
 
   initializeHeadingEl() {
@@ -94,8 +88,8 @@ const Headline = {
     }
   },
 
-  handleElementFocused(cellId, scroll) {
-    if (this.props.focusableId === cellId) {
+  handleElementFocused(focusableId, scroll) {
+    if (this.props.id === focusableId) {
       this.isFocused = true;
       this.el.setAttribute("data-js-focused", "");
       if (scroll) {

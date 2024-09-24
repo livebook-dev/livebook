@@ -19,7 +19,7 @@ if [ -d $otp_rel_dir ]; then
   echo "$otp_rel_dir already exists"
 else
   echo "Building macos-aarch64..."
-  BUILD_DOCS=1 ./build.sh $otp_version $openssl_version macos-aarch64
+  ./build.sh $otp_version $openssl_version macos-aarch64
 
   echo "\nBuilding macos-x86_64..."
   ./build.sh $otp_version $openssl_version macos-x86_64

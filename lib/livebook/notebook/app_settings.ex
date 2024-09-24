@@ -1,5 +1,5 @@
 defmodule Livebook.Notebook.AppSettings do
-  @moduledoc false
+  # Data structure configuring how notebook gets deployed as an app.
 
   use Ecto.Schema
 
@@ -20,6 +20,8 @@ defmodule Livebook.Notebook.AppSettings do
   @type access_type :: :public | :protected
   @type output_type :: :all | :rich
 
+  @access_types [:public, :protected]
+
   @primary_key false
   embedded_schema do
     field :slug, :string
@@ -27,7 +29,7 @@ defmodule Livebook.Notebook.AppSettings do
     field :zero_downtime, :boolean
     field :show_existing_sessions, :boolean
     field :auto_shutdown_ms, :integer
-    field :access_type, Ecto.Enum, values: [:public, :protected]
+    field :access_type, Ecto.Enum, values: @access_types
     field :password, :string
     field :show_source, :boolean
     field :output_type, Ecto.Enum, values: [:all, :rich]
@@ -42,7 +44,7 @@ defmodule Livebook.Notebook.AppSettings do
       slug: nil,
       multi_session: false,
       zero_downtime: false,
-      show_existing_sessions: true,
+      show_existing_sessions: false,
       auto_shutdown_ms: nil,
       access_type: :protected,
       password: generate_password(),
@@ -90,7 +92,7 @@ defmodule Livebook.Notebook.AppSettings do
       :output_type
     ])
     |> validate_format(:slug, ~r/^[a-zA-Z0-9-]+$/,
-      message: "slug can only contain alphanumeric characters and dashes"
+      message: "should only contain alphanumeric characters and dashes"
     )
     |> cast_access_attrs(attrs)
     |> cast_mode_specific_attrs(attrs)
@@ -117,8 +119,9 @@ defmodule Livebook.Notebook.AppSettings do
         |> cast(attrs, [:zero_downtime])
         |> validate_required([:zero_downtime])
         # Listing sessions is not applicable to single-session apps,
-        # since they have a single session at a time
-        |> put_change(:show_existing_sessions, true)
+        # since they have a single session at a time. We reset to
+        # the default, so we do not persist it unnecessarily
+        |> put_change(:show_existing_sessions, false)
 
       true ->
         changeset
@@ -153,4 +156,10 @@ defmodule Livebook.Notebook.AppSettings do
   def valid?(settings) do
     change(settings).valid?
   end
+
+  @doc """
+  Returns a list of possible access types.
+  """
+  @spec access_types() :: list(atom())
+  def access_types(), do: @access_types
 end

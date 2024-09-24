@@ -17,7 +17,7 @@ import { visit } from "unist-util-visit";
 import { toText } from "hast-util-to-text";
 import { removePosition } from "unist-util-remove-position";
 
-import { highlight } from "../hooks/cell_editor/live_editor/monaco";
+import { highlight } from "../hooks/cell_editor/live_editor/highlight";
 import { renderMermaid } from "./markdown/mermaid";
 import { escapeHtml } from "../lib/utils";
 
@@ -28,24 +28,36 @@ class Markdown {
   constructor(
     container,
     content,
-    { baseUrl = null, emptyText = "", allowedUriSchemes = [] } = {}
+    {
+      baseUrl = null,
+      defaultCodeLanguage = null,
+      emptyText = "",
+      allowedUriSchemes = [],
+      useDarkTheme = false,
+    } = {},
   ) {
     this.container = container;
     this.content = content;
     this.baseUrl = baseUrl;
+    this.defaultCodeLanguage = defaultCodeLanguage;
     this.emptyText = emptyText;
     this.allowedUriSchemes = allowedUriSchemes;
+    this.useDarkTheme = useDarkTheme;
 
-    this._render();
+    this.render();
   }
 
+  /**
+   * Sets new markdown content to be rendered in the container.
+   */
   setContent(content) {
     this.content = content;
-    this._render();
+    this.render();
   }
 
-  _render() {
-    this._getHtml().then((html) => {
+  /** @private */
+  render() {
+    this.getHtml().then((html) => {
       // Wrap the HTML in another element, so that we
       // can use morphdom's childrenOnly option
       const wrappedHtml = `<div>${html}</div>`;
@@ -53,23 +65,34 @@ class Markdown {
     });
   }
 
-  _getHtml() {
+  /** @private */
+  getHtml() {
     return (
       unified()
         .use(remarkParse)
         .use(remarkGfm)
         .use(remarkMath)
         .use(remarkPrepareMermaid)
-        .use(remarkSyntaxHiglight, { highlight })
+        .use(remarkSyntaxHiglight, {
+          highlight,
+          defaultLanguage: this.defaultCodeLanguage,
+        })
         // We keep the HTML nodes, parse with rehype-raw and then sanitize
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeRaw)
         .use(rehypeExpandUrls, { baseUrl: this.baseUrl })
         .use(rehypeSanitize, sanitizeSchema(this.allowedUriSchemes))
         .use(rehypeKatex)
-        .use(rehypeMermaid)
+        .use(rehypeMermaid, { useDarkTheme: this.useDarkTheme })
         .use(rehypeExternalLinks, { baseUrl: this.baseUrl })
-        .use(rehypeStringify)
+        .use(rehypeStringify, {
+          // Mermaid allows HTML tags, such as <br /> in diagram labels.
+          // We parse the SVG earlier, then stringify it, closeEmptyElements
+          // makes sure we emit <br /> as a self-closing tag, rather than
+          // <br></br> (which the browser would interpret as two breaks).
+          // See https://github.com/syntax-tree/hast-util-to-html/blob/9d7a2f7d63ec2d11b3ae5a5e4201181fdeedf6ea/lib/handle/element.js#L66-L69
+          closeEmptyElements: true,
+        })
         .process(this.content)
         .then((file) => String(file))
         .catch((error) => {
@@ -117,13 +140,15 @@ function remarkSyntaxHiglight(options) {
     const promises = [];
 
     visit(ast, "code", (node) => {
-      if (node.lang) {
+      const language = node.lang || options.defaultLanguage;
+
+      if (language) {
         function updateNode(html) {
           node.type = "html";
           node.value = `<pre><code>${html}</code></pre>`;
         }
 
-        const result = options.highlight(node.value, node.lang);
+        const result = options.highlight(node.value, language);
 
         if (result && typeof result.then === "function") {
           const promise = Promise.resolve(result).then(updateNode);
@@ -207,14 +232,14 @@ function rehypeMermaid(options) {
 
       if (classes.includes("mermaid")) {
         function updateNode(html) {
-          element.children = removePosition(
-            parseHtml.parse(html),
-            true
-          ).children;
+          const ast = parseHtml.parse(html);
+          removePosition(ast, true);
+          element.children = ast.children;
         }
 
         const value = toText(element, { whitespace: "pre" });
-        const promise = renderMermaid(value).then(updateNode);
+        const theme = options.useDarkTheme ? "dark" : "default";
+        const promise = renderMermaid(value, { theme }).then(updateNode);
         promises.push(promise);
       }
     });

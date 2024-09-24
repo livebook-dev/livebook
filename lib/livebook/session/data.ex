@@ -1,18 +1,16 @@
 defmodule Livebook.Session.Data do
-  @moduledoc false
-
-  # A structure with shared session data.
+  # Session data is a state shared across all of the clients.
   #
-  # In practice this structure is a `Notebook` decorated with all
-  # the ephemeral session data.
+  # In practice this structure is a `Notebook` decorated with all the
+  # ephemeral session data.
   #
   # The data is kept both in the `Session` process and in all client
   # processes. All changes go through the `Session` process first to
-  # introduce linearity and then are broadcasted to the clients, hence
-  # every client receives changes in the same order. Upon receiving
-  # an operation, every process applies the change to the locally
-  # stored `Data`. This way the local `Data` stays the same in all
-  # processes, while the messages are minimal.
+  # introduce linearity and then are broadcasted to the clients, so
+  # that every client receives changes in the same order. Upon
+  # receiving an operation, every process applies the change to the
+  # locally stored `%Data{}`. This way the local `%Data{}` stays the
+  # same in all of the processes, while the messages are minimal.
   #
   # The operations cover most of the session state management, in
   # particular all notebook edits and scheduling cell evaluation.
@@ -29,6 +27,10 @@ defmodule Livebook.Session.Data do
     :input_infos,
     :bin_entries,
     :runtime,
+    :runtime_status,
+    :runtime_connect_info,
+    :runtime_transient_state,
+    :runtime_connected_nodes,
     :smart_cell_definitions,
     :clients_map,
     :users_map,
@@ -39,7 +41,7 @@ defmodule Livebook.Session.Data do
     :app_data
   ]
 
-  alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem, Hubs}
+  alias Livebook.{Notebook, Text, Runtime, FileSystem, Hubs}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section, AppSettings}
   alias Livebook.Utils.Graph
@@ -55,6 +57,10 @@ defmodule Livebook.Session.Data do
           input_infos: %{input_id() => input_info()},
           bin_entries: list(cell_bin_entry()),
           runtime: Runtime.t(),
+          runtime_status: runtime_status(),
+          runtime_connect_info: String.t() | nil,
+          runtime_transient_state: Runtime.transient_state(),
+          runtime_connected_nodes: list(node()),
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{client_id() => User.id()},
           users_map: %{User.id() => User.t()},
@@ -91,7 +97,7 @@ defmodule Livebook.Session.Data do
 
   @type cell_source_info :: %{
           revision: cell_revision(),
-          deltas: list(Delta.t()),
+          deltas: list(Text.Delta.t()),
           revision_by_client_id: %{client_id() => cell_revision()},
           digest: String.t() | nil
         }
@@ -112,6 +118,8 @@ defmodule Livebook.Session.Data do
           new_bound_to_inputs: %{input_id() => input_hash()},
           identifiers_used: list(identifier :: term()) | :unknown,
           identifiers_defined: %{(identifier :: term()) => version :: term()},
+          identifier_definitions:
+            list(%{label: String.t(), file: String.t(), line: pos_integer()}),
           data: t()
         }
 
@@ -122,6 +130,8 @@ defmodule Livebook.Session.Data do
           index: non_neg_integer(),
           deleted_at: DateTime.t()
         }
+
+  @type runtime_status :: :disconnected | :connecting | :connected
 
   @type cell_revision :: non_neg_integer()
 
@@ -177,6 +187,7 @@ defmodule Livebook.Session.Data do
           {:set_notebook_attributes, client_id(), map()}
           | {:insert_section, client_id(), index(), Section.id()}
           | {:insert_section_into, client_id(), Section.id(), index(), Section.id()}
+          | {:insert_branching_section_into, client_id(), Section.id(), index(), Section.id()}
           | {:set_section_parent, client_id(), Section.id(), parent_id :: Section.id()}
           | {:unset_section_parent, client_id(), Section.id()}
           | {:insert_cell, client_id(), Section.id(), index(), Cell.type(), Cell.id(), map()}
@@ -185,7 +196,7 @@ defmodule Livebook.Session.Data do
           | {:restore_cell, client_id(), Cell.id()}
           | {:move_cell, client_id(), Cell.id(), offset :: integer()}
           | {:move_section, client_id(), Section.id(), offset :: integer()}
-          | {:queue_cells_evaluation, client_id(), list(Cell.id())}
+          | {:queue_cells_evaluation, client_id(), list(Cell.id()), evaluation_opts :: keyword()}
           | {:add_cell_doctest_report, client_id(), Cell.id(), Runtime.doctest_report()}
           | {:add_cell_evaluation_output, client_id(), Cell.id(), term()}
           | {:add_cell_evaluation_response, client_id(), Cell.id(), term(), metadata :: map()}
@@ -193,9 +204,9 @@ defmodule Livebook.Session.Data do
           | {:reflect_main_evaluation_failure, client_id()}
           | {:reflect_evaluation_failure, client_id(), Section.id()}
           | {:cancel_cell_evaluation, client_id(), Cell.id()}
-          | {:smart_cell_started, client_id(), Cell.id(), Delta.t(), Runtime.chunks() | nil,
+          | {:smart_cell_started, client_id(), Cell.id(), Text.Delta.t(), Runtime.chunks() | nil,
              Runtime.js_view(), Runtime.editor() | nil}
-          | {:update_smart_cell, client_id(), Cell.id(), Cell.Smart.attrs(), Delta.t(),
+          | {:update_smart_cell, client_id(), Cell.id(), Cell.Smart.attrs(), Text.Delta.t(),
              Runtime.chunks() | nil}
           | {:queue_smart_cell_reevaluation, client_id(), Cell.id()}
           | {:smart_cell_down, client_id(), Cell.id()}
@@ -206,12 +217,19 @@ defmodule Livebook.Session.Data do
           | {:client_join, client_id(), User.t()}
           | {:client_leave, client_id()}
           | {:update_user, client_id(), User.t()}
-          | {:apply_cell_delta, client_id(), Cell.id(), cell_source_tag(), Delta.t(),
-             cell_revision()}
+          | {:apply_cell_delta, client_id(), Cell.id(), cell_source_tag(), Text.Delta.t(),
+             Text.Selection.t() | nil, cell_revision()}
           | {:report_cell_revision, client_id(), Cell.id(), cell_source_tag(), cell_revision()}
           | {:set_cell_attributes, client_id(), Cell.id(), map()}
           | {:set_input_value, client_id(), input_id(), value :: term()}
           | {:set_runtime, client_id(), Runtime.t()}
+          | {:connect_runtime, client_id()}
+          | {:set_runtime_connect_info, client_id(), String.t()}
+          | {:runtime_connected, client_id(), Runtime.t()}
+          | {:disconnect_runtime, client_id()}
+          | {:runtime_down, client_id()}
+          | {:set_runtime_transient_state, client_id(), Runtime.transient_state()}
+          | {:set_runtime_connected_nodes, client_id(), list(node())}
           | {:set_smart_cell_definitions, client_id(), list(Runtime.smart_cell_definition())}
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
@@ -221,25 +239,27 @@ defmodule Livebook.Session.Data do
           | {:set_notebook_hub, client_id(), String.t()}
           | {:sync_hub_secrets, client_id()}
           | {:add_file_entries, client_id(), list(Notebook.file_entry())}
+          | {:rename_file_entry, client_id(), name :: String.t(), new_name :: String.t()}
           | {:delete_file_entry, client_id(), String.t()}
           | {:allow_file_entry, client_id(), String.t()}
           | {:set_app_settings, client_id(), AppSettings.t()}
           | {:set_deployed_app_slug, client_id(), String.t()}
           | {:app_deactivate, client_id()}
           | {:app_shutdown, client_id()}
+          | {:set_notebook_deployment_group, client_id(), String.t()}
 
   @type action ::
           :connect_runtime
+          | {:disconnect_runtime, Runtime.t()}
           | {:start_evaluation, Cell.t(), Section.t()}
           | {:stop_evaluation, Section.t()}
           | {:forget_evaluation, Cell.t(), Section.t()}
           | {:start_smart_cell, Cell.t(), Section.t()}
           | {:set_smart_cell_parents, Cell.t(), Section.t(),
              parent :: {Cell.t(), Section.t()} | nil}
-          | {:report_delta, client_id(), Cell.t(), cell_source_tag(), Delta.t()}
+          | {:report_delta, client_id(), Cell.t(), cell_source_tag(), Text.Delta.t()}
           | {:clean_up_input_values, %{input_id() => input_info()}}
           | :app_report_status
-          | :app_recover
           | :app_terminate
 
   @doc """
@@ -298,6 +318,10 @@ defmodule Livebook.Session.Data do
       input_infos: initial_input_infos(notebook),
       bin_entries: [],
       runtime: default_runtime,
+      runtime_status: :disconnected,
+      runtime_connect_info: nil,
+      runtime_transient_state: %{},
+      runtime_connected_nodes: [],
       smart_cell_definitions: [],
       clients_map: %{},
       users_map: %{},
@@ -332,9 +356,9 @@ defmodule Livebook.Session.Data do
         cell <- section.cells,
         Cell.evaluable?(cell),
         output <- cell.outputs,
-        attrs <- Cell.find_inputs_in_output(output),
+        input <- Cell.find_inputs_in_output(output),
         into: %{},
-        do: {attrs.id, input_info(attrs.default)}
+        do: {input.id, input_info(input.attrs.default)}
   end
 
   @doc """
@@ -396,6 +420,19 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> insert_section_into(section_id, index, section)
+      |> set_dirty()
+      |> wrap_ok()
+    end
+  end
+
+  def apply_operation(data, {:insert_branching_section_into, _client_id, section_id, index, id}) do
+    with {:ok, _section} <- Notebook.fetch_section(data.notebook, section_id) do
+      section = %{Section.new() | id: id}
+
+      data
+      |> with_actions()
+      |> insert_section_into(section_id, index, section)
+      |> set_default_section_parent(section)
       |> set_dirty()
       |> wrap_ok()
     end
@@ -530,7 +567,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:queue_cells_evaluation, _client_id, cell_ids}) do
+  def apply_operation(data, {:queue_cells_evaluation, _client_id, cell_ids, evaluation_opts}) do
     cells_with_section =
       data.notebook
       |> Notebook.evaluable_cells_with_section()
@@ -546,7 +583,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> queue_prerequisite_cells_evaluation(cell_ids)
       |> reduce(cells_with_section, fn data_actions, {cell, section} ->
-        queue_cell_evaluation(data_actions, cell, section)
+        queue_cell_evaluation(data_actions, cell, section, evaluation_opts)
       end)
       |> maybe_connect_runtime(data)
       |> update_validity_and_evaluation()
@@ -777,20 +814,21 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:apply_cell_delta, client_id, cell_id, tag, delta, revision}) do
+  def apply_operation(
+        data,
+        {:apply_cell_delta, client_id, cell_id, tag, delta, selection, revision}
+      ) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          source_info <- data.cell_infos[cell_id].sources[tag],
-         true <- 0 < revision and revision <= source_info.revision + 1,
+         true <- 0 <= revision and revision <= source_info.revision,
          # We either need to know the client, so that we can transform
          # the delta, or the delta must apply to the latest revision,
          # in which case no transformation is necessary. The latter is
-         # useful when we want to apply changes programatically
-         true <-
-           Map.has_key?(data.clients_map, client_id) or
-             revision == source_info.revision + 1 do
+         # useful when we want to apply changes programmatically
+         true <- Map.has_key?(data.clients_map, client_id) or revision == source_info.revision do
       data
       |> with_actions()
-      |> apply_delta(client_id, cell, tag, delta, revision)
+      |> apply_delta(client_id, cell, tag, delta, selection, revision)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -801,7 +839,7 @@ defmodule Livebook.Session.Data do
   def apply_operation(data, {:report_cell_revision, client_id, cell_id, tag, revision}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          source_info <- data.cell_infos[cell_id].sources[tag],
-         true <- 0 < revision and revision <= source_info.revision,
+         true <- 0 <= revision and revision <= source_info.revision,
          true <- Map.has_key?(data.clients_map, client_id) do
       data
       |> with_actions()
@@ -839,9 +877,84 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:set_runtime, _client_id, runtime}) do
+    with true <- data.runtime_status in [:connected, :disconnected] do
+      data
+      |> with_actions()
+      |> set_runtime(runtime)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:connect_runtime, _client_id}) do
+    with :disconnected <- data.runtime_status do
+      data
+      |> with_actions()
+      |> connect_runtime()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:set_runtime_connect_info, _client_id, info}) do
+    with :connecting <- data.runtime_status do
+      data
+      |> with_actions()
+      |> set_runtime_connect_info(info)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:runtime_connected, _client_id, runtime}) do
+    with :connecting <- data.runtime_status do
+      data
+      |> with_actions()
+      |> runtime_connected(runtime)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:disconnect_runtime, _client_id}) do
+    with true <- data.runtime_status in [:connecting, :connected] do
+      data
+      |> with_actions()
+      |> disconnect_runtime()
+      |> app_update_execution_status()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:runtime_down, _client_id}) do
+    with true <- data.runtime_status in [:connecting, :connected] do
+      data
+      |> with_actions()
+      |> clear_runtime()
+      |> app_update_execution_status()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:set_runtime_transient_state, _client_id, transient_state}) do
     data
     |> with_actions()
-    |> set_runtime(data, runtime)
+    |> set!(runtime_transient_state: transient_state)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_runtime_connected_nodes, _client_id, nodes}) do
+    data
+    |> with_actions()
+    |> set_runtime_connected_nodes(nodes)
     |> wrap_ok()
   end
 
@@ -873,6 +986,7 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> set_secret(secret)
     |> update_notebook_hub_secret_names()
+    |> set_dirty()
     |> wrap_ok()
   end
 
@@ -881,6 +995,7 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> unset_secret(secret_name)
     |> update_notebook_hub_secret_names()
+    |> set_dirty()
     |> wrap_ok()
   end
 
@@ -890,9 +1005,18 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> set_notebook_hub(hub)
       |> update_notebook_hub_secret_names()
+      |> set_notebook_deployment_group(nil)
       |> set_dirty()
       |> wrap_ok()
     end
+  end
+
+  def apply_operation(data, {:set_notebook_deployment_group, _client_id, id}) do
+    data
+    |> with_actions()
+    |> set_notebook_deployment_group(id)
+    |> set_dirty()
+    |> wrap_ok()
   end
 
   def apply_operation(data, {:sync_hub_secrets, _client_id}) do
@@ -911,6 +1035,19 @@ defmodule Livebook.Session.Data do
     |> add_file_entries(file_entries)
     |> set_dirty()
     |> wrap_ok()
+  end
+
+  def apply_operation(data, {:rename_file_entry, _client_id, name, new_name}) do
+    with {:ok, file_entry} <- fetch_file_entry(data.notebook, name),
+         true <- name != new_name do
+      data
+      |> with_actions()
+      |> rename_file_entry(file_entry, new_name)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
   end
 
   def apply_operation(data, {:delete_file_entry, _client_id, name}) do
@@ -1023,6 +1160,15 @@ defmodule Livebook.Session.Data do
     )
   end
 
+  def set_default_section_parent({data, _actions} = data_actions, section) do
+    parent =
+      data.notebook
+      |> Notebook.valid_parents_for(section.id)
+      |> List.last()
+
+    set_section_parent(data_actions, section, parent)
+  end
+
   defp insert_cell({data, _} = data_actions, section_id, index, cell) do
     data_actions
     |> set!(
@@ -1072,7 +1218,7 @@ defmodule Livebook.Session.Data do
       notebook: Notebook.delete_cell(data.notebook, cell.id),
       bin_entries: [
         %{
-          cell: cell,
+          cell: Map.replace(cell, :outputs, []),
           section_id: section.id,
           section_name: section.name,
           index: Enum.find_index(section.cells, &(&1 == cell)),
@@ -1191,16 +1337,17 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp queue_cell_evaluation(data_actions, cell, section) do
+  defp queue_cell_evaluation(data_actions, cell, section, evaluation_opts \\ []) do
     data_actions
     |> update_section_info!(section.id, fn section ->
       update_in(section.evaluation_queue, &MapSet.put(&1, cell.id))
     end)
     |> update_cell_eval_info!(cell.id, fn eval_info ->
-      update_in(eval_info.status, fn
-        :ready -> :queued
-        other -> other
-      end)
+      if eval_info.status == :ready do
+        %{eval_info | status: :queued, evaluation_opts: evaluation_opts}
+      else
+        eval_info
+      end
     end)
   end
 
@@ -1212,26 +1359,13 @@ defmodule Livebook.Session.Data do
     |> update_cell_eval_info!(cell.id, &%{&1 | status: :ready})
   end
 
-  # Rewrite older output format for backward compatibility with Kino <= 0.5.2
-  defp add_cell_output(
-         data_actions,
-         cell,
-         {:js, %{ref: ref, pid: pid, assets: assets, export: export}}
-       ) do
-    add_cell_output(
-      data_actions,
-      cell,
-      {:js, %{js_view: %{ref: ref, pid: pid, assets: assets}, export: export}}
-    )
-  end
-
   defp add_cell_output({data, _} = data_actions, cell, output) do
     {[indexed_output], _counter} = Notebook.index_outputs([output], 0)
 
     new_input_infos =
       indexed_output
       |> Cell.find_inputs_in_output()
-      |> Map.new(fn attrs -> {attrs.id, input_info(attrs.default)} end)
+      |> Map.new(fn input -> {input.id, input_info(input.attrs.default)} end)
 
     {data, _} =
       data_actions =
@@ -1269,7 +1403,8 @@ defmodule Livebook.Session.Data do
             identifiers_defined: metadata.identifiers_defined,
             bound_to_inputs: eval_info.new_bound_to_inputs,
             evaluation_end: DateTime.utc_now(),
-            code_markers: metadata.code_markers
+            code_markers: metadata.code_markers,
+            identifier_definitions: metadata.identifier_definitions
         }
       end)
       |> update_cell_evaluation_snapshot(cell, section)
@@ -1317,9 +1452,9 @@ defmodule Livebook.Session.Data do
   end
 
   defp maybe_connect_runtime({data, _} = data_actions, prev_data) do
-    if not Runtime.connected?(data.runtime) and not any_cell_queued?(prev_data) and
+    if data.runtime_status == :disconnected and not any_cell_queued?(prev_data) and
          any_cell_queued?(data) do
-      add_action(data_actions, :connect_runtime)
+      connect_runtime(data_actions)
     else
       data_actions
     end
@@ -1346,8 +1481,10 @@ defmodule Livebook.Session.Data do
     queue_prerequisite_cells_evaluation(data_actions, trailing_queued_cell_ids)
   end
 
-  defp maybe_evaluate_queued({data, _} = data_actions) do
-    if Runtime.connected?(data.runtime) do
+  defp maybe_evaluate_queued(data_actions) do
+    {data, _} = data_actions = check_setup_cell_for_reevaluation(data_actions)
+
+    if data.runtime_status == :connected do
       main_flow_evaluating? = main_flow_evaluating?(data)
 
       {awaiting_branch_sections, awaiting_regular_sections} =
@@ -1393,6 +1530,43 @@ defmodule Livebook.Session.Data do
     else
       # Don't trigger evaluation if we don't have a runtime started yet
       data_actions
+    end
+  end
+
+  defp check_setup_cell_for_reevaluation({data, _} = data_actions) do
+    # When setup cell has been evaluated and is queued again, we need
+    # to reconnect the runtime to get a fresh evaluation environment
+    # for setup. We subsequently queue all cells that are currently
+    # queued
+
+    case data.cell_infos[Cell.setup_cell_id()].eval do
+      %{status: :queued, validity: :evaluated} when data.runtime_status == :connected ->
+        queued_cells_with_section =
+          data.notebook
+          |> Notebook.evaluable_cells_with_section()
+          |> Enum.filter(fn {cell, _} ->
+            data.cell_infos[cell.id].eval.status == :queued
+          end)
+          |> Enum.map(fn {cell, section} ->
+            {cell, section, data.cell_infos[cell.id].eval.evaluation_opts}
+          end)
+
+        cell_ids =
+          for {cell, _section, _evaluation_opts} <- queued_cells_with_section, do: cell.id
+
+        data_actions
+        |> disconnect_runtime()
+        |> connect_runtime()
+        |> queue_prerequisite_cells_evaluation(cell_ids)
+        |> reduce(
+          queued_cells_with_section,
+          fn data_actions, {cell, section, evaluation_opts} ->
+            queue_cell_evaluation(data_actions, cell, section, evaluation_opts)
+          end
+        )
+
+      _ ->
+        data_actions
     end
   end
 
@@ -1476,7 +1650,9 @@ defmodule Livebook.Session.Data do
         evaluating_cell_id: cell.id,
         evaluation_queue: MapSet.delete(section_info.evaluation_queue, cell.id)
       )
-      |> add_action({:start_evaluation, cell, section})
+      |> add_action(
+        {:start_evaluation, cell, section, data.cell_infos[cell.id].eval.evaluation_opts}
+      )
     else
       data_actions
     end
@@ -1539,7 +1715,7 @@ defmodule Livebook.Session.Data do
       |> Notebook.parent_cells_with_section(cell_ids)
       |> Enum.filter(fn {cell, _section} ->
         info = data.cell_infos[cell.id]
-        Cell.evaluable?(cell) and cell_outdated?(data, cell) and info.eval.status == :ready
+        Cell.evaluable?(cell) and cell_outdated?(data, cell.id) and info.eval.status == :ready
       end)
       |> Enum.reverse()
 
@@ -1624,7 +1800,7 @@ defmodule Livebook.Session.Data do
       info = put_in(info.sources.primary, source_info)
       put_in(info.sources.secondary, new_source_info(editor && editor.source, data.clients_map))
     end)
-    |> add_action({:report_delta, client_id, updated_cell, :primary, delta})
+    |> add_action({:report_delta, client_id, updated_cell, :primary, delta, nil})
   end
 
   defp update_smart_cell({data, _} = data_actions, cell, client_id, attrs, delta, chunks) do
@@ -1643,7 +1819,7 @@ defmodule Livebook.Session.Data do
     |> update_cell_info!(cell.id, fn info ->
       put_in(info.sources.primary, source_info)
     end)
-    |> add_action({:report_delta, client_id, updated_cell, :primary, delta})
+    |> add_action({:report_delta, client_id, updated_cell, :primary, delta, nil})
   end
 
   defp smart_cell_down(data_actions, cell) do
@@ -1652,7 +1828,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp recover_smart_cell({data, _} = data_actions, cell, section) do
-    if Runtime.connected?(data.runtime) do
+    if data.runtime_status == :connected do
       start_smart_cell(data_actions, cell, section)
     else
       data_actions
@@ -1690,6 +1866,10 @@ defmodule Livebook.Session.Data do
     )
   end
 
+  defp set_notebook_deployment_group({data, _} = data_actions, id) do
+    set!(data_actions, notebook: %{data.notebook | deployment_group_id: id})
+  end
+
   defp sync_hub_secrets({data, _} = data_actions) do
     hub = Livebook.Hubs.fetch_hub!(data.notebook.hub_id)
     secrets = Livebook.Hubs.get_secrets(hub)
@@ -1710,6 +1890,38 @@ defmodule Livebook.Session.Data do
 
     data_actions
     |> set!(notebook: %{data.notebook | file_entries: file_entries ++ kept_file_entries})
+  end
+
+  defp rename_file_entry({data, _} = data_actions, file_entry, new_name) do
+    file_entries =
+      for entry <- data.notebook.file_entries, entry.name != new_name do
+        if entry == file_entry do
+          %{entry | name: new_name}
+        else
+          entry
+        end
+      end
+
+    quarantine_file_entry_names =
+      MapSet.delete(data.notebook.quarantine_file_entry_names, new_name)
+
+    quarantine_file_entry_names =
+      if MapSet.member?(quarantine_file_entry_names, file_entry.name) do
+        quarantine_file_entry_names
+        |> MapSet.delete(file_entry.name)
+        |> MapSet.put(new_name)
+      else
+        quarantine_file_entry_names
+      end
+
+    data_actions
+    |> set!(
+      notebook: %{
+        data.notebook
+        | file_entries: file_entries,
+          quarantine_file_entry_names: quarantine_file_entry_names
+      }
+    )
   end
 
   defp delete_file_entry({data, _} = data_actions, file_entry) do
@@ -1785,19 +1997,27 @@ defmodule Livebook.Session.Data do
     set!(data_actions, users_map: Map.put(data.users_map, user.id, user))
   end
 
-  defp apply_delta({data, _} = data_actions, client_id, cell, tag, delta, revision) do
+  defp apply_delta({data, _} = data_actions, client_id, cell, tag, delta, selection, revision) do
     source_info = data.cell_infos[cell.id].sources[tag]
 
-    deltas_ahead = Enum.take(source_info.deltas, -(source_info.revision - revision + 1))
+    deltas_ahead = Enum.take(source_info.deltas, -(source_info.revision - revision))
 
-    transformed_new_delta =
-      Enum.reduce(deltas_ahead, delta, fn delta_ahead, transformed_new_delta ->
-        Delta.transform(delta_ahead, transformed_new_delta, :left)
+    # Transform the incoming delta and selection against the already
+    # acknowledged deltas
+    {delta, selection} =
+      Enum.reduce(deltas_ahead, {delta, selection}, fn delta_ahead, {delta, selection} ->
+        {delta, delta_ahead} =
+          {Text.Delta.transform(delta_ahead, delta, :left),
+           Text.Delta.transform(delta, delta_ahead, :right)}
+
+        selection = selection && Text.Selection.transform(selection, delta_ahead)
+
+        {delta, selection}
       end)
 
     source_info =
       source_info
-      |> Map.update!(:deltas, &(&1 ++ [transformed_new_delta]))
+      |> Map.update!(:deltas, &(&1 ++ [delta]))
       |> Map.update!(:revision, &(&1 + 1))
 
     source_info =
@@ -1812,12 +2032,12 @@ defmodule Livebook.Session.Data do
       end
 
     {updated_cell, source_info} =
-      apply_delta_to_cell(cell, source_info, tag, transformed_new_delta)
+      apply_delta_to_cell(cell, source_info, tag, delta)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
     |> update_cell_info!(cell.id, &put_in(&1.sources[tag], source_info))
-    |> add_action({:report_delta, client_id, updated_cell, tag, transformed_new_delta})
+    |> add_action({:report_delta, client_id, updated_cell, tag, delta, selection})
   end
 
   # Note: the clients drop cell's source once it's no longer needed
@@ -1829,7 +2049,7 @@ defmodule Livebook.Session.Data do
     cell =
       update_in(cell, source_access(cell, tag), fn
         :__pruned__ -> :__pruned__
-        source -> JSInterop.apply_delta_to_string(delta, source)
+        source -> Text.Delta.apply(delta, source)
       end)
 
     source_info =
@@ -1864,17 +2084,53 @@ defmodule Livebook.Session.Data do
     |> set!(input_infos: Map.put(data.input_infos, input_id, input_info(value)))
   end
 
-  defp set_runtime(data_actions, prev_data, runtime) do
-    {data, _} = data_actions = set!(data_actions, runtime: runtime, smart_cell_definitions: [])
+  defp set_runtime({data, _} = data_actions, runtime) do
+    data_actions =
+      case data.runtime_status do
+        :connected ->
+          disconnect_runtime(data_actions)
 
-    if not Runtime.connected?(prev_data.runtime) and Runtime.connected?(data.runtime) do
-      data_actions
-      |> maybe_evaluate_queued()
-    else
-      data_actions
-      |> clear_all_evaluation()
-      |> clear_smart_cells()
-    end
+        :disconnected ->
+          data_actions
+      end
+
+    set!(data_actions, runtime: runtime)
+  end
+
+  defp connect_runtime(data_actions) do
+    data_actions
+    |> set!(runtime_status: :connecting)
+    |> add_action(:connect_runtime)
+  end
+
+  defp set_runtime_connect_info(data_actions, info) do
+    data_actions
+    |> set!(runtime_connect_info: info)
+  end
+
+  defp runtime_connected(data_actions, runtime) do
+    data_actions
+    |> set!(runtime: runtime, runtime_status: :connected, runtime_connect_info: nil)
+    |> maybe_evaluate_queued()
+  end
+
+  defp disconnect_runtime({data, _} = data_actions) do
+    data_actions
+    |> add_action({:disconnect_runtime, data.runtime})
+    |> clear_runtime()
+  end
+
+  defp clear_runtime({data, _} = data_actions) do
+    data_actions
+    |> set!(
+      runtime: Runtime.duplicate(data.runtime),
+      runtime_status: :disconnected,
+      runtime_connect_info: nil,
+      runtime_connected_nodes: [],
+      smart_cell_definitions: []
+    )
+    |> clear_all_evaluation()
+    |> clear_smart_cells()
   end
 
   defp set_secret({data, _} = data_actions, secret) do
@@ -1916,6 +2172,12 @@ defmodule Livebook.Session.Data do
     end
   end
 
+  defp set_runtime_connected_nodes(data_actions, nodes) do
+    data_actions
+    |> set!(runtime_connected_nodes: nodes)
+    |> maybe_start_smart_cells()
+  end
+
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do
     data_actions
     |> set!(smart_cell_definitions: smart_cell_definitions)
@@ -1923,7 +2185,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp maybe_start_smart_cells({data, _} = data_actions) do
-    if Runtime.connected?(data.runtime) do
+    if data.runtime_status == :connected do
       dead_cells = dead_smart_cells_with_section(data)
 
       kinds =
@@ -2105,6 +2367,7 @@ defmodule Livebook.Session.Data do
       status: :ready,
       errored: false,
       interrupted: false,
+      evaluation_opts: [],
       evaluation_digest: nil,
       evaluation_time_ms: nil,
       evaluation_start: nil,
@@ -2120,6 +2383,7 @@ defmodule Livebook.Session.Data do
       data: nil,
       code_markers: [],
       doctest_reports: %{},
+      identifier_definitions: [],
       reevaluates_automatically: false
     }
   end
@@ -2186,6 +2450,27 @@ defmodule Livebook.Session.Data do
   end
 
   @doc """
+  Transforms the given selection against deltas ahead of the given
+  revision, if any.
+  """
+  @spec transform_selection(
+          t(),
+          Cell.id(),
+          cell_source_tag(),
+          TextSelection.t(),
+          cell_revision()
+        ) :: Text.Selection.t()
+  def transform_selection(data, cell_id, tag, selection, revision) do
+    source_info = data.cell_infos[cell_id].sources[tag]
+
+    deltas_ahead = Enum.take(source_info.deltas, -(source_info.revision - revision))
+
+    Enum.reduce(deltas_ahead, selection, fn delta_ahead, selection ->
+      Text.Selection.transform(selection, delta_ahead)
+    end)
+  end
+
+  @doc """
   Builds evaluation parent sequence for every evaluable cell.
 
   This function should be used instead of calling `cell_evaluation_parents/2`
@@ -2222,7 +2507,7 @@ defmodule Livebook.Session.Data do
 
   Considers only cells that have already been evaluated.
   """
-  @spec cell_evaluation_parents(Data.t(), Cell.t()) :: list({Cell.t(), Section.t()})
+  @spec cell_evaluation_parents(t(), Cell.t()) :: list({Cell.t(), Section.t()})
   def cell_evaluation_parents(data, cell) do
     for {cell, section} <- Notebook.parent_cells_with_section(data.notebook, cell.id),
         info = data.cell_infos[cell.id],
@@ -2405,9 +2690,6 @@ defmodule Livebook.Session.Data do
     end)
   end
 
-  defp update_reevaluates_automatically({data, _} = data_actions) when data.mode == :app,
-    do: data_actions
-
   defp update_reevaluates_automatically({data, _} = data_actions) do
     eval_parents = cell_evaluation_parents(data)
 
@@ -2487,25 +2769,44 @@ defmodule Livebook.Session.Data do
 
     # If everything was executed and an error happened, it means it
     # was a runtime crash and everything is aborted
-    data_actions =
+    {data_actions, execution_status} =
       if data.app_data.status.execution == :executed and execution_status == :error do
-        add_action(data_actions, :app_recover)
+        {app_recover(data_actions), :executing}
       else
-        data_actions
+        {data_actions, execution_status}
       end
 
     update_app_data!(data_actions, &put_in(&1.status.execution, execution_status))
   end
 
+  defp app_recover({data, _} = data_actions) do
+    evaluable_cells_with_section = Notebook.evaluable_cells_with_section(data.notebook)
+
+    data_actions =
+      if data.runtime_status == :connected do
+        disconnect_runtime(data_actions)
+      else
+        data_actions
+      end
+
+    data_actions
+    |> connect_runtime()
+    |> erase_outputs()
+    |> garbage_collect_input_infos()
+    |> reduce(evaluable_cells_with_section, fn data_actions, {cell, section} ->
+      queue_cell_evaluation(data_actions, cell, section)
+    end)
+  end
+
   @doc """
   Checks if the given cell is outdated.
 
-  A cell is considered outdated if its new/fresh or its content
-  has changed since the last evaluation.
+  A cell is considered outdated if its fresh/stale or its content has
+  changed since the last evaluation.
   """
-  @spec cell_outdated?(t(), Cell.t()) :: boolean()
-  def cell_outdated?(data, cell) do
-    info = data.cell_infos[cell.id]
+  @spec cell_outdated?(t(), Cell.id()) :: boolean()
+  def cell_outdated?(data, cell_id) do
+    info = data.cell_infos[cell_id]
     info.eval.validity != :evaluated or info.eval.evaluation_digest != info.sources.primary.digest
   end
 
@@ -2517,28 +2818,36 @@ defmodule Livebook.Session.Data do
   """
   @spec cell_ids_for_full_evaluation(t(), list(Cell.id())) :: list(Cell.id())
   def cell_ids_for_full_evaluation(data, forced_cell_ids) do
+    requires_reconnect? =
+      data.cell_infos[Cell.setup_cell_id()].eval.validity == :evaluated and
+        cell_outdated?(data, Cell.setup_cell_id())
+
     evaluable_cells_with_section = Notebook.evaluable_cells_with_section(data.notebook)
 
-    evaluable_cell_ids =
-      for {cell, _} <- evaluable_cells_with_section,
-          cell_outdated?(data, cell) or cell.id in forced_cell_ids,
-          do: cell.id,
-          into: MapSet.new()
+    if requires_reconnect? do
+      for {cell, _} <- evaluable_cells_with_section, do: cell.id
+    else
+      evaluable_cell_ids =
+        for {cell, _} <- evaluable_cells_with_section,
+            cell_outdated?(data, cell.id) or cell.id in forced_cell_ids,
+            do: cell.id,
+            into: MapSet.new()
 
-    cell_identifier_parents = cell_identifier_parents(data)
+      cell_identifier_parents = cell_identifier_parents(data)
 
-    child_ids =
-      for {cell_id, cell_identifier_parents} <- cell_identifier_parents,
-          Enum.any?(cell_identifier_parents, &(&1 in evaluable_cell_ids)),
-          do: cell_id
+      child_ids =
+        for {cell_id, cell_identifier_parents} <- cell_identifier_parents,
+            Enum.any?(cell_identifier_parents, &(&1 in evaluable_cell_ids)),
+            do: cell_id
 
-    child_ids
-    |> Enum.into(evaluable_cell_ids)
-    |> Enum.to_list()
-    |> Enum.filter(fn cell_id ->
-      info = data.cell_infos[cell_id]
-      info.eval.status == :ready
-    end)
+      child_ids
+      |> Enum.into(evaluable_cell_ids)
+      |> Enum.to_list()
+      |> Enum.filter(fn cell_id ->
+        info = data.cell_infos[cell_id]
+        info.eval.status == :ready
+      end)
+    end
   end
 
   # Builds identifier parent list for every evaluable cell.

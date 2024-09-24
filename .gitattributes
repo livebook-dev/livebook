@@ -1,1 +1,7 @@
+# convert all CRLF to LF
+* text=auto eol=lf
+
+# ensure binary files are not marked as text
+*.{ico,png,jpg,jpeg,gif,webp,woff,woff2} binary
+
 iframe/priv/static/iframe/*.html text eol=lf

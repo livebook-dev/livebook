@@ -1,6 +1,8 @@
 defmodule LivebookWeb.JSViewChannel do
   use Phoenix.Channel
 
+  alias LivebookWeb.CodecHelpers
+
   @impl true
   def join("js_view", %{"session_token" => session_token}, socket) do
     case Phoenix.Token.verify(LivebookWeb.Endpoint, "session", session_token) do
@@ -45,30 +47,40 @@ defmodule LivebookWeb.JSViewChannel do
 
   def handle_in("event", raw, socket) do
     {[event, ref], payload} = transport_decode!(raw)
-    pid = socket.assigns.ref_with_info[ref].pid
-    send(pid, {:event, event, payload, %{origin: socket.assigns.client_id, ref: ref}})
+
+    with %{^ref => info} <- socket.assigns.ref_with_info do
+      send(info.pid, {:event, event, payload, %{origin: socket.assigns.client_id, ref: ref}})
+    end
+
     {:noreply, socket}
   end
 
   def handle_in("ping", %{"ref" => ref}, socket) do
-    pid = socket.assigns.ref_with_info[ref].pid
-    send(pid, {:ping, self(), nil, %{ref: ref}})
+    with %{^ref => info} <- socket.assigns.ref_with_info do
+      send(info.pid, {:ping, self(), nil, %{ref: ref}})
+    end
+
     {:noreply, socket}
   end
 
   def handle_in("disconnect", %{"ref" => ref}, socket) do
     socket =
-      if socket.assigns.ref_with_info[ref].count == 1 do
-        Livebook.Session.unsubscribe_from_runtime_events(
-          socket.assigns.session_id,
-          "js_live",
-          ref
-        )
+      case socket.assigns.ref_with_info do
+        %{^ref => %{count: 1}} ->
+          Livebook.Session.unsubscribe_from_runtime_events(
+            socket.assigns.session_id,
+            "js_live",
+            ref
+          )
 
-        {_, socket} = pop_in(socket.assigns.ref_with_info[ref])
-        socket
-      else
-        update_in(socket.assigns.ref_with_info[ref], &%{&1 | count: &1.count - 1})
+          {_, socket} = pop_in(socket.assigns.ref_with_info[ref])
+          socket
+
+        %{^ref => %{count: count}} when count > 1 ->
+          update_in(socket.assigns.ref_with_info[ref], &%{&1 | count: &1.count - 1})
+
+        %{} ->
+          socket
       end
 
     {:noreply, socket}
@@ -154,7 +166,7 @@ defmodule LivebookWeb.JSViewChannel do
   # payload accordingly
 
   defp transport_encode!(meta, {:binary, info, binary}) do
-    {:binary, encode!([meta, info], binary)}
+    {:binary, CodecHelpers.encode_annotated_binary!([meta, info], binary)}
   end
 
   defp transport_encode!(meta, payload) do
@@ -162,24 +174,12 @@ defmodule LivebookWeb.JSViewChannel do
   end
 
   defp transport_decode!({:binary, raw}) do
-    {[meta, info], binary} = decode!(raw)
+    {[meta, info], binary} = CodecHelpers.decode_annotated_binary!(raw)
     {meta, {:binary, info, binary}}
   end
 
   defp transport_decode!(raw) do
     %{"root" => [meta, payload]} = raw
     {meta, payload}
-  end
-
-  defp encode!(meta, binary) do
-    meta = Jason.encode!(meta)
-    meta_size = byte_size(meta)
-    <<meta_size::size(32), meta::binary, binary::binary>>
-  end
-
-  defp decode!(raw) do
-    <<meta_size::size(32), meta::binary-size(meta_size), binary::binary>> = raw
-    meta = Jason.decode!(meta)
-    {meta, binary}
   end
 end

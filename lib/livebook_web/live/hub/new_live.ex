@@ -3,7 +3,7 @@ defmodule LivebookWeb.Hub.NewLive do
 
   alias Livebook.Teams
   alias Livebook.Teams.Org
-  alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.LayoutComponents
 
   on_mount LivebookWeb.SidebarHook
 
@@ -15,13 +15,10 @@ defmodule LivebookWeb.Hub.NewLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    enabled? = Livebook.Config.feature_flag_enabled?(:create_hub)
-
     socket =
       assign(socket,
         selected_option: "new-org",
-        page_title: "Hub - Livebook",
-        enabled?: enabled?,
+        page_title: "Workspace - Livebook",
         requested_code: false,
         org: nil,
         verification_uri: nil,
@@ -36,49 +33,32 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   @impl true
-  def render(%{enabled?: false} = assigns) do
-    ~H"""
-    <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-6">
-        <div>
-          <LayoutHelpers.title text="Livebook Teams is coming soon!" />
-          <p class="mt-4 text-gray-700">
-            Livebook Teams will amplify Livebook with features designed for teams and businesses.
-          </p>
-        </div>
-        <p class="text-gray-700">
-          It will allow you to share notebooks, manage secrets, and deploy Livebook apps within your organization.
-        </p>
-        <p class="text-gray-700">
-          The product is still in development. We want to get feedback from beta users and understand
-          their use cases before the public launch.
-        </p>
-        <p class="text-gray-700">
-          <a
-            class="font-medium underline text-gray-900 hover:no-underline"
-            href="https://livebook.dev/teams"
-            target="_blank"
-          >
-            Learn more about Livebook Teams
-          </a>
-          and join the beta program.
-        </p>
-        <p class="text-gray-700">
-          - The Livebook crew
-        </p>
-      </div>
-    </LayoutHelpers.layout>
-    """
-  end
-
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
+    <LayoutComponents.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
+      <LayoutComponents.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant={:warning}>
+        <strong>Beware!</strong>
+        You are running Livebook in development but this page communicates with production servers.
+      </LayoutComponents.topbar>
+
       <div class="flex flex-col p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
-          <LayoutHelpers.title text="Add Hub" />
+          <LayoutComponents.title text="Add organization" />
           <p class="mt-4 text-gray-700">
-            Manage your Livebooks in the cloud with Hubs.
+            <a
+              class="font-medium underline text-gray-900 hover:no-underline"
+              href="https://livebook.dev/teams?ref=LivebookApp"
+              target="_blank"
+              phx-no-format
+            >
+              Livebook Teams</a> enables you to deploy internal tools built with Elixir and Livebook to your own infrastructure. It is currently in closed beta.
+          </p>
+          <p class="mt-4 text-gray-700">
+            To create a Teams organization, you must <a
+              class="font-medium underline text-gray-900 hover:no-underline"
+              href="https://livebook.dev/teams?ref=LivebookApp"
+              target="_blank"
+            >join the beta for free early access</a>.
           </p>
         </div>
         <!-- TABS -->
@@ -107,7 +87,6 @@ defmodule LivebookWeb.Hub.NewLive do
         <!-- FORMS -->
         <div :if={@selected_option} class="flex flex-col space-y-4">
           <.form
-            :let={f}
             id={"#{@selected_option}-form"}
             class="flex flex-col space-y-4"
             for={@form}
@@ -115,23 +94,21 @@ defmodule LivebookWeb.Hub.NewLive do
             phx-change="validate"
           >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <.text_field field={f[:name]} label="Name" />
-              <.emoji_field field={f[:emoji]} label="Emoji" />
+              <.text_field field={@form[:name]} label="Organization name" />
+              <.emoji_field field={@form[:emoji]} label="Emoji" />
             </div>
 
             <.password_field
               :if={@selected_option == "join-org"}
-              field={f[:teams_key]}
-              label="Livebook Teams Key"
+              field={@form[:teams_key]}
+              label="Livebook Teams key"
             />
 
-            <button
-              :if={!@requested_code}
-              class="button-base button-blue self-start"
-              phx-disable-with="Loading..."
-            >
-              <%= @button_label %>
-            </button>
+            <div>
+              <.button :if={!@requested_code} phx-disable-with="Loading...">
+                <%= @button_label %>
+              </.button>
+            </div>
             <div class="invisible"></div>
             <div :if={@requested_code} class="flex flex-col rounded-xl bg-gray-50 px-10 py-6 mt-10">
               <div class="flex flex-col items-center rounded-xl bg-gray-50">
@@ -148,16 +125,12 @@ defmodule LivebookWeb.Hub.NewLive do
                 </div>
                 <div class="text-center mt-4 text-gray-700">
                   <span class="text-sm">
-                    2. Visit Livebook Teams and paste it:
+                    2. Sign in to Livebook Teams and paste the code:
                   </span>
-                  <div>
-                    <a
-                      href={@verification_uri}
-                      target="_blank"
-                      class="mt-3 button-base button-outlined-gray"
-                    >
+                  <div class="mt-2">
+                    <.button color="gray" outlined href={@verification_uri} target="_blank">
                       Go to Teams
-                    </a>
+                    </.button>
                   </div>
                 </div>
               </div>
@@ -165,7 +138,7 @@ defmodule LivebookWeb.Hub.NewLive do
           </.form>
         </div>
       </div>
-    </LayoutHelpers.layout>
+    </LayoutComponents.layout>
     """
   end
 
@@ -175,24 +148,19 @@ defmodule LivebookWeb.Hub.NewLive do
       id="clipboard"
       class="flex items-center justify-between border rounded-lg px-4 py-2.5 bg-white"
     >
-      <div class="icon-button invisible">
-        <.remix_icon icon="clipboard-line" class="text-lg" />
-      </div>
+      <.icon_button class="invisible">
+        <.remix_icon icon="clipboard-line" />
+      </.icon_button>
 
       <div
-        class="text-brand-pink font-semibold text-xl leading-none"
+        class="mr-4 text-brand-pink font-semibold text-xl leading-none"
         id="clipboard-code"
         phx-no-format
       ><%= @content %></div>
 
-      <button
-        class="icon-button ml-4"
-        data-el-clipcopy
-        phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")}
-        type="button"
-      >
-        <.remix_icon icon="clipboard-line" class="text-lg text-blue-500" />
-      </button>
+      <.icon_button phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")} type="button">
+        <.remix_icon icon="clipboard-line" />
+      </.icon_button>
     </div>
     """
   end
@@ -281,8 +249,6 @@ defmodule LivebookWeb.Hub.NewLive do
          |> assign_form(changeset)}
 
       {:error, changeset} ->
-        changeset = Map.replace!(changeset, :action, :validate)
-
         {:noreply, assign_form(socket, changeset)}
 
       {:transport_error, message} ->
@@ -317,8 +283,8 @@ defmodule LivebookWeb.Hub.NewLive do
 
         {:noreply,
          socket
-         |> put_flash(:success, "Hub added successfully")
-         |> push_navigate(to: ~p"/hub/#{hub.id}?show-key=true")}
+         |> put_flash(:success, "Workspace added successfully")
+         |> push_navigate(to: ~p"/hub/#{hub.id}?show-key=confirm")}
 
       {:error, :expired} ->
         changeset =
@@ -346,7 +312,7 @@ defmodule LivebookWeb.Hub.NewLive do
   def handle_info(_any, socket), do: {:noreply, socket}
 
   defp assign_form(socket, "join-org") do
-    org = %Org{emoji: "💡"}
+    org = %Org{emoji: random_emoji()}
     changeset = Teams.change_org(org)
 
     socket
@@ -359,7 +325,7 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   defp assign_form(socket, "new-org") do
-    org = %Org{emoji: "⭐️", teams_key: Org.teams_key()}
+    org = %Org{emoji: random_emoji(), teams_key: Org.teams_key()}
     changeset = Teams.change_org(org)
 
     socket
@@ -373,5 +339,9 @@ defmodule LivebookWeb.Hub.NewLive do
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, form: to_form(changeset))
+  end
+
+  defp random_emoji do
+    Enum.random(~w[💡 🚀 🌈 🦄 🐱 👩‍💻 ⚽️ ⭐️])
   end
 end

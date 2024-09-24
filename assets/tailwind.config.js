@@ -1,4 +1,4 @@
-const plugin = require("tailwindcss/plugin")
+const plugin = require("tailwindcss/plugin");
 
 module.exports = {
   content: [
@@ -102,6 +102,19 @@ module.exports = {
         },
         "brand-pink": "#e44c75",
       },
+      keyframes: {
+        shake: {
+          "0%": { transform: "translateX(0)" },
+          "20%": { transform: "translateX(-10px)" },
+          "40%": { transform: "translateX(8px)" },
+          "60%": { transform: "translateX(-6px)" },
+          "80%": { transform: "translateX(4px)" },
+          "100%": { transform: "translateX(0)" },
+        },
+      },
+      animation: {
+        shake: "shake 0.5s linear 0.2s",
+      },
     },
   },
   plugins: [
@@ -109,10 +122,18 @@ module.exports = {
       addVariant("phx-loading", [".phx-loading&", ".phx-loading &"]);
       addVariant("phx-connected", [".phx-connected&", ".phx-connected &"]);
       addVariant("phx-error", [".phx-error&", ".phx-error &"]);
-      addVariant("phx-form-error", [":not(.phx-no-feedback).show-errors &"]);
-      addVariant("phx-click-loading", [".phx-click-loading&", ".phx-click-loading &"]);
-      addVariant("phx-submit-loading", [".phx-submit-loading&", ".phx-submit-loading &"]);
-      addVariant("phx-change-loading", [".phx-change-loading&", ".phx-change-loading &"]);
-    })
+      addVariant("phx-click-loading", [
+        ".phx-click-loading&",
+        ".phx-click-loading &",
+      ]);
+      addVariant("phx-submit-loading", [
+        ".phx-submit-loading&",
+        ".phx-submit-loading &",
+      ]);
+      addVariant("phx-change-loading", [
+        ".phx-change-loading&",
+        ".phx-change-loading &",
+      ]);
+    }),
   ],
 };

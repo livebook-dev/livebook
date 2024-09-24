@@ -1,6 +1,4 @@
 defmodule Livebook.Teams.WebSocket do
-  @moduledoc false
-
   alias Mint.WebSocket.UpgradeFailureError
 
   @ws_path "/user/websocket"
@@ -20,11 +18,25 @@ defmodule Livebook.Teams.WebSocket do
           | {:transport_error, String.t()}
           | {:server_error, String.t()}
   def connect(headers \\ []) do
-    uri = URI.parse(Livebook.Config.teams_url() || raise("missing Livebook Teams URL"))
+    uri = URI.parse(Livebook.Config.teams_url())
     {http_scheme, ws_scheme} = parse_scheme(uri)
     state = %{status: nil, headers: [], body: []}
 
-    with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port),
+    transport_opts =
+      if http_scheme == :https do
+        [cacerts: :public_key.cacerts_get()]
+      else
+        []
+      end
+
+    transport_opts =
+      if String.ends_with?(Livebook.Config.teams_url(), ".flycast"),
+        do: Keyword.put(transport_opts, :inet6, true),
+        else: transport_opts
+
+    opts = [protocols: [:http1], transport_opts: transport_opts]
+
+    with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port, opts),
          {:ok, conn, ref} <- Mint.WebSocket.upgrade(ws_scheme, conn, @ws_path, headers) do
       receive_upgrade(conn, ref, state)
     else
@@ -111,15 +123,15 @@ defmodule Livebook.Teams.WebSocket do
   """
   @spec disconnect(conn(), websocket() | nil, ref()) ::
           {:ok, conn(), websocket() | nil}
-          | {:error, conn() | websocket(), term()}
+          | {:error, conn(), websocket(), term()}
   def disconnect(conn, nil, _ref) do
     {:ok, conn} = Mint.HTTP.close(conn)
     {:ok, conn, nil}
   end
 
   def disconnect(conn, websocket, ref) do
-    with {:ok, conn, websocket} <- send(conn, websocket, ref, :close),
-         {:ok, conn} <- Mint.HTTP.close(conn) do
+    with {:ok, conn, websocket} <- send(conn, websocket, ref, :close) do
+      {:ok, conn} = Mint.HTTP.close(conn)
       {:ok, conn, websocket}
     end
   end
@@ -132,7 +144,7 @@ defmodule Livebook.Teams.WebSocket do
   """
   @spec receive(conn(), ref(), websocket(), term()) ::
           {:ok, conn(), websocket(), list(binary())}
-          | {:server_error, conn(), websocket(), String.t()}
+          | {:error, conn(), websocket(), String.t()}
   def receive(conn, ref, websocket, message \\ receive(do: (message -> message))) do
     with {:ok, conn, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, message),
          {:ok, websocket, frames} <- Mint.WebSocket.decode(websocket, data),
@@ -143,10 +155,10 @@ defmodule Livebook.Teams.WebSocket do
         handle_disconnect(conn, websocket, ref, response)
 
       {:error, conn, exception} when is_exception(exception) ->
-        {:server_error, conn, websocket, Exception.message(exception)}
+        {:error, conn, websocket, Exception.message(exception)}
 
       {:error, conn, exception, []} when is_exception(exception) ->
-        {:server_error, conn, websocket, Exception.message(exception)}
+        {:error, conn, websocket, Exception.message(exception)}
     end
   end
 
@@ -178,11 +190,11 @@ defmodule Livebook.Teams.WebSocket do
          {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data) do
       {:ok, conn, websocket}
     else
-      {:error, %Mint.HTTP1{} = conn, reason} ->
-        {:error, conn, websocket, reason}
+      {:error, %Mint.HTTP1{} = conn, exception} when is_exception(exception) ->
+        {:error, conn, websocket, Exception.message(exception)}
 
-      {:error, websocket, reason} ->
-        {:error, conn, websocket, reason}
+      {:error, websocket, exception} when is_exception(exception) ->
+        {:error, conn, websocket, Exception.message(exception)}
     end
   end
 end

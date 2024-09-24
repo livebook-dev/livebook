@@ -1,49 +1,63 @@
 defmodule Livebook.Stamping do
-  @moduledoc false
-
   # Cryptographic functions used to implement notebook stamping.
 
   @doc """
   Performs authenticated encryption with associated data (AEAD) [1].
 
-  Uses AES-GCM-128 [2]. Returns a single token which carries encrypted
-  `payload` and signature for both `payload` and `additional_data`.
+  Uses XChaCha20-Poly1305 [2]. Returns a single token which carries
+  encrypted `payload` and signature for both `payload` and
+  `additional_data`.
 
   [1]: https://en.wikipedia.org/wiki/Authenticated_encryption#Authenticated_encryption_with_associated_data_(AEAD)
-  [2]: https://www.rfc-editor.org/rfc/rfc5116#section-5
+  [2]: https://en.wikipedia.org/wiki/XChaCha20-Poly1305
   """
-  @spec aead_encrypt(term(), String.t(), String.t()) :: String.t()
-  def aead_encrypt(payload, additional_data, secret_key) do
-    {secret, sign_secret} = derive_keys(secret_key)
-
+  @spec chapoly_encrypt(term(), String.t(), String.t()) :: String.t()
+  def chapoly_encrypt(payload, additional_data, secret_key) do
+    secret = derive_key(secret_key)
     payload = :erlang.term_to_binary(payload)
-    Plug.Crypto.MessageEncryptor.encrypt(payload, additional_data, secret, sign_secret)
+    Plug.Crypto.MessageEncryptor.encrypt(payload, additional_data, secret, "unused")
   end
 
   @doc """
-  Decrypts and verifies data obtained from `aead_encrypt/3`.
+  Decrypts and verifies data obtained from `chapoly_encrypt/3`.
   """
-  @spec aead_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | :error
-  def aead_decrypt(encrypted, additional_data, secret_key) do
-    {secret, sign_secret} = derive_keys(secret_key)
+  @spec chapoly_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | {:error, :invalid}
+  def chapoly_decrypt(encrypted, additional_data, secret_key) do
+    secret = derive_key(secret_key)
 
-    case Plug.Crypto.MessageEncryptor.decrypt(encrypted, additional_data, secret, sign_secret) do
+    case Plug.Crypto.MessageEncryptor.decrypt(encrypted, additional_data, secret, "unused") do
       {:ok, payload} ->
-        payload = Plug.Crypto.non_executable_binary_to_term(payload)
-        {:ok, payload}
+        {:ok, Plug.Crypto.non_executable_binary_to_term(payload)}
 
       :error ->
-        :error
+        {:error, :invalid}
     end
   end
 
-  defp derive_keys(secret_key) do
+  @doc """
+  Decrypts and verifies data obtained from AEAD using AES-GCM-128 [1].
+
+  Earlier Livebook versions implemented AEAD using AES-GCM-128 and
+  this function can be used to decrypt that data.
+
+  [1]: https://www.rfc-editor.org/rfc/rfc5116#section-5
+  """
+  @spec aead_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | {:error, :invalid}
+  def aead_decrypt(encrypted, additional_data, secret_key) do
+    <<secret::16-bytes, sign_secret::16-bytes>> = derive_key(secret_key)
+
+    case Plug.Crypto.MessageEncryptor.decrypt(encrypted, additional_data, secret, sign_secret) do
+      {:ok, payload} ->
+        {:ok, Plug.Crypto.non_executable_binary_to_term(payload)}
+
+      :error ->
+        {:error, :invalid}
+    end
+  end
+
+  defp derive_key(secret_key) do
     binary_key = Base.url_decode64!(secret_key, padding: false)
-
-    <<secret::16-bytes, sign_secret::16-bytes>> =
-      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook signing", cache: Plug.Crypto.Keys)
-
-    {secret, sign_secret}
+    Plug.Crypto.KeyGenerator.generate(binary_key, "notebook signing", cache: Plug.Crypto.Keys)
   end
 
   @doc """

@@ -10,17 +10,21 @@ defmodule Livebook.LiveMarkdown.Import do
     {ast, rewrite_messages} = rewrite_ast(ast)
     elements = group_elements(ast)
     {stamp_data, elements} = take_stamp_data(elements)
-    {notebook, stamp_hub_id, build_messages} = build_notebook(elements)
+    {notebook, valid_hub?, build_messages} = build_notebook(elements)
     {notebook, postprocess_messages} = postprocess_notebook(notebook)
 
-    {notebook, verified_hub_id, metadata_messages} =
-      postprocess_stamp(notebook, markdown, stamp_data, stamp_hub_id)
+    {notebook, stamp_verified?, metadata_messages} =
+      if stamp_data != nil and valid_hub? do
+        postprocess_stamp(notebook, markdown, stamp_data)
+      else
+        {notebook, false, []}
+      end
 
     messages =
       earmark_messages ++
         rewrite_messages ++ build_messages ++ postprocess_messages ++ metadata_messages
 
-    {notebook, %{warnings: messages, verified_hub_id: verified_hub_id}}
+    {notebook, %{warnings: messages, stamp_verified?: stamp_verified?}}
   end
 
   defp earmark_message_to_string({_severity, line_number, message}) do
@@ -195,7 +199,7 @@ defmodule Livebook.LiveMarkdown.Import do
          [{"pre", _, [{"code", [{"class", "output"}], [output], %{}}], %{}} | ast],
          outputs
        ) do
-    take_outputs(ast, [{:text, output} | outputs])
+    take_outputs(ast, [%{type: :terminal_text, text: output, chunk: false} | outputs])
   end
 
   defp take_outputs(
@@ -206,7 +210,7 @@ defmodule Livebook.LiveMarkdown.Import do
          ],
          outputs
        ) do
-    take_outputs(ast, [{:text, output} | outputs])
+    take_outputs(ast, [%{type: :terminal_text, text: output, chunk: false} | outputs])
   end
 
   # Ignore other exported outputs
@@ -239,6 +243,17 @@ defmodule Livebook.LiveMarkdown.Import do
        ) do
     {outputs, output_counter} = Notebook.index_outputs(outputs, output_counter)
     %{"kind" => kind, "attrs" => attrs} = data
+
+    attrs =
+      case attrs do
+        # Import map attributes for backward compatibility
+        %{} ->
+          attrs
+
+        encoded when is_binary(encoded) ->
+          encoded |> Base.decode64!(padding: false) |> Jason.decode!()
+      end
+
     chunks = if(chunks = data["chunks"], do: Enum.map(chunks, &List.to_tuple/1))
 
     cell = %{
@@ -307,6 +322,9 @@ defmodule Livebook.LiveMarkdown.Import do
     build_notebook(elems, [], [section | sections], messages, output_counter)
   end
 
+  @unknown_hub_message "this notebook belongs to an Organization you don't have access to. " <>
+                         "Head to Livebook's home and add its Organization before reopening this notebook"
+
   defp build_notebook(elems, cells, sections, messages, output_counter) do
     # At this point we expect the heading, otherwise we use the default
     {name, elems} =
@@ -329,8 +347,16 @@ defmodule Livebook.LiveMarkdown.Import do
           ]
       end
 
-    {attrs, stamp_hub_id, metadata_messages} = notebook_metadata_to_attrs(metadata)
-    messages = messages ++ metadata_messages
+    {attrs, messages} = notebook_metadata_to_attrs(metadata, messages)
+    hub_id = attrs[:hub_id]
+
+    {attrs, valid_hub?, messages} =
+      if is_nil(hub_id) or Hubs.hub_exists?(hub_id) do
+        {attrs, true, messages}
+      else
+        {Map.drop(attrs, [:hub_id, :deployment_group_id]), false,
+         messages ++ [@unknown_hub_message]}
+      end
 
     # We identify a single leading cell as the setup cell, in any
     # other case all extra cells are put in a default section
@@ -352,7 +378,7 @@ defmodule Livebook.LiveMarkdown.Import do
       |> maybe_put_setup_cell(setup_cell)
       |> Map.merge(attrs)
 
-    {notebook, stamp_hub_id, messages}
+    {notebook, valid_hub?, messages}
   end
 
   defp maybe_put_name(notebook, nil), do: notebook
@@ -379,50 +405,40 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp grab_leading_comments(elems), do: {[], elems}
 
-  defp notebook_metadata_to_attrs(metadata) do
-    Enum.reduce(metadata, {%{}, Livebook.Hubs.Personal.id(), []}, fn
-      {"persist_outputs", persist_outputs}, {attrs, stamp_hub_id, messages} ->
-        {Map.put(attrs, :persist_outputs, persist_outputs), stamp_hub_id, messages}
+  defp notebook_metadata_to_attrs(metadata, messages) do
+    Enum.reduce(metadata, {%{}, messages}, fn
+      {"persist_outputs", persist_outputs}, {attrs, messages} ->
+        {Map.put(attrs, :persist_outputs, persist_outputs), messages}
 
-      {"autosave_interval_s", autosave_interval_s}, {attrs, stamp_hub_id, messages} ->
-        {Map.put(attrs, :autosave_interval_s, autosave_interval_s), stamp_hub_id, messages}
+      {"autosave_interval_s", autosave_interval_s}, {attrs, messages} ->
+        {Map.put(attrs, :autosave_interval_s, autosave_interval_s), messages}
 
-      {"default_language", default_language}, {attrs, stamp_hub_id, messages}
+      {"default_language", default_language}, {attrs, messages}
       when default_language in ["elixir", "erlang"] ->
         default_language = String.to_atom(default_language)
-        {Map.put(attrs, :default_language, default_language), stamp_hub_id, messages}
+        {Map.put(attrs, :default_language, default_language), messages}
 
-      {"hub_id", hub_id}, {attrs, stamp_hub_id, messages} ->
-        cond do
-          Hubs.hub_exists?(hub_id) -> {Map.put(attrs, :hub_id, hub_id), hub_id, messages}
-          Hubs.get_offline_hub(hub_id) -> {attrs, hub_id, messages}
-          true -> {attrs, stamp_hub_id, messages ++ ["ignoring notebook Hub with unknown id"]}
-        end
+      {"hub_id", hub_id}, {attrs, messages} ->
+        {Map.put(attrs, :hub_id, hub_id), messages}
 
-      {"app_settings", app_settings_metadata}, {attrs, stamp_hub_id, messages} ->
+      {"deployment_group_id", deployment_group_id}, {attrs, messages} ->
+        {Map.put(attrs, :deployment_group_id, deployment_group_id), messages}
+
+      {"app_settings", app_settings_metadata}, {attrs, messages} ->
         app_settings =
           Map.merge(
             Notebook.AppSettings.new(),
             app_settings_metadata_to_attrs(app_settings_metadata)
           )
 
-        {Map.put(attrs, :app_settings, app_settings), stamp_hub_id, messages}
+        {Map.put(attrs, :app_settings, app_settings), messages}
 
-      {"file_entries", file_entry_metadatas}, {attrs, stamp_hub_id, messages}
-      when is_list(file_entry_metadatas) ->
-        file_system_by_id =
-          if Enum.any?(file_entry_metadatas, &(&1["type"] == "file")) do
-            for file_system <- Livebook.Settings.file_systems(),
-                do: {file_system.id, file_system},
-                into: %{}
-          else
-            %{}
-          end
-
+      {"file_entries", file_entry_metadata}, {attrs, messages}
+      when is_list(file_entry_metadata) ->
         {file_entries, file_entry_messages} =
-          for file_entry_metadata <- file_entry_metadatas, reduce: {[], []} do
+          for file_entry_metadata <- file_entry_metadata, reduce: {[], []} do
             {file_entries, warnings} ->
-              case file_entry_metadata_to_attrs(file_entry_metadata, file_system_by_id) do
+              case file_entry_metadata_to_attrs(file_entry_metadata) do
                 {:ok, file_entry} -> {[file_entry | file_entries], warnings}
                 {:error, message} -> {file_entries, [message | warnings]}
               end
@@ -438,10 +454,10 @@ defmodule Livebook.LiveMarkdown.Import do
           |> Map.put(:file_entries, file_entries)
           |> Map.put(:quarantine_file_entry_names, quarantine_file_entry_names)
 
-        {attrs, stamp_hub_id, messages ++ file_entry_messages}
+        {attrs, messages ++ file_entry_messages}
 
-      _entry, {attrs, stamp_hub_id, messages} ->
-        {attrs, stamp_hub_id, messages}
+      _entry, {attrs, messages} ->
+        {attrs, messages}
     end)
   end
 
@@ -476,31 +492,35 @@ defmodule Livebook.LiveMarkdown.Import do
     end)
   end
 
-  defp file_entry_metadata_to_attrs(%{"type" => "attachment", "name" => name}, _file_system_by_id) do
+  defp file_entry_metadata_to_attrs(%{"type" => "attachment", "name" => name}) do
     {:ok, %{type: :attachment, name: name}}
   end
 
-  defp file_entry_metadata_to_attrs(
-         %{
-           "type" => "file",
-           "name" => name,
-           "file" => %{"file_system_id" => file_system_id, "path" => path}
-         },
-         file_system_by_id
-       ) do
-    if file_system = file_system_by_id[file_system_id] do
-      file = Livebook.FileSystem.File.new(file_system, path)
-      {:ok, %{type: :file, name: name, file: file}}
-    else
-      {:error, "skipping file #{name}, since it points to an unknown file system"}
-    end
+  defp file_entry_metadata_to_attrs(%{
+         "type" => "file",
+         "name" => name,
+         "file" => %{
+           "file_system_id" => file_system_id,
+           "file_system_type" => file_system_type,
+           "path" => path
+         }
+       }) do
+    file = %Livebook.FileSystem.File{
+      file_system_id: file_system_id,
+      file_system_module: Livebook.FileSystems.type_to_module(file_system_type),
+      path: path,
+      origin_pid: self()
+    }
+
+    {:ok, %{type: :file, name: name, file: file}}
   end
 
-  defp file_entry_metadata_to_attrs(
-         %{"type" => "url", "name" => name, "url" => url},
-         _file_system_by_id
-       ) do
+  defp file_entry_metadata_to_attrs(%{"type" => "url", "name" => name, "url" => url}) do
     {:ok, %{type: :url, name: name, url: url}}
+  end
+
+  defp file_entry_metadata_to_attrs(_other) do
+    {:error, "discarding file entry in invalid format"}
   end
 
   defp section_metadata_to_attrs(metadata) do
@@ -517,9 +537,6 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp cell_metadata_to_attrs(:code, metadata) do
     Enum.reduce(metadata, %{}, fn
-      {"disable_formatting", disable_formatting}, attrs ->
-        Map.put(attrs, :disable_formatting, disable_formatting)
-
       {"reevaluate_automatically", reevaluate_automatically}, attrs ->
         Map.put(attrs, :reevaluate_automatically, reevaluate_automatically)
 
@@ -603,41 +620,59 @@ defmodule Livebook.LiveMarkdown.Import do
   defp take_stamp_data([{:stamp, data} | elements]), do: {data, elements}
   defp take_stamp_data(elements), do: {nil, elements}
 
-  defp postprocess_stamp(notebook, _notebook_source, nil, _), do: {notebook, nil, []}
+  @personal_stamp_message "this notebook can only access environment variables defined in this machine (the notebook was either authored in another machine or changed outside of Livebook)"
+  @org_stamp_message "invalid notebook stamp, disabling access to secrets and remote files (this may happen if you made changes to the notebook source outside of Livebook)"
+  @too_recent_stamp_message "invalid notebook stamp, disabling access to secrets and remote files (the stamp has been generated using a more recent Livebook version, you need to upgrade)"
 
-  defp postprocess_stamp(notebook, notebook_source, stamp_data, stamp_hub_id) do
-    {hub, offline?} =
-      cond do
-        hub = Hubs.get_offline_hub(stamp_hub_id) -> {hub, true}
-        hub = Hubs.fetch_hub!(stamp_hub_id) -> {hub, false}
-      end
+  defp postprocess_stamp(notebook, notebook_source, stamp_data) do
+    hub = Hubs.fetch_hub!(notebook.hub_id)
 
-    {valid_stamp?, notebook, messages} =
+    {stamp_verified?, notebook, messages} =
       with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
-           {:ok, notebook_source} <- safe_binary_slice(notebook_source, 0, offset),
+           {:ok, notebook_source, rest_source} <- safe_binary_split(notebook_source, offset),
+           {:ok, ^stamp_data} <- only_stamp_data(rest_source),
            {:ok, metadata} <- Livebook.Hubs.verify_notebook_stamp(hub, notebook_source, stamp) do
         notebook = apply_stamp_metadata(notebook, metadata)
         {true, notebook, []}
       else
-        _ -> {false, notebook, ["failed to verify notebook stamp"]}
+        error ->
+          message =
+            cond do
+              error == {:error, :too_recent_version} -> @too_recent_stamp_message
+              notebook.hub_id == "personal-hub" -> @personal_stamp_message
+              true -> @org_stamp_message
+            end
+
+          {false, notebook, [message]}
       end
 
-    # We enable teams features for offline hub only if the stamp
-    # is valid, which ensures it is an existing Teams hub
-    teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (not offline? or valid_stamp?)
+    # If the hub is online, then by definition it is a valid hub,
+    # so we enable team features. If the hub is offline, then
+    # we can only enable team features if the stamp is valid
+    # (which means the server signed with a private key and we
+    # validate it against the public key).
+    teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (hub.offline == nil or stamp_verified?)
 
-    notebook = %{notebook | teams_enabled: teams_enabled}
-    verified_hub_id = if(valid_stamp?, do: hub.id)
-
-    {notebook, verified_hub_id, messages}
+    {%{notebook | teams_enabled: teams_enabled}, stamp_verified?, messages}
   end
 
-  defp safe_binary_slice(binary, start, size)
-       when byte_size(binary) < start + size,
+  defp safe_binary_split(binary, offset)
+       when byte_size(binary) < offset,
        do: :error
 
-  defp safe_binary_slice(binary, start, size) do
-    {:ok, binary_slice(binary, start, size)}
+  defp safe_binary_split(binary, offset) do
+    size = byte_size(binary)
+    {:ok, binary_slice(binary, 0, offset), binary_slice(binary, offset, size - offset)}
+  end
+
+  defp only_stamp_data(source) do
+    {_, ast, _} = source |> String.trim() |> MarkdownHelpers.markdown_to_block_ast()
+    {ast, _} = rewrite_ast(ast)
+
+    case group_elements(ast) do
+      [{:stamp, data}] -> {:ok, data}
+      _ -> :error
+    end
   end
 
   defp apply_stamp_metadata(notebook, metadata) do
@@ -647,6 +682,9 @@ defmodule Livebook.LiveMarkdown.Import do
 
       {:quarantine_file_entry_names, quarantine_file_entry_names}, notebook ->
         %{notebook | quarantine_file_entry_names: MapSet.new(quarantine_file_entry_names)}
+
+      {:app_settings_password, password}, notebook ->
+        put_in(notebook.app_settings.password, password)
 
       _entry, notebook ->
         notebook

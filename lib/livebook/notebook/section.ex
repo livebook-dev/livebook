@@ -1,14 +1,12 @@
 defmodule Livebook.Notebook.Section do
-  @moduledoc false
-
   # Data structure representing a single section in a notebook.
   #
-  # Each section contains a number of cells and serves as a way
-  # of grouping related cells.
+  # Section can contains a number of cells and serves as a way of
+  # grouping related cells.
   #
-  # A section may optionally have a parent, in which case it's
-  # a branching section. Such section logically follows its
-  # parent section and has no impact on any further sections.
+  # A section may optionally have a parent, in which case it is a
+  # **branching section**. Such section logically follows its parent
+  # section and has no impact on any further sections.
 
   defstruct [:id, :name, :cells, :parent_id]
 

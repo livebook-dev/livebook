@@ -6,13 +6,18 @@ defmodule LivebookWeb.OpenLiveTest do
   alias Livebook.{Sessions, Session, FileSystem}
 
   describe "file selection" do
+    test "does not mention autosaving if disabled", %{conn: conn} do
+      refute conn |> get(~p"/open/storage") |> html_response(200) =~
+               "Looking for unsaved notebooks?"
+    end
+
     test "updates the list of files as the input changes", %{conn: conn} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       path = Path.expand("../../../lib", __DIR__) <> "/"
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       # Render the view separately to make sure it received the :set_file event
@@ -20,12 +25,12 @@ defmodule LivebookWeb.OpenLiveTest do
     end
 
     test "allows importing when a notebook file is selected", %{conn: conn} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       path = test_notebook_path("basic")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: Path.dirname(path) <> "/"})
 
       view
@@ -45,10 +50,10 @@ defmodule LivebookWeb.OpenLiveTest do
 
     @tag :tmp_dir
     test "disables import when a directory is selected", %{conn: conn, tmp_dir: tmp_dir} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: tmp_dir <> "/"})
 
       assert view
@@ -57,12 +62,12 @@ defmodule LivebookWeb.OpenLiveTest do
     end
 
     test "disables import when a nonexistent file is selected", %{conn: conn} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       path = File.cwd!() |> Path.join("nonexistent.livemd")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       assert view
@@ -73,14 +78,14 @@ defmodule LivebookWeb.OpenLiveTest do
     @tag :tmp_dir
     test "disables open when a write-protected notebook is selected",
          %{conn: conn, tmp_dir: tmp_dir} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       path = Path.join(tmp_dir, "write_protected.livemd")
       File.touch!(path)
       File.chmod!(path, 0o444)
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: tmp_dir <> "/"})
 
       view
@@ -284,7 +289,7 @@ defmodule LivebookWeb.OpenLiveTest do
 
       assert {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/open?path=#{directory_path}")
 
-      assert to == ~p"/open/file?path=#{directory_path}"
+      assert to == ~p"/open/storage?path=#{directory_path}"
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ directory_path

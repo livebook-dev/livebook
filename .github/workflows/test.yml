@@ -10,9 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MIX_ENV: test
+      ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD"
     steps:
       - name: Checkout git repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Read ./versions
         run: |
           . versions
@@ -25,7 +26,7 @@ jobs:
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
       - name: Cache Mix
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             deps
@@ -42,11 +43,11 @@ jobs:
       - name: Run tests
         run: mix test
       - name: Install Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "18.x"
+          node-version: "20.x"
       - name: Cache npm dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -58,16 +59,18 @@ jobs:
         run: npm run format-check --prefix assets
       - name: Run assets tests
         run: npm test --prefix assets
+
   windows:
     runs-on: windows-latest
     if: github.event_name == 'push'
     env:
       MIX_ENV: test
+      ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD"
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
       - name: Checkout git repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Read ./versions
         shell: bash
         run: |
@@ -89,14 +92,15 @@ jobs:
         run: |
           "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
       - name: Cache Mix
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             deps
             _build
           key: ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
+          # Reinstalling deps fails on Windows in rare cases, so we always use a new cache
+          # restore-keys: |
+          #   ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
       - name: Install mix dependencies
         run: mix deps.get
       - name: Run tests
@@ -109,7 +113,7 @@ jobs:
     if: github.event_name == 'push'
     steps:
       - name: Checkout git repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Read ./versions
         run: |
           . versions
@@ -117,17 +121,17 @@ jobs:
           echo "otp=$otp" >> $GITHUB_ENV
           echo "openssl=$openssl" >> $GITHUB_ENV
       - name: Cache Mix Deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
       - name: Cache Bootstrap OTP
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: elixirkit/otp_bootstrap/_build/otp-rel-${{ env.otp }}-openssl-${{ env.openssl }}-macos-universal
           key: ${{ runner.os }}-bootstrap-${{ env.otp }}-${{ hashFiles('elixirkit/otp_bootstrap/build.sh') }}
       - name: Cache Elixir
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: _build/elixir-${{ env.elixir }}
           key: ${{ runner.os }}-elixir-${{ env.elixir }}

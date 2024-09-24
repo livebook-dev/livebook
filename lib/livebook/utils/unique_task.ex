@@ -1,6 +1,4 @@
 defmodule Livebook.Utils.UniqueTask.Task do
-  @moduledoc false
-
   use GenServer, restart: :temporary
 
   @registry Livebook.Utils.UniqueTask.Registry
@@ -22,8 +20,6 @@ defmodule Livebook.Utils.UniqueTask.Task do
 end
 
 defmodule Livebook.Utils.UniqueTask do
-  @moduledoc false
-
   use Supervisor
 
   @registry Livebook.Utils.UniqueTask.Registry
@@ -45,15 +41,14 @@ defmodule Livebook.Utils.UniqueTask do
   end
 
   @doc """
-  Runs the given function in a separate process,
-  unless the key is already taken.
+  Runs the given function in a separate process, unless the key is
+  already taken.
 
-  If another function is already running under the
-  given key, this call only waits for it to finish
-  and then returns the same status.
+  If another function is already running under the given key, this
+  call only waits for it to finish and then returns the same status.
 
-  Returns `:ok` if function finishes successfully and
-  `:error` if it crashes.
+  Returns `:ok` if function finishes successfully and `:error` if it
+  crashes.
   """
   @spec run(term(), function()) :: :ok | :error
   def run(key, fun) do

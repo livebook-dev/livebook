@@ -35,8 +35,18 @@ defmodule LivebookWeb.IframeEndpoint do
     iframe_port = Livebook.Config.iframe_port()
 
     case livebook_port do
-      0 -> Livebook.Utils.get_port(__MODULE__.HTTP, iframe_port)
-      _ -> iframe_port
+      0 ->
+        try do
+          ThousandIsland.listener_info(__MODULE__)
+        rescue
+          _ -> iframe_port
+        else
+          {:ok, {_ip, port}} -> port
+          _ -> iframe_port
+        end
+
+      _ ->
+        iframe_port
     end
   end
 end

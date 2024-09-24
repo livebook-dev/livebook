@@ -1,7 +1,6 @@
 defmodule Livebook.TestHelpers do
-  @moduledoc false
-
   import Phoenix.LiveViewTest
+  import ExUnit.Assertions
 
   alias Livebook.Session.Data
 
@@ -20,6 +19,17 @@ defmodule Livebook.TestHelpers do
         content when is_binary(content) ->
           File.write!(child_path, content)
       end
+    end
+  end
+
+  @doc """
+  Creates the given number of subdirectories and returns their paths.
+  """
+  def create_subdirs!(path, number) do
+    for n <- 1..number//1 do
+      child_path = Path.join(path, "subdir#{n}")
+      File.mkdir_p!(child_path)
+      child_path
     end
   end
 
@@ -97,19 +107,45 @@ defmodule Livebook.TestHelpers do
   def source_for_blocking() do
     name = Livebook.Utils.random_short_id() |> String.to_atom()
 
+    Process.register(self(), name)
+
     code =
       quote do
-        # This test uses the Embedded runtime, so we can target the
-        # process by name
-        Process.register(self(), unquote(name))
-        receive do: (:stop -> :ok)
+        # We assume the test uses the Embedded runtime, so we can
+        # target the process by name
+        send(unquote(name), {:started, self()})
+        receive do: (:finish -> :ok)
       end
       |> Macro.to_string()
 
-    ack_fun = fn ->
-      send(Process.whereis(name), :pong)
+    continue_fun = fn ->
+      assert_receive {:started, pid}
+      send(pid, :finish)
     end
 
-    {code, ack_fun}
+    {code, continue_fun}
+  end
+
+  @doc """
+  Builds a terminal output map.
+  """
+  defmacro terminal_text(text, chunk \\ false) do
+    quote do
+      %{type: :terminal_text, text: unquote(text), chunk: unquote(chunk)}
+    end
+  end
+
+  def clean_message(message) do
+    message
+    |> remove_trailing_whitespace()
+    |> remove_ansi()
+  end
+
+  defp remove_trailing_whitespace(string) do
+    String.replace(string, ~r/ +$/m, "")
+  end
+
+  defp remove_ansi(string) do
+    String.replace(string, ~r/\e\[\d+m/, "")
   end
 end

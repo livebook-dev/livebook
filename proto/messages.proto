@@ -23,9 +23,163 @@ message SecretDeleted {
   string name = 1;
 }
 
+message FileSystem {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string value = 4;
+}
+
+message FileSystemCreated {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string value = 4;
+}
+
+message FileSystemUpdated {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string value = 4;
+}
+
+message FileSystemDeleted {
+  string id = 1;
+}
+
+message DeploymentGroupSecret {
+  string name = 1;
+  string value = 2;
+  string deployment_group_id = 3;
+}
+
+message DeploymentGroup {
+  string id = 1;
+  string name = 2;
+  string mode = 3;
+  repeated DeploymentGroupSecret secrets = 4;
+  string clustering = 5;
+  string zta_provider = 6;
+  string zta_key = 7;
+  repeated AgentKey agent_keys = 8;
+  string url = 9;
+}
+
+message DeploymentGroupCreated {
+  string id = 1;
+  string name = 2;
+  string mode = 3;
+  string clustering = 5;
+  string zta_provider = 6;
+  string zta_key = 7;
+  repeated AgentKey agent_keys = 8;
+  string url = 9;
+}
+
+message DeploymentGroupUpdated {
+  string id = 1;
+  string name = 2;
+  repeated DeploymentGroupSecret secrets = 3;
+  string clustering = 4;
+  string zta_provider = 5;
+  string zta_key = 6;
+  repeated AgentKey agent_keys = 7;
+  string url = 8;
+}
+
+message DeploymentGroupDeleted {
+  string id = 1;
+}
+
+message AgentKey {
+  string id = 1;
+  string key = 2;
+  string deployment_group_id = 3;
+}
+
 message UserConnected {
   string name = 1;
   repeated Secret secrets = 2;
+  repeated FileSystem file_systems = 3;
+  repeated DeploymentGroup deployment_groups = 4;
+  repeated AppDeployment app_deployments = 5;
+  repeated Agent agents = 6;
+}
+
+message AgentConnected {
+  string name = 2;
+  string public_key = 3;
+  int32 deployment_group_id = 4;
+  repeated Secret secrets = 5;
+  repeated FileSystem file_systems = 6;
+  repeated DeploymentGroup deployment_groups = 7;
+  repeated AppDeployment app_deployments = 8;
+  repeated Agent agents = 9;
+}
+
+message AppDeployment {
+  string id = 1;
+  string title = 2;
+  string sha = 3;
+  string revision_id = 4;
+  string slug = 5;
+  string deployment_group_id = 6;
+  string deployed_by = 7;
+  int64 deployed_at = 8;
+  bool multi_session = 9;
+  string access_type = 10;
+  string version = 11;
+}
+
+message AppDeploymentStarted {
+  AppDeployment app_deployment = 1;
+}
+
+message AppDeploymentStopped {
+  string id = 1;
+}
+
+message UserDeleted {
+  string id = 1;
+}
+
+message AgentJoined {
+  Agent agent = 1;
+}
+
+message AgentLeft {
+  string id = 1;
+}
+
+message Agent {
+  string id = 1;
+  string name = 2;
+  string org_id = 3;
+  string deployment_group_id = 4;
+}
+
+/**
+ * We're only using Enum in this case because
+ * the Client is the source of the information,
+ * and the Server will always be up-to-date.
+ *
+ * Otherwise, it shouldn't be used.
+ */
+enum AppDeploymentStatusType {
+  preparing = 0;
+  available = 1;
+}
+
+message AppDeploymentStatus {
+  string id = 1;
+  string deployment_group_id = 2;
+  string version = 3;
+  AppDeploymentStatusType status = 4;
+}
+
+message AppDeploymentStatusReport {
+  repeated AppDeploymentStatus app_deployment_statuses = 1;
 }
 
 message Event {
@@ -34,5 +188,17 @@ message Event {
     SecretUpdated secret_updated = 2;
     SecretDeleted secret_deleted = 3;
     UserConnected user_connected = 4;
+    FileSystemCreated file_system_created = 5;
+    FileSystemUpdated file_system_updated = 6;
+    FileSystemDeleted file_system_deleted = 7;
+    DeploymentGroupCreated deployment_group_created = 8;
+    DeploymentGroupUpdated deployment_group_updated = 9;
+    DeploymentGroupDeleted deployment_group_deleted = 10;
+    AgentConnected agent_connected = 11;
+    AppDeploymentStarted app_deployment_started = 12;
+    UserDeleted user_deleted = 13;
+    AgentJoined agent_joined = 14;
+    AgentLeft agent_left = 15;
+    AppDeploymentStopped app_deployment_stopped = 16;
   }
 }

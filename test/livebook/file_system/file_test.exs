@@ -1,6 +1,8 @@
 defmodule Livebook.FileSystem.FileTest do
   use ExUnit.Case, async: true
 
+  import Livebook.Factory
+  import Livebook.HubHelpers
   import Livebook.TestHelpers
 
   alias Livebook.FileSystem
@@ -31,9 +33,21 @@ defmodule Livebook.FileSystem.FileTest do
     end
   end
 
+  describe "equal?/2" do
+    test "returns true for matching files built in different processes" do
+      file_system = FileSystem.Local.new()
+
+      file1 = Livebook.FileSystem.File.new(file_system, p("/tmp/"))
+      file2 = Task.await(Task.async(fn -> Livebook.FileSystem.File.local(p("/tmp/")) end))
+
+      assert FileSystem.File.equal?(file1, file2)
+    end
+  end
+
   describe "local/1" do
     test "uses the globally configured local file system instance" do
-      assert FileSystem.File.local(p("/path")).file_system == Livebook.Config.local_file_system()
+      assert FileSystem.File.local(p("/path")).file_system_id ==
+               Livebook.Config.local_file_system().id
     end
   end
 
@@ -42,7 +56,7 @@ defmodule Livebook.FileSystem.FileTest do
       file_system = FileSystem.Local.new()
       file = FileSystem.File.new(file_system, p("/dir/nested/file.txt"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/other/file.txt")} =
+      assert %FileSystem.File{path: p("/other/file.txt")} =
                FileSystem.File.resolve(file, p("/other/file.txt"))
     end
 
@@ -50,7 +64,7 @@ defmodule Livebook.FileSystem.FileTest do
       file_system = FileSystem.Local.new()
       file = FileSystem.File.new(file_system, p("/dir/nested/file.txt"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/other/other_file.txt")} =
+      assert %FileSystem.File{path: p("/dir/other/other_file.txt")} =
                FileSystem.File.resolve(file, "../other/other_file.txt")
     end
 
@@ -58,7 +72,7 @@ defmodule Livebook.FileSystem.FileTest do
       file_system = FileSystem.Local.new()
       dir = FileSystem.File.new(file_system, p("/dir/nested/"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/nested/file.txt")} =
+      assert %FileSystem.File{path: p("/dir/nested/file.txt")} =
                FileSystem.File.resolve(dir, "file.txt")
     end
 
@@ -66,14 +80,11 @@ defmodule Livebook.FileSystem.FileTest do
       file_system = FileSystem.Local.new()
       file = FileSystem.File.new(file_system, p("/dir/nested/file.txt"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/other/")} =
-               FileSystem.File.resolve(file, "../other/")
+      assert %FileSystem.File{path: p("/dir/other/")} = FileSystem.File.resolve(file, "../other/")
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/nested/")} =
-               FileSystem.File.resolve(file, ".")
+      assert %FileSystem.File{path: p("/dir/nested/")} = FileSystem.File.resolve(file, ".")
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/")} =
-               FileSystem.File.resolve(file, "..")
+      assert %FileSystem.File{path: p("/dir/")} = FileSystem.File.resolve(file, "..")
     end
   end
 
@@ -271,7 +282,8 @@ defmodule Livebook.FileSystem.FileTest do
     test "supports regular files from different file systems via stream read and write",
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
-      s3_fs = FileSystem.S3.new("http://localhost:#{bypass.port}/mybucket", "key", "secret")
+      s3_fs = build_bypass_file_system(bypass)
+      persist_file_system(s3_fs)
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,
@@ -295,7 +307,8 @@ defmodule Livebook.FileSystem.FileTest do
     test "supports directories from different file systems via stream read and write",
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
-      s3_fs = FileSystem.S3.new("http://localhost:#{bypass.port}/mybucket", "key", "secret")
+      s3_fs = build_bypass_file_system(bypass)
+      persist_file_system(s3_fs)
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,
@@ -329,7 +342,7 @@ defmodule Livebook.FileSystem.FileTest do
     @tag :tmp_dir
     test "returns an error when files from different file systems are given and the destination file exists",
          %{tmp_dir: tmp_dir} do
-      s3_fs = FileSystem.S3.new("https://example.com/mybucket", "key", "secret")
+      s3_fs = build(:fs_s3, bucket_url: "https://example.com/mybucket")
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,
@@ -349,7 +362,8 @@ defmodule Livebook.FileSystem.FileTest do
     test "supports regular files from different file systems via explicit read, write, delete",
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
-      s3_fs = FileSystem.S3.new("http://localhost:#{bypass.port}/mybucket", "key", "secret")
+      s3_fs = build_bypass_file_system(bypass)
+      persist_file_system(s3_fs)
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,

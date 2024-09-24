@@ -1,21 +1,23 @@
 defmodule Livebook.FileSystem.File do
-  @moduledoc false
-
-  # A file points to a specific location in the given
-  # file system.
+  # A file points to a specific location in the given file system.
   #
-  # This module provides a number of high-level functions
-  # similar to the `File` and `Path` core module. Many
-  # functions simply delegate the work to the underlying
-  # file system.
+  # This module provides a number of high-level functions similar to
+  # the `File` and `Path` core module. Many functions simply delegate
+  # the work to the underlying file system.
 
-  defstruct [:file_system, :path]
+  defstruct [:file_system_id, :file_system_module, :path, :origin_pid]
 
   alias Livebook.FileSystem
 
   @type t :: %__MODULE__{
-          file_system: FileSystem.t(),
-          path: FileSystem.path()
+          file_system_id: String.t(),
+          file_system_module: module,
+          path: FileSystem.path(),
+          # We cannot just store the node, because when the struct is
+          # built, we may not yet be in distributed mode. Instead, we
+          # keep the pid of whatever process created this file system
+          # and we call node/1 on it whenever needed
+          origin_pid: pid()
         }
 
   @doc """
@@ -24,7 +26,7 @@ defmodule Livebook.FileSystem.File do
   If no path is given, the default file system one is used.
   """
   @spec new(FileSystem.t(), FileSystem.path() | nil) :: t()
-  def new(file_system, path \\ nil) do
+  def new(%module{} = file_system, path \\ nil) do
     default_path = FileSystem.default_path(file_system)
 
     path =
@@ -40,12 +42,17 @@ defmodule Livebook.FileSystem.File do
         default_path
       end
 
-    %__MODULE__{file_system: file_system, path: path}
+    %__MODULE__{
+      file_system_id: file_system.id,
+      file_system_module: module,
+      path: path,
+      origin_pid: self()
+    }
   end
 
   @doc """
-  Returns a new file within the `Livebook.FileSystem.Local`
-  file system.
+  Returns a new file within the `Livebook.FileSystem.Local` file
+  system.
   """
   @spec local(FileSystem.path()) :: t()
   def local(path) do
@@ -53,12 +60,33 @@ defmodule Livebook.FileSystem.File do
   end
 
   @doc """
-  Returns a term uniquely identifying the file together
-  with its file system.
+  Returns a term uniquely identifying the file together with its file
+  system.
   """
   @spec resource_identifier(t()) :: term()
   def resource_identifier(file) do
-    {FileSystem.resource_identifier(file.file_system), file.path}
+    # Note that file system id should by definition encapsulate
+    # information about the underlying resource. We also include node
+    # if the file system is node-dependent
+
+    node =
+      if FileSystem.type(struct!(file.file_system_module)) == :local do
+        node(file.origin_pid)
+      end
+
+    {file.file_system_id, node, file.path}
+  end
+
+  @doc """
+  Checks if two files are equal.
+
+  Comparing files with `Kernel.==/2` may result in false-negatives,
+  because the structs hold additional information.
+  """
+  @spec equal?(t(), t()) :: boolean()
+  def equal?(file1, file2) do
+    file1.path == file2.path and file1.file_system_id == file2.file_system_id and
+      file1.file_system_module == file2.file_system_module
   end
 
   @doc """
@@ -66,21 +94,22 @@ defmodule Livebook.FileSystem.File do
   """
   @spec local?(t()) :: term()
   def local?(file) do
-    FileSystem.type(file.file_system) == :local
+    FileSystem.type(struct!(file.file_system_module)) == :local
   end
 
   @doc """
-  Returns a new file resulting from resolving `subject`
-  against `file`.
+  Returns a new file resulting from resolving `subject` against `file`.
 
-  An absolute path may be given, in which case it
-  replaces the file path altogether.
+  An absolute path may be given, in which case it replaces the file
+  path altogether.
   """
   @spec resolve(t(), String.t()) :: t()
   def resolve(file, subject) do
     dir = if dir?(file), do: file, else: containing_dir(file)
-    path = FileSystem.resolve_path(file.file_system, dir.path, subject)
-    new(file.file_system, path)
+
+    path = FileSystem.resolve_path(struct!(file.file_system_module), dir.path, subject)
+
+    %{file | path: path}
   end
 
   @doc """
@@ -114,8 +143,8 @@ defmodule Livebook.FileSystem.File do
   @doc """
   Returns a directory that contains the given file.
 
-  If a directory is given, the parent directory is returned.
-  Root directory is mapped to itself for consistency.
+  If a directory is given, the parent directory is returned. Root
+  directory is mapped to itself for consistency.
   """
   @spec containing_dir(t()) :: t()
   def containing_dir(file) do
@@ -129,7 +158,7 @@ defmodule Livebook.FileSystem.File do
         |> FileSystem.Utils.ensure_dir_path()
       end
 
-    new(file.file_system, parent_path)
+    %{file | path: parent_path}
   end
 
   @doc """
@@ -137,16 +166,18 @@ defmodule Livebook.FileSystem.File do
 
   ## Options
 
-    * `:recursive` - whether to traverse all nested directories,
-      defaults to `false`
+    * `:recursive` - whether to traverse all nested directories.
+      Defaults to `false`
 
   """
   @spec list(t(), keyword()) :: {:ok, list(t())} | {:error, FileSystem.error()}
   def list(file, opts \\ []) do
     recursive = Keyword.get(opts, :recursive, false)
 
-    with {:ok, paths} <- FileSystem.list(file.file_system, file.path, recursive) do
-      files = for path <- paths, do: new(file.file_system, path)
+    with :ok <- maybe_ensure_local(file),
+         {:ok, file_system} <- do_fetch_file_system(file.file_system_id),
+         {:ok, paths} <- FileSystem.list(file_system, file.path, recursive) do
+      files = for path <- paths, do: new(file_system, path)
       {:ok, files}
     end
   end
@@ -156,7 +187,10 @@ defmodule Livebook.FileSystem.File do
   """
   @spec read(t()) :: {:ok, binary()} | {:error, FileSystem.error()}
   def read(file) do
-    FileSystem.read(file.file_system, file.path)
+    with :ok <- maybe_ensure_local(file),
+         {:ok, file_system} <- do_fetch_file_system(file.file_system_id) do
+      FileSystem.read(file_system, file.path)
+    end
   end
 
   @doc """
@@ -164,7 +198,10 @@ defmodule Livebook.FileSystem.File do
   """
   @spec write(t(), binary()) :: :ok | {:error, FileSystem.error()}
   def write(file, content) do
-    FileSystem.write(file.file_system, file.path, content)
+    with :ok <- maybe_ensure_local(file),
+         {:ok, file_system} <- do_fetch_file_system(file.file_system_id) do
+      FileSystem.write(file_system, file.path, content)
+    end
   end
 
   @doc """
@@ -172,7 +209,10 @@ defmodule Livebook.FileSystem.File do
   """
   @spec access(t()) :: {:ok, FileSystem.access()} | {:error, FileSystem.error()}
   def access(file) do
-    FileSystem.access(file.file_system, file.path)
+    with :ok <- maybe_ensure_local(file),
+         {:ok, file_system} <- do_fetch_file_system(file.file_system_id) do
+      FileSystem.access(file_system, file.path)
+    end
   end
 
   @doc """
@@ -180,7 +220,10 @@ defmodule Livebook.FileSystem.File do
   """
   @spec create_dir(t()) :: :ok | {:error, FileSystem.error()}
   def create_dir(file) do
-    FileSystem.create_dir(file.file_system, file.path)
+    with :ok <- maybe_ensure_local(file),
+         {:ok, file_system} <- do_fetch_file_system(file.file_system_id) do
+      FileSystem.create_dir(file_system, file.path)
+    end
   end
 
   @doc """
@@ -188,22 +231,28 @@ defmodule Livebook.FileSystem.File do
   """
   @spec remove(t()) :: :ok | {:error, FileSystem.error()}
   def remove(file) do
-    FileSystem.remove(file.file_system, file.path)
+    with :ok <- maybe_ensure_local(file),
+         {:ok, file_system} <- do_fetch_file_system(file.file_system_id) do
+      FileSystem.remove(file_system, file.path)
+    end
   end
 
   @doc """
   Copies the given file or directory contents.
 
-  Files from different file systems are supported,
-  however keep in mind that this involves reading
-  contents of individual files from one file system
-  and writing them to the other.
+  Files from different file systems are supported, however keep in
+  mind that this copies individual files chunk by chunk from one file
+  system to the other.
   """
   @spec copy(t(), t()) :: :ok | {:error, FileSystem.error()}
   def copy(source, destination)
 
-  def copy(%{file_system: file_system} = source, %{file_system: file_system} = destination) do
-    FileSystem.copy(file_system, source.path, destination.path)
+  def copy(%{file_system_id: fs_id} = source, %{file_system_id: fs_id} = destination) do
+    with :ok <- maybe_ensure_local(source),
+         :ok <- maybe_ensure_local(destination),
+         {:ok, file_system} <- do_fetch_file_system(fs_id) do
+      FileSystem.copy(file_system, source.path, destination.path)
+    end
   end
 
   def copy(source, destination) do
@@ -235,16 +284,19 @@ defmodule Livebook.FileSystem.File do
   @doc """
   Renames the given file.
 
-  Files from different file systems are supported,
-  however keep in mind that this involves reading
-  contents of individual files from one file system
-  and writing them to the other.
+  Files from different file systems are supported, however keep in
+  mind that this copies individual files chunk by chunk from one file
+  system to the other.
   """
   @spec rename(t(), t()) :: :ok | {:error, FileSystem.error()}
   def rename(source, destination)
 
-  def rename(%{file_system: file_system} = source, %{file_system: file_system} = destination) do
-    FileSystem.rename(file_system, source.path, destination.path)
+  def rename(%{file_system_id: fs_id} = source, %{file_system_id: fs_id} = destination) do
+    with :ok <- maybe_ensure_local(source),
+         :ok <- maybe_ensure_local(destination),
+         {:ok, file_system} <- do_fetch_file_system(fs_id) do
+      FileSystem.rename(file_system, source.path, destination.path)
+    end
   end
 
   def rename(source, destination) do
@@ -266,7 +318,10 @@ defmodule Livebook.FileSystem.File do
   """
   @spec etag_for(t()) :: {:ok, String.t()} | {:error, FileSystem.error()}
   def etag_for(file) do
-    FileSystem.etag_for(file.file_system, file.path)
+    with :ok <- maybe_ensure_local(file),
+         {:ok, file_system} <- do_fetch_file_system(file.file_system_id) do
+      FileSystem.etag_for(file_system, file.path)
+    end
   end
 
   @doc """
@@ -274,7 +329,10 @@ defmodule Livebook.FileSystem.File do
   """
   @spec exists?(t()) :: {:ok, boolean()} | {:error, FileSystem.error()}
   def exists?(file) do
-    FileSystem.exists?(file.file_system, file.path)
+    with :ok <- maybe_ensure_local(file),
+         {:ok, file_system} <- do_fetch_file_system(file.file_system_id) do
+      FileSystem.exists?(file_system, file.path)
+    end
   end
 
   @doc """
@@ -298,13 +356,82 @@ defmodule Livebook.FileSystem.File do
   @spec read_stream_into(t(), Collectable.t()) ::
           {:ok, Collectable.t()} | {:error, FileSystem.error()}
   def read_stream_into(file, collectable) do
-    FileSystem.read_stream_into(file.file_system, file.path, collectable)
+    with :ok <- maybe_ensure_local(file),
+         {:ok, file_system} <- do_fetch_file_system(file.file_system_id) do
+      FileSystem.read_stream_into(file_system, file.path, collectable)
+    end
+  end
+
+  @doc """
+  Checks if the given files use the same file system.
+
+  For local file systems also checks if both files actually point to
+  the same node.
+  """
+  @spec same_file_system?(t(), t()) :: boolean()
+  def same_file_system?(file1, file2)
+
+  def same_file_system?(%{file_system_id: id} = file1, %{file_system_id: id} = file2) do
+    case {local?(file1), local?(file2)} do
+      {false, false} -> true
+      {true, true} -> node(file1.origin_pid) == node(file2.origin_pid)
+    end
+  end
+
+  def same_file_system?(_file1, _file2), do: false
+
+  @doc """
+  Looks up file system that this file uses.
+
+  The file system may not be available in certain cases, for example
+  when it has been detached.
+  """
+  @spec fetch_file_system(t()) :: {:ok, FileSystem.t()} | {:error, FileSystem.error()}
+  def fetch_file_system(file) do
+    do_fetch_file_system(file.file_system_id)
+  end
+
+  defp do_fetch_file_system(file_system_id) do
+    file_system = Livebook.Hubs.get_file_systems() |> Enum.find(&(&1.id == file_system_id))
+
+    if file_system do
+      {:ok, file_system}
+    else
+      {:error,
+       "could not find file system (id: #{file_system_id}). This means that it has" <>
+         " been either detached or cannot be accessed from the Workspace at the moment"}
+    end
+  end
+
+  @doc false
+  def maybe_ensure_local(file) do
+    if local?(file) do
+      if node(file.origin_pid) == node() do
+        :ok
+      else
+        {:error, "cannot access local file from a different host"}
+      end
+    else
+      :ok
+    end
   end
 end
 
 defimpl Collectable, for: Livebook.FileSystem.File do
-  def into(%Livebook.FileSystem.File{file_system: file_system, path: path} = file) do
-    state = file_system |> Livebook.FileSystem.write_stream_init(path, []) |> unwrap!()
+  def into(%Livebook.FileSystem.File{path: path} = file) do
+    file_system =
+      file
+      |> Livebook.FileSystem.File.fetch_file_system()
+      |> unwrap!()
+
+    file
+    |> Livebook.FileSystem.File.maybe_ensure_local()
+    |> unwrap!()
+
+    state =
+      file_system
+      |> Livebook.FileSystem.write_stream_init(path, [])
+      |> unwrap!()
 
     collector = fn
       state, {:cont, chunk} when is_binary(chunk) ->

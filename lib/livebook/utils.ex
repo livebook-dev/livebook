@@ -1,15 +1,21 @@
 defmodule Livebook.Utils do
-  @moduledoc false
-
   require Logger
 
-  @type id :: binary()
+  @type id :: String.t()
 
   @doc """
   Generates a random binary id.
   """
   @spec random_id() :: id()
   def random_id() do
+    :crypto.strong_rand_bytes(10) |> Base.encode32(case: :lower)
+  end
+
+  @doc """
+  Generates a random long binary id.
+  """
+  @spec random_long_id() :: id()
+  def random_long_id() do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
   end
 
@@ -30,12 +36,21 @@ defmodule Livebook.Utils do
   end
 
   @doc """
+  Generates a random value for Phoenix secret key base.
+  """
+  @spec random_secret_key_base() :: String.t()
+  def random_secret_key_base() do
+    Base.encode64(:crypto.strong_rand_bytes(48))
+  end
+
+  @doc """
   Generates a random binary id that includes node information.
 
   ## Format
 
   The id is formed from the following binary parts:
 
+    * 3B - random boot id
     * 16B - hashed node name
     * 9B - random bytes
 
@@ -43,10 +58,11 @@ defmodule Livebook.Utils do
   """
   @spec random_node_aware_id() :: id()
   def random_node_aware_id() do
+    boot_id = Livebook.Config.random_boot_id()
     node_part = node_hash(node())
-    random_part = :crypto.strong_rand_bytes(9)
-    binary = <<node_part::binary, random_part::binary>>
-    # 16B + 9B = 25B is suitable for base32 encoding without padding
+    random_part = :crypto.strong_rand_bytes(11)
+    binary = <<boot_id::binary, node_part::binary, random_part::binary>>
+    # 3B + 16B + 11B = 30B is suitable for base32 encoding without padding
     Base.encode32(binary, case: :lower)
   end
 
@@ -61,16 +77,51 @@ defmodule Livebook.Utils do
 
   The node in question must be connected, otherwise it won't be found.
   """
-  @spec node_from_node_aware_id(id()) :: {:ok, node()} | :error
+  @spec node_from_node_aware_id(id()) :: {:ok, node(), boot_id :: binary()} | :error
   def node_from_node_aware_id(id) do
-    binary = Base.decode32!(id, case: :lower)
-    <<node_part::binary-size(16), _random_part::binary-size(9)>> = binary
+    case Base.decode32(id, case: :lower) do
+      {:ok,
+       <<boot_id::binary-size(3), node_part::binary-size(16), _random_part::binary-size(11)>>} ->
+        with {:ok, node} <- fetch_node_by_hash(node_part) do
+          {:ok, node, boot_id}
+        end
 
+      _ ->
+        :error
+    end
+  end
+
+  defp fetch_node_by_hash(node_hash) do
     known_nodes = [node() | Node.list()]
 
     Enum.find_value(known_nodes, :error, fn node ->
-      node_hash(node) == node_part && {:ok, node}
+      node_hash(node) == node_hash && {:ok, node}
     end)
+  end
+
+  @doc """
+  Returns a determinsitic short id corresponding to the current node.
+  """
+  @spec node_id() :: String.t()
+  def node_id() do
+    node_hash = node_hash(node())
+    Base.encode32(node_hash, case: :lower, padding: false)
+  end
+
+  @doc """
+  Extracts node name from the given node id, generated with `node_id/0`.
+
+  The node in question must be connected, otherwise it won't be found.
+  """
+  @spec node_from_id(id()) :: {:ok, node()} | :error
+  def node_from_id(id) do
+    case Base.decode32(id, case: :lower, padding: false) do
+      {:ok, <<node_hash::binary-size(16)>>} ->
+        fetch_node_by_hash(node_hash)
+
+      _ ->
+        :error
+    end
   end
 
   @doc """
@@ -80,6 +131,18 @@ defmodule Livebook.Utils do
   def node_host do
     [_, host] = node() |> Atom.to_string() |> :binary.split("@")
     host
+  end
+
+  @doc """
+  Returns the protocol for Erlang distribution used by the current node.
+  """
+  @spec proto_dist() :: :inet_tcp | :inet6_tcp | :inet_tls
+  def proto_dist() do
+    case :init.get_argument(:proto_dist) do
+      {:ok, [[~c"inet6_tcp"]]} -> :inet6_tcp
+      {:ok, [[~c"inet_tls"]]} -> :inet_tls
+      _ -> :inet_tcp
+    end
   end
 
   @doc """
@@ -144,6 +207,11 @@ defmodule Livebook.Utils do
   @doc """
   Validates if the given URL is syntactically valid.
 
+  ## Options
+
+    * `:allow_file_scheme` - also accepts `file://` URLs. Defaults to
+      `flase`
+
   ## Examples
 
       iex> Livebook.Utils.valid_url?("not_a_url")
@@ -158,25 +226,71 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.valid_url?("http://")
       false
 
+      iex> Livebook.Utils.valid_url?("file:///tmp/test")
+      false
+
+      iex> Livebook.Utils.valid_url?("file:///tmp/test", allow_file_scheme: true)
+      true
+
   """
-  @spec valid_url?(String.t()) :: boolean()
-  def valid_url?(url) do
-    uri = URI.parse(url)
-    uri.scheme != nil and uri.host not in [nil, ""]
+  @spec valid_url?(String.t(), keyword()) :: boolean()
+  def valid_url?(url, opts \\ []) do
+    opts = Keyword.validate!(opts, allow_file_scheme: false)
+    allow_file_scheme = opts[:allow_file_scheme]
+
+    case URI.new(url) do
+      {:ok, uri} when uri.scheme in ["http", "https"] ->
+        uri.host not in [nil, ""]
+
+      {:ok, uri} when allow_file_scheme and uri.scheme == "file" ->
+        String.starts_with?(url, "file://") and uri.path not in [nil, ""]
+
+      _ ->
+        false
+    end
   end
 
   @doc """
   Validates a change is a valid URL.
+
+  See `valid_url?/2` for valid options.
   """
-  @spec validate_url(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
-  def validate_url(changeset, field) do
+  @spec validate_url(Ecto.Changeset.t(), atom(), keyword()) :: Ecto.Changeset.t()
+  def validate_url(changeset, field, opts \\ []) do
     Ecto.Changeset.validate_change(changeset, field, fn ^field, url ->
-      if valid_url?(url) do
+      if valid_url?(url, opts) do
         []
       else
         [{field, "must be a valid URL"}]
       end
     end)
+  end
+
+  @doc """
+  Validates a change is not an S3 URL.
+  """
+  @spec validate_not_s3_url(Ecto.Changeset.t(), atom(), String.t()) :: Ecto.Changeset.t()
+  def validate_not_s3_url(changeset, field, message) do
+    Ecto.Changeset.validate_change(changeset, field, fn ^field, url ->
+      if valid_url?(url) and String.starts_with?(url, "s3://") do
+        [{field, message}]
+      else
+        []
+      end
+    end)
+  end
+
+  @doc """
+  Adds all the given errors to the changeset for the corresponding
+  fields.
+  """
+  @spec put_changeset_errors(Ecto.Changeset.t(), list({atom(), list(String.t())})) ::
+          Ecto.Changeset.t()
+  def put_changeset_errors(changeset, errors) do
+    for {field, errors} <- errors,
+        error <- errors,
+        reduce: changeset,
+        do: (changeset -> Ecto.Changeset.add_error(changeset, field, error))
   end
 
   @doc ~S"""
@@ -228,6 +342,8 @@ defmodule Livebook.Utils do
   @doc """
   Changes the first letter in the given string to lower case.
 
+  If the second letter is uppercase, the first letter case is kept.
+
   ## Examples
 
       iex> Livebook.Utils.downcase_first("Sippin tea")
@@ -236,6 +352,9 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.downcase_first("Short URL")
       "short URL"
 
+      iex> Livebook.Utils.downcase_first("URL invalid")
+      "URL invalid"
+
       iex> Livebook.Utils.downcase_first("")
       ""
 
@@ -243,7 +362,17 @@ defmodule Livebook.Utils do
   @spec downcase_first(String.t()) :: String.t()
   def downcase_first(string) do
     {first, rest} = String.split_at(string, 1)
-    String.downcase(first) <> rest
+
+    should_downcase? =
+      if second = String.at(rest, 0) do
+        second == String.downcase(second)
+      end
+
+    if should_downcase? do
+      String.downcase(first) <> rest
+    else
+      string
+    end
   end
 
   @doc """
@@ -269,6 +398,27 @@ defmodule Livebook.Utils do
       Livebook.FileSystem.Utils.resolve_unix_like_path(path || "/", relative_path)
     end)
     |> URI.to_string()
+  end
+
+  @doc """
+  Infers file name from the given URL.
+
+  ## Examples
+
+      iex> Livebook.Utils.url_basename("https://example.com/data.csv")
+      "data.csv"
+
+      iex> Livebook.Utils.url_basename("https://example.com")
+      ""
+
+  """
+  @spec url_basename(String.t()) :: String.t()
+  def url_basename(url) do
+    uri = URI.parse(url)
+
+    (uri.path || "/")
+    |> String.split("/")
+    |> List.last()
   end
 
   @doc ~S"""
@@ -331,6 +481,10 @@ defmodule Livebook.Utils do
     LivebookWeb.Endpoint.access_url()
   end
 
+  def expand_desktop_url("/new") do
+    to_string(%{LivebookWeb.Endpoint.access_struct_url() | path: "/new"})
+  end
+
   def expand_desktop_url("/settings") do
     to_string(%{LivebookWeb.Endpoint.access_struct_url() | path: "/settings"})
   end
@@ -387,6 +541,9 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.split_at_last_occurrence("1,2,3", ",")
       {:ok, "1,2", "3"}
 
+      iex> Livebook.Utils.split_at_last_occurrence("1<>2<>3", "<>")
+      {:ok, "1<>2", "3"}
+
       iex> Livebook.Utils.split_at_last_occurrence("123", ",")
       :error
 
@@ -399,9 +556,9 @@ defmodule Livebook.Utils do
         :error
 
       parts ->
-        {start, _} = List.last(parts)
-        size = byte_size(string)
-        {:ok, binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+        {start, length} = List.last(parts)
+        <<left::binary-size(start), _::binary-size(length), right::binary>> = string
+        {:ok, left, right}
     end
   end
 
@@ -531,10 +688,10 @@ defmodule Livebook.Utils do
       "1.2 MB"
 
       iex> Livebook.Utils.format_bytes(1_363_148_800)
-      "1.4 GB"
+      "1.3 GB"
 
       iex> Livebook.Utils.format_bytes(1_503_238_553_600)
-      "1.5 TB"
+      "1.4 TB"
 
   """
   @spec format_bytes(non_neg_integer()) :: String.t()
@@ -555,28 +712,10 @@ defmodule Livebook.Utils do
     "#{:erlang.float_to_binary(value, decimals: 1)} #{unit}"
   end
 
-  defp memory_unit(:TB), do: 1_000_000_000_000
-  defp memory_unit(:GB), do: 1_000_000_000
-  defp memory_unit(:MB), do: 1_000_000
-  defp memory_unit(:KB), do: 1_000
-
-  @doc """
-  Gets the port for an existing listener.
-
-  The listener references usually follow the pattern `plug.HTTP`
-  and `plug.HTTPS`.
-  """
-  @spec get_port(:ranch.ref(), :inet.port_number()) :: :inet.port_number()
-  def get_port(ref, default) do
-    try do
-      :ranch.get_addr(ref)
-    rescue
-      _ -> default
-    else
-      {_, port} when is_integer(port) -> port
-      _ -> default
-    end
-  end
+  defp memory_unit(:TB), do: 1024 * 1024 * 1024 * 1024
+  defp memory_unit(:GB), do: 1024 * 1024 * 1024
+  defp memory_unit(:MB), do: 1024 * 1024
+  defp memory_unit(:KB), do: 1024
 
   @doc """
   Converts the given IP address into a valid hostname.
@@ -592,14 +731,18 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.ip_to_host({0, 0, 0, 0})
       "localhost"
 
+      iex> Livebook.Utils.ip_to_host({0, 0, 0, 0, 0, 0, 0, 1})
+      "::1"
+
+      iex> Livebook.Utils.ip_to_host({0, 0, 0, 0, 0, 0, 0, 0})
+      "localhost"
+
   """
   @spec ip_to_host(:inet.ip_address()) :: String.t()
   def ip_to_host(ip)
 
+  def ip_to_host({0, 0, 0, 0, 0, 0, 0, 0}), do: "localhost"
   def ip_to_host({0, 0, 0, 0}), do: "localhost"
   def ip_to_host({127, 0, 0, 1}), do: "localhost"
-
-  def ip_to_host(ip) do
-    ip |> :inet.ntoa() |> List.to_string()
-  end
+  def ip_to_host(ip), do: ip |> :inet.ntoa() |> List.to_string()
 end

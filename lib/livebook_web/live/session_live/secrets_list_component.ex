@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col grow">
+    <div class="flex flex-col grow" data-el-secrets-list>
       <div class="flex justify-between items-center">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Secrets
@@ -15,7 +15,10 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
       </div>
       <span class="text-sm text-gray-500">Available only to this session</span>
       <div class="flex flex-col">
-        <div class="flex flex-col space-y-4 mt-6">
+        <div
+          :if={Session.Data.session_secrets(@secrets, @hub.id) != []}
+          class="flex flex-col space-y-4 mt-6"
+        >
           <.session_secret
             :for={
               secret <- @secrets |> Session.Data.session_secrets(@hub.id) |> Enum.sort_by(& &1.name)
@@ -42,9 +45,9 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
           </h3>
           <span class="text-sm text-gray-500">
             <%= if @hub_secrets == [] do %>
-              No secrets stored in this hub so far
+              No secrets stored in this workspace so far
             <% else %>
-              Toggle to share with this session
+              Toggle to allow access to a secret
             <% end %>
           </span>
         </div>
@@ -71,7 +74,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
         class="text-sm font-mono break-all flex-row cursor-pointer"
         phx-click={
           JS.toggle(to: "#session-secret-#{@secret.name}-detail", display: "flex")
-          |> toggle_class("bg-gray-100", to: "#session-secret-#{@secret.name}")
+          |> JS.toggle_class("bg-gray-100", to: "#session-secret-#{@secret.name}")
         }
       >
         <%= @secret.name %>
@@ -84,16 +87,17 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
           <span class="text-sm font-mono break-all">
             *****
           </span>
-          <button
-            id={"session-secret-#{@secret.name}-delete"}
+          <.icon_button
+            small
+            id={"session-secret-#{@secret.name}-copy"}
             type="button"
             phx-click={JS.dispatch("lb:clipcopy", detail: %{content: @secret.value})}
-            class="icon-button"
           >
             <.remix_icon icon="clipboard-line" />
-          </button>
+          </.icon_button>
         </div>
-        <button
+        <.icon_button
+          small
           id={"session-secret-#{@secret.name}-delete"}
           type="button"
           phx-click={
@@ -102,10 +106,9 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               target: @myself
             )
           }
-          class="icon-button"
         >
           <.remix_icon icon="delete-bin-line" />
-        </button>
+        </.icon_button>
       </div>
     </div>
     """
@@ -121,7 +124,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               class="text-sm font-mono w-full break-all flex-row cursor-pointer"
               phx-click={
                 JS.toggle(to: "##{@id}-detail", display: "flex")
-                |> toggle_class("bg-gray-100", to: "##{@id}")
+                |> JS.toggle_class("bg-gray-100", to: "##{@id}")
               }
             >
               <%= @secret.name %>
@@ -135,16 +138,15 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
                 '''
               }
             >
-              <button
+              <.icon_button
                 :if={Session.Data.secret_outdated?(@secret, @secrets)}
-                class="icon-button"
                 aria-label="load latest value"
                 phx-click={
                   JS.push("update_outdated", value: %{"name" => @secret.name}, target: @myself)
                 }
               >
-                <.remix_icon icon="refresh-line" class="text-xl leading-none" />
-              </button>
+                <.remix_icon icon="refresh-line" />
+              </.icon_button>
             </span>
             <.form
               :let={f}
@@ -163,23 +165,23 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               <span class="text-sm font-mono break-all">
                 *****
               </span>
-              <button
-                id={"session-secret-#{@secret.name}-delete"}
+              <.icon_button
+                small
+                id={"#{@id}-copy-button"}
                 type="button"
                 phx-click={JS.dispatch("lb:clipcopy", detail: %{content: @secret.value})}
-                class="icon-button"
               >
                 <.remix_icon icon="clipboard-line" />
-              </button>
+              </.icon_button>
             </div>
-            <.link
+            <.icon_button
+              small
               id={"#{@id}-edit-button"}
               navigate={~p"/hub/#{@secret.hub_id}/secrets/edit/#{@secret.name}"}
-              class="icon-button"
               role="button"
             >
               <.remix_icon icon="pencil-line" />
-            </.link>
+            </.icon_button>
           </div>
         </div>
       </div>
@@ -190,17 +192,19 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   defp secrets_info_icon(assigns) do
     ~H"""
     <span
-      class="icon-button p-0 cursor-pointer tooltip bottom-left"
+      class="tooltip bottom-left"
       data-tooltip={
         ~S'''
-        Secrets are a safe way to share credentials
-        and tokens with notebooks. They are often
-        shared with Smart cells and can be read as
-        environment variables using the LB_ prefix.
+        Secrets are a safe way to allow notebooks
+        to access credentials and tokens.
+        Your notebook can read them as environment
+        variables using the LB_ prefix.
         '''
       }
     >
-      <.remix_icon icon="question-line" class="text-xl leading-none" />
+      <.icon_button>
+        <.remix_icon icon="question-line" />
+      </.icon_button>
     </span>
     """
   end

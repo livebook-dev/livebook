@@ -5,13 +5,15 @@ defmodule LivebookWeb.FileSelectComponent do
   #
   #   * `:file` - the currently entered file
   #
+  #   * `:hub` - the hub to show file systems from. By default file
+  #     systems from all hubs are available
+  #
   #   * `:running_files` - the list of notebook files that are already
   #     linked to running sessions
   #
   #   * `:extnames` - a list of file extensions that should be shown
   #
-  #   * `:submit_event` - the process event sent on form submission,
-  #     use `nil` for no action
+  #   * `:on_submit` - `%JS{}` to execute on form submission
   #
   #   * `:target` - either a pid or `{component_module, id}` to send
   #     events to
@@ -25,7 +27,7 @@ defmodule LivebookWeb.FileSelectComponent do
   # To force the component to refetch the displayed files you can
   # `send_update` with `force_reload: true` to the component.
 
-  import LivebookWeb.FileSystemHelpers
+  import LivebookWeb.FileSystemComponents
 
   alias Livebook.FileSystem
 
@@ -38,20 +40,25 @@ defmodule LivebookWeb.FileSelectComponent do
        # Component default attribute values
        inner_block: nil,
        file_system_select_disabled: false,
-       submit_event: nil,
+       on_submit: nil,
        # State
        current_dir: nil,
        deleting_file: nil,
        renaming_file: nil,
        renamed_name: nil,
        error_message: nil,
-       file_systems: Livebook.Settings.file_systems()
+       configure_path: nil,
+       file_systems: []
      )
      |> allow_upload(:folder,
        accept: :any,
        auto_upload: true,
        max_entries: 1,
-       progress: &handle_progress/3
+       progress: &handle_progress/3,
+       writer: fn _name, entry, socket ->
+         file = FileSystem.File.resolve(socket.assigns.current_dir, entry.client_name)
+         {LivebookWeb.FileSystemWriter, [file: file]}
+       end
      )}
   end
 
@@ -66,35 +73,42 @@ defmodule LivebookWeb.FileSelectComponent do
       |> assign(assigns)
       |> update_file_infos(force_reload? or running_files_changed?)
 
-    {:ok, socket}
+    {file_systems, configure_hub_id} =
+      if hub = socket.assigns[:hub],
+        do: {Livebook.Hubs.get_file_systems(hub), hub.id},
+        else: {Livebook.Hubs.get_file_systems(), Livebook.Hubs.Personal.id()}
+
+    configure_path = ~p"/hub/#{configure_hub_id}/file-systems/new"
+
+    {:ok, assign(socket, file_systems: file_systems, configure_path: configure_path)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="h-full flex flex-col">
+    <div id={@id} class="h-full flex flex-col">
       <h2 class="sr-only">File system</h2>
       <div class="flex space-x-3 items-center mb-4">
         <div class="grow flex space-x-1">
           <.file_system_menu_button
+            id={"#{@id}-file-system-menu"}
             file={@file}
             file_systems={@file_systems}
+            configure_path={@configure_path}
             file_system_select_disabled={@file_system_select_disabled}
             myself={@myself}
           />
           <form
+            id={"#{@id}-path-form"}
             class="grow"
-            phx-change="set_path"
-            phx-submit={if @submit_event, do: "submit"}
-            phx-nosubmit={!@submit_event}
-            phx-target={@myself}
+            phx-change={JS.push("set_path", target: @myself)}
+            phx-submit={@on_submit}
+            phx-nosubmit={@on_submit == nil}
           >
-            <input
-              class="input"
-              id="input-path"
+            <.text_field
+              id={"#{@id}-path-input"}
               aria-label="file path"
               phx-hook="FocusOnUpdate"
-              type="text"
               name="path"
               placeholder="File"
               value={@file.path}
@@ -103,20 +117,27 @@ defmodule LivebookWeb.FileSelectComponent do
             />
           </form>
         </div>
-        <.menu id="new-item-menu" disabled={@file_system_select_disabled} position={:bottom_right}>
+        <.menu
+          id={"#{@id}-new-item-menu"}
+          disabled={@file_system_select_disabled}
+          position={:bottom_right}
+        >
           <:toggle>
-            <button class="icon-button" tabindex="-1" aria-label="add">
-              <.remix_icon icon="add-line" class="text-xl" />
-            </button>
+            <.icon_button tabindex="-1" aria-label="add">
+              <.remix_icon icon="add-line" />
+            </.icon_button>
           </:toggle>
           <.menu_item>
-            <button role="menuitem" phx-click={js_show_new_item_section("dir")}>
+            <button role="menuitem" phx-click={js_show_new_item_section("#{@id}-new-dir-section")}>
               <.remix_icon icon="folder-add-line" />
               <span>New directory</span>
             </button>
           </.menu_item>
           <.menu_item>
-            <button role="menuitem" phx-click={js_show_new_item_section("notebook")}>
+            <button
+              role="menuitem"
+              phx-click={js_show_new_item_section("#{@id}-new-notebook-section")}
+            >
               <.remix_icon icon="file-add-line" />
               <span>New notebook</span>
             </button>
@@ -124,7 +145,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <.menu_item>
             <button role="menuitem" phx-click="set_default_directory" phx-target={@myself}>
               <.remix_icon icon="home-6-line" />
-              <span>Use as default directory</span>
+              <span>Set as default directory</span>
             </button>
           </.menu_item>
         </.menu>
@@ -165,14 +186,24 @@ defmodule LivebookWeb.FileSelectComponent do
         </div>
       </div>
 
-      <.new_item_section type="dir" icon="folder-add-fill" myself={@myself} />
-      <.new_item_section type="notebook" icon="file-add-line" myself={@myself} />
+      <.new_item_section
+        id={"#{@id}-new-dir-section"}
+        type="dir"
+        icon="folder-add-fill"
+        myself={@myself}
+      />
+      <.new_item_section
+        id={"#{@id}-new-notebook-section"}
+        type="notebook"
+        icon="file-add-line"
+        myself={@myself}
+      />
 
       <div
         class="grow -m-1 p-1 h-full rounded-lg overflow-y-auto tiny-scrollbar"
         tabindex="-1"
         phx-hook="Dropzone"
-        id="file-select-upload-dropzone"
+        id={"#{@id}-file-select-upload-dropzone"}
       >
         <form phx-change="file_validate" phx-drop-target={@uploads.folder.ref} phx-target={@myself}>
           <.live_file_input
@@ -182,40 +213,46 @@ defmodule LivebookWeb.FileSelectComponent do
           />
 
           <div
-            :if={any_highlighted?(@file_infos)}
+            :if={@uploads.folder.entries != []}
+            class="border-b border-dashed border-grey-200 mb-2 pb-2"
+          >
+            <div :for={file <- @uploads.folder.entries} class="p-2 flex gap-2 items-center">
+              <.spinner />
+              <span class="font-medium text-gray-500"><%= file.client_name %></span>
+              <div class="grow" />
+              <.icon_button type="button" phx-click="clear-file" phx-target={@myself} tabindex="-1">
+                <.remix_icon icon="close-line" />
+              </.icon_button>
+            </div>
+          </div>
+
+          <div
+            :if={@highlighted_file_infos != []}
             class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
           >
-            <%= for file_info <- @file_infos, file_info.highlighted != "" do %>
+            <%= for file_info <- Enum.take(@highlighted_file_infos, visible_files_limit()) do %>
               <.file
+                id={"#{@id}-file-#{file_info.id}"}
                 file_info={file_info}
                 myself={@myself}
                 renaming_file={@renaming_file}
                 renamed_name={@renamed_name}
               />
             <% end %>
+            <.more_files_indicator length={length(@highlighted_file_infos)} />
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            <%= for file_info <- @file_infos, file_info.highlighted == "" do %>
+            <%= for file_info <- Enum.take(@unhighlighted_file_infos, visible_files_limit()) do %>
               <.file
+                id={"#{@id}-file-#{file_info.id}"}
                 file_info={file_info}
                 myself={@myself}
                 renaming_file={@renaming_file}
                 renamed_name={@renamed_name}
               />
             <% end %>
-            <div :for={file <- @uploads.folder.entries} class="flex items-center justify-between">
-              <span class="font-medium text-gray-400"><%= file.client_name %></span>
-              <button
-                type="button"
-                class="icon-button"
-                phx-click="clear-file"
-                phx-target={@myself}
-                tabindex="-1"
-              >
-                <.remix_icon icon="close-line" class="text-xl text-gray-300 hover:text-gray-500" />
-              </button>
-            </div>
+            <.more_files_indicator length={length(@unhighlighted_file_infos)} />
           </div>
         </form>
       </div>
@@ -227,25 +264,24 @@ defmodule LivebookWeb.FileSelectComponent do
     ~H"""
     <div
       class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
-      id={"new-#{@type}-section"}
+      id={@id}
     >
       <form
         class="flex space-x-2 items-center p-2 rounded-lg"
-        phx-submit={JS.push("create_#{@type}", target: @myself) |> js_hide_new_item_section(@type)}
+        phx-submit={JS.push("create_#{@type}", target: @myself) |> js_hide_new_item_section(@id)}
       >
         <span class="block">
           <.remix_icon icon={@icon} class="text-xl align-middle text-gray-400" />
         </span>
         <span class="flex font-medium text-gray-500">
-          <div phx-window-keydown={js_hide_new_item_section(@type)} phx-key="escape">
+          <div phx-window-keydown={js_hide_new_item_section(@id)} phx-key="escape">
             <input
-              id={"new-#{@type}-input"}
               type="text"
               name="name"
               aria-label="new directory"
               spellcheck="false"
               autocomplete="off"
-              phx-blur={js_hide_new_item_section(@type)}
+              phx-blur={js_hide_new_item_section(@id)}
             />
           </div>
         </span>
@@ -254,27 +290,27 @@ defmodule LivebookWeb.FileSelectComponent do
     """
   end
 
-  defp any_highlighted?(file_infos) do
-    Enum.any?(file_infos, &(&1.highlighted != ""))
-  end
-
   defp file_system_menu_button(assigns) do
     ~H"""
-    <.menu id="file-system-menu" disabled={@file_system_select_disabled} position={:bottom_left}>
+    <.menu id={@id} disabled={@file_system_select_disabled} position={:bottom_left}>
       <:toggle>
-        <button
+        <.button
+          color="gray"
           type="button"
-          class="button-base button-gray button-square-icon"
-          aria-label="switch file system"
+          class="pl-3 pr-2"
+          aria-label="switch file storage"
           disabled={@file_system_select_disabled}
         >
-          <.file_system_icon file_system={@file.file_system} />
-        </button>
+          <span><%= file_system_name(@file.file_system_module) %></span>
+          <div class="pl-0.5 flex items-center">
+            <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
+          </div>
+        </.button>
       </:toggle>
       <%= for file_system <- @file_systems do %>
-        <%= if file_system == @file.file_system do %>
+        <%= if file_system.id == @file.file_system_id do %>
           <.menu_item variant={:selected}>
-            <button role="menuitem">
+            <button id={"#{@id}-file-system-#{file_system.id}"} role="menuitem">
               <.file_system_icon file_system={file_system} />
               <span><%= file_system_label(file_system) %></span>
             </button>
@@ -282,6 +318,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <% else %>
           <.menu_item>
             <button
+              id={"#{@id}-file-system-#{file_system.id}"}
               role="menuitem"
               phx-target={@myself}
               phx-click="set_file_system"
@@ -294,7 +331,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <% end %>
       <% end %>
       <.menu_item>
-        <.link navigate={~p"/settings"} class="border-t border-gray-200" role="menuitem">
+        <.link navigate={@configure_path} class="border-t border-gray-200" role="menuitem">
           <.remix_icon icon="settings-3-line" />
           <span>Configure</span>
         </.link>
@@ -340,11 +377,11 @@ defmodule LivebookWeb.FileSelectComponent do
     assigns = assign(assigns, :icon, icon)
 
     ~H"""
-    <.menu id={"file-#{Base.encode16(@file_info.file.path)}"} secondary_click>
+    <.menu id={@id} secondary_click>
       <:toggle>
         <button
           type="button"
-          class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
+          class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400 focus-visible:outline-none"
           data-toggle
           aria-label={"#{if @file_info.name == "..", do: "parent directory", else: @file_info.name}"}
           phx-click="set_path"
@@ -408,32 +445,34 @@ defmodule LivebookWeb.FileSelectComponent do
     """
   end
 
-  defp js_show_new_item_section(js \\ %JS{}, type) do
-    js
-    |> JS.show(to: "#new-#{type}-section")
-    |> JS.dispatch("lb:set_value", to: "#new-#{type}-input", detail: %{value: ""})
-    |> JS.dispatch("lb:focus", to: "#new-#{type}-input")
+  defp more_files_indicator(assigns) do
+    ~H"""
+    <div
+      :if={@length > visible_files_limit()}
+      class="col-span-full text-sm text-medium text-gray-500 flex flex-col items-center gap-1"
+    >
+      <.remix_icon icon="more-line" class="text-lg" />
+      <%= @length - visible_files_limit() %> more files (search to see)
+    </div>
+    """
   end
 
-  defp js_hide_new_item_section(js \\ %JS{}, type) do
+  defp visible_files_limit(), do: 200
+
+  defp js_show_new_item_section(js \\ %JS{}, id) do
     js
-    |> JS.hide(to: "#new-#{type}-section")
+    |> JS.show(to: "##{id}")
+    |> JS.dispatch("lb:set_value", to: "##{id} input", detail: %{value: ""})
+    |> JS.dispatch("lb:focus", to: "##{id} input")
+  end
+
+  defp js_hide_new_item_section(js \\ %JS{}, id) do
+    js
+    |> JS.hide(to: "##{id}")
   end
 
   defp handle_progress(:folder, entry, socket) when entry.done? do
-    consume_uploaded_entries(socket, :folder, fn %{path: file_path}, entry ->
-      content = File.read!(file_path)
-
-      file_path =
-        FileSystem.File.resolve(
-          socket.assigns.current_dir,
-          entry.client_name
-        )
-
-      FileSystem.File.write(file_path, content)
-      {:ok, :ok}
-    end)
-
+    :ok = consume_uploaded_entry(socket, entry, fn %{} -> {:ok, :ok} end)
     {:noreply, update_file_infos(socket, true)}
   end
 
@@ -451,14 +490,17 @@ defmodule LivebookWeb.FileSelectComponent do
 
     file = FileSystem.File.new(file_system)
 
-    send_event(socket, {:set_file, file, %{exists: true}})
+    send_event(socket.assigns.target, {:set_file, file, %{exists: true}})
 
     {:noreply, socket}
   end
 
   def handle_event("set_path", %{"path" => path}, socket) do
+    file_system =
+      Enum.find(socket.assigns.file_systems, &(&1.id == socket.assigns.file.file_system_id))
+
     file =
-      socket.assigns.file.file_system
+      file_system
       |> FileSystem.File.new()
       |> FileSystem.File.resolve(path)
 
@@ -470,15 +512,7 @@ defmodule LivebookWeb.FileSelectComponent do
         _info -> %{exists: true}
       end
 
-    send_event(socket, {:set_file, file, info})
-
-    {:noreply, socket}
-  end
-
-  def handle_event("submit", %{}, socket) do
-    if submit_event = socket.assigns.submit_event do
-      send_event(socket, submit_event)
-    end
+    send_event(socket.assigns.target, {:set_file, file, info})
 
     {:noreply, socket}
   end
@@ -589,7 +623,16 @@ defmodule LivebookWeb.FileSelectComponent do
         {current_file_infos, socket}
       end
 
-    assign(socket, :file_infos, annotate_matching(file_infos, prefix))
+    file_infos = annotate_matching(file_infos, prefix)
+
+    {unhighlighted_file_infos, highlighted_file_infos} =
+      Enum.split_with(file_infos, &(&1.highlighted == ""))
+
+    assign(socket,
+      file_infos: file_infos,
+      unhighlighted_file_infos: unhighlighted_file_infos,
+      highlighted_file_infos: highlighted_file_infos
+    )
   end
 
   defp annotate_matching(file_infos, prefix) do
@@ -640,14 +683,19 @@ defmodule LivebookWeb.FileSelectComponent do
 
   defp file_info(file, name, running_files, opts \\ []) do
     %{
+      id: Base.url_encode64(file.path, padding: false),
       name: name,
       highlighted: "",
       unhighlighted: name,
       file: file,
       is_dir: FileSystem.File.dir?(file),
-      is_running: file in running_files,
+      is_running: running?(file, running_files),
       editable: Keyword.get(opts, :editable, true)
     }
+  end
+
+  defp running?(file, running_files) do
+    Enum.any?(running_files, &FileSystem.File.equal?(&1, file))
   end
 
   defp hidden?(filename) do
@@ -710,15 +758,5 @@ defmodule LivebookWeb.FileSelectComponent do
     new_name = if FileSystem.File.dir?(file), do: name <> "/", else: name
     new_file = FileSystem.File.resolve(parent_dir, new_name)
     FileSystem.File.rename(file, new_file)
-  end
-
-  defp send_event(socket, event) do
-    case socket.assigns.target do
-      {module, id} ->
-        send_update(module, id: id, event: event)
-
-      pid when is_pid(pid) ->
-        send(pid, event)
-    end
   end
 end

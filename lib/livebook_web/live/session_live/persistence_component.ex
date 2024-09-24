@@ -6,23 +6,23 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def mount(socket) do
     sessions = Sessions.list_sessions()
-    running_files = Enum.map(sessions, & &1.file)
+    running_files = for session <- sessions, session.file, do: session.file
     {:ok, assign(socket, running_files: running_files)}
   end
 
   @impl true
   def update(%{event: {:set_file, file, _info}}, socket) do
-    current_file_system = socket.assigns.draft_file.file_system
+    current_file = socket.assigns.draft_file
 
     autosave_interval_s =
-      case file.file_system do
-        ^current_file_system ->
+      cond do
+        FileSystem.File.same_file_system?(file, current_file) ->
           socket.assigns.new_attrs.autosave_interval_s
 
-        %FileSystem.Local{} ->
+        FileSystem.File.local?(file) ->
           Livebook.Notebook.default_autosave_interval_s()
 
-        _other ->
+        true ->
           nil
       end
 
@@ -30,10 +30,6 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
      socket
      |> assign(draft_file: file)
      |> put_new_attr(:autosave_interval_s, autosave_interval_s)}
-  end
-
-  def update(%{event: :confirm_file}, socket) do
-    {:ok, save(socket)}
   end
 
   def update(assigns, socket) do
@@ -56,7 +52,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
           case assigns.session.origin do
             # If it's a forked notebook, default to the same folder
             {:file, file} -> FileSystem.File.containing_dir(file)
-            _ -> Livebook.Config.local_file_system_home()
+            _ -> Livebook.Settings.default_dir(assigns.hub)
           end
       end)
       |> assign_new(:saved_file, fn -> file end)
@@ -67,7 +63,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 flex flex-col space-y-8">
+    <div class="flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         Save to file
       </h3>
@@ -77,9 +73,10 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             module={LivebookWeb.FileSelectComponent}
             id="persistence_file_select"
             file={@draft_file}
+            hub={@hub}
             extnames={[LiveMarkdown.extension()]}
             running_files={@running_files}
-            submit_event={:confirm_file}
+            on_submit={JS.push("save", target: @myself)}
             target={{__MODULE__, @id}}
           />
         </div>
@@ -118,26 +115,20 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
       </div>
       <div class="flex justify-between">
         <div class="flex space-x-3">
-          <button
-            class="button-base button-blue"
+          <.button
             phx-click="save"
             phx-target={@myself}
             disabled={not savable?(@draft_file, @saved_file, @running_files)}
           >
             Save
-          </button>
-          <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
+          </.button>
+          <.button color="gray" outlined patch={~p"/sessions/#{@session.id}"}>
             Cancel
-          </.link>
+          </.button>
         </div>
-        <button
-          :if={@saved_file}
-          class="button-base button-outlined-red"
-          phx-click="stop_saving"
-          phx-target={@myself}
-        >
+        <.button :if={@saved_file} color="red" outlined phx-click="stop_saving" phx-target={@myself}>
           Stop saving to file
-        </button>
+        </.button>
       </div>
     </div>
     """
@@ -186,10 +177,15 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
 
     Session.save_sync(assigns.session.pid)
 
-    # We can't do push_patch from update/2, so we ask the LV to do so
-    send(self(), {:push_patch, ~p"/sessions/#{assigns.session.id}"})
+    push_patch(socket, to: return_to(assigns))
+  end
 
-    socket
+  defp return_to(assigns) do
+    if context = assigns.context do
+      ~p"/sessions/#{assigns.session.id}/#{context}"
+    else
+      ~p"/sessions/#{assigns.session.id}"
+    end
   end
 
   defp parse_optional_integer(string) do
@@ -216,7 +212,9 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
 
   defp savable?(draft_file, saved_file, running_files) do
     file = normalize_file(draft_file)
-    not FileSystem.File.dir?(draft_file) and (file not in running_files or file == saved_file)
+    running? = Enum.any?(running_files, &FileSystem.File.equal?(&1, file))
+    changed? = saved_file == nil or not FileSystem.File.equal?(file, saved_file)
+    not FileSystem.File.dir?(draft_file) and (running? or changed?)
   end
 
   defp map_diff(left, right) do

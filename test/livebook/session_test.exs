@@ -1,9 +1,12 @@
 defmodule Livebook.SessionTest do
   use ExUnit.Case, async: true
 
+  import Livebook.HubHelpers
+  import Livebook.AppHelpers
+  import Livebook.SessionHelpers
   import Livebook.TestHelpers
 
-  alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem, Apps, App}
+  alias Livebook.{Session, Text, Runtime, Utils, Notebook, FileSystem, Apps, App}
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Session.Data
   alias Livebook.NotebookManager
@@ -14,6 +17,7 @@ defmodule Livebook.SessionTest do
     evaluation_time_ms: 10,
     identifiers_used: [],
     identifiers_defined: %{},
+    identifier_definitions: [],
     code_markers: []
   }
 
@@ -177,8 +181,7 @@ defmodule Livebook.SessionTest do
       assert_receive {:operation, {:delete_cell, _client_id, ^cell_id}}
 
       assert_receive {:operation,
-                      {:insert_cell, _client_id, ^section_id, 0, :code, _id,
-                       %{source: "content", outputs: []}}}
+                      {:insert_cell, _client_id, ^section_id, 0, :code, _id, %{source: "content"}}}
     end
 
     test "inserts multiple cells when the smart cell has explicit chunks" do
@@ -187,7 +190,7 @@ defmodule Livebook.SessionTest do
         | kind: "text",
           source: "chunk 1\n\nchunk 2",
           chunks: [{0, 7}, {9, 7}],
-          outputs: [{1, {:text, "Hello"}}]
+          outputs: [{1, terminal_text("Hello")}]
       }
 
       section = %{Notebook.Section.new() | cells: [smart_cell]}
@@ -205,41 +208,10 @@ defmodule Livebook.SessionTest do
       assert_receive {:operation, {:delete_cell, _client_id, ^cell_id}}
 
       assert_receive {:operation,
-                      {:insert_cell, _client_id, ^section_id, 0, :code, _id,
-                       %{source: "chunk 1", outputs: []}}}
+                      {:insert_cell, _client_id, ^section_id, 0, :code, _id, %{source: "chunk 1"}}}
 
       assert_receive {:operation,
-                      {:insert_cell, _client_id, ^section_id, 1, :code, _id,
-                       %{source: "chunk 2", outputs: [{1, {:text, "Hello"}}]}}}
-    end
-
-    test "doesn't garbage collect input values" do
-      input = %{
-        ref: :input_ref,
-        id: "input1",
-        type: :text,
-        label: "Name",
-        default: "hey",
-        destination: :noop
-      }
-
-      smart_cell = %{
-        Notebook.Cell.new(:smart)
-        | kind: "text",
-          source: "content",
-          outputs: [{1, {:input, input}}]
-      }
-
-      section = %{Notebook.Section.new() | cells: [smart_cell]}
-      notebook = %{Notebook.new() | sections: [section]}
-
-      session = start_session(notebook: notebook)
-
-      Session.subscribe(session.id)
-
-      Session.convert_smart_cell(session.pid, smart_cell.id)
-
-      assert %{input_infos: %{"input1" => %{value: "hey"}}} = Session.get_data(session.pid)
+                      {:insert_cell, _client_id, ^section_id, 1, :code, _id, %{source: "chunk 2"}}}
     end
   end
 
@@ -247,14 +219,12 @@ defmodule Livebook.SessionTest do
     test "applies source change to the setup cell to include the given dependencies" do
       session = start_session()
 
-      runtime = connected_noop_runtime()
-      Session.set_runtime(session.pid, runtime)
-
       Session.subscribe(session.id)
 
       Session.add_dependencies(session.pid, [%{dep: {:jason, "~> 1.3.0"}, config: []}])
 
-      assert_receive {:operation, {:apply_cell_delta, "__server__", "setup", :primary, _delta, 1}}
+      assert_receive {:operation,
+                      {:apply_cell_delta, "__server__", "setup", :primary, _delta, _selection, 0}}
 
       assert %{
                notebook: %{
@@ -277,9 +247,6 @@ defmodule Livebook.SessionTest do
       notebook = Notebook.new() |> Notebook.update_cell("setup", &%{&1 | source: "[,]"})
       session = start_session(notebook: notebook)
 
-      runtime = connected_noop_runtime()
-      Session.set_runtime(session.pid, runtime)
-
       Session.subscribe(session.id)
 
       Session.add_dependencies(session.pid, [%{dep: {:jason, "~> 1.3.0"}, config: []}])
@@ -298,7 +265,7 @@ defmodule Livebook.SessionTest do
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation, {:queue_cells_evaluation, _client_id, [^cell_id]}}
+      assert_receive {:operation, {:queue_cells_evaluation, _client_id, [^cell_id], []}}
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, _,
@@ -369,13 +336,15 @@ defmodule Livebook.SessionTest do
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
 
-      delta = Delta.new() |> Delta.insert("cats")
-      revision = 1
+      delta = Text.Delta.new() |> Text.Delta.insert("cats")
+      selection = Text.Selection.new([{1, 1}])
+      revision = 0
 
-      Session.apply_cell_delta(session.pid, cell_id, :primary, delta, revision)
+      Session.apply_cell_delta(session.pid, cell_id, :primary, delta, selection, revision)
 
       assert_receive {:operation,
-                      {:apply_cell_delta, _client_id, ^cell_id, :primary, ^delta, ^revision}}
+                      {:apply_cell_delta, _client_id, ^cell_id, :primary, ^delta, ^selection,
+                       ^revision}}
 
       # Sends new digest to clients
       digest = :erlang.md5("cats")
@@ -406,7 +375,7 @@ defmodule Livebook.SessionTest do
       Session.subscribe(session.id)
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
-      attrs = %{disable_formatting: true}
+      attrs = %{reevaluate_automatically: true}
 
       Session.set_cell_attributes(session.pid, cell_id, attrs)
       assert_receive {:operation, {:set_cell_attributes, _client_id, ^cell_id, ^attrs}}
@@ -419,10 +388,14 @@ defmodule Livebook.SessionTest do
 
       Session.subscribe(session.id)
 
-      runtime = connected_noop_runtime()
+      runtime = Livebook.Runtime.NoopRuntime.new()
       Session.set_runtime(session.pid, runtime)
 
+      Session.connect_runtime(session.pid)
+
       assert_receive {:operation, {:set_runtime, _client_id, ^runtime}}
+      assert_receive {:operation, {:connect_runtime, _client_id}}
+      assert_receive {:operation, {:runtime_connected, _client_id, _runtime}}
     end
   end
 
@@ -432,16 +405,13 @@ defmodule Livebook.SessionTest do
 
       Session.subscribe(session.id)
 
-      runtime = connected_noop_runtime()
-      Session.set_runtime(session.pid, runtime)
-      assert_receive {:operation, {:set_runtime, _client_id, _}}
+      set_noop_runtime(session.pid)
 
       # Calling twice can happen in a race, make sure it doesn't crash
       Session.disconnect_runtime(session.pid)
       Session.disconnect_runtime([session.pid])
 
-      assert_receive {:operation, {:set_runtime, _client_id, runtime}}
-      refute Runtime.connected?(runtime)
+      assert_receive {:operation, {:disconnect_runtime, _client_id}}
     end
   end
 
@@ -597,8 +567,9 @@ defmodule Livebook.SessionTest do
       File.write!(source_path, "content")
       {:ok, old_file_ref} = Session.register_file(session.pid, source_path, "key")
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      Session.subscribe(session.id)
+      set_noop_runtime(session.pid, self())
+      connect_and_await_runtime(session.pid)
       send(session.pid, {:runtime_file_path_request, self(), old_file_ref})
       assert_receive {:runtime_file_path_reply, {:ok, old_path}}
 
@@ -631,8 +602,9 @@ defmodule Livebook.SessionTest do
       {:ok, file_ref} =
         Session.register_file(session.pid, source_path, "key", linked_client_id: client_id)
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      Session.subscribe(session.id)
+      set_noop_runtime(session.pid, self())
+      connect_and_await_runtime(session.pid)
       send(session.pid, {:runtime_file_path_request, self(), file_ref})
       assert_receive {:runtime_file_path_reply, {:ok, path}}
 
@@ -648,16 +620,14 @@ defmodule Livebook.SessionTest do
     test "schedules file for deletion when the corresponding input is removed",
          %{tmp_dir: tmp_dir} do
       input = %{
-        ref: :input_ref,
+        type: :input,
+        ref: "ref",
         id: "input1",
-        type: :file,
-        label: "File",
-        default: nil,
         destination: :noop,
-        accept: :any
+        attrs: %{type: :file, accept: :any, default: nil, label: "File"}
       }
 
-      cell = %{Notebook.Cell.new(:code) | outputs: [{1, {:input, input}}]}
+      cell = %{Notebook.Cell.new(:code) | outputs: [{1, input}]}
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [cell]}]}
 
       session = start_session(notebook: notebook, registered_file_deletion_delay: 0)
@@ -672,8 +642,9 @@ defmodule Livebook.SessionTest do
         client_name: "data.txt"
       })
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      Session.subscribe(session.id)
+      set_noop_runtime(session.pid, self())
+      connect_and_await_runtime(session.pid)
       send(session.pid, {:runtime_file_path_request, self(), file_ref})
       assert_receive {:runtime_file_path_reply, {:ok, path}}
 
@@ -829,7 +800,7 @@ defmodule Livebook.SessionTest do
 
   # For most tests we use the lightweight embedded runtime,
   # so that they are cheap to run. Here go several integration
-  # tests that actually start a Elixir standalone runtime (default in production)
+  # tests that actually start a Standalone runtime (default in production)
   # to verify session integrates well with it properly.
 
   test "starts a standalone runtime upon first evaluation if there was none set explicitly" do
@@ -848,20 +819,19 @@ defmodule Livebook.SessionTest do
 
   test "if the runtime node goes down, notifies the subscribers" do
     session = start_session()
-    {:ok, runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
 
     Session.subscribe(session.id)
 
     # Wait for the runtime to be set
-    Session.set_runtime(session.pid, runtime)
-    assert_receive {:operation, {:set_runtime, _, ^runtime}}
+    Session.set_runtime(session.pid, Runtime.Standalone.new())
+    Session.connect_runtime(session.pid)
+    assert_receive {:operation, {:runtime_connected, _, runtime}}
 
     # Terminate the other node, the session should detect that
     Node.spawn(runtime.node, System, :halt, [])
 
-    assert_receive {:operation, {:set_runtime, _, runtime}}
-    refute Runtime.connected?(runtime)
-    assert_receive {:error, "runtime node terminated unexpectedly - no connection"}
+    assert_receive {:operation, {:runtime_down, _}}
+    assert_receive {:error, "runtime terminated unexpectedly - no connection"}
   end
 
   test "on user change sends an update operation subscribers" do
@@ -882,11 +852,17 @@ defmodule Livebook.SessionTest do
   # between runtime and session
 
   @livebook_put_input_code """
-  input = %{id: "input1", type: :number, label: "Name", default: "hey"}
+  input = %{
+    type: :input,
+    ref: "ref",
+    id: "input1",
+    destination: nil,
+    attrs: %{type: :number, default: "hey", label: "Name"}
+  }
 
   send(
     Process.group_leader(),
-    {:io_request, self(), make_ref(), {:livebook_put_output, {:input, input}}}
+    {:io_request, self(), make_ref(), {:livebook_put_output, input}}
   )
   """
 
@@ -920,7 +896,7 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
                        %{evaluation_time_ms: _time_ms}}}
 
       assert text_output =~ "hey"
@@ -944,7 +920,7 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
                        %{evaluation_time_ms: _time_ms}}}
 
       assert text_output =~ ":error"
@@ -957,8 +933,7 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
 
-      runtime = connected_noop_runtime()
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid)
 
       send(
         session.pid,
@@ -974,7 +949,7 @@ defmodule Livebook.SessionTest do
          %{source: "content!", js_view: %{}, editor: nil}}
       )
 
-      delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
+      delta = Text.Delta.new() |> Text.Delta.retain(7) |> Text.Delta.insert("!")
       cell_id = smart_cell.id
 
       assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, nil, %{}, nil}}
@@ -985,8 +960,9 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
 
-      runtime = connected_noop_runtime()
-      Session.set_runtime(session.pid, runtime)
+      Session.subscribe(session.id)
+      set_noop_runtime(session.pid)
+      connect_and_await_runtime(session.pid)
 
       send(
         session.pid,
@@ -1008,8 +984,8 @@ defmodule Livebook.SessionTest do
 
       Session.register_client(session.pid, self(), Livebook.Users.User.new())
 
-      delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
-      Session.apply_cell_delta(session.pid, smart_cell.id, :secondary, delta, 1)
+      delta = Text.Delta.new() |> Text.Delta.retain(7) |> Text.Delta.insert("!")
+      Session.apply_cell_delta(session.pid, smart_cell.id, :secondary, delta, nil, 0)
 
       assert_receive {:editor_source, "content!"}
     end
@@ -1023,8 +999,9 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
 
-      runtime = connected_noop_runtime()
-      Session.set_runtime(session.pid, runtime)
+      Session.subscribe(session.id)
+      set_noop_runtime(session.pid)
+      connect_and_await_runtime(session.pid)
 
       send(
         session.pid,
@@ -1057,13 +1034,14 @@ defmodule Livebook.SessionTest do
              } = Session.get_data(session.pid)
     end
 
-    test "pings the smart cell before evaluation to await all incoming messages" do
+    test "handles smart cell editor updates" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: ""}
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
 
-      runtime = connected_noop_runtime()
-      Session.set_runtime(session.pid, runtime)
+      Session.subscribe(session.id)
+      set_noop_runtime(session.pid)
+      connect_and_await_runtime(session.pid)
 
       send(
         session.pid,
@@ -1071,7 +1049,64 @@ defmodule Livebook.SessionTest do
          [%{kind: "text", name: "Text", requirement_presets: []}]}
       )
 
+      editor = %{language: nil, placement: :bottom, source: "", intellisense_node: nil}
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{source: "1", js_view: %{pid: self(), ref: "ref"}, editor: editor}}
+      )
+
+      # Update editor source
+      send(
+        session.pid,
+        {:runtime_smart_cell_editor_update, smart_cell.id, %{source: "new source"}}
+      )
+
+      assert %{
+               notebook: %{sections: [%{cells: [%{editor: %{source: "new source"}}]}]}
+             } = Session.get_data(session.pid)
+
+      # Update intellisense node
+      send(
+        session.pid,
+        {:runtime_smart_cell_editor_update, smart_cell.id,
+         %{intellisense_node: {:test@test, :test}}}
+      )
+
+      assert %{
+               notebook: %{
+                 sections: [%{cells: [%{editor: %{intellisense_node: {:test@test, :test}}}]}]
+               }
+             } = Session.get_data(session.pid)
+
+      # Update visibility
+      send(
+        session.pid,
+        {:runtime_smart_cell_editor_update, smart_cell.id, %{visible: false}}
+      )
+
+      assert %{
+               notebook: %{
+                 sections: [%{cells: [%{editor: %{visible: false}}]}]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "pings the smart cell before evaluation to await all incoming messages" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: ""}
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
+      session = start_session(notebook: notebook)
+
       Session.subscribe(session.id)
+      set_noop_runtime(session.pid)
+      connect_and_await_runtime(session.pid)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions,
+         [%{kind: "text", name: "Text", requirement_presets: []}]}
+      )
 
       send(
         session.pid,
@@ -1120,8 +1155,10 @@ defmodule Livebook.SessionTest do
 
       data =
         data_after_operations!(data, [
-          {:set_runtime, self(), connected_noop_runtime()},
-          {:queue_cells_evaluation, self(), ["c1"]},
+          {:set_runtime, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:connect_runtime, self()},
+          {:runtime_connected, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:queue_cells_evaluation, self(), ["c1"], []},
           {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
         ])
@@ -1149,8 +1186,10 @@ defmodule Livebook.SessionTest do
 
       data =
         data_after_operations!(data, [
-          {:set_runtime, self(), connected_noop_runtime()},
-          {:queue_cells_evaluation, self(), ["c1"]},
+          {:set_runtime, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:connect_runtime, self()},
+          {:runtime_connected, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:queue_cells_evaluation, self(), ["c1"], []},
           {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
         ])
@@ -1180,8 +1219,10 @@ defmodule Livebook.SessionTest do
 
       data =
         data_after_operations!(data, [
-          {:set_runtime, self(), connected_noop_runtime()},
-          {:queue_cells_evaluation, self(), ["c1"]},
+          {:set_runtime, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:connect_runtime, self()},
+          {:runtime_connected, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:queue_cells_evaluation, self(), ["c1"], []},
           {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
         ])
@@ -1236,14 +1277,14 @@ defmodule Livebook.SessionTest do
 
     {_section_id, cell_id} = insert_section_and_cell(session.pid)
 
-    runtime = connected_noop_runtime()
-    Session.set_runtime(session.pid, runtime)
+    set_noop_runtime(session.pid)
+    connect_and_await_runtime(session.pid)
 
     archive_path = Path.expand("../support/assets.tar.gz", __DIR__)
     hash = "test-" <> Utils.random_id()
     assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
-    js_output = {:js, %{js_view: %{assets: assets_info}}}
-    frame_output = {:frame, [js_output], %{ref: "1", type: :replace}}
+    js_output = %{type: :js, js_view: %{assets: assets_info}, export: nil}
+    frame_output = %{type: :frame, ref: "1", outputs: [js_output], placeholder: true}
 
     user = Livebook.Users.User.new()
     {_, client_id} = Session.register_client(session.pid, self(), user)
@@ -1255,6 +1296,22 @@ defmodule Livebook.SessionTest do
 
     # The assets should be available
     assert :ok = Session.fetch_assets(session.pid, hash)
+  end
+
+  test "restores transient state when restarting runtimes" do
+    session = start_session()
+
+    Session.subscribe(session.id)
+    set_noop_runtime(session.pid, self())
+    connect_and_await_runtime(session.pid)
+
+    transient_state = %{state: "anything"}
+    send(session.pid, {:runtime_transient_state, transient_state})
+
+    set_noop_runtime(session.pid, self())
+    connect_and_await_runtime(session.pid)
+
+    assert_receive {:runtime_trace, :restore_transient_state, [^transient_state]}
   end
 
   describe "deploy_app/1" do
@@ -1314,9 +1371,10 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | app_settings: app_settings}
 
       Apps.subscribe()
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
 
-      assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
+      assert_receive {:app_created, %{pid: ^app_pid}}
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
 
       ref = Process.monitor(session_pid)
 
@@ -1331,9 +1389,10 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | app_settings: app_settings}
 
       Apps.subscribe()
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
 
-      assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
+      assert_receive {:app_created, %{pid: ^app_pid}}
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
 
       client_pid = spawn_link(fn -> receive do: (:stop -> :ok) end)
 
@@ -1369,7 +1428,7 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [section], app_settings: app_settings}
 
       Apps.subscribe()
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
 
       assert_receive {:app_created, %{pid: ^app_pid} = app}
 
@@ -1377,9 +1436,6 @@ defmodule Livebook.SessionTest do
                       %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
 
       Process.exit(Process.whereis(test), :shutdown)
-
-      assert_receive {:app_updated,
-                      %{pid: ^app_pid, sessions: [%{app_status: %{execution: :error}}]}}
 
       assert_receive {:app_updated,
                       %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executing}}]}}
@@ -1399,26 +1455,26 @@ defmodule Livebook.SessionTest do
 
       # Multi-session
 
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
       session_id = App.get_session_id(app_pid, user: user)
       {:ok, session} = Livebook.Sessions.fetch_session(session_id)
 
       send(session.pid, {:runtime_app_info_request, self()})
       assert_receive {:runtime_app_info_reply, app_info}
 
-      assert app_info == %{type: :multi_session}
+      assert app_info == {:ok, %{type: :multi_session}}
 
       # Single-session
 
       notebook = put_in(notebook.app_settings.multi_session, false)
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
       session_id = App.get_session_id(app_pid, user: user)
       {:ok, session} = Livebook.Sessions.fetch_session(session_id)
 
       send(session.pid, {:runtime_app_info_request, self()})
       assert_receive {:runtime_app_info_reply, app_info}
 
-      assert app_info == %{type: :single_session}
+      assert app_info == {:ok, %{type: :single_session}}
 
       App.close(app_pid)
     end
@@ -1437,34 +1493,37 @@ defmodule Livebook.SessionTest do
 
       # Multi-session
 
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
       session_id = App.get_session_id(app_pid, user: user)
       {:ok, session} = Livebook.Sessions.fetch_session(session_id)
 
       send(session.pid, {:runtime_app_info_request, self()})
       assert_receive {:runtime_app_info_reply, app_info}
 
-      assert app_info == %{
-               type: :multi_session,
-               started_by: %{
-                 source: :session,
-                 id: "1234",
-                 name: "Jake Peralta",
-                 email: "jperalta@example.com"
-               }
-             }
+      assert app_info ==
+               {:ok,
+                %{
+                  type: :multi_session,
+                  started_by: %{
+                    source: :session,
+                    id: "1234",
+                    name: "Jake Peralta",
+                    email: "jperalta@example.com",
+                    payload: nil
+                  }
+                }}
 
       # Single-session
 
       notebook = put_in(notebook.app_settings.multi_session, false)
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
       session_id = App.get_session_id(app_pid, user: user)
       {:ok, session} = Livebook.Sessions.fetch_session(session_id)
 
       send(session.pid, {:runtime_app_info_request, self()})
       assert_receive {:runtime_app_info_reply, app_info}
 
-      assert app_info == %{type: :single_session}
+      assert app_info == {:ok, %{type: :single_session}}
 
       App.close(app_pid)
     end
@@ -1476,7 +1535,7 @@ defmodule Livebook.SessionTest do
     send(session.pid, {:runtime_app_info_request, self()})
     assert_receive {:runtime_app_info_reply, app_info}
 
-    assert app_info == %{type: :none}
+    assert app_info == {:ok, %{type: :none}}
   end
 
   describe "to_attachment_file_entry/2" do
@@ -1552,8 +1611,7 @@ defmodule Livebook.SessionTest do
     test "replies with error when file entry does not exist" do
       session = start_session()
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       assert_receive {:runtime_file_entry_path_reply,
@@ -1579,8 +1637,7 @@ defmodule Livebook.SessionTest do
 
       session = start_session(notebook: notebook)
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "document.pdf"})
 
       assert_receive {:runtime_file_entry_path_reply, {:error, :forbidden}}
@@ -1596,8 +1653,7 @@ defmodule Livebook.SessionTest do
 
       Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       assert_receive {:runtime_file_entry_path_reply, {:error, "no file exists at path " <> _}}
@@ -1615,8 +1671,7 @@ defmodule Livebook.SessionTest do
       :ok = FileSystem.File.write(image_file, "")
       Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       path = image_file.path
@@ -1636,8 +1691,7 @@ defmodule Livebook.SessionTest do
       :ok = FileSystem.File.write(image_file, "content")
       Session.add_file_entries(session.pid, [%{type: :file, name: "image.jpg", file: image_file}])
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       path = image_file.path
@@ -1650,8 +1704,9 @@ defmodule Livebook.SessionTest do
 
     test "when remote :file replies with the cached path" do
       bypass = Bypass.open()
-      bucket_url = "http://localhost:#{bypass.port}/mybucket"
-      s3_fs = FileSystem.S3.new(bucket_url, "key", "secret")
+      s3_fs = build_bypass_file_system(bypass)
+      persist_file_system(s3_fs)
+      bucket_url = s3_fs.bucket_url
 
       Bypass.expect_once(bypass, "GET", "/mybucket/image.jpg", fn conn ->
         Plug.Conn.resp(conn, 200, "content")
@@ -1662,8 +1717,7 @@ defmodule Livebook.SessionTest do
       image_file = FileSystem.File.new(s3_fs, "/image.jpg")
       Session.add_file_entries(session.pid, [%{type: :file, name: "image.jpg", file: image_file}])
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
@@ -1700,8 +1754,7 @@ defmodule Livebook.SessionTest do
 
       Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
@@ -1716,6 +1769,32 @@ defmodule Livebook.SessionTest do
       assert_receive {:runtime_file_entry_spec_reply, {:ok, %{type: :url, url: ^url}}}
     end
 
+    test "renaming file entry renames the cached file" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      set_noop_runtime(session.pid, self())
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+
+      Session.rename_file_entry(session.pid, "image.jpg", "image2.jpg")
+
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image2.jpg"})
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path2}}
+
+      refute File.exists?(path)
+      assert File.exists?(path2)
+    end
+
     test "removing file entry removes the cached file" do
       bypass = Bypass.open()
       url = "http://localhost:#{bypass.port}/image.jpg"
@@ -1728,8 +1807,7 @@ defmodule Livebook.SessionTest do
 
       Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
@@ -1740,7 +1818,7 @@ defmodule Livebook.SessionTest do
       refute File.exists?(path)
     end
 
-    test "replacing file entry removes the cached file" do
+    test "replacing file entry via add removes the cached file" do
       bypass = Bypass.open()
       url = "http://localhost:#{bypass.port}/image.jpg"
 
@@ -1752,13 +1830,40 @@ defmodule Livebook.SessionTest do
 
       Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
 
       Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+      wait_for_session_update(session.pid)
+
+      refute File.exists?(path)
+    end
+
+    test "replacing file entry via rename removes the cached file" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      %{files_dir: files_dir} = Session.get_by_pid(session.pid)
+      image_file = FileSystem.File.resolve(files_dir, "image2.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image2.jpg"}])
+
+      set_noop_runtime(session.pid, self())
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+
+      Session.rename_file_entry(session.pid, "image2.jpg", "image.jpg")
       wait_for_session_update(session.pid)
 
       refute File.exists?(path)
@@ -1776,8 +1881,7 @@ defmodule Livebook.SessionTest do
 
       Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
 
-      runtime = connected_noop_runtime(self())
-      Session.set_runtime(session.pid, runtime)
+      set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
@@ -1800,10 +1904,146 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "accessing client's user info" do
+    test "replies with error when the session does not use teams hub" do
+      session = start_session()
+
+      set_noop_runtime(session.pid, self())
+      send(session.pid, {:runtime_user_info_request, self(), "c1"})
+
+      assert_receive {:runtime_user_info_reply, {:error, :not_available}}
+    end
+
+    test "replies with error when the client does not exist" do
+      notebook = %{Notebook.new() | teams_enabled: true}
+      session = start_session(notebook: notebook)
+
+      set_noop_runtime(session.pid, self())
+      send(session.pid, {:runtime_user_info_request, self(), "c1"})
+
+      assert_receive {:runtime_user_info_reply, {:error, :not_found}}
+    end
+
+    test "replies with user info when the client exists" do
+      notebook = %{Notebook.new() | teams_enabled: true}
+      session = start_session(notebook: notebook)
+
+      user = %{
+        Livebook.Users.User.new()
+        | id: "1234",
+          name: "Jake Peralta",
+          email: "jperalta@example.com"
+      }
+
+      {_, client_id} = Session.register_client(session.pid, self(), user)
+
+      set_noop_runtime(session.pid, self())
+      send(session.pid, {:runtime_user_info_request, self(), client_id})
+
+      assert_receive {:runtime_user_info_reply, {:ok, user_info}}
+
+      assert user_info == %{
+               source: :session,
+               id: "1234",
+               name: "Jake Peralta",
+               email: "jperalta@example.com",
+               payload: nil
+             }
+    end
+  end
+
+  test "supports legacy text outputs" do
+    session = start_session()
+
+    Session.subscribe(session.id)
+
+    {_section_id, cell_id} = insert_section_and_cell(session.pid)
+
+    set_noop_runtime(session.pid)
+
+    user = Livebook.Users.User.new()
+    Session.register_client(session.pid, self(), user)
+
+    legacy_output = {:text, "Hola"}
+    expected_output = terminal_text("Hola")
+    send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+
+    legacy_output = {:markdown, "Hola"}
+    expected_output = %{type: :markdown, text: "Hola", chunk: false}
+    send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+
+    legacy_output =
+      {:input,
+       %{
+         type: :text,
+         ref: "ref",
+         id: "input1",
+         label: "Name",
+         default: "hey",
+         destination: :noop
+       }}
+
+    expected_output =
+      %{
+        type: :input,
+        ref: "ref",
+        id: "input1",
+        destination: :noop,
+        attrs: %{type: :text, default: "hey", label: "Name", debounce: :blur}
+      }
+
+    send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+  end
+
+  defmodule Global do
+    # Not async, because we alter global config (default hub)
+    use ExUnit.Case, async: false
+
+    describe "default hub for new notebooks" do
+      test "use the default hub as default for new notebooks" do
+        hub = Livebook.HubHelpers.offline_hub()
+        Livebook.Hubs.set_default_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
+
+        assert notebook.hub_id == hub.id
+
+        Livebook.Hubs.unset_default_hub()
+      end
+
+      test "fallback to personal-hub when there's no default" do
+        hub = Livebook.HubHelpers.offline_hub()
+        Livebook.Hubs.set_default_hub(hub.id)
+        Livebook.Hubs.unset_default_hub()
+        notebook = Livebook.Session.default_notebook()
+
+        assert notebook.hub_id == "personal-hub"
+      end
+
+      test "fallback to personal-hub when the default doesn't exist" do
+        hub = Livebook.Factory.insert_fake_online_hub()
+        Livebook.Hubs.set_default_hub(hub.id)
+        Livebook.Hubs.delete_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
+
+        refute Livebook.Hubs.hub_exists?(hub.id)
+        assert notebook.hub_id == "personal-hub"
+
+        Livebook.Hubs.unset_default_hub()
+      end
+    end
+  end
+
   defp start_session(opts \\ []) do
-    opts = Keyword.merge([id: Utils.random_id()], opts)
-    pid = start_supervised!({Session, opts}, id: opts[:id])
-    Session.get_by_pid(pid)
+    {:ok, session} = Livebook.Sessions.create_session(opts)
+
+    on_exit(fn ->
+      Session.close(session.pid)
+    end)
+
+    session
   end
 
   defp insert_section_and_cell(session_pid) do
@@ -1815,15 +2055,8 @@ defmodule Livebook.SessionTest do
     {section_id, cell_id}
   end
 
-  defp connected_noop_runtime(trace_to \\ nil) do
-    {:ok, runtime} = Livebook.Runtime.NoopRuntime.new(trace_to) |> Livebook.Runtime.connect()
-    runtime
-  end
-
-  defp wait_for_session_update(session_pid) do
-    # This call is synchronous, so it gives the session time
-    # for handling the previously sent change messages.
-    Session.get_data(session_pid)
-    :ok
+  defp set_noop_runtime(session_pid, trace_to \\ nil) do
+    runtime = Livebook.Runtime.NoopRuntime.new(trace_to)
+    Session.set_runtime(session_pid, runtime)
   end
 end

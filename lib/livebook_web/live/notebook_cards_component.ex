@@ -1,6 +1,8 @@
 defmodule LivebookWeb.NotebookCardsComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.FileSystem
+
   @impl true
   def render(assigns) do
     assigns = assign_new(assigns, :card_icon, fn -> nil end)
@@ -21,7 +23,8 @@ defmodule LivebookWeb.NotebookCardsComponent do
             <%= @card_icon && render_slot(@card_icon, {info, idx}) %>
           </div>
           <div class="mt-1 flex-grow text-gray-600 text-sm">
-            <%= @added_at_label %> <%= format_datetime_relatively(info.added_at) %> ago
+            <%= @added_at_label %>
+            <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(info.added_at) %> ago
           </div>
           <div class="mt-2 flex space-x-6">
             <%= if session = session_by_file(info.file, @sessions) do %>
@@ -71,10 +74,10 @@ defmodule LivebookWeb.NotebookCardsComponent do
   end
 
   defp file_running?(file, sessions) do
-    Enum.any?(sessions, &(&1.file == file))
+    Enum.any?(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
   end
 
   defp session_by_file(file, sessions) do
-    Enum.find(sessions, &(&1.file == file))
+    Enum.find(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
   end
 end

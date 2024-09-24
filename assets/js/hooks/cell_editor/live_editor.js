@@ -1,59 +1,126 @@
-import renderMathInElement from "katex/contrib/auto-render";
+import {
+  EditorView,
+  keymap,
+  highlightSpecialChars,
+  drawSelection,
+  highlightActiveLine,
+  dropCursor,
+  rectangularSelection,
+  crosshairCursor,
+  lineNumbers,
+  highlightActiveLineGutter,
+} from "@codemirror/view";
+import { EditorState, EditorSelection } from "@codemirror/state";
+import {
+  indentOnInput,
+  bracketMatching,
+  foldGutter,
+  LanguageDescription,
+  codeFolding,
+  syntaxTree,
+} from "@codemirror/language";
+import { history } from "@codemirror/commands";
+import { highlightSelectionMatches } from "@codemirror/search";
+import {
+  autocompletion,
+  closeBrackets,
+  snippetCompletion,
+} from "@codemirror/autocomplete";
+import { setDiagnostics } from "@codemirror/lint";
+import { vscodeKeymap } from "@replit/codemirror-vscode-keymap";
+import { vim } from "@replit/codemirror-vim";
+import { emacs } from "@replit/codemirror-emacs";
 
-import monaco from "./live_editor/monaco";
-import EditorClient from "./live_editor/editor_client";
-import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
-import HookServerAdapter from "./live_editor/hook_server_adapter";
-import RemoteUser from "./live_editor/remote_user";
+import { collab, deltaToChanges } from "./live_editor/codemirror/collab";
+import { collabMarkers } from "./live_editor/codemirror/collab_markers";
+import { theme, lightTheme } from "./live_editor/codemirror/theme";
+import {
+  clearDoctests,
+  updateDoctests,
+} from "./live_editor/codemirror/doctests";
+import { signature } from "./live_editor/codemirror/signature";
+import { formatter } from "./live_editor/codemirror/formatter";
 import { replacedSuffixLength } from "../../lib/text_utils";
 import { settingsStore } from "../../lib/settings";
-import Doctest from "./live_editor/doctest";
+import Delta from "../../lib/delta";
+import Markdown from "../../lib/markdown";
+import { readOnlyHint } from "./live_editor/codemirror/read_only_hint";
+import { isMacOS, wait } from "../../lib/utils";
+import Emitter from "../../lib/emitter";
+import CollabClient from "./live_editor/collab_client";
+import { languages } from "./live_editor/codemirror/languages";
+import {
+  exitMulticursor,
+  insertBlankLineAndCloseHints,
+} from "./live_editor/codemirror/commands";
+import { ancestorNode, closestNode } from "./live_editor/codemirror/tree_utils";
+import { selectingClass } from "./live_editor/codemirror/selecting_class";
+import { globalPubsub } from "../../lib/pubsub";
+import { hoverDetails } from "./live_editor/codemirror/hover_details";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
+ *
+ * The actual editor must be mounted explicitly by calling either of
+ * the `mount` or `focus` methods, but it can be done at any point.
+ * Even when not mounted, the editor consumes collaborative updates
+ * and invokes change listeners.
  */
-class LiveEditor {
+export default class LiveEditor {
+  /** @private */
+  _onMount = new Emitter();
+
+  /**
+   * Registers a callback called when the editor is mounted in DOM.
+   */
+  onMount = this._onMount.event;
+
+  /** @private */
+  _onChange = new Emitter();
+
+  /**
+   * Registers a callback called with a new cell content whenever it changes.
+   */
+  onChange = this._onChange.event;
+
+  /** @private */
+  _onBlur = new Emitter();
+
+  /**
+   * Registers a callback called whenever the editor loses focus.
+   */
+  onBlur = this._onBlur.event;
+
+  /** @private */
+  _onFocus = new Emitter();
+
+  /**
+   * Registers a callback called whenever the editor gains focus.
+   */
+  onFocus = this._onFocus.event;
+
   constructor(
-    hook,
     container,
-    cellId,
-    tag,
+    connection,
     source,
     revision,
     language,
     intellisense,
     readOnly,
-    codeMarkers,
-    doctestReports
   ) {
-    this.hook = hook;
     this.container = container;
-    this.cellId = cellId;
     this.source = source;
     this.language = language;
     this.intellisense = intellisense;
     this.readOnly = readOnly;
-    this._onMount = [];
-    this._onChange = [];
-    this._onBlur = [];
-    this._onCursorSelectionChange = [];
-    this._remoteUserByClientId = {};
-    this._doctestByLine = {};
+    this.initialWidgets = {};
 
-    this._initializeWidgets = () => {
-      this.setCodeMarkers(codeMarkers);
+    this.connection = connection;
+    this.collabClient = new CollabClient(connection, revision);
 
-      doctestReports.forEach((doctestReport) => {
-        this.updateDoctest(doctestReport);
-      });
-    };
-
-    const serverAdapter = new HookServerAdapter(hook, cellId, tag);
-    this.editorClient = new EditorClient(serverAdapter, revision);
-
-    this.editorClient.onDelta((delta) => {
+    this.deltaSubscription = this.collabClient.onDelta((delta, info) => {
       this.source = delta.applyToString(this.source);
-      this._onChange.forEach((callback) => callback(this.source));
+      this._onChange.dispatch(this.source);
     });
   }
 
@@ -61,7 +128,7 @@ class LiveEditor {
    * Checks if an editor instance has been mounted in the DOM.
    */
   isMounted() {
-    return !!this.editor;
+    return !!this.view;
   }
 
   /**
@@ -72,36 +139,11 @@ class LiveEditor {
       throw new Error("The editor is already mounted");
     }
 
-    this._mountEditor();
+    this.mountEditor();
 
-    if (this.intellisense) {
-      this._setupIntellisense();
-    }
+    this.setInitialWidgets();
 
-    this.editorClient.setEditorAdapter(new MonacoEditorAdapter(this.editor));
-
-    this.editor.onDidFocusEditorWidget(() => {
-      this.editor.updateOptions({ matchBrackets: "always" });
-    });
-
-    this.editor.onDidBlurEditorWidget(() => {
-      this.editor.updateOptions({ matchBrackets: "never" });
-      this._onBlur.forEach((callback) => callback());
-    });
-
-    this.editor.onDidChangeCursorSelection((event) => {
-      this._onCursorSelectionChange.forEach((callback) =>
-        callback(event.selection)
-      );
-    });
-
-    this._onMount.forEach((callback) => callback());
-  }
-
-  _ensureMounted() {
-    if (!this.isMounted()) {
-      this.mount();
-    }
+    this._onMount.dispatch();
   }
 
   /**
@@ -112,115 +154,77 @@ class LiveEditor {
   }
 
   /**
-   * Registers a callback called with the editor is mounted in DOM.
+   * Returns an element closest to the current main cursor position.
    */
-  onMount(callback) {
-    this._onMount.push(callback);
-  }
-
-  /**
-   * Registers a callback called with a new cell content whenever it changes.
-   */
-  onChange(callback) {
-    this._onChange.push(callback);
-  }
-
-  /**
-   * Registers a callback called with a new cursor selection whenever it changes.
-   */
-  onCursorSelectionChange(callback) {
-    this._onCursorSelectionChange.push(callback);
-  }
-
-  /**
-   * Registers a callback called whenever the editor loses focus.
-   */
-  onBlur(callback) {
-    this._onBlur.push(callback);
-  }
-
-  focus() {
-    this._ensureMounted();
-
-    this.editor.focus();
-  }
-
-  blur() {
-    this._ensureMounted();
-
-    if (this.editor.hasTextFocus()) {
-      document.activeElement.blur();
+  getElementAtCursor() {
+    if (!this.isMounted()) {
+      return this.container;
     }
+
+    const { node } = this.view.domAtPos(this.view.state.selection.main.head);
+    if (node instanceof Element) return node;
+    return node.parentElement;
   }
 
-  insert(text) {
-    this._ensureMounted();
+  /**
+   * Focuses the editor.
+   *
+   * Note that this forces the editor to be mounted, if it is not already
+   * mounted.
+   */
+  focus() {
+    if (!this.isMounted()) {
+      this.mount();
+    }
 
-    const range = this.editor.getSelection();
-    this.editor
-      .getModel()
-      .pushEditOperations([], [{ forceMoveMarkers: true, range, text }]);
+    this.view.focus();
+  }
+
+  /**
+   * Updates editor selection such that cursor points to the given line.
+   */
+  moveCursorToLine(lineNumber) {
+    const line = this.view.state.doc.line(lineNumber);
+
+    this.view.dispatch({
+      selection: EditorSelection.single(line.from),
+    });
+  }
+
+  /**
+   * Removes focus from the editor.
+   */
+  blur() {
+    if (this.isMounted() && this.view.hasFocus) {
+      this.view.contentDOM.blur();
+    }
   }
 
   /**
    * Performs necessary cleanup actions.
    */
-  dispose() {
+  destroy() {
     if (this.isMounted()) {
-      // Explicitly destroy the editor instance and its text model.
-      this.editor.dispose();
-
-      const model = this.editor.getModel();
-
-      if (model) {
-        model.dispose();
-      }
+      this.view.destroy();
     }
-  }
 
-  /**
-   * Either adds or moves remote user cursor to the new position.
-   */
-  updateUserSelection(client, selection) {
-    this._ensureMounted();
-
-    if (this._remoteUserByClientId[client.id]) {
-      this._remoteUserByClientId[client.id].update(selection);
-    } else {
-      this._remoteUserByClientId[client.id] = new RemoteUser(
-        this.editor,
-        selection,
-        client.hex_color,
-        client.name
-      );
-    }
-  }
-
-  /**
-   * Removes remote user cursor.
-   */
-  removeUserSelection(client) {
-    this._ensureMounted();
-
-    if (this._remoteUserByClientId[client.id]) {
-      this._remoteUserByClientId[client.id].dispose();
-      delete this._remoteUserByClientId[client.id];
-    }
+    this.collabClient.destroy();
+    this.deltaSubscription.destroy();
   }
 
   /**
    * Either adds or updates doctest indicators.
    */
-  updateDoctest(doctestReport) {
-    this._ensureMounted();
-
-    if (this._doctestByLine[doctestReport.line]) {
-      this._doctestByLine[doctestReport.line].update(doctestReport);
+  updateDoctests(doctestReports) {
+    if (this.isMounted()) {
+      updateDoctests(this.view, doctestReports);
     } else {
-      this._doctestByLine[doctestReport.line] = new Doctest(
-        this.editor,
-        doctestReport
-      );
+      this.initialWidgets.doctestReportsByLine =
+        this.initialWidgets.doctestReportsByLine || {};
+
+      for (const report of doctestReports) {
+        this.initialWidgets.doctestReportsByLine[report.line] = report;
+      }
     }
   }
 
@@ -228,11 +232,11 @@ class LiveEditor {
    * Removes doctest indicators.
    */
   clearDoctests() {
-    this._ensureMounted();
-
-    Object.values(this._doctestByLine).forEach((doctest) => doctest.dispose());
-
-    this._doctestByLine = {};
+    if (this.isMounted()) {
+      clearDoctests(this.view);
+    } else {
+      delete this.initialWidgets.doctestReportsByLine;
+    }
   }
 
   /**
@@ -241,469 +245,436 @@ class LiveEditor {
    * Passing an empty list clears all markers.
    */
   setCodeMarkers(codeMarkers) {
-    this._ensureMounted();
+    if (this.isMounted()) {
+      const doc = this.view.state.doc;
 
-    const owner = "livebook.code-marker";
+      const diagnostics = codeMarkers.map((marker) => {
+        const line = doc.line(marker.line);
 
-    const editorMarkers = codeMarkers.map((codeMarker) => {
-      const line = this.editor.getModel().getLineContent(codeMarker.line);
-      const [, leadingWhitespace, trailingWhitespace] =
-        line.match(/^(\s*).*?(\s*)$/);
+        const [, leadingWhitespace, trailingWhitespace] =
+          line.text.match(/^(\s*).*?(\s*)$/);
 
-      return {
-        startLineNumber: codeMarker.line,
-        startColumn: leadingWhitespace.length + 1,
-        endLineNumber: codeMarker.line,
-        endColumn: line.length + 1 - trailingWhitespace.length,
-        message: codeMarker.description,
-        severity: {
-          error: monaco.MarkerSeverity.Error,
-          warning: monaco.MarkerSeverity.Warning,
-        }[codeMarker.severity],
-      };
-    });
+        const from = line.from + leadingWhitespace.length;
+        const to = line.to - trailingWhitespace.length;
 
-    monaco.editor.setModelMarkers(this.editor.getModel(), owner, editorMarkers);
-  }
-
-  _mountEditor() {
-    const settings = settingsStore.get();
-
-    this.editor = monaco.editor.create(this.container, {
-      language: this.language,
-      value: this.source,
-      readOnly: this.readOnly,
-      scrollbar: {
-        vertical: "hidden",
-        alwaysConsumeMouseWheel: false,
-      },
-      minimap: {
-        enabled: false,
-      },
-      overviewRulerLanes: 0,
-      scrollBeyondLastLine: false,
-      guides: {
-        indentation: false,
-      },
-      occurrencesHighlight: false,
-      renderLineHighlight: "none",
-      theme: settings.editor_theme,
-      fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
-      fontSize: settings.editor_font_size,
-      tabIndex: -1,
-      tabSize: 2,
-      autoIndent: true,
-      formatOnType: true,
-      formatOnPaste: true,
-      quickSuggestions: this.intellisense && settings.editor_auto_completion,
-      tabCompletion: "on",
-      suggestSelection: "first",
-      // For Elixir word suggestions are confusing at times.
-      // For example given `defmodule<CURSOR> Foo do`, if the
-      // user opens completion list and then jumps to the end
-      // of the line we would get "defmodule" as a word completion.
-      wordBasedSuggestions: !this.intellisense,
-      parameterHints: this.intellisense && settings.editor_auto_signature,
-      wordWrap:
-        this.language === "markdown" && settings.editor_markdown_word_wrap
-          ? "on"
-          : "off",
-    });
-
-    this._setScreenDependantEditorOptions();
-
-    this.editor.addAction({
-      contextMenuGroupId: "word-wrapping",
-      id: "enable-word-wrapping",
-      label: "Enable word wrapping",
-      precondition: "config.editor.wordWrap == off",
-      keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
-      run: (editor) => editor.updateOptions({ wordWrap: "on" }),
-    });
-
-    this.editor.addAction({
-      contextMenuGroupId: "word-wrapping",
-      id: "disable-word-wrapping",
-      label: "Disable word wrapping",
-      precondition: "config.editor.wordWrap == on",
-      keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
-      run: (editor) => editor.updateOptions({ wordWrap: "off" }),
-    });
-
-    // Automatically adjust the editor size to fit the container.
-    const resizeObserver = new ResizeObserver((entries) => {
-      entries.forEach((entry) => {
-        // Ignore hidden container.
-        if (this.container.offsetHeight > 0) {
-          this._setScreenDependantEditorOptions();
-          this.editor.layout();
-        }
+        return {
+          from,
+          to,
+          severity: marker.severity,
+          message: marker.description,
+        };
       });
-    });
 
-    resizeObserver.observe(this.container);
-
-    // Whenever editor content size changes (new line is added/removed)
-    // update the container height. Thanks to the above observer
-    // the editor is resized to fill the container.
-    // Related: https://github.com/microsoft/monaco-editor/issues/794#issuecomment-688959283
-    this.editor.onDidContentSizeChange(() => {
-      const contentHeight = this.editor.getContentHeight();
-      this.container.style.height = `${contentHeight}px`;
-    });
-
-    /* Overrides */
-
-    // Move the command palette widget to overflowing widgets container,
-    // so that it's visible on small editors.
-    // See: https://github.com/microsoft/monaco-editor/issues/70
-    const commandPaletteNode = this.editor.getContribution(
-      "editor.controller.quickInput"
-    ).widget.domNode;
-    commandPaletteNode.remove();
-    this.editor._modelData.view._contentWidgets.overflowingContentWidgetsDomNode.domNode.appendChild(
-      commandPaletteNode
-    );
-
-    // Add the widgets that the editor was initialized with
-    this._initializeWidgets();
-  }
-
-  /**
-   * Sets Monaco editor options that depend on the current screen's size.
-   */
-  _setScreenDependantEditorOptions() {
-    if (window.screen.width < 768) {
-      this.editor.updateOptions({
-        folding: false,
-        lineDecorationsWidth: 16,
-        lineNumbersMinChars:
-          Math.floor(Math.log10(this.editor.getModel().getLineCount())) + 3,
-      });
+      this.view.dispatch(setDiagnostics(this.view.state, diagnostics));
     } else {
-      this.editor.updateOptions({
-        folding: true,
-        lineDecorationsWidth: 10,
-        lineNumbersMinChars: 5,
-      });
+      this.initialWidgets.codeMarkers = codeMarkers;
     }
   }
 
-  /**
-   * Defines cell-specific providers for various editor features.
-   */
-  _setupIntellisense() {
+  /** @private */
+  mountEditor() {
     const settings = settingsStore.get();
 
-    this.handlerByRef = {};
+    const formatLineNumber = (number) => number.toString().padStart(3, " ");
 
-    /**
-     * Intellisense requests such as completion or formatting are
-     * handled asynchronously by the runtime.
-     *
-     * As an example, let's go through the steps for completion:
-     *
-     *   * the user opens the completion list, which triggers the global
-     *     completion provider registered in `live_editor/monaco.js`
-     *
-     *   * the global provider delegates to the cell-specific `__getCompletionItems__`
-     *     defined below. That's a little bit hacky, but this way we make
-     *     completion cell-specific
-     *
-     *   * then `__getCompletionItems__` sends a completion request to the LV process
-     *     and gets a unique reference, under which it keeps completion callback
-     *
-     *   * finally the hook receives the "intellisense_response" event with completion
-     *     response, it looks up completion callback for the received reference and calls
-     *     it with the response, which finally returns the completion items to the editor
-     */
+    const foldGutterMarkerDOM = (open) => {
+      const node = document.createElement("i");
+      node.classList.add(
+        open ? "ri-arrow-down-s-line" : "ri-arrow-right-s-line",
+        open ? "cm-gutterFoldMarker-open" : null,
+      );
+      return node;
+    };
 
-    this.editor.getModel().__getCompletionItems__ = (model, position) => {
-      const line = model.getLineContent(position.lineNumber);
-      const lineUntilCursor = line.slice(0, position.column - 1);
+    const fontSizeTheme = EditorView.theme({
+      "&": { fontSize: `${settings.editor_font_size}px` },
+    });
 
-      return this._asyncIntellisenseRequest("completion", {
-        hint: lineUntilCursor,
+    const ligaturesTheme = EditorView.theme({
+      "&": {
+        fontVariantLigatures: `${settings.editor_ligatures ? "normal" : "none"}`,
+      },
+    });
+
+    const lineWrappingEnabled =
+      this.language === "markdown" && settings.editor_markdown_word_wrap;
+
+    const language =
+      this.language &&
+      LanguageDescription.matchLanguageName(languages, this.language, false);
+
+    const customKeymap = [
+      { key: "Escape", run: exitMulticursor },
+      { key: "Alt-Enter", run: insertBlankLineAndCloseHints },
+    ];
+
+    this.view = new EditorView({
+      parent: this.container,
+      doc: this.source,
+      extensions: [
+        lineNumbers({ formatNumber: formatLineNumber }),
+        highlightActiveLine(),
+        highlightActiveLineGutter(),
+        highlightSpecialChars(),
+        highlightSelectionMatches(),
+        foldGutter({ markerDOM: foldGutterMarkerDOM }),
+        codeFolding({ placeholderText: "⋯" }),
+        drawSelection(),
+        dropCursor(),
+        rectangularSelection(),
+        selectingClass(),
+        crosshairCursor(),
+        EditorState.allowMultipleSelections.of(true),
+        bracketMatching(),
+        closeBrackets(),
+        indentOnInput(),
+        history(),
+        EditorState.readOnly.of(this.readOnly),
+        readOnlyHint(),
+        keymap.of(customKeymap),
+        keymap.of(vscodeKeymap),
+        EditorState.tabSize.of(2),
+        EditorState.lineSeparator.of("\n"),
+        lineWrappingEnabled ? EditorView.lineWrapping : [],
+        // We bind tab to actions within the editor, which would trap
+        // the user if they tabbed into the editor, so we remove it
+        // from the tab navigation
+        EditorView.contentAttributes.of({ tabIndex: -1 }),
+        fontSizeTheme,
+        settings.editor_theme === "light" ? lightTheme : theme,
+        ligaturesTheme,
+        collab(this.collabClient),
+        collabMarkers(this.collabClient),
+        autocompletion({
+          activateOnTyping: settings.editor_auto_completion,
+          defaultKeymap: false,
+        }),
+        this.intellisense
+          ? [
+              autocompletion({ override: [this.completionSource.bind(this)] }),
+              hoverDetails(this.docsHoverTooltipSource.bind(this)),
+              signature(this.signatureSource.bind(this), {
+                activateOnTyping: settings.editor_auto_signature,
+              }),
+              formatter(this.formatterSource.bind(this)),
+            ]
+          : [],
+        settings.editor_mode === "vim" ? [vim()] : [],
+        settings.editor_mode === "emacs" ? [emacs()] : [],
+        language ? language.support : [],
+        EditorView.domEventHandlers({
+          click: this.handleEditorClick.bind(this),
+          keydown: this.handleEditorKeydown.bind(this),
+          blur: this.handleEditorBlur.bind(this),
+          focus: this.handleEditorFocus.bind(this),
+        }),
+        EditorView.clickAddsSelectionRange.of((event) => event.altKey),
+      ],
+    });
+  }
+
+  /** @private */
+  handleEditorClick(event) {
+    const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+
+    if (cmd) {
+      this.jumpToDefinition(this.view);
+    }
+
+    return false;
+  }
+
+  /** @private */
+  handleEditorKeydown(event) {
+    // We dispatch escape event, but only if it is not consumed by any
+    // registered handler in the editor, such as closing autocompletion
+    // or escaping Vim insert mode
+
+    if (event.key === "Escape") {
+      this.container.dispatchEvent(
+        new CustomEvent("lb:editor_escape", { bubbles: true }),
+      );
+    }
+
+    return false;
+  }
+
+  /** @private */
+  handleEditorBlur(event) {
+    if (!this.container.contains(event.relatedTarget)) {
+      this._onBlur.dispatch();
+    }
+
+    return false;
+  }
+
+  /** @private */
+  handleEditorFocus(event) {
+    this._onFocus.dispatch();
+
+    return false;
+  }
+
+  /** @private */
+  completionSource(context) {
+    const settings = settingsStore.get();
+
+    // Trigger completion implicitly only for identifiers and members
+    const triggerBeforeCursor = context.matchBefore(/[\w?!.]$/);
+
+    if (!triggerBeforeCursor && !context.explicit) {
+      return null;
+    }
+
+    const textUntilCursor = this.getCompletionHint(context);
+
+    return this.connection
+      .intellisenseRequest("completion", {
+        hint: textUntilCursor,
         editor_auto_completion: settings.editor_auto_completion,
       })
-        .then((response) => {
-          const suggestions = completionItemsToSuggestions(
-            response.items,
-            settings
-          ).map((suggestion) => {
-            const replaceLength = replacedSuffixLength(
-              lineUntilCursor,
-              suggestion.insertText
-            );
+      .then((response) => {
+        if (response.items.length === 0) return null;
 
-            const range = new monaco.Range(
-              position.lineNumber,
-              position.column - replaceLength,
-              position.lineNumber,
-              position.column
-            );
-
-            return { ...suggestion, range };
-          });
-
-          return { suggestions };
-        })
-        .catch(() => null);
-    };
-
-    this.editor.getModel().__getHover__ = (model, position) => {
-      // On the first hover, we setup a listener to postprocess hover
-      // content with KaTeX. Prior to that, the hover element is not
-      // in the DOM
-
-      this.hoverContentProcessed = false;
-
-      if (!this.hoverContentEl) {
-        this.hoverContentEl = this.container.querySelector(
-          ".monaco-hover-content"
-        );
-
-        if (this.hoverContentEl) {
-          new MutationObserver((event) => {
-            // We mutate the DOM, so we use a flag to ignore events
-            // that we triggered ourselves
-            if (!this.hoverContentProcessed) {
-              renderMathInElement(this.hoverContentEl, {
-                delimiters: [
-                  { left: "$$", right: "$$", display: true },
-                  { left: "$", right: "$", display: false },
-                ],
-                throwOnError: false,
-              });
-              this.hoverContentProcessed = true;
-            }
-          }).observe(this.hoverContentEl, { childList: true });
-        } else {
-          console.warn(
-            "Could not find an element matching .monaco-hover-content"
-          );
-        }
-      }
-
-      const line = model.getLineContent(position.lineNumber);
-      const column = position.column;
-
-      return this._asyncIntellisenseRequest("details", { line, column })
-        .then((response) => {
-          const contents = response.contents.map((content) => ({
-            value: content,
-            isTrusted: true,
-          }));
-
-          const range = new monaco.Range(
-            position.lineNumber,
-            response.range.from,
-            position.lineNumber,
-            response.range.to
-          );
-
-          return { contents, range };
-        })
-        .catch(() => null);
-    };
-
-    const signatureCache = {
-      codeUntilLastStop: null,
-      response: null,
-    };
-
-    this.editor.getModel().__getSignatureHelp__ = (model, position) => {
-      const lines = model.getLinesContent();
-      const lineIdx = position.lineNumber - 1;
-      const prevLines = lines.slice(0, lineIdx);
-      const lineUntilCursor = lines[lineIdx].slice(0, position.column - 1);
-      const codeUntilCursor = [...prevLines, lineUntilCursor].join("\n");
-
-      const codeUntilLastStop = codeUntilCursor
-        // Remove trailing characters that don't affect the signature
-        .replace(/[^(),\s]*?$/, "")
-        // Remove whitespace before delimiter
-        .replace(/([(),])\s*$/, "$1");
-
-      // Cache subsequent requests for the same prefix, so that we don't
-      // make unnecessary requests
-      if (codeUntilLastStop === signatureCache.codeUntilLastStop) {
-        return {
-          value: signatureResponseToSignatureHelp(signatureCache.response),
-          dispose: () => {},
-        };
-      }
-
-      return this._asyncIntellisenseRequest("signature", {
-        hint: codeUntilCursor,
-      })
-        .then((response) => {
-          signatureCache.response = response;
-          signatureCache.codeUntilLastStop = codeUntilLastStop;
+        const completions = response.items.map((item, index) => {
+          const completion = this.completionItemToCompletions(item);
 
           return {
-            value: signatureResponseToSignatureHelp(response),
-            dispose: () => {},
+            ...completion,
+            // Keep the ordering from the server
+            boost: 1 - index / response.items.length,
           };
-        })
-        .catch(() => null);
-    };
+        });
 
-    this.editor.getModel().__getDocumentFormattingEdits__ = (model) => {
-      const content = model.getValue();
+        const replaceLength = replacedSuffixLength(
+          textUntilCursor,
+          response.items[0].insert_text,
+        );
 
-      return this._asyncIntellisenseRequest("format", { code: content })
-        .then((response) => {
-          this.setCodeMarkers(response.code_markers);
+        return {
+          from: context.pos - replaceLength,
+          options: completions,
+          validFor: /^\w*[!?]?$/,
+        };
+      })
+      .catch(() => null);
+  }
 
-          if (response.code) {
-            /**
-             * We use a single edit replacing the whole editor content,
-             * but the editor itself optimises this into a list of edits
-             * that produce minimal diff using the Myers string difference.
-             *
-             * References:
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L324
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/common/services/editorSimpleWorker.ts#L489
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/base/common/diff/diff.ts#L227-L231
-             *
-             * Eventually the editor will received the optimised list of edits,
-             * which we then convert to Delta and send to the server.
-             * Consequently, the Delta carries only the minimal formatting diff.
-             *
-             * Also, if edits are applied to the editor, either by typing
-             * or receiving remote changes, the formatting is cancelled.
-             * In other words the formatting changes are actually applied
-             * only if the editor stays intact.
-             *
-             * References:
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L313
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/browser/core/editorState.ts#L137
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L326
-             */
+  /** @private */
+  getCompletionHint(context) {
+    // By default we only send the current line content until cursor
+    // as completion hint. We use the local AST to send more context
+    // for multiline expressions where we know it's relevant.
 
-            const replaceEdit = {
-              range: model.getFullModelRange(),
-              text: response.code,
-            };
+    const tree = syntaxTree(context.state);
+    const node = tree.resolve(context.pos);
 
-            return [replaceEdit];
-          } else {
-            return [];
-          }
-        })
-        .catch(() => null);
-    };
+    if (node && this.language === "elixir") {
+      const boundaryNode = closestNode(node, ["Map", "Bitstring"]);
 
-    this.hook.handleEvent("intellisense_response", ({ ref, response }) => {
-      const handler = this.handlerByRef[ref];
-
-      if (handler) {
-        handler(response);
-        delete this.handlerByRef[ref];
+      if (boundaryNode) {
+        return context.state.doc.sliceString(boundaryNode.from, context.pos);
       }
-    });
+    }
+
+    return context.matchBefore(/^.*/).text;
   }
 
-  /**
-   * Pushes an intellisense request.
-   *
-   * The returned promise is either resolved with a valid
-   * response or rejected with null.
-   */
-  _asyncIntellisenseRequest(type, props) {
-    return new Promise((resolve, reject) => {
-      this.hook.pushEvent(
-        "intellisense_request",
-        { cell_id: this.cellId, type, ...props },
-        ({ ref }) => {
-          if (ref) {
-            this.handlerByRef[ref] = (response) => {
-              if (response) {
-                resolve(response);
-              } else {
-                reject(null);
-              }
-            };
-          } else {
-            reject(null);
-          }
+  /** @private */
+  completionItemToCompletions(item) {
+    const completion = {
+      label: item.label,
+      type: item.kind,
+      info: (completion) => {
+        if (item.documentation === null) return null;
+
+        // The info popup is shown automatically, we delay it a bit
+        // to not distract the user too much as they are typing
+        return wait(350).then(() => {
+          const node = document.createElement("div");
+          node.classList.add("cm-completionInfoDocs");
+          node.classList.add("cm-markdown");
+          new Markdown(node, item.documentation, {
+            defaultCodeLanguage: this.language,
+            useDarkTheme: this.usesDarkTheme(),
+          });
+          return node;
+        });
+      },
+    };
+
+    // Place cursor at the end, if not explicitly specified
+    const template = item.insert_text.includes("${}")
+      ? item.insert_text
+      : item.insert_text + "${}";
+
+    return snippetCompletion(template, completion);
+  }
+
+  /** @private */
+  docsHoverTooltipSource(view, pos, side) {
+    const line = view.state.doc.lineAt(pos);
+    const lineLength = line.to - line.from;
+
+    const text = line.text;
+    // If we are on the right side of the position, we add one to
+    // convert it to column
+    const column = pos - line.from + (side === 1 ? 1 : 0);
+    if (column < 1 || column > lineLength) return null;
+
+    return this.connection
+      .intellisenseRequest("details", { line: text, column })
+      .then((response) => {
+        // Note: the response range is a right-exclusive column range
+
+        return {
+          pos: line.from + response.range.from - 1,
+          end: line.from + response.range.to - 1,
+          above: true,
+          create: (view) => {
+            const dom = document.createElement("div");
+            dom.classList.add("cm-hoverDocs");
+
+            if (response.definition) {
+              const link = document.createElement("a");
+              link.classList.add("cm-hoverDocsDefinitionLink");
+              link.innerHTML = `<i class="ri-code-line"></i> Go to definition`;
+              dom.appendChild(link);
+
+              link.addEventListener("click", (event) => {
+                globalPubsub.broadcast("jump_to_editor", {
+                  line: response.definition.line,
+                  file: response.definition.file,
+                });
+                event.preventDefault();
+              });
+            }
+
+            const contents = document.createElement("div");
+            contents.classList.add("cm-hoverDocsContents");
+            dom.appendChild(contents);
+
+            for (const content of response.contents) {
+              const item = document.createElement("div");
+              item.classList.add("cm-hoverDocsContent");
+              item.classList.add("cm-markdown");
+              contents.appendChild(item);
+
+              new Markdown(item, content, {
+                defaultCodeLanguage: this.language,
+                useDarkTheme: this.usesDarkTheme(),
+              });
+            }
+
+            return { dom };
+          },
+        };
+      })
+      .catch(() => null);
+  }
+
+  /** @private */
+  jumpToDefinition(view) {
+    const pos = view.state.selection.main.head;
+    const line = view.state.doc.lineAt(pos);
+    const lineLength = line.to - line.from;
+    const text = line.text;
+
+    const column = pos - line.from;
+    if (column < 1 || column > lineLength) return null;
+
+    return this.connection
+      .intellisenseRequest("details", { line: text, column })
+      .then((response) => {
+        if (response.definition) {
+          globalPubsub.broadcast("jump_to_editor", {
+            line: response.definition.line,
+            file: response.definition.file,
+          });
         }
+      })
+      .catch(() => null);
+  }
+
+  /** @private */
+  signatureSource({ state, pos }) {
+    const textUntilCursor = this.getSignatureHint(state, pos);
+
+    return this.connection
+      .intellisenseRequest("signature", {
+        hint: textUntilCursor,
+      })
+      .then((response) => {
+        return {
+          activeArgumentIdx: response.active_argument,
+          items: response.items,
+        };
+      })
+      .catch(() => null);
+  }
+
+  /** @private */
+  getSignatureHint(state, pos) {
+    // By default we send all text until cursor as signature hint.
+    // We use the local AST to limit the hint to the relevanat call
+    // expression.
+
+    const tree = syntaxTree(state);
+    const node = tree.resolve(pos);
+
+    if (node && this.language === "elixir") {
+      let callNode = closestNode(node, [
+        "Call",
+        "FunctionDefinitionCall",
+        "KernelCall",
+      ]);
+
+      if (callNode) {
+        const pipeNode = ancestorNode(callNode, ["Right", "PipeOperator"]);
+        const boundaryNode = pipeNode || callNode;
+
+        return state.doc.sliceString(boundaryNode.from, pos);
+      }
+    }
+
+    return state.doc.sliceString(0, pos);
+  }
+
+  formatterSource(doc) {
+    return this.connection
+      .intellisenseRequest("format", { code: doc.toString() })
+      .then((response) => {
+        this.setCodeMarkers(response.code_markers);
+
+        if (response.delta) {
+          const delta = Delta.fromCompressed(response.delta);
+          return deltaToChanges(delta);
+        } else {
+          return null;
+        }
+      })
+      .catch(() => null);
+  }
+
+  /** @private */
+  setInitialWidgets() {
+    if (this.initialWidgets.doctestReportsByLine) {
+      const doctestReports = Object.values(
+        this.initialWidgets.doctestReportsByLine,
       );
-    });
+      this.updateDoctests(doctestReports);
+    }
+
+    if (this.initialWidgets.codeMarkers) {
+      this.setCodeMarkers(this.initialWidgets.codeMarkers);
+    }
+
+    this.initialWidgets = {};
+  }
+
+  /** @private */
+  usesDarkTheme() {
+    const settings = settingsStore.get();
+    return settings.editor_theme !== "light";
   }
 }
-
-function completionItemsToSuggestions(items, settings) {
-  return items
-    .map((item) => parseItem(item, settings))
-    .map((suggestion, index) => ({
-      ...suggestion,
-      sortText: numberToSortableString(index, items.length),
-    }));
-}
-
-// See `Livebook.Runtime` for completion item definition
-function parseItem(item, settings) {
-  return {
-    label: item.label,
-    kind: parseItemKind(item.kind),
-    detail: item.detail,
-    documentation: item.documentation && {
-      value: item.documentation,
-      isTrusted: true,
-    },
-    insertText: item.insert_text,
-    insertTextRules:
-      monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-    command: settings.editor_auto_signature
-      ? {
-          title: "Trigger Parameter Hint",
-          id: "editor.action.triggerParameterHints",
-        }
-      : null,
-  };
-}
-
-function parseItemKind(kind) {
-  switch (kind) {
-    case "function":
-      return monaco.languages.CompletionItemKind.Function;
-    case "module":
-      return monaco.languages.CompletionItemKind.Module;
-    case "struct":
-      return monaco.languages.CompletionItemKind.Struct;
-    case "interface":
-      return monaco.languages.CompletionItemKind.Interface;
-    case "type":
-      return monaco.languages.CompletionItemKind.Class;
-    case "variable":
-      return monaco.languages.CompletionItemKind.Variable;
-    case "field":
-      return monaco.languages.CompletionItemKind.Field;
-    case "keyword":
-      return monaco.languages.CompletionItemKind.Keyword;
-    default:
-      return null;
-  }
-}
-
-function numberToSortableString(number, maxNumber) {
-  return String(number).padStart(maxNumber, "0");
-}
-
-function signatureResponseToSignatureHelp(response) {
-  return {
-    activeSignature: 0,
-    activeParameter: response.active_argument,
-    signatures: response.signature_items.map((signature_item) => ({
-      label: signature_item.signature,
-      parameters: signature_item.arguments.map((argument) => ({
-        label: argument,
-      })),
-      documentation: null,
-    })),
-  };
-}
-
-export default LiveEditor;

@@ -1,6 +1,4 @@
 defmodule Livebook.Users.User do
-  @moduledoc false
-
   # Represents a Livebook user.
   #
   # Livebook users are not regular web app accounts,
@@ -18,6 +16,7 @@ defmodule Livebook.Users.User do
           id: id(),
           name: String.t() | nil,
           email: String.t() | nil,
+          payload: map() | nil,
           hex_color: hex_color()
         }
 
@@ -27,16 +26,17 @@ defmodule Livebook.Users.User do
   embedded_schema do
     field :name, :string
     field :email, :string
+    field :payload, :map
     field :hex_color, Livebook.EctoTypes.HexColor
   end
 
   @doc """
   Generates a new user.
   """
-  @spec new() :: t()
-  def new() do
+  @spec new(String.t()) :: t()
+  def new(id \\ Utils.random_long_id()) do
     %__MODULE__{
-      id: Utils.random_id(),
+      id: id,
       name: nil,
       email: nil,
       hex_color: Livebook.EctoTypes.HexColor.random()
@@ -45,7 +45,7 @@ defmodule Livebook.Users.User do
 
   def changeset(user, attrs \\ %{}) do
     user
-    |> cast(attrs, [:id, :name, :email, :hex_color])
-    |> validate_required([:id, :name, :hex_color])
+    |> cast(attrs, [:name, :email, :hex_color])
+    |> validate_required([:hex_color])
   end
 end

@@ -3,7 +3,7 @@ defmodule LivebookWeb.OpenLive do
 
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.LayoutComponents
   alias Livebook.{Sessions, Notebook, FileSystem}
 
   on_mount LivebookWeb.SidebarHook
@@ -18,6 +18,12 @@ defmodule LivebookWeb.OpenLive do
     sessions = Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
     recent_notebooks = Livebook.NotebookManager.recent_notebooks()
 
+    show_autosave_note? =
+      case Livebook.Settings.autosave_path() do
+        nil -> false
+        path -> match?({:ok, [_ | _]}, File.ls(path))
+      end
+
     {:ok,
      assign(socket,
        tab: "file",
@@ -25,35 +31,40 @@ defmodule LivebookWeb.OpenLive do
        url: params["url"],
        sessions: sessions,
        recent_notebooks: recent_notebooks,
-       page_title: "Open - Livebook"
+       page_title: "Open - Livebook",
+       show_autosave_note?: show_autosave_note?
      )}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout current_page={~p"/"} current_user={@current_user} saved_hubs={@saved_hubs}>
+    <LayoutComponents.layout
+      current_page={~p"/"}
+      current_user={@current_user}
+      saved_hubs={@saved_hubs}
+    >
       <:topbar_action>
-        <button class="button-base button-blue" phx-click="new">
-          <.remix_icon icon="add-line" class="align-middle mr-1" />
+        <.button color="blue" navigate={~p"/new"}>
+          <.remix_icon icon="add-line" />
           <span>New notebook</span>
-        </button>
+        </.button>
       </:topbar_action>
       <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
-          <LayoutHelpers.title text="Open notebook" back_navigate={~p"/"} />
+          <LayoutComponents.title text="Open notebook" back_navigate={~p"/"} />
           <div class="hidden md:flex" role="navigation" aria-label="new notebook">
-            <button class="button-base button-blue" phx-click="new">
-              <.remix_icon icon="add-line" class="align-middle mr-1" />
+            <.button color="blue" navigate={~p"/new"}>
+              <.remix_icon icon="add-line" />
               <span>New notebook</span>
-            </button>
+            </.button>
           </div>
         </div>
 
         <div class="tabs">
-          <.link patch={~p"/open/file"} class={["tab", @tab == "file" && "active"]}>
+          <.link patch={~p"/open/storage"} class={["tab", @tab == "storage" && "active"]}>
             <.remix_icon icon="file-3-line" class="align-middle" />
-            <span class="font-medium">From file</span>
+            <span class="font-medium">From storage</span>
           </.link>
           <.link patch={~p"/open/url"} class={["tab", @tab == "url" && "active"]}>
             <.remix_icon icon="download-cloud-2-line" class="align-middle" />
@@ -72,7 +83,7 @@ defmodule LivebookWeb.OpenLive do
 
         <div class="h-96">
           <.live_component
-            :if={@tab == "file"}
+            :if={@tab == "storage"}
             module={LivebookWeb.OpenLive.FileComponent}
             id="import-file"
             sessions={@sessions}
@@ -126,16 +137,17 @@ defmodule LivebookWeb.OpenLive do
               </:card_icon>
             </.live_component>
           <% end %>
-          <div class="mt-3 text-gray-600 text-sm">
+
+          <div :if={@show_autosave_note?} class="mt-3 text-gray-600 text-sm">
             Looking for unsaved notebooks? <.link
               class="font-semibold"
-              navigate={~p"/open/file?autosave=true"}
+              navigate={~p"/open/storage?autosave=true"}
               phx-no-format
             >Browse them here</.link>.
           </div>
         </div>
       </div>
-    </LayoutHelpers.layout>
+    </LayoutComponents.layout>
     """
   end
 
@@ -165,7 +177,7 @@ defmodule LivebookWeb.OpenLive do
     expanded_path = Path.expand(path)
 
     if File.dir?(expanded_path) do
-      {:noreply, push_patch(socket, to: ~p"/open/file?path=#{path}")}
+      {:noreply, push_patch(socket, to: ~p"/open/storage?path=#{path}")}
     else
       file = FileSystem.File.local(expanded_path)
 
@@ -181,10 +193,6 @@ defmodule LivebookWeb.OpenLive do
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_event("new", %{}, socket) do
-    {:noreply, create_session(socket)}
-  end
-
   def handle_event("hide_recent_notebook", %{"idx" => idx}, socket) do
     on_confirm = fn socket ->
       %{file: file} = Enum.fetch!(socket.assigns.recent_notebooks, idx)
@@ -268,11 +276,11 @@ defmodule LivebookWeb.OpenLive do
   end
 
   defp file_running?(file, sessions) do
-    Enum.any?(sessions, &(&1.file == file))
+    Enum.any?(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
   end
 
   defp session_id_by_file(file, sessions) do
-    session = Enum.find(sessions, &(&1.file == file))
+    session = Enum.find(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
     session.id
   end
 end

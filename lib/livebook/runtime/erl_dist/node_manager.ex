@@ -1,37 +1,31 @@
 defmodule Livebook.Runtime.ErlDist.NodeManager do
-  @moduledoc false
-
   # The primary Livebook process started on a remote node.
   #
-  # This process is responsible for initializing the node
-  # with necessary runtime configuration and then starting
-  # runtime server processes, one per runtime.
-  # This approach allows for multiple runtimes connected
-  # to the same node, while preserving the necessary
-  # cleanup semantics.
+  # This process is responsible for initializing the node with necessary
+  # configuration and then starting runtime server processes, one per
+  # runtime. This approach allows for multiple runtimes connected to
+  # the same node, while preserving the necessary cleanup semantics.
   #
-  # The manager process terminates as soon as the last runtime
-  # server terminates. Upon termination the manager reverts the
-  # runtime configuration back to the initial state.
+  # The manager process terminates as soon as the last runtime server
+  # terminates. Upon termination the manager reverts the configuration
+  # back to the initial state.
 
   use GenServer
 
   alias Livebook.Runtime.ErlDist
 
   @name __MODULE__
-  @io_proxy_registry_name __MODULE__.IOProxyRegistry
 
   @doc """
   Starts the node manager.
 
   ## Options
 
-    * `:unload_modules_on_termination` - whether to unload all
-      Livebook related modules from the node on termination.
-      Defaults to `true`
+    * `:unload_modules_on_termination` - whether to unload all Livebook
+      related modules from the node on termination. Defaults to `true`
 
-    * `:auto_termination` - whether to terminate the manager
-      when the last runtime server terminates. Defaults to `true`
+    * `:auto_termination` - whether to terminate the manager when the
+      last runtime server terminates. Defaults to `true`
 
     * `:parent_node` - indicates which node spawned the node manager.
        It is used to disconnect the node when the server terminates,
@@ -57,21 +51,44 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   @doc """
   Starts a new `Livebook.Runtime.ErlDist.RuntimeServer` for evaluation.
-  """
-  @spec start_runtime_server(node(), keyword()) :: pid()
-  def start_runtime_server(node, opts \\ []) do
-    GenServer.call(server(node), {:start_runtime_server, opts})
-  end
 
-  @doc false
-  def known_io_proxy?(pid) do
-    case Registry.keys(@io_proxy_registry_name, pid) do
-      [_] -> true
-      [] -> false
+  This function fails gracefully when the node manager is not running
+  or is about to terminate. This is why we do not use `GenServer.call/2`.
+
+  To start a runtime server we could check if the node manager is alive
+  and then try to call it, however it could terminate between these
+  operations (if the last runtime server terminated). This race condition
+  could happen when reconnecting to the same runtime node. To avoid
+  this, we combine the check and start into an atomic operation.
+  """
+  @spec start_runtime_server(node(), keyword()) :: {:ok, pid()} | {:error, :down}
+  def start_runtime_server(node, opts \\ []) do
+    if pid = :rpc.call(node, Process, :whereis, [@name]) do
+      ref = Process.monitor(pid)
+      send(pid, {:start_runtime_server, self(), ref, opts})
+
+      receive do
+        {:reply, ^ref, pid} ->
+          Process.demonitor(ref, [:flush])
+          {:ok, pid}
+
+        {:DOWN, ^ref, :process, _, _} ->
+          {:error, :down}
+      end
+    else
+      {:error, :down}
     end
   end
 
-  defp server(node) when is_atom(node), do: {@name, node}
+  @sink_key {__MODULE__, :sink}
+
+  @doc """
+  Returns a process that ignores all incoming messages.
+  """
+  @spec sink_pid() :: pid()
+  def sink_pid() do
+    :persistent_term.get(@sink_key)
+  end
 
   @impl true
   def init(opts) do
@@ -82,34 +99,33 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
     ## Initialize the node
 
+    # Note that we intentionally do not name any processes other than
+    # the manager itself. This way, when the manager terminates, another
+    # one can be started immediately without the possibility of the
+    # linked processes to be still around and cause name conflicts.
+    # This scenario could be the case when reconnecting to the same
+    # runtime node.
+
     Process.flag(:trap_exit, true)
 
     {:ok, server_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
 
-    {:ok, io_proxy_registry} =
-      Registry.start_link(name: @io_proxy_registry_name, keys: :duplicate)
-
-    # Register our own standard error IO device that proxies
-    # to sender's group leader.
+    # Register our own standard error IO device that proxies to
+    # sender's group leader.
     original_standard_error = Process.whereis(:standard_error)
     {:ok, io_forward_gl_pid} = ErlDist.IOForwardGL.start_link()
     Process.unregister(:standard_error)
     Process.register(io_forward_gl_pid, :standard_error)
 
-    # TODO: remove logger backend once we require Elixir v1.15
-    if Code.ensure_loaded?(Logger) and function_exported?(Logger, :add_handlers, 1) do
-      {:ok, _pid} = Livebook.Runtime.ErlDist.Sink.start_link()
+    :persistent_term.put(@sink_key, spawn_link(&sink_loop/0))
 
-      :logger.add_handler(:livebook_gl_handler, Livebook.Runtime.ErlDist.LoggerGLHandler, %{
-        formatter: Logger.Formatter.new(),
-        filters: [
-          code_server_logs:
-            {&Livebook.Runtime.ErlDist.LoggerGLHandler.filter_code_server_logs/2, nil}
-        ]
-      })
-    else
-      Logger.add_backend(Livebook.Runtime.ErlDist.LoggerGLBackend)
-    end
+    :logger.add_handler(:livebook_gl_handler, Livebook.Runtime.ErlDist.LoggerGLHandler, %{
+      formatter: Logger.Formatter.new(),
+      filters: [
+        code_server_logs:
+          {&Livebook.Runtime.ErlDist.LoggerGLHandler.filter_code_server_logs/2, nil}
+      ]
+    })
 
     # Set `ignore_module_conflict` only for the NodeManager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
@@ -130,6 +146,10 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
       Code.prepend_path(ebin_path)
     end
 
+    Livebook.Intellisense.load()
+
+    :net_kernel.monitor_nodes(true, node_type: :all)
+
     {:ok,
      %{
        unload_modules_on_termination: unload_modules_on_termination,
@@ -141,13 +161,14 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
        original_standard_error: original_standard_error,
        parent_node: parent_node,
        capture_orphan_logs: capture_orphan_logs,
-       tmp_dir: tmp_dir,
-       io_proxy_registry: io_proxy_registry
+       tmp_dir: tmp_dir
      }}
   end
 
   @impl true
   def terminate(_reason, state) do
+    Livebook.Intellisense.clear_cache()
+
     Code.compiler_options(ignore_module_conflict: state.initial_ignore_module_conflict)
 
     if ansi_syntax_colors = state.initial_ansi_syntax_colors do
@@ -159,12 +180,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     Process.unregister(:standard_error)
     Process.register(state.original_standard_error, :standard_error)
 
-    # TODO: remove logger backend once we require Elixir v1.15
-    if Code.ensure_loaded?(Logger) and function_exported?(Logger, :add_handlers, 1) do
-      :logger.remove_handler(:livebook_gl_handler)
-    else
-      Logger.remove_backend(Livebook.Runtime.ErlDist.LoggerGLBackend)
-    end
+    :logger.remove_handler(:livebook_gl_handler)
+
+    :persistent_term.erase(@sink_key)
 
     if state.unload_modules_on_termination do
       ErlDist.unload_required_modules()
@@ -208,27 +226,33 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     {:noreply, state}
   end
 
-  def handle_info(_message, state), do: {:noreply, state}
-
-  @impl true
-  def handle_call({:start_runtime_server, opts}, _from, state) do
+  def handle_info({:start_runtime_server, pid, ref, opts}, state) do
     opts =
       opts
       |> Keyword.put_new(:ebin_path, ebin_path(state.tmp_dir))
       |> Keyword.put_new(:tmp_dir, child_tmp_dir(state.tmp_dir))
       |> Keyword.put_new(:base_path_env, System.get_env("PATH", ""))
-      |> Keyword.put_new(:io_proxy_registry, @io_proxy_registry_name)
 
     {:ok, server_pid} =
       DynamicSupervisor.start_child(state.server_supervisor, {ErlDist.RuntimeServer, opts})
 
     Process.monitor(server_pid)
     state = update_in(state.runtime_servers, &[server_pid | &1])
-    {:reply, server_pid, state}
+
+    send(pid, {:reply, ref, server_pid})
+
+    {:noreply, state}
   end
 
+  def handle_info({:nodedown, node, _metadata}, state) do
+    Livebook.Intellisense.clear_cache(node)
+    {:noreply, state}
+  end
+
+  def handle_info(_message, state), do: {:noreply, state}
+
   defp make_tmp_dir() do
-    path = Path.join([System.tmp_dir!(), "livebook_runtime", random_id()])
+    path = Path.join([System.tmp_dir!(), "livebook_runtime", random_long_id()])
 
     if File.mkdir_p(path) == :ok do
       path
@@ -239,9 +263,15 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   defp ebin_path(tmp_dir), do: Path.join(tmp_dir, "ebin")
 
   defp child_tmp_dir(nil), do: nil
-  defp child_tmp_dir(tmp_dir), do: Path.join(tmp_dir, random_id())
+  defp child_tmp_dir(tmp_dir), do: Path.join(tmp_dir, random_long_id())
 
-  defp random_id() do
+  defp random_long_id() do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
+  end
+
+  defp sink_loop() do
+    receive do
+      _ -> sink_loop()
+    end
   end
 end

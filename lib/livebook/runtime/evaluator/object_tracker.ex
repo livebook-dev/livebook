@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Evaluator.ObjectTracker do
-  @moduledoc false
-
   # This module is an abstraction for tracking objects,
   # references to them and garbage collection.
   #

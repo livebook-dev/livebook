@@ -1,6 +1,4 @@
 defmodule Livebook.Notebook.ContentLoader do
-  @moduledoc false
-
   alias Livebook.Utils.HTTP
 
   @typedoc """
@@ -9,12 +7,14 @@ defmodule Livebook.Notebook.ContentLoader do
   @type location :: {:file, FileSystem.File.t()} | {:url, String.t()}
 
   @doc """
-  Rewrite known URLs, so that they point to plain text file rather than HTML.
+  Rewrite known URLs, so that they point to plain text file rather
+  than HTML.
 
   Currently the rewerites handle:
 
     * GitHub files
     * Gist files
+
   """
   @spec rewrite_url(String.t()) :: String.t()
   def rewrite_url(url) do
@@ -49,12 +49,12 @@ defmodule Livebook.Notebook.ContentLoader do
   defp do_rewrite_url(uri), do: uri
 
   @doc """
-  Loads binary content from the given URl and validates if its plain text.
+  Loads binary content from the given URL and validates if it's plain text.
   """
   @spec fetch_content(String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def fetch_content(url) do
     case HTTP.request(:get, url) do
-      {:ok, 200, headers, body} ->
+      {:ok, %{status: 200, headers: headers, body: body}} ->
         valid_content? =
           case HTTP.fetch_content_type(headers) do
             {:ok, content_type} ->

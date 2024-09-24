@@ -121,7 +121,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
 
     test "paragraph" do
       markdown = """
-      First paragrpah.
+      First paragraph.
 
       Second paragraph.\
       """
@@ -323,6 +323,21 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       3. Philip Glass
          1. Opening
          2. The Poet Acts\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "properly indents nested lists when the parent list has double digit items" do
+      markdown = """
+      #{Enum.map_join(1..9, "\n", fn n -> "#{n}. Item #{n}" end)}
+      10. Item 10
+          * Child item 1
+          * Child item 2
+      11. Item 11
+          ```
+          Enum.to_list(1..10)
+          ```\
       """
 
       assert markdown == reformat(markdown)

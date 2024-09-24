@@ -42,7 +42,6 @@ Here is what we will learn:
   * Using agents for state
   * Using structs for custom data structures
   * Extending the language with protocols
-  * Supervision trees and applications
   * Distributed Elixir nodes
 
 At the end of this notebook, we will make the following code work:
@@ -514,7 +513,7 @@ end
 The `Portal` modules defines a struct followed by a `shoot/1` function.
 The function is just a wrapper around `Portal.Door.start_link/1`. Then
 we define the `transfer/3` function, which loads the given data into the
-left door and returns a Portal struct. Finally, `push_right/3` gets data
+left door and returns a Portal struct. Finally, `push_right/1` gets data
 from the door on the left and puts it on the right door. Let's give it a try:
 
 ```elixir
@@ -794,9 +793,6 @@ distributed portal transfers.
 To learn more about Elixir, we welcome you to explore our [website](http://elixir-lang.org),
 [read our Getting Started guide](https://elixir-lang.org/getting-started/introduction.html),
 and [many of the available learning resources](https://elixir-lang.org/learning.html).
-
-You can also learn how to use some of Elixir and Livebook's unique features together
-in the [Elixir and Livebook](/learn/notebooks/elixir-and-livebook) notebook.
 
 Finally, huge thanks to Augie De Blieck Jr. for the drawings in this tutorial.
 

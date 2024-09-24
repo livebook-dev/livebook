@@ -27,7 +27,7 @@ defmodule LivebookWeb.OpenLive.FileComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="h-80" role="region" aria-label="file system">
+    <div class="h-80" role="region" aria-label="file storage">
       <.live_component
         module={LivebookWeb.FileSelectComponent}
         id="home-file-select"
@@ -37,29 +37,29 @@ defmodule LivebookWeb.OpenLive.FileComponent do
         target={{__MODULE__, @id}}
       >
         <div class="flex justify-end space-x-2">
-          <button
-            class="button-base button-outlined-gray whitespace-nowrap"
+          <.button
+            color="gray"
+            outlined
             phx-click="fork"
             phx-target={@myself}
             disabled={not path_forkable?(@file, @file_info)}
           >
-            <.remix_icon icon="git-branch-line" class="align-middle mr-1" />
+            <.remix_icon icon="git-branch-line" />
             <span>Fork</span>
-          </button>
+          </.button>
           <%= if session = session_by_file(@file, @sessions)  do %>
-            <.link navigate={~p"/sessions/#{session.id}"} class="button-base button-blue">
+            <.button navigate={~p"/sessions/#{session.id}"}>
               Join session
-            </.link>
+            </.button>
           <% else %>
             <span {open_button_tooltip_attrs(@file, @file_info)}>
-              <button
-                class="button-base button-blue"
+              <.button
                 phx-click="open"
                 phx-target={@myself}
                 disabled={not path_openable?(@file, @file_info, @sessions)}
               >
                 Open
-              </button>
+              </.button>
             </span>
           <% end %>
         </div>
@@ -112,14 +112,14 @@ defmodule LivebookWeb.OpenLive.FileComponent do
   end
 
   defp file_running?(file, sessions) do
-    Enum.any?(sessions, &(&1.file == file))
+    Enum.any?(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
   end
 
   defp files(sessions) do
-    Enum.map(sessions, & &1.file)
+    for session <- sessions, session.file, do: session.file
   end
 
   defp session_by_file(file, sessions) do
-    Enum.find(sessions, &(&1.file == file))
+    Enum.find(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
   end
 end

@@ -15,9 +15,10 @@ defmodule LivebookWeb.FormComponents do
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
   attr :help, :string, default: nil
+  attr :type, :string, default: "text"
   attr :class, :string, default: nil
 
-  attr :rest, :global, include: ~w(autocomplete readonly disabled)
+  attr :rest, :global, include: ~w(autocomplete readonly disabled step min max)
 
   def text_field(assigns) do
     assigns = assigns_from_field(assigns)
@@ -25,15 +26,27 @@ defmodule LivebookWeb.FormComponents do
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <input
-        type="text"
+        type={@type}
         name={@name}
         id={@id || @name}
         value={Phoenix.HTML.Form.normalize_value("text", @value)}
-        class={["input", @class]}
+        class={[input_classes(@errors), @class]}
         {@rest}
       />
     </.field_wrapper>
     """
+  end
+
+  defp input_classes(errors) do
+    [
+      "w-full px-3 py-2 text-sm font-normal border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus:border-blue-600 focus-visible:outline-none",
+      if errors == [] do
+        "bg-gray-50 border-gray-200 text-gray-600"
+      else
+        "bg-red-50 border-red-600 text-red-600"
+      end,
+      "invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
+    ]
   end
 
   @doc """
@@ -46,8 +59,9 @@ defmodule LivebookWeb.FormComponents do
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
   attr :help, :string, default: nil
+  attr :class, :string, default: nil
 
-  attr :resizable, :boolean, default: false
+  attr :monospace, :boolean, default: false
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled rows cols)
 
@@ -59,7 +73,12 @@ defmodule LivebookWeb.FormComponents do
       <textarea
         id={@id || @name}
         name={@name}
-        class={["input", not @resizable && "resize-none"]}
+        class={[
+          input_classes(@errors),
+          "resize-none tiny-scrollbar",
+          @monospace && "font-mono",
+          @class
+        ]}
         {@rest}
       ><%= Phoenix.HTML.Form.normalize_value("textarea", @value) %></textarea>
     </.field_wrapper>
@@ -103,16 +122,45 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <.with_password_toggle id={@id <> "-toggle"}>
+      <div id={"#{@id}-toggle"} class="relative flex">
         <input
           type="password"
           name={@name}
           id={@id || @name}
           value={Phoenix.HTML.Form.normalize_value("text", @value)}
-          class={["input pr-8", @class]}
+          class={[input_classes(@errors), "pr-8", @class]}
           {@rest}
         />
-      </.with_password_toggle>
+        <div class="flex items-center absolute inset-y-0 right-1">
+          <.icon_button
+            data-show
+            type="button"
+            aria-label="show password"
+            tabindex="-1"
+            phx-click={
+              JS.set_attribute({"type", "text"}, to: "##{@id}-toggle input")
+              |> JS.add_class("hidden", to: "##{@id}-toggle [data-show]")
+              |> JS.remove_class("hidden", to: "##{@id}-toggle [data-hide]")
+            }
+          >
+            <.remix_icon icon="eye-line" />
+          </.icon_button>
+          <.icon_button
+            class="hidden"
+            data-hide
+            type="button"
+            aria-label="hide password"
+            tabindex="-1"
+            phx-click={
+              JS.set_attribute({"type", "password"}, to: "##{@id}-toggle input")
+              |> JS.remove_class("hidden", to: "##{@id}-toggle [data-show]")
+              |> JS.add_class("hidden", to: "##{@id}-toggle [data-hide]")
+            }
+          >
+            <.remix_icon icon="eye-off-line" />
+          </.icon_button>
+        </div>
+      </div>
     </.field_wrapper>
     """
   end
@@ -149,14 +197,16 @@ defmodule LivebookWeb.FormComponents do
             name={@name}
             id={@id || @name}
             value={@value}
-            class="input"
+            class={input_classes(@errors)}
             spellcheck="false"
             maxlength="7"
             {@rest}
           />
-          <button class="icon-button absolute right-2 top-1" type="button" phx-click={@randomize}>
-            <.remix_icon icon="refresh-line" class="text-xl" />
-          </button>
+          <div class="absolute right-2 top-1">
+            <.icon_button type="button" phx-click={@randomize}>
+              <.remix_icon icon="refresh-line" />
+            </.icon_button>
+          </div>
         </div>
       </div>
     </.field_wrapper>
@@ -184,7 +234,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+    <div>
       <div class="flex items-center gap-1 sm:gap-3 justify-between">
         <span :if={@label} class="text-gray-700 flex gap-1 items-center">
           <%= @label %>
@@ -199,7 +249,7 @@ defmodule LivebookWeb.FormComponents do
             type="checkbox"
             value={@checked_value}
             class={[
-              "appearance-none absolute block w-7 h-7 rounded-full bg-white border-[5px] border-gray-200 cursor-pointer transition-all duration-300",
+              "appearance-none absolute block w-7 h-7 rounded-full bg-white border-[5px] border-gray-200 cursor-pointer transition-[transform,border-color] duration-300 outline-none",
               "peer checked:bg-white checked:border-blue-600 checked:translate-x-full"
             ]}
             name={@name}
@@ -208,8 +258,8 @@ defmodule LivebookWeb.FormComponents do
             {@rest}
           />
           <div class={[
-            "block h-full w-full rounded-full bg-gray-200 cursor-pointer transition-all duration-300",
-            "peer-checked:bg-blue-600"
+            "block h-full w-full rounded-full bg-gray-200 cursor-pointer transition-colors duration-300",
+            "peer-checked:bg-blue-600 peer-focus-visible:outline peer-focus-visible:outline-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-blue-600"
           ]}>
           </div>
         </label>
@@ -236,25 +286,32 @@ defmodule LivebookWeb.FormComponents do
     default: "false",
     doc: "when set to `nil`, unchecked value is not sent"
 
+  attr :small, :boolean, default: false
+
   attr :rest, :global
 
   def checkbox_field(assigns) do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
-      <label class="flex items-center gap-2 cursor-pointer">
+    <div>
+      <label class="flex items-center gap-2 cursor-pointer relative">
         <input :if={@unchecked_value} type="hidden" value={@unchecked_value} name={@name} />
         <input
           type="checkbox"
-          class="checkbox shrink-0"
+          class="peer opacity-0 absolute top-0 left-0"
           value={@checked_value}
           name={@name}
           id={@id || @name}
           checked={to_string(@value) == @checked_value}
           {@rest}
         />
-        <span :if={@label} class="text-gray-700 flex gap-1 items-center">
+        <div class="w-5 h-5 flex items-center justify-center border border-gray-300 peer-checked:border-transparent bg-white peer-checked:bg-blue-600 rounded peer-focus-visible:outline peer-focus-visible:outline-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-blue-600">
+          <svg viewBox="0 0 16 16" fill="white" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z" />
+          </svg>
+        </div>
+        <span :if={@label} class={["text-gray-700 flex gap-1 items-center", @small && "text-sm"]}>
           <%= @label %>
           <.help :if={@help} text={@help} />
         </span>
@@ -283,18 +340,21 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+    <div>
       <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
       <div class="flex gap-4 text-gray-600">
         <label :for={{value, description} <- @options} class="flex items-center gap-2 cursor-pointer">
           <input
             type="radio"
-            class="radio"
+            class="peer hidden"
             name={@name}
             value={value}
             checked={to_string(@value) == value}
             {@rest}
           />
+          <div class="w-5 h-5 flex items-center justify-center border border-gray-300 peer-checked:border-blue-600 text-white peer-checked:text-blue-600 bg-white rounded-full">
+            <div class="w-3 h-3 rounded-full bg-current"></div>
+          </div>
           <span><%= description %></span>
         </label>
       </div>
@@ -324,7 +384,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+    <div>
       <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
       <div class="flex">
         <label
@@ -382,7 +442,7 @@ defmodule LivebookWeb.FormComponents do
             id={"#{@id}-button"}
             type="button"
             data-emoji-button
-            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l-[1px] bg-white flex justify-center items-center cursor-pointer"
+            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l-[1px] flex justify-center items-center cursor-pointer"
           >
             <.remix_icon icon="emotion-line" class="text-xl" />
           </button>
@@ -408,31 +468,53 @@ defmodule LivebookWeb.FormComponents do
   attr :label, :string, default: nil
   attr :value, :any
   attr :errors, :list, default: []
+  attr :class, :string, default: ""
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
   attr :help, :string, default: nil
 
   attr :options, :list, default: []
   attr :prompt, :string, default: nil
 
-  attr :rest, :global
+  attr :rest, :global, include: ~w(disabled)
 
   def select_field(assigns) do
     assigns = assigns_from_field(assigns)
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <select id={@id} name={@name} class="input" {@rest}>
-        <option :if={@prompt} value="" disabled selected><%= @prompt %></option>
-        <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
-      </select>
+      <div class="block relative">
+        <select
+          id={@id}
+          name={@name}
+          class={[
+            "w-full px-3 py-2 pr-7 appearance-none text-sm border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus:border-blue-600 focus-visible:outline-none",
+            if(@errors == [],
+              do: "bg-gray-50 border-gray-200 text-gray-600",
+              else: "bg-red-50 border-red-600 text-red-600"
+            ),
+            @class
+          ]}
+          {@rest}
+        >
+          <option :if={@prompt} value=""><%= @prompt %></option>
+          <%!-- TODO: we use to_string to normalize nil and "", remove
+                this once fixed upstream https://github.com/phoenixframework/phoenix_html/issues/444 --%>
+          <%= Phoenix.HTML.Form.options_for_select(@options, to_string(@value)) %>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+          <.remix_icon icon="arrow-down-s-line" />
+        </div>
+      </div>
     </.field_wrapper>
     """
   end
 
   defp assigns_from_field(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
+    errors = if Phoenix.Component.used_input?(field), do: field.errors, else: []
+
     assigns
     |> assign(field: nil, id: assigns.id || field.id)
-    |> assign(:errors, Enum.map(field.errors, &translate_error/1))
+    |> assign(:errors, Enum.map(errors, &translate_error(&1)))
     |> assign_new(:name, fn -> field.name end)
     |> assign_new(:value, fn -> field.value end)
   end
@@ -459,7 +541,7 @@ defmodule LivebookWeb.FormComponents do
 
   defp field_wrapper(assigns) do
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+    <div>
       <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
       <%= render_slot(@inner_block) %>
       <.error :for={msg <- @errors}><%= msg %></.error>
@@ -476,7 +558,7 @@ defmodule LivebookWeb.FormComponents do
 
   def label(assigns) do
     ~H"""
-    <label for={@for} class="mb-1 block text-sm text-gray-800 font-medium flex items-center gap-1">
+    <label for={@for} class="mb-1 flex items-center gap-1 text-sm text-gray-800 font-medium">
       <%= render_slot(@inner_block) %>
       <.help :if={@help} text={@help} />
     </label>
@@ -490,7 +572,7 @@ defmodule LivebookWeb.FormComponents do
 
   def error(assigns) do
     ~H"""
-    <p class="mt-0.5 text-red-600 text-sm hidden phx-form-error:block">
+    <p class="mt-0.5 text-red-600 text-sm">
       <%= render_slot(@inner_block) %>
     </p>
     """
@@ -498,64 +580,9 @@ defmodule LivebookWeb.FormComponents do
 
   defp help(assigns) do
     ~H"""
-    <span class="cursor-pointer tooltip top" data-tooltip={@text}>
+    <span class="cursor-pointer tooltip right" data-tooltip={@text}>
       <.remix_icon icon="question-line" class="text-sm leading-none" />
     </span>
-    """
-  end
-
-  @doc """
-  Renders a wrapper around password input with an added visibility
-  toggle button.
-
-  The toggle switches the input's type between `password` and `text`.
-
-  ## Examples
-
-      <.with_password_toggle id="secret-password-toggle">
-        <input type="password" ...>
-      </.with_password_toggle>
-
-  """
-  attr :id, :string, required: true
-
-  slot :inner_block, required: true
-
-  def with_password_toggle(assigns) do
-    ~H"""
-    <div id={@id} class="relative flex">
-      <%= render_slot(@inner_block) %>
-      <div class="flex items-center absolute inset-y-0 right-1">
-        <button
-          class="icon-button"
-          data-show
-          type="button"
-          aria-label="show password"
-          phx-click={
-            JS.remove_attribute("type", to: "##{@id} input")
-            |> JS.set_attribute({"type", "text"}, to: "##{@id} input")
-            |> JS.add_class("hidden", to: "##{@id} [data-show]")
-            |> JS.remove_class("hidden", to: "##{@id} [data-hide]")
-          }
-        >
-          <.remix_icon icon="eye-line" class="text-xl" />
-        </button>
-        <button
-          class="icon-button hidden"
-          data-hide
-          type="button"
-          aria-label="hide password"
-          phx-click={
-            JS.remove_attribute("type", to: "##{@id} input")
-            |> JS.set_attribute({"type", "password"}, to: "##{@id} input")
-            |> JS.remove_class("hidden", to: "##{@id} [data-show]")
-            |> JS.add_class("hidden", to: "##{@id} [data-hide]")
-          }
-        >
-          <.remix_icon icon="eye-off-line" class="text-xl" />
-        </button>
-      </div>
-    </div>
     """
   end
 
@@ -588,7 +615,7 @@ defmodule LivebookWeb.FormComponents do
         for={@upload.ref}
         phx-drop-target={@upload.ref}
       >
-        <span name="placeholder" class="font-medium text-gray-400">
+        <span class="font-medium text-gray-400">
           Click to select a file or drag a local file here
         </span>
       </label>
@@ -602,30 +629,51 @@ defmodule LivebookWeb.FormComponents do
       <.live_file_input upload={@upload} class="hidden" />
       <.label><%= @label %></.label>
       <div :for={entry <- @upload.entries} class="flex flex-col gap-1">
-        <div class="flex flex-col gap-0.5">
-          <div class="flex items-center justify-between text-gray-700">
-            <span><%= entry.client_name %></span>
-            <button
-              type="button"
-              class="ml-1 text-gray-500 hover:text-gray-900"
-              phx-click={@on_clear}
-              phx-value-ref={entry.ref}
-              tabindex="-1"
-            >
-              <.remix_icon icon="close-line" />
-            </button>
-            <span class="flex-grow"></span>
-            <span :if={entry.preflighted?} class="text-sm font-medium">
-              <%= entry.progress %>%
-            </span>
-          </div>
-          <div :if={entry.preflighted?} class="w-full h-2 rounded-lg bg-blue-200">
-            <div
-              class="h-full rounded-lg bg-blue-600 transition-all ease-out duration-1000"
-              style={"width: #{entry.progress}%"}
-            >
-            </div>
-          </div>
+        <.file_entry entry={entry} on_clear={@on_clear} />
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a file entry with progress.
+
+  ## Examples
+
+      <.file_entry
+        entry={entry}
+        on_clear={JS.push("clear_file", target: @myself)}
+      />
+
+  """
+  attr :entry, Phoenix.LiveView.UploadEntry, required: true
+  attr :on_clear, Phoenix.LiveView.JS, required: true
+  attr :name, :string, default: nil
+
+  def file_entry(assigns) do
+    ~H"""
+    <div class="flex flex-col gap-0.5">
+      <div class="flex items-center justify-between gap-1 text-gray-700">
+        <span><%= @name || @entry.client_name %></span>
+        <button
+          type="button"
+          class="text-gray-500 hover:text-gray-900"
+          phx-click={@on_clear}
+          phx-value-ref={@entry.ref}
+          tabindex="-1"
+        >
+          <.remix_icon icon="close-line" />
+        </button>
+        <span class="flex-grow"></span>
+        <span :if={@entry.preflighted?} class="text-sm font-medium">
+          <%= @entry.progress %>%
+        </span>
+      </div>
+      <div :if={@entry.preflighted?} class="w-full h-2 rounded-lg bg-blue-200">
+        <div
+          class="h-full rounded-lg bg-blue-600 transition-all ease-out duration-1000"
+          style={"width: #{@entry.progress}%"}
+        >
         </div>
       </div>
     </div>

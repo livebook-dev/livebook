@@ -1,8 +1,8 @@
 defmodule Livebook.Teams.Org do
-  @moduledoc false
-
   use Ecto.Schema
   import Ecto.Changeset
+
+  @prefix "lb_tk_"
 
   @type t :: %__MODULE__{
           id: pos_integer() | nil,
@@ -11,6 +11,8 @@ defmodule Livebook.Teams.Org do
           teams_key: String.t() | nil,
           user_code: String.t() | nil
         }
+
+  @secret_key_size 32
 
   @primary_key {:id, :id, autogenerate: false}
   embedded_schema do
@@ -27,7 +29,10 @@ defmodule Livebook.Teams.Org do
   Generates a new teams key.
   """
   @spec teams_key() :: String.t()
-  def teams_key, do: Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+  def teams_key() do
+    key = :crypto.strong_rand_bytes(@secret_key_size)
+    @prefix <> Base.url_encode64(key, padding: false)
+  end
 
   @doc """
   Generates a hash key.
@@ -41,6 +46,14 @@ defmodule Livebook.Teams.Org do
     org
     |> cast(attrs, @fields)
     |> validate_required(@required_fields)
-    |> validate_format(:name, ~r/^[a-z0-9][a-z0-9\-]*$/)
+    |> validate_format(:name, ~r/^[a-z0-9][a-z0-9\-]*$/,
+      message: "should only contain lowercase alphanumeric characters and dashes"
+    )
   end
+
+  @doc """
+  Returns the teams key prefix
+  """
+  @spec teams_key_prefix() :: String.t()
+  def teams_key_prefix(), do: @prefix
 end

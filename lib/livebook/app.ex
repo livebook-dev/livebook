@@ -1,6 +1,4 @@
 defmodule Livebook.App do
-  @moduledoc false
-
   # Process corresponding to a deployed app, orchestrating app sessions.
   #
   # An app process is identified by a user-defined slug, which also
@@ -21,8 +19,14 @@ defmodule Livebook.App do
     :notebook_name,
     :public?,
     :multi_session,
-    :sessions
+    :sessions,
+    :app_spec,
+    :permanent
   ]
+
+  use GenServer, restart: :temporary
+
+  require Logger
 
   @type t :: %{
           slug: slug(),
@@ -32,7 +36,9 @@ defmodule Livebook.App do
           notebook_name: String.t(),
           public?: boolean(),
           multi_session: boolean(),
-          sessions: list(app_session())
+          sessions: list(app_session()),
+          app_spec: Livebook.Apps.AppSpec.t(),
+          permanent: boolean()
         }
 
   @type slug :: String.t()
@@ -47,28 +53,56 @@ defmodule Livebook.App do
           started_by: Livebook.Users.User.t() | nil
         }
 
-  use GenServer, restart: :temporary
+  @typedoc """
+  Notebook and related information for deploying an app version.
+
+  This information is used to start app sessions.
+
+    * `:notebook` - the notebook to use for the deployment
+
+    * `:files_tmp_path` - a path to local directory with notebook files.
+      This should be a temporary copy of the files that the app process
+      takes ownership over. The app is going to remove the directory
+      once no longer needed.
+
+      The app uses this local copy of the files, so that changes to
+      the original files can be made safely. Also, if the original
+      files are stored on a remote file system, we want to download
+      them once, rather than in each starting session. Finally, some
+      app specs (such as Teams) may need to unpack their files into
+      a temporary directory and only the app process knows when to
+      remove this directory
+
+    * `:app_spec` - the app spec that was used to load the notebook
+
+    * `:permanent` - whether the app is being deployed as a permanent,
+      typically by `Livebook.Apps.Manager`
+
+    * `:warnings` - a list of warnings to show for the deployment
+
+  """
+  @type deployment_bundle :: %{
+          notebook: Livebook.Notebook.t(),
+          files_tmp_path: String.t(),
+          app_spec: Livebook.Apps.AppSpec.t(),
+          permanent: boolean(),
+          warnings: list(String.t())
+        }
 
   @doc """
   Starts an apps process.
 
   ## Options
 
-    * `:notebook` (required) - the notebook for initial deployment
-
-    * `:warnings` - a list of warnings to show for the initial deployment
-
-    * `:files_source` - a location to fetch notebook files from, see
-      `Livebook.Session.start_link/1` for more details
+    * `:deployment_bundle` (required) - see `t:deployment_bundle/0`
 
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
-    notebook = Keyword.fetch!(opts, :notebook)
-    warnings = Keyword.get(opts, :warnings, [])
-    files_source = Keyword.get(opts, :files_source)
+    opts = Keyword.validate!(opts, [:deployment_bundle])
+    deployment_bundle = Keyword.fetch!(opts, :deployment_bundle)
 
-    GenServer.start_link(__MODULE__, {notebook, warnings, files_source})
+    GenServer.start_link(__MODULE__, deployment_bundle)
   end
 
   @doc """
@@ -117,11 +151,9 @@ defmodule Livebook.App do
   @doc """
   Deploys a new notebook into the app.
   """
-  @spec deploy(pid(), Livebook.Notebook.t(), keyword()) :: :ok
-  def deploy(pid, notebook, opts \\ []) do
-    warnings = Keyword.get(opts, :warnings, [])
-    files_source = Keyword.get(opts, :files_source)
-    GenServer.cast(pid, {:deploy, notebook, warnings, files_source})
+  @spec deploy(pid(), deployment_bundle()) :: :ok
+  def deploy(pid, deployment_bundle) do
+    GenServer.cast(pid, {:deploy, deployment_bundle})
   end
 
   @doc """
@@ -129,8 +161,17 @@ defmodule Livebook.App do
 
   This operation results in all app sessions being closed as well.
   """
+  @spec close(pid()) :: :ok
   def close(pid) do
     GenServer.call(pid, :close)
+  end
+
+  @doc """
+  Sends an asynchronous request to close the session.
+  """
+  @spec close_async(pid()) :: :ok
+  def close_async(pid) do
+    GenServer.cast(pid, :close)
   end
 
   @doc """
@@ -151,21 +192,37 @@ defmodule Livebook.App do
   """
   @spec unsubscribe(slug()) :: :ok | {:error, term()}
   def unsubscribe(slug) do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "apps:#{slug}")
+    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "apps:#{slug}")
   end
 
   @impl true
-  def init({notebook, warnings, files_source}) do
-    {:ok,
-     %{
-       version: 1,
-       notebook: notebook,
-       files_source: files_source,
-       warnings: warnings,
-       sessions: [],
-       users: %{}
-     }
-     |> start_eagerly()}
+  def init(deployment_bundle) do
+    state = %{
+      version: 1,
+      deployment_bundle: deployment_bundle,
+      sessions: [],
+      users: %{}
+    }
+
+    app = self_from_state(state)
+
+    slug = deployment_bundle.app_spec.slug
+    name = Livebook.Apps.global_name(slug)
+
+    case :global.register_name(name, self(), &resolve_app_conflict/3) do
+      :yes ->
+        with :ok <- Livebook.Tracker.track_app(app) do
+          {:ok, state, {:continue, :after_init}}
+        end
+
+      :no ->
+        {:error, :already_started}
+    end
+  end
+
+  @impl true
+  def handle_continue(:after_init, state) do
+    {:noreply, state |> start_eagerly() |> notify_update()}
   end
 
   @impl true
@@ -175,7 +232,8 @@ defmodule Livebook.App do
 
   def handle_call({:get_session_id, user}, _from, state) do
     {session_id, state} =
-      case {state.notebook.app_settings.multi_session, single_session_app_session(state)} do
+      case {state.deployment_bundle.notebook.app_settings.multi_session,
+            single_session_app_session(state)} do
         {false, %{} = app_session} ->
           {app_session.id, state}
 
@@ -189,7 +247,7 @@ defmodule Livebook.App do
   end
 
   def handle_call(:get_settings, _from, state) do
-    {:reply, state.notebook.app_settings, state}
+    {:reply, state.deployment_bundle.notebook.app_settings, state}
   end
 
   def handle_call(:close, _from, state) do
@@ -197,20 +255,20 @@ defmodule Livebook.App do
   end
 
   @impl true
-  def handle_cast({:deploy, notebook, warnings, files_source}, state) do
-    true = notebook.app_settings.slug == state.notebook.app_settings.slug
+  def handle_cast({:deploy, deployment_bundle}, state) do
+    assert_valid_redeploy!(state.deployment_bundle, deployment_bundle)
+
+    cleanup_notebook_files_dir(state)
 
     {:noreply,
-     %{
-       state
-       | notebook: notebook,
-         version: state.version + 1,
-         warnings: warnings,
-         files_source: files_source
-     }
+     %{state | version: state.version + 1, deployment_bundle: deployment_bundle}
      |> start_eagerly()
      |> shutdown_old_versions()
      |> notify_update()}
+  end
+
+  def handle_cast(:close, state) do
+    {:stop, :shutdown, state}
   end
 
   @impl true
@@ -235,24 +293,40 @@ defmodule Livebook.App do
     {:noreply, notify_update(state)}
   end
 
+  @impl true
+  def terminate(_reason, state) do
+    cleanup_notebook_files_dir(state)
+    :ok
+  end
+
   defp self_from_state(state) do
     %{
-      slug: state.notebook.app_settings.slug,
+      slug: state.deployment_bundle.notebook.app_settings.slug,
       pid: self(),
       version: state.version,
-      warnings: state.warnings,
-      notebook_name: state.notebook.name,
-      public?: state.notebook.app_settings.access_type == :public,
-      multi_session: state.notebook.app_settings.multi_session,
-      sessions: state.sessions
+      warnings: state.deployment_bundle.warnings,
+      notebook_name: state.deployment_bundle.notebook.name,
+      public?: state.deployment_bundle.notebook.app_settings.access_type == :public,
+      multi_session: state.deployment_bundle.notebook.app_settings.multi_session,
+      sessions: state.sessions,
+      app_spec: state.deployment_bundle.app_spec,
+      permanent: state.deployment_bundle.permanent
     }
+  end
+
+  defp resolve_app_conflict({:app, slug}, pid1, pid2) do
+    Logger.info("[app=#{slug}] Closing duplicate app in the cluster")
+    [keep_pid, close_pid] = Enum.shuffle([pid1, pid2])
+    close_async(close_pid)
+    keep_pid
   end
 
   defp single_session_app_session(state) do
     app_session = Enum.find(state.sessions, &(&1.version == state.version))
 
     if app_session do
-      if state.notebook.app_settings.zero_downtime and not status_ready?(app_session.app_status) do
+      if state.deployment_bundle.notebook.app_settings.zero_downtime and
+           not status_ready?(app_session.app_status) do
         Enum.find(state.sessions, &status_ready?(&1.app_status))
       end || app_session
     end
@@ -261,10 +335,11 @@ defmodule Livebook.App do
   defp status_ready?(%{execution: :executed, lifecycle: :active}), do: true
   defp status_ready?(_status), do: false
 
-  defp start_eagerly(state) when state.notebook.app_settings.multi_session, do: state
+  defp start_eagerly(state) when state.deployment_bundle.notebook.app_settings.multi_session,
+    do: state
 
   defp start_eagerly(state) do
-    if temporary_sessions?(state.notebook.app_settings) do
+    if temporary_sessions?(state.deployment_bundle.notebook.app_settings) do
       state
     else
       {:ok, state, _app_session} = start_app_session(state)
@@ -273,14 +348,19 @@ defmodule Livebook.App do
   end
 
   defp start_app_session(state, user \\ nil) do
-    user = if(state.notebook.teams_enabled, do: user)
+    user = if(state.deployment_bundle.notebook.teams_enabled, do: user)
+
+    files_source =
+      state.deployment_bundle.files_tmp_path
+      |> Livebook.FileSystem.Utils.ensure_dir_path()
+      |> Livebook.FileSystem.File.local()
 
     opts = [
-      notebook: state.notebook,
-      files_source: state.files_source,
+      notebook: state.deployment_bundle.notebook,
+      files_source: {:dir, files_source},
       mode: :app,
       app_pid: self(),
-      auto_shutdown_ms: state.notebook.app_settings.auto_shutdown_ms,
+      auto_shutdown_ms: state.deployment_bundle.notebook.app_settings.auto_shutdown_ms,
       started_by: user
     ]
 
@@ -318,7 +398,8 @@ defmodule Livebook.App do
 
   defp temporary_sessions?(app_settings), do: app_settings.auto_shutdown_ms != nil
 
-  defp shutdown_old_versions(state) when not state.notebook.app_settings.multi_session do
+  defp shutdown_old_versions(state)
+       when not state.deployment_bundle.notebook.app_settings.multi_session do
     single_session_app_session = single_session_app_session(state)
 
     for app_session <- state.sessions,
@@ -341,11 +422,23 @@ defmodule Livebook.App do
   defp notify_update(state) do
     app = self_from_state(state)
     Livebook.Apps.update_app(app)
-    broadcast_message(state.notebook.app_settings.slug, {:app_updated, app})
+    broadcast_message(state.deployment_bundle.notebook.app_settings.slug, {:app_updated, app})
     state
   end
 
   defp broadcast_message(slug, message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "apps:#{slug}", message)
   end
+
+  defp cleanup_notebook_files_dir(state) do
+    if path = state.deployment_bundle.files_tmp_path do
+      File.rm_rf(path)
+    end
+  end
+
+  defp assert_valid_redeploy!(
+         %{app_spec: %module{slug: slug}, permanent: permanent},
+         %{app_spec: %module{slug: slug}, permanent: permanent}
+       ),
+       do: :ok
 end

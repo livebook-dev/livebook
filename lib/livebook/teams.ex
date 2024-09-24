@@ -1,13 +1,15 @@
 defmodule Livebook.Teams do
-  @moduledoc false
+  # This is the Livebook Teams interface which is not part of Hubs.
 
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
-  alias Livebook.Secrets.Secret
-  alias Livebook.Teams.{Requests, Org}
+  alias Livebook.Hubs.TeamClient
+  alias Livebook.Teams.{Agent, AppDeployment, DeploymentGroup, Org, Requests}
 
   import Ecto.Changeset,
-    only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2, change: 1]
+    only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
+
+  @prefix Org.teams_key_prefix()
 
   @doc """
   Creates an Org.
@@ -40,23 +42,18 @@ defmodule Livebook.Teams do
   defp create_org_request(%Org{} = org, attrs, callback) when is_function(callback, 1) do
     changeset = Org.changeset(org, attrs)
 
-    with {:ok, %Org{} = org} <- apply_action(changeset, :insert),
-         {:ok, response} <- callback.(org) do
-      {:ok, response}
-    else
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
+    with {:ok, %Org{} = org} <- apply_action(changeset, :insert) do
+      case callback.(org) do
+        {:ok, response} ->
+          {:ok, response}
 
-      {:error, %{"errors" => errors_map}} ->
-        errors_map =
-          if errors = errors_map["key_hash"],
-            do: Map.put_new(errors_map, "teams_key", errors),
-            else: errors_map
+        {:error, %{"errors" => errors}} ->
+          errors = map_teams_field_to_livebook_field(errors, "key_hash", "teams_key")
+          {:error, changeset |> add_external_errors(errors) |> Map.replace!(:action, :insert)}
 
-        {:error, add_org_errors(changeset, errors_map)}
-
-      any ->
-        any
+        any ->
+          any
+      end
     end
   end
 
@@ -85,80 +82,21 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Send a request to Livebook Teams API to sign a payload.
+  Returns an `%Ecto.Changeset{}` for tracking hub changes.
   """
-  @spec org_sign(Team.t(), String.t()) ::
-          {:ok, String.t()}
-          | {:transport_error, String.t()}
-  def org_sign(team, payload) do
-    case Requests.org_sign(team, payload) do
-      {:ok, %{"signature" => signature}} -> {:ok, signature}
-      any -> any
-    end
-  end
-
-  @doc """
-  Creates a Secret.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
-  """
-  @spec create_secret(Team.t(), Secret.t()) ::
-          :ok
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
-  def create_secret(%Team{} = team, %Secret{} = secret) do
-    case Requests.create_secret(team, secret) do
-      {:ok, %{"id" => _}} -> :ok
-      {:error, %{"errors" => errors_map}} -> {:error, add_secret_errors(secret, errors_map)}
-      any -> any
-    end
-  end
-
-  @doc """
-  Updates a Secret.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
-  """
-  @spec update_secret(Team.t(), Secret.t()) ::
-          :ok
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
-  def update_secret(%Team{} = team, %Secret{} = secret) do
-    case Requests.update_secret(team, secret) do
-      {:ok, %{"id" => _}} -> :ok
-      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
-      any -> any
-    end
-  end
-
-  @doc """
-  Deletes a Secret.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
-  """
-  @spec delete_secret(Team.t(), Secret.t()) ::
-          :ok
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
-  def delete_secret(%Team{} = team, %Secret{} = secret) do
-    case Requests.delete_secret(team, secret) do
-      {:ok, _} -> :ok
-      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
-      any -> any
-    end
+  @spec change_hub(Team.t(), map()) :: Ecto.Changeset.t()
+  def change_hub(%Team{} = team, attrs \\ %{}) do
+    Team.update_changeset(team, attrs)
   end
 
   @doc """
   Creates a Hub.
 
-  It notifies interested processes about hub metadatas data change.
+  It notifies interested processes about hub metadata data change.
   """
   @spec create_hub!(map()) :: Team.t()
   def create_hub!(attrs) do
-    changeset = Team.change_hub(%Team{}, attrs)
+    changeset = Team.creation_changeset(Team.new(), attrs)
     team = apply_action!(changeset, :insert)
 
     Hubs.save_hub(team)
@@ -167,12 +105,12 @@ defmodule Livebook.Teams do
   @doc """
   Updates a Hub.
 
-  With success, notifies interested processes about hub metadatas data change.
+  With success, notifies interested processes about hub metadata data change.
   Otherwise, it will return an error tuple with changeset.
   """
   @spec update_hub(Team.t(), map()) :: {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
   def update_hub(%Team{} = team, attrs) do
-    changeset = Team.change_hub(team, attrs)
+    changeset = Team.update_changeset(team, attrs)
     id = get_field(changeset, :id)
 
     if Hubs.hub_exists?(id) do
@@ -187,46 +125,128 @@ defmodule Livebook.Teams do
   @doc """
   Encrypts the given value with Teams key derived keys.
   """
-  @spec encrypt_secret_value(String.t(), bitstring(), bitstring()) :: String.t()
-  def encrypt_secret_value(value, secret, sign_secret) do
-    Plug.Crypto.MessageEncryptor.encrypt(value, secret, sign_secret)
+  @spec encrypt(String.t() | nil, bitstring()) :: String.t()
+  def encrypt(value, _secret) when value in ["", nil], do: value
+
+  def encrypt(value, secret) do
+    Plug.Crypto.MessageEncryptor.encrypt(value, secret, "unused")
   end
 
   @doc """
   Decrypts the given encrypted value with Teams key derived keys.
   """
-  @spec decrypt_secret_value(String.t(), bitstring(), bitstring()) :: {:ok, String.t()} | :error
-  def decrypt_secret_value(encrypted_value, secret, sign_secret) do
-    Plug.Crypto.MessageEncryptor.decrypt(encrypted_value, secret, sign_secret)
+  @spec decrypt(String.t() | nil, bitstring()) :: {:ok, String.t()} | :error
+  def decrypt(value, _secret) when value in ["", nil], do: value
+
+  def decrypt(encrypted_value, secret) do
+    Plug.Crypto.MessageEncryptor.decrypt(encrypted_value, secret, "unused")
   end
 
   @doc """
   Derives the secret and sign secret from given `teams_key`.
   """
-  @spec derive_keys(String.t()) :: {bitstring(), bitstring()}
-  def derive_keys(teams_key) do
+  @spec derive_key(String.t()) :: bitstring()
+  def derive_key(@prefix <> teams_key) do
     binary_key = Base.url_decode64!(teams_key, padding: false)
-
-    <<secret::16-bytes, sign_secret::16-bytes>> =
-      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook secret", cache: Plug.Crypto.Keys)
-
-    {secret, sign_secret}
+    Plug.Crypto.KeyGenerator.generate(binary_key, "notebook secret", cache: Plug.Crypto.Keys)
   end
 
-  defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do
-    add_errors(changeset, Org.__schema__(:fields), errors_map)
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking deployment group changes.
+  """
+  @spec change_deployment_group(DeploymentGroup.t(), map()) :: Ecto.Changeset.t()
+  def change_deployment_group(%DeploymentGroup{} = deployment_group, attrs \\ %{}) do
+    DeploymentGroup.changeset(deployment_group, attrs)
   end
 
-  defp add_secret_errors(%Secret{} = secret, errors_map) do
-    add_errors(change(secret), Secret.__schema__(:fields), errors_map)
+  @doc """
+  Creates a Deployment Group.
+  """
+  @spec create_deployment_group(Team.t(), map()) ::
+          {:ok, DeploymentGroup.t()}
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def create_deployment_group(%Team{} = team, attrs) do
+    changeset = DeploymentGroup.changeset(%DeploymentGroup{}, attrs)
+
+    with {:ok, %DeploymentGroup{} = deployment_group} <- apply_action(changeset, :insert) do
+      case Requests.create_deployment_group(team, deployment_group) do
+        {:ok, %{"id" => id}} ->
+          {:ok, %{deployment_group | id: to_string(id)}}
+
+        {:error, %{"errors" => errors}} ->
+          {:error,
+           changeset
+           |> add_external_errors(errors)
+           |> Map.replace!(:action, :insert)}
+
+        any ->
+          any
+      end
+    end
   end
 
-  defp add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do
-    for {key, errors} <- errors_map,
-        field = String.to_atom(key),
-        field in fields,
-        error <- errors,
-        reduce: changeset,
-        do: (acc -> add_error(acc, field, error))
+  @doc """
+  Gets a list of deployment groups for a given Hub.
+  """
+  @spec get_deployment_groups(Team.t()) :: list(DeploymentGroup.t())
+  def get_deployment_groups(team) do
+    TeamClient.get_deployment_groups(team.id)
+  end
+
+  @doc """
+  Creates a new app deployment.
+  """
+  @spec deploy_app(Team.t(), AppDeployment.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def deploy_app(%Team{} = team, %AppDeployment{} = app_deployment) do
+    case Requests.deploy_app(team, app_deployment) do
+      {:ok, %{"id" => _id}} ->
+        :ok
+
+      {:error, %{"errors" => %{"detail" => error}}} ->
+        {:error, add_external_errors(app_deployment, %{"file" => [error]})}
+
+      {:error, %{"errors" => errors}} ->
+        {:error, add_external_errors(app_deployment, errors)}
+
+      any ->
+        any
+    end
+  end
+
+  @doc """
+  Gets a list of app deployments for a given Hub.
+  """
+  @spec get_app_deployments(Team.t()) :: list(AppDeployment.t())
+  def get_app_deployments(team) do
+    TeamClient.get_app_deployments(team.id)
+  end
+
+  @doc """
+  Gets a list of agents for a given Hub.
+  """
+  @spec get_agents(Team.t()) :: list(Agent.t())
+  def get_agents(team) do
+    TeamClient.get_agents(team.id)
+  end
+
+  defp map_teams_field_to_livebook_field(map, teams_field, livebook_field) do
+    if value = map[teams_field] do
+      Map.put_new(map, livebook_field, value)
+    else
+      map
+    end
+  end
+
+  defp add_external_errors(%Ecto.Changeset{data: %struct{}} = changeset, errors_map) do
+    errors = Requests.to_error_list(struct, errors_map)
+    Livebook.Utils.put_changeset_errors(changeset, errors)
+  end
+
+  defp add_external_errors(struct, errors_map) do
+    struct |> Ecto.Changeset.change() |> add_external_errors(errors_map)
   end
 end

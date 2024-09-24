@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -67,11 +68,15 @@ class LivebookApp : ApplicationContext
 
         ContextMenuStrip menu = new ContextMenuStrip();
         menu.Items.Add("Open", null, openClicked);
+        menu.Items.Add("New Notebook", null, openNewNotebookClicked);
+        menu.Items.Add(new ToolStripSeparator());
 
         var copyURLButton = menu.Items.Add("Copy URL", null, copyURLClicked);
         copyURLButton.Enabled = false;
 
         menu.Items.Add("View Logs", null, viewLogsClicked);
+        menu.Items.Add("Open .livebookdesktop.bat", null, openBootScriptClicked);
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Settings", null, openSettingsClicked);
         menu.Items.Add("Quit", null, quitClicked);
         notifyIcon = new NotifyIcon()
@@ -132,6 +137,11 @@ class LivebookApp : ApplicationContext
         ElixirKit.API.Publish("open", "");
     }
 
+    private void openNewNotebookClicked(object? sender, EventArgs e)
+    {
+        ElixirKit.API.Publish("open", "/new");
+    }
+
     private void copyURLClicked(object? sender, EventArgs e)
     {
         System.Windows.Forms.Clipboard.SetText(url!);
@@ -139,7 +149,33 @@ class LivebookApp : ApplicationContext
 
     private void viewLogsClicked(object? sender, EventArgs e)
     {
-        System.Diagnostics.Process.Start(logPath);
+        Process.Start(logPath);
+    }
+
+    private void openBootScriptClicked(object? sender, EventArgs e)
+    {
+        var path =
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".livebookdesktop.bat"
+            );
+
+        if (!File.Exists(path))
+        {
+            File.WriteAllText(path, @"@echo off
+rem This file is used to configure Livebook before booting.
+rem If you change this file, you must restart Livebook for your changes to take place.
+rem See https://hexdocs.pm/livebook/readme.html#environment-variables for all available enviornment variables.
+
+rem Allow Livebook to connect to remote machines over IPv6
+rem set ERL_AFLAGS=-proto_dist inet6_tcp
+
+rem Add directory to PATH
+rem set PATH=C:\bin;%PATH%
+");
+        }
+
+        Process.Start("notepad.exe", path);
     }
 
     private void openSettingsClicked(object? sender, EventArgs e)

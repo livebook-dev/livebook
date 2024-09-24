@@ -24,10 +24,6 @@ defmodule Livebook.Hubs.ProviderTest do
       assert_raise RuntimeError, "not implemented", fn -> Provider.disconnect(hub) end
     end
 
-    test "capabilities/1", %{hub: hub} do
-      assert Provider.capabilities(hub) == [:list_secrets, :create_secret]
-    end
-
     test "get_secrets/1 without startup secrets", %{hub: hub} do
       secret = insert_secret(name: "GET_PERSONAL_SECRET")
       assert secret in Provider.get_secrets(hub)
@@ -59,8 +55,8 @@ defmodule Livebook.Hubs.ProviderTest do
       refute secret in Provider.get_secrets(hub)
     end
 
-    test "connection_error/1", %{hub: hub} do
-      assert_raise RuntimeError, "not implemented", fn -> Provider.connection_error(hub) end
+    test "connection_status/1", %{hub: hub} do
+      assert_raise RuntimeError, "not implemented", fn -> Provider.connection_status(hub) end
     end
   end
 end

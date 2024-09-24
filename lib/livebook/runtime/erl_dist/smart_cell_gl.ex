@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.ErlDist.SmartCellGL do
-  @moduledoc false
-
   use GenServer
 
   @spec start_link(pid()) :: GenServer.on_start()

@@ -1,6 +1,4 @@
 defmodule Livebook.SessionHelpers do
-  @moduledoc false
-
   alias Livebook.{Hubs, Session, Sessions}
   alias Livebook.Secrets.Secret
 
@@ -13,6 +11,11 @@ defmodule Livebook.SessionHelpers do
     # for handling the previously sent change messages.
     Session.get_data(session_pid)
     :ok
+  end
+
+  def connect_and_await_runtime(session_pid) do
+    Session.connect_runtime(session_pid)
+    assert_receive {:operation, {:runtime_connected, _, _}}
   end
 
   def evaluate_setup(session_pid) do
@@ -50,24 +53,37 @@ defmodule Livebook.SessionHelpers do
   end
 
   def assert_session_secret(view, session_pid, secret, key \\ :secrets) do
-    selector =
-      case secret do
-        %{name: name, hub_id: nil} -> "#session-secret-#{name}"
-        %{name: name, hub_id: id} -> "#hub-#{id}-secret-#{name}"
-      end
-
-    session_data = Session.get_data(session_pid)
-
-    secrets =
-      case Map.fetch!(session_data, key) do
-        secrets when is_map(secrets) -> Map.values(secrets)
-        secrets -> secrets
-      end
+    selector = secret_selector(secret)
+    secrets = get_secrets(session_pid, key)
 
     assert has_element?(view, selector)
     assert secret in secrets
   end
 
+  def refute_session_secret(view, session_pid, secret, key \\ :secrets) do
+    selector = secret_selector(secret)
+    secrets = get_secrets(session_pid, key)
+
+    refute has_element?(view, selector)
+    refute secret in secrets
+  end
+
   def hub_label(%Secret{hub_id: id}), do: hub_label(Hubs.fetch_hub!(id))
   def hub_label(hub), do: "#{hub.hub_emoji} #{hub.hub_name}"
+
+  defp secret_selector(secret) do
+    case secret do
+      %{name: name, hub_id: nil} -> "#session-secret-#{name}"
+      %{name: name, hub_id: id} -> "#hub-#{id}-secret-#{name}"
+    end
+  end
+
+  defp get_secrets(pid, key) do
+    session_data = Session.get_data(pid)
+
+    case Map.fetch!(session_data, key) do
+      secrets when is_map(secrets) -> Map.values(secrets)
+      secrets -> secrets
+    end
+  end
 end

@@ -12,7 +12,7 @@ export function load(key) {
     }
   } catch (error) {
     console.error(
-      `Failed to load from local storage, reason: ${error.message}`
+      `Failed to load from local storage, reason: ${error.message}`,
     );
   }
 

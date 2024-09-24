@@ -1,6 +1,8 @@
 defmodule Livebook.Runtime.EvaluatorTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.Runtime.Evaluator
 
   setup ctx do
@@ -15,13 +17,23 @@ defmodule Livebook.Runtime.EvaluatorTest do
       end
 
     {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
+    {:ok, client_tracker} = start_supervised(Evaluator.ClientTracker)
 
-    {:ok, _pid, evaluator} =
-      start_supervised(
-        {Evaluator, [send_to: self(), object_tracker: object_tracker, ebin_path: ebin_path]}
-      )
+    opts = [
+      send_to: self(),
+      object_tracker: object_tracker,
+      client_tracker: client_tracker,
+      ebin_path: ebin_path
+    ]
 
-    %{evaluator: evaluator, object_tracker: object_tracker, ebin_path: ebin_path}
+    {:ok, _pid, evaluator} = start_supervised({Evaluator, opts})
+
+    %{
+      evaluator: evaluator,
+      object_tracker: object_tracker,
+      client_tracker: client_tracker,
+      ebin_path: ebin_path
+    }
   end
 
   defmacrop metadata do
@@ -39,6 +51,12 @@ defmodule Livebook.Runtime.EvaluatorTest do
   defmacrop ansi_number(number), do: "\e[34m#{number}\e[0m"
   defmacrop ansi_string(string), do: "\e[32m\"#{string}\"\e[0m"
 
+  defmacrop error(message) do
+    quote do
+      %{type: :error, message: unquote(message), context: nil}
+    end
+  end
+
   describe "evaluate_code/6" do
     test "given a valid code returns evaluation result", %{evaluator: evaluator} do
       code = """
@@ -49,7 +67,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, ansi_number(3)},
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(ansi_number(3)),
                       metadata() = metadata}
 
       assert metadata.evaluation_time_ms >= 0
@@ -65,9 +83,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, :elixir, "x", :code_2, [])
 
       assert_receive {:runtime_evaluation_response, :code_2,
-                      {:error,
-                       "\e[31m** (CompileError) cannot compile cell (errors have been logged)\e[0m",
-                       :other}, metadata()}
+                      error(
+                        "\e[31m** (CompileError) cannot compile cell (errors have been logged)\e[0m"
+                      ), metadata()}
     end
 
     test "given parent refs sees previous evaluation context", %{evaluator: evaluator} do
@@ -76,13 +94,15 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, :elixir, "x", :code_2, [:code_1])
 
-      assert_receive {:runtime_evaluation_response, :code_2, {:text, ansi_number(1)}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(ansi_number(1)),
+                      metadata()}
     end
 
     test "given invalid parent ref uses the default context", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, :elixir, "1", :code_1, [:code_nonexistent])
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, ansi_number(1)}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(ansi_number(1)),
+                      metadata()}
     end
 
     test "given parent refs sees previous process dictionary", %{evaluator: evaluator} do
@@ -92,10 +112,14 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_2, _, metadata()}
 
       Evaluator.evaluate_code(evaluator, :elixir, "Process.get(:x)", :code_3, [:code_1])
-      assert_receive {:runtime_evaluation_response, :code_3, {:text, ansi_number(1)}, metadata()}
+
+      assert_receive {:runtime_evaluation_response, :code_3, terminal_text(ansi_number(1)),
+                      metadata()}
 
       Evaluator.evaluate_code(evaluator, :elixir, "Process.get(:x)", :code_3, [:code_2])
-      assert_receive {:runtime_evaluation_response, :code_3, {:text, ansi_number(2)}, metadata()}
+
+      assert_receive {:runtime_evaluation_response, :code_3, terminal_text(ansi_number(2)),
+                      metadata()}
     end
 
     test "keeps :rand state intact in process dictionary", %{evaluator: evaluator} do
@@ -103,10 +127,12 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
 
       Evaluator.evaluate_code(evaluator, :elixir, ":rand.uniform()", :code_2, [])
-      assert_receive {:runtime_evaluation_response, :code_2, {:text, result1}, metadata()}
+
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(result1), metadata()}
 
       Evaluator.evaluate_code(evaluator, :elixir, ":rand.uniform()", :code_2, [])
-      assert_receive {:runtime_evaluation_response, :code_2, {:text, result2}, metadata()}
+
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(result2), metadata()}
 
       assert result1 != result2
 
@@ -114,16 +140,18 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
 
       Evaluator.evaluate_code(evaluator, :elixir, ":rand.uniform()", :code_2, [])
-      assert_receive {:runtime_evaluation_response, :code_2, {:text, ^result1}, metadata()}
+
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(^result1), metadata()}
 
       Evaluator.evaluate_code(evaluator, :elixir, ":rand.uniform()", :code_2, [])
-      assert_receive {:runtime_evaluation_response, :code_2, {:text, ^result2}, metadata()}
+
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(^result2), metadata()}
     end
 
     test "captures standard output and sends it to the caller", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, :elixir, ~s{IO.puts("hey")}, :code_1, [])
 
-      assert_receive {:runtime_evaluation_output, :code_1, {:stdout, "hey\n"}}
+      assert_receive {:runtime_evaluation_output, :code_1, terminal_text("hey\n", true)}
     end
 
     test "using livebook input sends input request to the caller", %{evaluator: evaluator} do
@@ -141,7 +169,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_input_request, :code_1, reply_to, "input1"}
       send(reply_to, {:runtime_evaluation_input_reply, {:ok, 10}})
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, ansi_number(10)}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(ansi_number(10)),
+                      metadata()}
     end
 
     test "returns error along with its kind and stacktrace", %{evaluator: evaluator} do
@@ -151,8 +180,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex")
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:error, message, :other},
-                      metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()}
 
       assert """
              ** (FunctionClauseError) no function clause matching in List.first/2
@@ -173,12 +201,23 @@ defmodule Livebook.Runtime.EvaluatorTest do
              """ <> _ = clean_message(message)
     end
 
+    test "only keeps #cell: markers in stacktrace", %{evaluator: evaluator} do
+      code = """
+      List.first(%{})
+      """
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex#cell:abcDEF")
+
+      assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()}
+      assert message =~ "  #cell:abcDEF:1: (file)"
+    end
+
     test "returns additional metadata when there is a syntax error", %{evaluator: evaluator} do
       code = "1+"
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex")
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:error, message, :other},
+      assert_receive {:runtime_evaluation_response, :code_1, error(message),
                       %{
                         code_markers: [
                           %{
@@ -190,10 +229,13 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       }}
 
       assert clean_message(message) === """
-             ** (TokenMissingError) file.ex:1:2: syntax error: expression is incomplete
-                 |
-               1 | 1+
-                 |  ^\
+             ** (TokenMissingError) token missing on file.ex:1:2:
+                 error: syntax error: expression is incomplete
+                 │
+               1 │ 1+
+                 │  ^
+                 │
+                 └─ file.ex:1:2\
              """
     end
 
@@ -203,9 +245,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex")
 
       assert_receive {:runtime_evaluation_response, :code_1,
-                      {:error,
-                       "\e[31m** (CompileError) cannot compile cell (errors have been logged)\e[0m",
-                       :other},
+                      error(
+                        "\e[31m** (CompileError) cannot compile cell (errors have been logged)\e[0m"
+                      ),
                       %{
                         code_markers: [
                           %{
@@ -217,9 +259,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       }}
     end
 
-    test "returns additional metadata when there is a module compilation error", %{
-      evaluator: evaluator
-    } do
+    test "returns additional metadata when there is a module compilation error",
+         %{evaluator: evaluator} do
       code = """
       defmodule Livebook.Runtime.EvaluatorTest.Invalid do
         x
@@ -229,9 +270,10 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex")
 
       assert_receive {:runtime_evaluation_response, :code_1,
-                      {:error,
-                       "\e[31m** (CompileError) file.ex: cannot compile module Livebook.Runtime.EvaluatorTest.Invalid " <>
-                         "(errors have been logged)\e[0m" <> _, :other},
+                      error(
+                        "\e[31m** (CompileError) file.ex: cannot compile module Livebook.Runtime.EvaluatorTest.Invalid " <>
+                          "(errors have been logged)\e[0m" <> _
+                      ),
                       %{
                         code_markers: [
                           %{
@@ -251,9 +293,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex")
 
       assert_receive {:runtime_evaluation_response, :code_1,
-                      {:error,
-                       "\e[31m** (CompileError) cannot compile cell (errors have been logged)\e[0m",
-                       :other}, %{code_markers: []}}
+                      error(
+                        "\e[31m** (CompileError) cannot compile cell (errors have been logged)\e[0m"
+                      ), %{code_markers: []}}
     end
 
     test "in case of an error returns only the relevant part of stacktrace",
@@ -279,8 +321,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
       # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
-      assert_receive {:runtime_evaluation_response, :code_1, {:error, message, :other},
-                      metadata()},
+      assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()},
                      2_000
 
       assert clean_message(message) ==
@@ -307,14 +348,18 @@ defmodule Livebook.Runtime.EvaluatorTest do
       """
 
       Evaluator.evaluate_code(evaluator, :elixir, code1, :code_1, [])
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, ansi_number(2)}, metadata()}
+
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(ansi_number(2)),
+                      metadata()}
 
       Evaluator.evaluate_code(evaluator, :elixir, code2, :code_2, [:code_1])
 
-      assert_receive {:runtime_evaluation_response, :code_2, {:error, _, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_2, error(_), metadata()}
 
       Evaluator.evaluate_code(evaluator, :elixir, code3, :code_3, [:code_2, :code_1])
-      assert_receive {:runtime_evaluation_response, :code_3, {:text, ansi_number(4)}, metadata()}
+
+      assert_receive {:runtime_evaluation_response, :code_3, terminal_text(ansi_number(4)),
+                      metadata()}
     end
 
     test "given file option sets it in evaluation environment", %{evaluator: evaluator} do
@@ -325,8 +370,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
       opts = [file: "/path/dir/file"]
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], opts)
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, ansi_string("/path/dir")},
-                      metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1,
+                      terminal_text(ansi_string("/path/dir")), metadata()}
     end
 
     test "kills widgets that that no evaluation points to", %{evaluator: evaluator} do
@@ -336,7 +381,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, :elixir, spawn_widget_code(), :code_1, [])
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, widget_pid1_string},
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(widget_pid1_string),
                       metadata()}
 
       widget_pid1 = IEx.Helpers.pid(widget_pid1_string)
@@ -345,7 +390,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, :elixir, spawn_widget_code(), :code_1, [])
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, widget_pid2_string},
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(widget_pid2_string),
                       metadata()}
 
       widget_pid2 = IEx.Helpers.pid(widget_pid2_string)
@@ -367,7 +412,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         []
       )
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, widget_pid1_string},
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(widget_pid1_string),
                       metadata()}
 
       widget_pid1 = IEx.Helpers.pid(widget_pid1_string)
@@ -384,18 +429,18 @@ defmodule Livebook.Runtime.EvaluatorTest do
       """
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(_), metadata()}
 
       # Redefining in the same evaluation works
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(_), metadata()}
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_2, [], file: "file.ex")
 
       assert_receive {:runtime_evaluation_response, :code_2,
-                      {:error,
-                       "\e[31m** (CompileError) file.ex:1: module Livebook.Runtime.EvaluatorTest.Redefinition is already defined\e[0m",
-                       :other},
+                      error(
+                        "\e[31m** (CompileError) file.ex:1: module Livebook.Runtime.EvaluatorTest.Redefinition is already defined\e[0m"
+                      ),
                       %{
                         code_markers: [
                           %{
@@ -418,7 +463,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       """
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(_), metadata()}
 
       assert File.exists?(Path.join(ebin_path, "Elixir.Livebook.Runtime.EvaluatorTest.Disk.beam"))
 
@@ -434,7 +479,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       """
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
-      assert_receive {:runtime_evaluation_response, :code_1, {:error, _, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, error(_), metadata()}
 
       refute Code.ensure_loaded?(Livebook.Runtime.EvaluatorTest.Raised)
     end
@@ -457,6 +502,50 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:DOWN, ^ref, :process, ^gl, _reason}
 
       refute Code.ensure_loaded?(Livebook.Runtime.EvaluatorTest.Exited)
+    end
+
+    @tag :with_ebin_path
+    test "returns identifier definitions", %{evaluator: evaluator} do
+      Code.put_compiler_option(:debug_info, true)
+
+      code = ~S'''
+      defmodule Livebook.Runtime.EvaluatorTest.ModuleDef1 do
+        def fun(), do: :ok
+      end
+
+      defmodule Livebook.Runtime.EvaluatorTest.ModuleDef2 do
+        defmodule Foo do
+          defstruct [:name]
+        end
+      end
+      '''
+
+      file = "file.livemd#cell_id:123456789"
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: file)
+
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(_),
+                      metadata() = metadata}
+
+      assert metadata.identifier_definitions == [
+               %{
+                 label: "Livebook.Runtime.EvaluatorTest.ModuleDef1",
+                 line: 1,
+                 file: file
+               },
+               %{
+                 label: "Livebook.Runtime.EvaluatorTest.ModuleDef2",
+                 line: 5,
+                 file: file
+               },
+               %{
+                 label: "Livebook.Runtime.EvaluatorTest.ModuleDef2.Foo",
+                 line: 6,
+                 file: file
+               }
+             ]
+    after
+      Code.put_compiler_option(:debug_info, false)
     end
   end
 
@@ -722,7 +811,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       ref = eval_idx
       parent_refs = Enum.to_list((eval_idx - 1)..0//-1)
       Evaluator.evaluate_code(evaluator, :elixir, code, ref, parent_refs)
-      assert_receive {:runtime_evaluation_response, ^ref, {:text, _}, metadata}
+      assert_receive {:runtime_evaluation_response, ^ref, terminal_text(_), metadata}
       %{used: metadata.identifiers_used, defined: metadata.identifiers_defined}
     end
 
@@ -795,22 +884,6 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert {:variable, {:x, nil}} in identifiers.used
       assert {:variable, {:y, nil}} in identifiers.used
       assert {:variable, {:z, nil}} not in identifiers.used
-    end
-
-    test "reports parentheses-less arity-0 import as a used variable", %{evaluator: evaluator} do
-      # TODO: remove all logic around undefined unused vars once we require Elixir v1.15
-      Code.put_compiler_option(:on_undefined_variable, :warn)
-
-      identifiers =
-        """
-        self
-        """
-        |> eval(evaluator, 0)
-
-      Code.put_compiler_option(:on_undefined_variable, :raise)
-
-      assert {:variable, {:self, nil}} in identifiers.used
-      assert :imports in identifiers.used
     end
 
     test "module definition", %{evaluator: evaluator} do
@@ -1130,15 +1203,15 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, :elixir, "x", :code_2, [:code_1])
 
       assert_receive {:runtime_evaluation_response, :code_2,
-                      {:error,
-                       "\e[31m** (CompileError) cannot compile cell (errors have been logged)\e[0m",
-                       :other}, metadata()}
+                      error(
+                        "\e[31m** (CompileError) cannot compile cell (errors have been logged)\e[0m"
+                      ), metadata()}
     end
 
     test "kills widgets that no evaluation points to", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, :elixir, spawn_widget_code(), :code_1, [])
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, widget_pid1_string},
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(widget_pid1_string),
                       metadata()}
 
       widget_pid1 = IEx.Helpers.pid(widget_pid1_string)
@@ -1157,22 +1230,20 @@ defmodule Livebook.Runtime.EvaluatorTest do
       """
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(_), metadata()}
 
       Evaluator.forget_evaluation(evaluator, :code_1)
 
       # Define the module in a different evaluation
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_2, [])
-      assert_receive {:runtime_evaluation_response, :code_2, {:text, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(_), metadata()}
     end
   end
 
   describe "initialize_from/3" do
-    setup %{object_tracker: object_tracker} do
-      {:ok, _pid, parent_evaluator} =
-        start_supervised({Evaluator, [send_to: self(), object_tracker: object_tracker]},
-          id: :parent_evaluator
-        )
+    setup %{object_tracker: object_tracker, client_tracker: client_tracker} do
+      opts = [send_to: self(), object_tracker: object_tracker, client_tracker: client_tracker]
+      {:ok, _pid, parent_evaluator} = start_supervised({Evaluator, opts}, id: :parent_evaluator)
 
       %{parent_evaluator: parent_evaluator}
     end
@@ -1185,7 +1256,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.initialize_from(evaluator, parent_evaluator, [:code_1])
 
       Evaluator.evaluate_code(evaluator, :elixir, "x", :code_2, [])
-      assert_receive {:runtime_evaluation_response, :code_2, {:text, ansi_number(1)}, metadata()}
+
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(ansi_number(1)),
+                      metadata()}
     end
   end
 
@@ -1224,7 +1297,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         []
       )
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, "6"}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text("6"), metadata()}
     end
 
     test "evaluate erlang-module code", %{evaluator: evaluator} do
@@ -1285,18 +1358,60 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert [{:z, 1}, {:y, 1}, {:x, 1}] == binding
     end
 
+    test "uses unambiguous camelization for erlang/elixir bindings", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :erlang, "{JSON, JsOn, JsON} = {1, 2, 3}.", :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(_), metadata()}
+
+      Evaluator.evaluate_code(
+        evaluator,
+        :elixir,
+        """
+        assertion1 = {j_s_o_n, js_on, js_o_n} == {1, 2, 3}
+        {j_s_o_n, js_on, js_o_n} = {11, 12, 13}
+        """,
+        :code_2,
+        [:code_1]
+      )
+
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(_), metadata()}
+
+      Evaluator.evaluate_code(
+        evaluator,
+        :erlang,
+        """
+        Assertion2 = {JSON, JsOn, JsON} =:= {11, 12, 13}.
+        """,
+        :code_3,
+        [:code_2]
+      )
+
+      assert_receive {:runtime_evaluation_response, :code_3, terminal_text(_), metadata()}
+
+      %{binding: binding} =
+        Evaluator.get_evaluation_context(evaluator, [:code_3, :code_2, :code_1])
+
+      assert [
+               {:assertion2, true},
+               {:js_on, 12},
+               {:js_o_n, 13},
+               {:j_s_o_n, 11},
+               {:assertion1, true}
+             ] == binding
+    end
+
     test "inspects erlang results using erlang format", %{evaluator: evaluator} do
       code = ~S"#{x=>1}."
       Evaluator.evaluate_code(evaluator, :erlang, code, :code_1, [], file: "file.ex")
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:text, ~S"#{x => 1}"}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(~S"#{x => 1}"),
+                      metadata()}
     end
 
     test "does not return error marker on empty source", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, :erlang, "", :code_1, [])
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:error, _, _},
-                      metadata() = metadata}
+      assert_receive {:runtime_evaluation_response, :code_1, error(_), metadata() = metadata}
 
       assert metadata.code_markers == []
     end
@@ -1304,22 +1419,22 @@ defmodule Livebook.Runtime.EvaluatorTest do
     test "syntax and tokenizer errors are converted", %{evaluator: evaluator} do
       # Incomplete input
       Evaluator.evaluate_code(evaluator, :erlang, "X =", :code_1, [])
-      assert_receive {:runtime_evaluation_response, :code_1, {:error, message, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()}
       assert "\e[31m** (TokenMissingError)" <> _ = message
 
       # Parser error
       Evaluator.evaluate_code(evaluator, :erlang, "X ==/== a.", :code_2, [])
-      assert_receive {:runtime_evaluation_response, :code_2, {:error, message, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_2, error(message), metadata()}
       assert "\e[31m** (SyntaxError)" <> _ = message
 
       # Tokenizer error
       Evaluator.evaluate_code(evaluator, :erlang, "$a$", :code_3, [])
-      assert_receive {:runtime_evaluation_response, :code_3, {:error, message, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_3, error(message), metadata()}
       assert "\e[31m** (SyntaxError)" <> _ = message
 
       # Erlang exception
       Evaluator.evaluate_code(evaluator, :erlang, "list_to_binary(1).", :code_4, [])
-      assert_receive {:runtime_evaluation_response, :code_4, {:error, message, _}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_4, error(message), metadata()}
       assert "\e[31mexception error: bad argument" <> _ = message
     end
   end
@@ -1329,8 +1444,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       code = "%Livebook.TestModules.BadInspect{}"
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex")
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:error, message, :other},
-                      metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()}
 
       assert message =~ ":bad_return"
     end
@@ -1398,19 +1512,5 @@ defmodule Livebook.Runtime.EvaluatorTest do
       {:widget_pid, widget_pid} -> widget_pid
     end
     """
-  end
-
-  defp clean_message(message) do
-    message
-    |> remove_trailing_whitespace()
-    |> remove_ansi()
-  end
-
-  defp remove_trailing_whitespace(string) do
-    String.replace(string, ~r/ +$/m, "")
-  end
-
-  defp remove_ansi(string) do
-    String.replace(string, ~r/\e\[\d+m/, "")
   end
 end

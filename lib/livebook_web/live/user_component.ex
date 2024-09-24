@@ -1,7 +1,7 @@
 defmodule LivebookWeb.UserComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.UserHelpers
+  import LivebookWeb.UserComponents
 
   alias Livebook.EctoTypes.HexColor
   alias Livebook.Users
@@ -18,7 +18,7 @@ defmodule LivebookWeb.UserComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 flex flex-col space-y-5">
+    <div class="flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         User profile
       </h3>
@@ -39,7 +39,7 @@ defmodule LivebookWeb.UserComponent do
             field={f[:name]}
             label="Display name"
             spellcheck="false"
-            disabled={Livebook.Config.identity_readonly?()}
+            disabled={Livebook.Config.identity_provider_read_only?()}
           />
           <%= if @user.email do %>
             <.text_field field={f[:email]} label="email" spellcheck="false" disabled="true" />
@@ -49,14 +49,10 @@ defmodule LivebookWeb.UserComponent do
             label="Cursor color"
             randomize={JS.push("randomize_color", target: @myself)}
           />
-          <button
-            class="button-base button-blue flex space-x-1 justify-center items-center"
-            type="submit"
-            disabled={not @changeset.valid?}
-          >
+          <.button type="submit" disabled={not @changeset.valid?}>
             <.remix_icon icon="save-line" />
             <span>Save</span>
-          </button>
+          </.button>
         </div>
       </.form>
     </div>

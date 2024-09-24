@@ -1,13 +1,11 @@
 defmodule Livebook.Runtime.NoopRuntime do
-  @moduledoc false
-
   # A runtime that doesn't do any actual evaluation,
   # thus not requiring any underlying resources.
 
-  defstruct [:started, :trace_to]
+  defstruct [:trace_to]
 
   def new(trace_to \\ nil) do
-    %__MODULE__{started: false, trace_to: trace_to}
+    %__MODULE__{trace_to: trace_to}
   end
 
   defimpl Livebook.Runtime do
@@ -15,16 +13,22 @@ defmodule Livebook.Runtime.NoopRuntime do
       [{"Type", "Noop"}]
     end
 
-    def connect(runtime), do: {:ok, %{runtime | started: true}}
-    def connected?(runtime), do: runtime.started
+    def connect(runtime) do
+      caller = self()
+
+      spawn(fn ->
+        send(caller, {:runtime_connect_done, self(), {:ok, runtime}})
+      end)
+    end
+
     def take_ownership(_, _), do: make_ref()
-    def disconnect(runtime), do: {:ok, %{runtime | started: false}}
-    def duplicate(_), do: Livebook.Runtime.NoopRuntime.new()
+    def disconnect(_), do: :ok
+    def duplicate(runtime), do: Livebook.Runtime.NoopRuntime.new(runtime.trace_to)
 
     def evaluate_code(_, _, _, _, _, _ \\ []), do: :ok
     def forget_evaluation(_, _), do: :ok
     def drop_container(_, _), do: :ok
-    def handle_intellisense(_, _, _, _), do: make_ref()
+    def handle_intellisense(_, _, _, _, _), do: make_ref()
 
     def read_file(_, path) do
       case File.read(path) do
@@ -37,6 +41,8 @@ defmodule Livebook.Runtime.NoopRuntime do
       callback.(path)
       :ok
     end
+
+    def relabel_file(_runtime, _file_id, _new_file_id), do: :ok
 
     def revoke_file(runtime, file_id) do
       trace(runtime, :revoke_file, [file_id])
@@ -55,14 +61,28 @@ defmodule Livebook.Runtime.NoopRuntime do
 
     def has_dependencies?(_runtime, _dependencies), do: true
 
-    def code_block_definitions(_runtime), do: []
+    def snippet_definitions(_runtime) do
+      Livebook.Runtime.Definitions.snippet_definitions()
+    end
 
     def search_packages(_, _, _), do: make_ref()
 
-    def disable_dependencies_cache(_), do: :ok
-
     def put_system_envs(_, _), do: :ok
     def delete_system_envs(_, _), do: :ok
+
+    def restore_transient_state(runtime, transient_state) do
+      trace(runtime, :restore_transient_state, [transient_state])
+      :ok
+    end
+
+    def register_clients(_, _), do: :ok
+    def unregister_clients(_, _), do: :ok
+    def fetch_proxy_handler_spec(_), do: {:error, :not_found}
+
+    def disconnect_node(runtime, node) do
+      trace(runtime, :disconnect_node, [node])
+      :ok
+    end
 
     defp trace(runtime, fun, args) do
       if runtime.trace_to do

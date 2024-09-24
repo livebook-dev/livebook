@@ -1,10 +1,6 @@
 defprotocol Livebook.Hubs.Provider do
-  @moduledoc false
-
+  alias Livebook.FileSystem
   alias Livebook.Secrets.Secret
-
-  @type capability :: :connect | :list_secrets | :create_secret
-  @type capabilities :: list(capability())
 
   @typedoc """
   An provider-specific map stored as notebook stamp.
@@ -22,6 +18,8 @@ defprotocol Livebook.Hubs.Provider do
   and use string keys.
   """
   @type notebook_stamp :: map()
+
+  @type field_errors :: list({atom(), list(String.t())})
 
   @doc """
   Transforms given hub to `Livebook.Hubs.Metadata` struct.
@@ -54,12 +52,6 @@ defprotocol Livebook.Hubs.Provider do
   def disconnect(hub)
 
   @doc """
-  Gets the capabilities of the given hub.
-  """
-  @spec capabilities(t()) :: capabilities()
-  def capabilities(hub)
-
-  @doc """
   Gets the secrets of the given hub.
   """
   @spec get_secrets(t()) :: list(Secret.t())
@@ -70,7 +62,7 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec create_secret(t(), Secret.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, field_errors()}
           | {:transport_error, String.t()}
   def create_secret(hub, secret)
 
@@ -79,7 +71,7 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec update_secret(t(), Secret.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, field_errors()}
           | {:transport_error, String.t()}
   def update_secret(hub, secret)
 
@@ -90,10 +82,10 @@ defprotocol Livebook.Hubs.Provider do
   def delete_secret(hub, secret)
 
   @doc """
-  Gets the connection error from hub.
+  Gets the connection status from hub.
   """
-  @spec connection_error(t()) :: String.t() | nil
-  def connection_error(hub)
+  @spec connection_status(t()) :: String.t() | nil
+  def connection_status(hub)
 
   @doc """
   Generates a notebook stamp.
@@ -110,6 +102,57 @@ defprotocol Livebook.Hubs.Provider do
   See `t:notebook_stamp/0` for more details.
   """
   @spec verify_notebook_stamp(t(), iodata(), notebook_stamp()) ::
-          {:ok, metadata :: map()} | :error
+          {:ok, metadata :: map()} | {:error, :invalid | :too_recent_version}
   def verify_notebook_stamp(hub, notebook_source, stamp)
+
+  @doc """
+  Transforms hub to the attributes map sent to storage.
+  """
+  @spec dump(t()) :: map()
+  def dump(hub)
+
+  @doc """
+  Gets the file systems of given hub.
+  """
+  @spec get_file_systems(t()) :: list(FileSystem.t())
+  def get_file_systems(hub)
+
+  @doc """
+  Creates a file system of the given hub.
+  """
+  @spec create_file_system(t(), FileSystem.t()) ::
+          :ok
+          | {:error, field_errors()}
+          | {:transport_error, String.t()}
+  def create_file_system(hub, file_system)
+
+  @doc """
+  Updates a file system of the given hub.
+  """
+  @spec update_file_system(t(), FileSystem.t()) ::
+          :ok
+          | {:error, field_errors()}
+          | {:transport_error, String.t()}
+  def update_file_system(hub, file_system)
+
+  @doc """
+  Deletes a file system of the given hub.
+  """
+  @spec delete_file_system(t(), FileSystem.t()) :: :ok | {:transport_error, String.t()}
+  def delete_file_system(hub, file_system)
+
+  @doc """
+  Get the deployment groups for a given hub.
+
+  Returns `nil` if deployment groups are not applicable to this hub.
+  """
+  @spec deployment_groups(t()) ::
+          list(%{id: String.t(), name: String.t(), secrets: list(Secret.t())}) | nil
+  def deployment_groups(hub)
+
+  @doc """
+  Gets app specs for permanent apps sourced from the given hub.
+  """
+  @spec get_app_specs(t()) :: list(Livebook.Apps.AppSpec.t())
+  def get_app_specs(hub)
 end

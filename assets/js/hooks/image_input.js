@@ -1,28 +1,29 @@
-import {
-  getAttributeOrDefault,
-  getAttributeOrThrow,
-  parseInteger,
-} from "../lib/attribute";
-import { base64ToBuffer, bufferToBase64 } from "../lib/utils";
+import { parseHookProps } from "../lib/attribute";
 
 const dropClasses = ["bg-yellow-100", "border-yellow-300"];
 
 /**
  * A hook for client-preprocessed image input.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-id` - a unique id
+ *   * `id` - a unique id
  *
- *   * `data-phx-target` - the component to send the `"change"` event to
+ *   * `phx-target` - the component to send the `"change"` event to
  *
- *   * `data-height` - the image bounding height
+ *   * `height` - the image bounding height
  *
- *   * `data-width` - the image bounding width
+ *   * `width` - the image bounding width
  *
- *   * `data-format` - the desired image format
+ *   * `format` - the desired image format
  *
- *   * `data-fit` - the fit strategy
+ *   * `fit` - the fit strategy
+ *
+ *   * `image-url` - the URL to the image binary value
+ *
+ *   * `value-height` - the height of the current image value
+ *
+ *   * `value-width` - the width fo the current image value
  *
  */
 const ImageInput = {
@@ -42,7 +43,7 @@ const ImageInput = {
     this.uploadButton = this.el.querySelector(`[data-btn-upload]`);
     this.openCameraButton = this.el.querySelector(`[data-btn-open-camera]`);
     this.captureCameraButton = this.el.querySelector(
-      `[data-btn-capture-camera]`
+      `[data-btn-capture-camera]`,
     );
     this.cancelButton = this.el.querySelector(`[data-btn-cancel]`);
 
@@ -50,18 +51,7 @@ const ImageInput = {
     this.cameraVideoEl = null;
     this.cameraStream = null;
 
-    // Render updated value
-    this.handleEvent(
-      `image_input_change:${this.props.id}`,
-      ({ image_info: imageInfo }) => {
-        if (imageInfo) {
-          const canvas = imageInfoToElement(imageInfo, this.props.format);
-          this.setPreview(canvas);
-        } else {
-          this.setPreview(this.initialPreviewContentEl);
-        }
-      }
-    );
+    this.updateImagePreview();
 
     // File selection
 
@@ -126,7 +116,7 @@ const ImageInput = {
       const canvas = this.toCanvas(
         this.cameraVideoEl,
         this.cameraVideoEl.videoWidth,
-        this.cameraVideoEl.videoHeight
+        this.cameraVideoEl.videoHeight,
       );
       this.pushImage(canvas);
       this.closeCameraView();
@@ -139,17 +129,37 @@ const ImageInput = {
 
   updated() {
     this.props = this.getProps();
+
+    this.updateImagePreview();
   },
 
   getProps() {
-    return {
-      id: getAttributeOrThrow(this.el, "data-id"),
-      phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
-      height: getAttributeOrDefault(this.el, "data-height", null, parseInteger),
-      width: getAttributeOrDefault(this.el, "data-width", null, parseInteger),
-      format: getAttributeOrThrow(this.el, "data-format"),
-      fit: getAttributeOrThrow(this.el, "data-fit"),
-    };
+    return parseHookProps(this.el, [
+      "id",
+      "phx-target",
+      "height",
+      "width",
+      "format",
+      "fit",
+      "image-url",
+      "value-height",
+      "value-width",
+    ]);
+  },
+
+  updateImagePreview() {
+    if (this.props.imageUrl) {
+      buildPreviewElement(
+        this.props.imageUrl,
+        this.props.valueHeight,
+        this.props.valueWidth,
+        this.props.format,
+      ).then((element) => {
+        this.setPreview(element);
+      });
+    } else {
+      this.setPreview(this.initialPreviewContentEl);
+    }
   },
 
   loadFile(file) {
@@ -272,10 +282,16 @@ const ImageInput = {
   },
 
   pushImage(canvas) {
-    this.pushEventTo(this.props.phxTarget, "change", {
-      data: canvasToBase64(canvas, this.props.format),
-      height: canvas.height,
-      width: canvas.width,
+    canvasToBuffer(canvas, this.props.format).then((buffer) => {
+      const meta = {
+        height: canvas.height,
+        width: canvas.width,
+      };
+
+      const blob = new Blob([buffer]);
+      blob.meta = () => meta;
+
+      this.uploadTo(this.props.phxTarget, "file", [blob]);
     });
   },
 
@@ -315,7 +331,7 @@ const ImageInput = {
         0,
         0,
         scaledWidth,
-        scaledHeight
+        scaledHeight,
       );
     } else if (this.props.fit === "crop") {
       const widthScale = boundWidth / width;
@@ -337,7 +353,7 @@ const ImageInput = {
         0,
         0,
         boundWidth,
-        boundHeight
+        boundHeight,
       );
     } else if (this.props.fit === "pad") {
       const widthScale = boundWidth / width;
@@ -362,7 +378,7 @@ const ImageInput = {
         Math.round((boundWidth - scaledWidth) / 2),
         Math.round((boundHeight - scaledHeight) / 2),
         scaledWidth,
-        scaledHeight
+        scaledHeight,
       );
     } else {
       canvas.width = boundWidth;
@@ -377,7 +393,7 @@ const ImageInput = {
         0,
         0,
         boundWidth,
-        boundHeight
+        boundHeight,
       );
     }
 
@@ -397,11 +413,15 @@ const ImageInput = {
   },
 };
 
-function canvasToBase64(canvas, format) {
+function canvasToBuffer(canvas, format) {
   if (format === "png" || format === "jpeg") {
-    const prefix = `data:image/${format};base64,`;
-    const dataUrl = canvas.toDataURL(`image/${format}`);
-    return dataUrl.slice(prefix.length);
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        blob.arrayBuffer().then((buffer) => {
+          resolve(buffer);
+        });
+      }, `image/${format}`);
+    });
   }
 
   if (format === "rgb") {
@@ -410,7 +430,7 @@ function canvasToBase64(canvas, format) {
       .getImageData(0, 0, canvas.width, canvas.height);
 
     const buffer = imageDataToRGBBuffer(imageData);
-    return bufferToBase64(buffer);
+    return Promise.resolve(buffer);
   }
 
   throw new Error(`Unexpected format: ${format}`);
@@ -429,26 +449,24 @@ function imageDataToRGBBuffer(imageData) {
   return bytes.buffer;
 }
 
-function imageInfoToElement(imageInfo, format) {
+function buildPreviewElement(imageUrl, height, width, format) {
   if (format === "png" || format === "jpeg") {
-    const src = `data:image/${format};base64,${imageInfo.data}`;
     const img = document.createElement("img");
-    img.src = src;
-    return img;
+    img.src = imageUrl;
+    return Promise.resolve(img);
   }
 
   if (format === "rgb") {
-    const canvas = document.createElement("canvas");
-    canvas.height = imageInfo.height;
-    canvas.width = imageInfo.width;
-    const buffer = base64ToBuffer(imageInfo.data);
-    const imageData = imageDataFromRGBBuffer(
-      buffer,
-      imageInfo.width,
-      imageInfo.height
-    );
-    canvas.getContext("2d").putImageData(imageData, 0, 0);
-    return canvas;
+    return fetch(imageUrl)
+      .then((response) => response.arrayBuffer())
+      .then((buffer) => {
+        const canvas = document.createElement("canvas");
+        canvas.height = height;
+        canvas.width = width;
+        const imageData = imageDataFromRGBBuffer(buffer, width, height);
+        canvas.getContext("2d").putImageData(imageData, 0, 0);
+        return canvas;
+      });
   }
 
   throw new Error(`Unexpected format: ${format}`);

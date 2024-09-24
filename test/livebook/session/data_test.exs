@@ -4,16 +4,28 @@ defmodule Livebook.Session.DataTest do
   import Livebook.TestHelpers
 
   alias Livebook.Session.Data
-  alias Livebook.{Delta, Notebook}
+  alias Livebook.{Text, Notebook}
+  alias Livebook.Text.Delta
   alias Livebook.Users.User
 
-  @eval_resp {:ok, [1, 2, 3]}
+  @eval_resp %{type: :terminal_text, text: ":ok", chunk: false}
   @smart_cell_definitions [%{kind: "text", name: "Text", requirement_presets: []}]
   @cid "__anonymous__"
+
+  @stdout %{type: :terminal_text, text: "Hello!", chunk: true}
+
+  @input %{
+    type: :input,
+    ref: "ref1",
+    id: "i1",
+    destination: nil,
+    attrs: %{type: :text, default: "hey", label: "Text", debounce: :blur}
+  }
 
   defp eval_meta(opts \\ []) do
     uses = opts[:uses] || []
     defines = opts[:defines] || %{}
+    identifier_definitions = opts[:identifier_definitions] || []
     errored = Keyword.get(opts, :errored, false)
     interrupted = Keyword.get(opts, :interrupted, false)
 
@@ -23,6 +35,7 @@ defmodule Livebook.Session.DataTest do
       evaluation_time_ms: 10,
       identifiers_used: uses,
       identifiers_defined: defines,
+      identifier_definitions: identifier_definitions,
       code_markers: []
     }
   end
@@ -78,13 +91,13 @@ defmodule Livebook.Session.DataTest do
               Notebook.Section.new()
               | id: "s1",
                 cells: [
-                  %{Notebook.Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hello!"}}]}
+                  %{Notebook.Cell.new(:code) | id: "c1", outputs: [{0, @stdout}]}
                 ]
             }
           ]
       }
 
-      assert %{notebook: %{sections: [%{cells: [%{outputs: [{0, {:stdout, "Hello!"}}]}]}]}} =
+      assert %{notebook: %{sections: [%{cells: [%{outputs: [{0, @stdout}]}]}]}} =
                Data.new(notebook: notebook)
 
       assert %{notebook: %{sections: [%{cells: [%{outputs: []}]}]}} =
@@ -174,6 +187,51 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :insert_branching_section_into" do
+    test "returns an error given invalid section id" do
+      data = Data.new()
+      operation = {:insert_branching_section_into, @cid, "nonexistent", 0, "s1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "sets the insertion section as parent if it is not branching" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"}
+        ])
+
+      operation = {:insert_branching_section_into, @cid, "s1", 0, "s2"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1"}, %{id: "s2", parent_id: "s1"}]
+                },
+                section_infos: %{"s2" => _}
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "sets the closest regular section as parent" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_section, @cid, 1, "s2"},
+          {:insert_section, @cid, 2, "s3"},
+          {:set_section_parent, @cid, "s3", "s1"}
+        ])
+
+      operation = {:insert_branching_section_into, @cid, "s3", 0, "s4"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1"}, %{id: "s2"}, %{id: "s3"}, %{id: "s4", parent_id: "s2"}]
+                },
+                section_infos: %{"s4" => _}
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :set_section_parent" do
     test "returns an error given invalid section id" do
       data =
@@ -259,7 +317,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:insert_cell, @cid, "s3", 1, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
             uses: %{"c3" => ["c2"]}
           )
@@ -287,9 +345,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2", "c3"]}
+          {:queue_cells_evaluation, @cid, ["c2", "c3"], []}
         ])
 
       operation = {:set_section_parent, @cid, "s2", "s1"}
@@ -375,7 +433,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
 
@@ -401,9 +459,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2", "c3"]}
+          {:queue_cells_evaluation, @cid, ["c2", "c3"], []}
         ])
 
       operation = {:unset_section_parent, @cid, "s2"}
@@ -468,7 +526,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()}
+          connect_noop_runtime_operations()
         ])
 
       operation = {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}}
@@ -481,7 +539,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions}
         ])
 
@@ -498,7 +556,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :smart, "c2", %{kind: "text"}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:smart_cell_started, @cid, "c2", Delta.new(), nil, %{}, nil}
         ])
@@ -573,7 +631,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"])
         ])
 
@@ -606,7 +664,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
           {:insert_cell, @cid, "s2", 1, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3"], uses: %{"c2" => ["c1"]})
         ])
 
@@ -632,7 +690,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:insert_cell, @cid, "s3", 1, :code, "c4", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
             uses: %{"c3" => ["c2"]}
           )
@@ -678,9 +736,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []}
         ])
 
       operation = {:delete_cell, @cid, "c1"}
@@ -725,15 +783,30 @@ defmodule Livebook.Session.DataTest do
       refute Map.has_key?(cell_infos, "c1")
     end
 
+    test "does not include cell outputs in deleted cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup", "c1"])
+        ])
+
+      operation = {:delete_cell, @cid, "c1"}
+
+      assert {:ok, %{bin_entries: [%{cell: %{id: "c1", outputs: []}}]}, _actions} =
+               Data.apply_operation(data, operation)
+    end
+
     test "unqueues the cell if it's queued for evaluation" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []}
         ])
 
       operation = {:delete_cell, @cid, "c2"}
@@ -750,7 +823,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3"],
             uses: %{"c2" => ["c1"]}
           )
@@ -774,7 +847,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:set_cell_attributes, @cid, "c2", %{reevaluate_automatically: true}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"],
             uses: %{"c2" => ["c1"]}
           )
@@ -794,7 +867,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :markdown, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c2"])
         ])
 
@@ -811,7 +884,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"])
         ])
 
@@ -825,7 +898,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{}, nil}
@@ -843,11 +916,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :smart, "c2", %{kind: "text"}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:smart_cell_started, @cid, "c2", Delta.new(), nil, %{}, nil},
-          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
           {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
         ])
 
@@ -862,16 +935,14 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "garbage collects input values that are no longer used" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"}
         ])
 
@@ -885,17 +956,15 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "marks cells bound to the deleted input as stale" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2"], %{bind_inputs: %{"c2" => ["i1"]}})
         ])
 
@@ -980,7 +1049,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
           {:delete_cell, @cid, "c1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions}
         ])
 
@@ -1020,9 +1089,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation = {:move_cell, @cid, "c1", 1}
@@ -1107,7 +1176,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
             uses: %{"c2" => ["c1"], "c3" => ["c2"], "c4" => ["c1"]}
           )
@@ -1133,7 +1202,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3"],
             uses: %{"c2" => :unknown}
           )
@@ -1157,7 +1226,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :markdown, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"])
         ])
 
@@ -1178,9 +1247,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"], []}
         ])
 
       operation = {:move_cell, @cid, "c2", -1}
@@ -1205,7 +1274,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c4", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
             uses: %{"c4" => ["c2"]}
           )
@@ -1231,7 +1300,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3"],
             uses: %{"c2" => ["c1"], "c3" => ["c1"]}
           )
@@ -1349,7 +1418,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:insert_cell, @cid, "s3", 1, :code, "c4", %{}},
           {:insert_cell, @cid, "s3", 2, :code, "c5", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4", "c5"],
             uses: %{"c2" => ["c1"], "c3" => ["c1"], "c4" => ["c2"]}
           )
@@ -1378,9 +1447,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"], []}
         ])
 
       operation = {:move_section, @cid, "s2", -1}
@@ -1410,7 +1479,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 3, "s4"},
           {:insert_cell, @cid, "s4", 0, :code, "c4", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
             uses: %{"c2" => ["c3"]}
           )
@@ -1433,13 +1502,13 @@ defmodule Livebook.Session.DataTest do
   describe "apply_operation/2 given :queue_cells_evaluation" do
     test "returns an error given an empty list of cells" do
       data = Data.new()
-      operation = {:queue_cells_evaluation, @cid, []}
+      operation = {:queue_cells_evaluation, @cid, [], []}
       assert :error = Data.apply_operation(data, operation)
     end
 
     test "returns an error given invalid cell id" do
       data = Data.new()
-      operation = {:queue_cells_evaluation, @cid, ["nonexistent"]}
+      operation = {:queue_cells_evaluation, @cid, ["nonexistent"], []}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -1450,7 +1519,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :markdown, "c1", %{}}
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c1"]}
+      operation = {:queue_cells_evaluation, @cid, ["c1"], []}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -1459,12 +1528,12 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c1"]}
+      operation = {:queue_cells_evaluation, @cid, ["c1"], []}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -1475,7 +1544,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}}
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c1"]}
+      operation = {:queue_cells_evaluation, @cid, ["c1"], []}
 
       assert {:ok,
               %{
@@ -1494,10 +1563,10 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c2"]}
+      operation = {:queue_cells_evaluation, @cid, ["c2"], []}
 
       assert {:ok,
               %{
@@ -1518,11 +1587,11 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"])
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c1"]}
+      operation = {:queue_cells_evaluation, @cid, ["c1"], []}
 
       assert {:ok,
               %{
@@ -1540,13 +1609,13 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"])
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c1"]}
+      operation = {:queue_cells_evaluation, @cid, ["c1"], []}
 
-      assert {:ok, _data, [{:start_evaluation, %{id: "c1"}, %{id: "s1"}}]} =
+      assert {:ok, _data, [{:start_evaluation, %{id: "c1"}, %{id: "s1"}, []}]} =
                Data.apply_operation(data, operation)
     end
 
@@ -1556,12 +1625,12 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c2"]}
+      operation = {:queue_cells_evaluation, @cid, ["c2"], []}
 
       assert {:ok,
               %{
@@ -1581,12 +1650,12 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c2"]}
+      operation = {:queue_cells_evaluation, @cid, ["c2"], []}
 
       assert {:ok,
               %{
@@ -1611,7 +1680,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
           {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
           # Evaluate first 2 cells
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"], uses: %{"c2" => ["c1"]}),
           # Evaluate the first cell, so the second becomes stale
           evaluate_cells_operations(["c1"], versions: %{"c1" => 1})
@@ -1629,7 +1698,7 @@ defmodule Livebook.Session.DataTest do
       # Queuing cell 4 should also queue cell 3 and cell 2, so that
       # they all become evaluated.
 
-      operation = {:queue_cells_evaluation, @cid, ["c4"]}
+      operation = {:queue_cells_evaluation, @cid, ["c4"], []}
 
       assert {:ok,
               %{
@@ -1658,11 +1727,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:set_section_parent, @cid, "s3", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"])
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c3"]}
+      operation = {:queue_cells_evaluation, @cid, ["c3"], []}
 
       # Cell 3 depends directly on cell 1, so cell 2 shouldn't be queued
 
@@ -1695,12 +1764,12 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c3"]}
+          {:queue_cells_evaluation, @cid, ["c3"], []}
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c2"]}
+      operation = {:queue_cells_evaluation, @cid, ["c2"], []}
 
       assert {:ok,
               %{
@@ -1726,11 +1795,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"])
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c2"]}
+      operation = {:queue_cells_evaluation, @cid, ["c2"], []}
 
       assert {:ok,
               %{
@@ -1739,7 +1808,7 @@ defmodule Livebook.Session.DataTest do
                   "s2" => %{evaluating_cell_id: "c2"}
                 }
               } = new_data,
-              [{:start_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
+              [{:start_evaluation, %{id: "c2"}, %{id: "s2"}, []}]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
@@ -1756,12 +1825,12 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c4", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"]),
-          {:queue_cells_evaluation, @cid, ["c4"]}
+          {:queue_cells_evaluation, @cid, ["c4"], []}
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c3"]}
+      operation = {:queue_cells_evaluation, @cid, ["c3"], []}
 
       assert {:ok,
               %{
@@ -1789,12 +1858,12 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2"]}
+          {:queue_cells_evaluation, @cid, ["c2"], []}
         ])
 
-      operation = {:queue_cells_evaluation, @cid, ["c3"]}
+      operation = {:queue_cells_evaluation, @cid, ["c3"], []}
 
       assert {:ok,
               %{
@@ -1806,6 +1875,57 @@ defmodule Livebook.Session.DataTest do
 
       assert new_data.section_infos["s3"].evaluation_queue == MapSet.new([])
     end
+
+    test "includes evaluation options in the evaluation action" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup"])
+        ])
+
+      evaluation_opts = [disable_dependencies_cache: true]
+      operation = {:queue_cells_evaluation, @cid, ["c1"], evaluation_opts}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{eval: %{status: :evaluating, evaluation_opts: ^evaluation_opts}}
+                }
+              } = new_data,
+              [{:start_evaluation, %{id: "c1"}, %{id: "s1"}, ^evaluation_opts}]} =
+               Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+    end
+
+    test "reconnects the runtime when the setup cell is reevaluated" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup"])
+        ])
+
+      runtime = data.runtime
+
+      evaluation_opts = [disable_dependencies_cache: true]
+      operation = {:queue_cells_evaluation, @cid, ["setup"], evaluation_opts}
+
+      assert {:ok,
+              %{
+                runtime_status: :connecting,
+                cell_infos: %{
+                  "setup" => %{eval: %{status: :queued, evaluation_opts: ^evaluation_opts}}
+                }
+              } = new_data,
+              [{:disconnect_runtime, ^runtime}, :connect_runtime]} =
+               Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+    end
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_output" do
@@ -1814,19 +1934,19 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @stdout}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{1, {:stdout, "Hello!"}}]}]
+                      cells: [%{outputs: [{1, @stdout}]}]
                     }
                   ]
                 }
@@ -1838,18 +1958,18 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"])
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @stdout}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{2, {:stdout, "Hello!"}}, _result]}]
+                      cells: [%{outputs: [{2, @stdout}, _result]}]
                     }
                   ]
                 }
@@ -1861,31 +1981,29 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
           {:set_notebook_attributes, @cid, %{persist_outputs: true}},
           {:notebook_saved, @cid, []}
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @stdout}
 
       assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
     end
 
     test "stores default values for new inputs in the pre-evaluation data" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:input, input}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @input}
 
       assert {:ok,
               %{
@@ -1904,19 +2022,19 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, eval_meta()}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{1, {:ok, [1, 2, 3]}}]}]
+                      cells: [%{outputs: [{1, @eval_resp}]}]
                     }
                   ]
                 }
@@ -1928,9 +2046,9 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
@@ -1952,12 +2070,12 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
           # Evaluate the first cell
           evaluate_cells_operations(["c1"]),
           # Start evaluating the second cell
-          {:queue_cells_evaluation, @cid, ["c2"]},
+          {:queue_cells_evaluation, @cid, ["c2"], []},
           # Remove the first cell, this should make the second cell stale
           {:delete_cell, @cid, "c1"}
         ])
@@ -1976,9 +2094,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
@@ -1990,7 +2108,7 @@ defmodule Livebook.Session.DataTest do
                   "s1" => %{evaluating_cell_id: "c2"}
                 }
               } = new_data,
-              [{:start_evaluation, %{id: "c2"}, %{id: "s1"}}]} =
+              [{:start_evaluation, %{id: "c2"}, %{id: "s1"}, []}]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
@@ -2003,9 +2121,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
@@ -2018,7 +2136,7 @@ defmodule Livebook.Session.DataTest do
                   "s2" => %{evaluating_cell_id: "c2"}
                 }
               } = new_data,
-              [{:start_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
+              [{:start_evaluation, %{id: "c2"}, %{id: "s2"}, []}]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
@@ -2034,11 +2152,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
           {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
             uses: %{"c2" => ["c1"], "c4" => ["c2"]}
           ),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation =
@@ -2061,11 +2179,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3"],
             uses: %{"c2" => :unknown}
           ),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation =
@@ -2090,11 +2208,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
           {:insert_cell, @cid, "s1", 4, :code, "c5", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4", "c5"],
             uses: %{"c2" => ["c1"], "c3" => ["c2"]}
           ),
-          {:queue_cells_evaluation, @cid, ["c1", "c5"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c5"], []}
         ])
 
       operation =
@@ -2130,11 +2248,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s4", 0, :code, "c4", %{}},
           {:set_section_parent, @cid, "s3", "s2"},
           {:set_section_parent, @cid, "s4", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
             uses: %{"c3" => ["c2"], "c4" => ["c1", "c2"]}
           ),
-          {:queue_cells_evaluation, @cid, ["c2"]}
+          {:queue_cells_evaluation, @cid, ["c2"], []}
         ])
 
       operation =
@@ -2161,11 +2279,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:set_cell_attributes, @cid, "c3", %{reevaluate_automatically: true}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3"],
             uses: %{"c2" => ["c1"], "c3" => ["c2"]}
           ),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation =
@@ -2187,9 +2305,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:set_cell_attributes, @cid, "c2", %{reevaluate_automatically: true}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
@@ -2212,9 +2330,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
           {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3", "c4"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3", "c4"], []}
         ])
 
       operation =
@@ -2242,11 +2360,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:set_cell_attributes, @cid, "c3", %{reevaluate_automatically: true}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3"],
             uses: %{"c2" => ["c1"], "c3" => ["c2"]}
           ),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation =
@@ -2272,13 +2390,13 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:set_cell_attributes, @cid, "c3", %{reevaluate_automatically: true}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3"],
             uses: %{"c2" => ["c1"], "c3" => ["c2"]}
           ),
-          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
           {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(errored: true)},
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
@@ -2296,20 +2414,18 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "if bound input value changes during cell evaluation, the cell is marked as stale afterwards" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()},
           # Make the code cell evaluating
-          {:queue_cells_evaluation, @cid, ["c2"]},
+          {:queue_cells_evaluation, @cid, ["c2"], []},
           # Bind the input (effectively read the current value)
           {:bind_input, @cid, "c2", "i1"},
           # Change the input value, while the cell is evaluating
@@ -2331,9 +2447,9 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, eval_meta()}
@@ -2351,9 +2467,9 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
           {:set_notebook_attributes, @cid, %{persist_outputs: true}},
           {:notebook_saved, @cid, []}
         ])
@@ -2364,34 +2480,31 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "stores default values for new inputs" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()}
 
       assert {:ok, %{input_infos: %{"i1" => %{value: "hey"}}}, _} =
                Data.apply_operation(data, operation)
     end
 
     test "stores default values for new nested inputs" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-      output = {:grid, [{:input, input}], %{}}
+      output = %{type: :grid, outputs: [@input], columns: 1, gap: 8, boxed: false}
 
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", output, eval_meta()}
@@ -2401,40 +2514,36 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "keeps input values for inputs that existed" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       # Output the same input again
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()}
 
       assert {:ok, %{input_infos: %{"i1" => %{value: "value"}}}, _} =
                Data.apply_operation(data, operation)
     end
 
     test "garbage collects input values that are no longer used" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       # This time w don't output the input
@@ -2448,20 +2557,18 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "does not garbage collect inputs if present in another cell" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
-          {:add_cell_evaluation_response, @cid, "c2", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c2", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       # This time w don't output the input
@@ -2472,8 +2579,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "does not garbage collect inputs if another evaluation is ongoing" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2483,13 +2588,13 @@ defmodule Livebook.Session.DataTest do
           {:set_section_parent, @cid, "s3", "s1"},
           {:insert_cell, @cid, "s2", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s3", 0, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:queue_cells_evaluation, @cid, ["c2"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:queue_cells_evaluation, @cid, ["c2"], []}
         ])
 
       # This time w don't output the input
@@ -2505,11 +2610,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :smart, "c2", %{kind: "text"}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:smart_cell_started, @cid, "c2", Delta.new(), nil, %{}, nil},
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
@@ -2534,9 +2639,9 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
       doctest_report = %{status: :running, line: 5}
@@ -2556,9 +2661,9 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
           {:add_cell_doctest_report, @cid, "c1", %{status: :running, line: 5}}
         ])
 
@@ -2600,18 +2705,16 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "updates code cell info with binding to the input cell" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
-          {:queue_cells_evaluation, @cid, ["c2"]}
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c2"], []}
         ])
 
       operation = {:bind_input, @cid, "c2", "i1"}
@@ -2635,9 +2738,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2", "c3"]}
+          {:queue_cells_evaluation, @cid, ["c2", "c3"], []}
         ])
 
       operation = {:reflect_main_evaluation_failure, @cid}
@@ -2666,9 +2769,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
           {:insert_cell, @cid, "s2", 1, :code, "c3", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"]),
-          {:queue_cells_evaluation, @cid, ["c3"]}
+          {:queue_cells_evaluation, @cid, ["c3"], []}
         ])
 
       operation = {:reflect_main_evaluation_failure, @cid}
@@ -2703,9 +2806,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c4", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"]),
-          {:queue_cells_evaluation, @cid, ["c3", "c4"]}
+          {:queue_cells_evaluation, @cid, ["c3", "c4"], []}
         ])
 
       operation = {:reflect_evaluation_failure, @cid, "s2"}
@@ -2743,7 +2846,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"])
         ])
 
@@ -2759,9 +2862,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2", "c3"]}
+          {:queue_cells_evaluation, @cid, ["c2", "c3"], []}
         ])
 
       operation = {:cancel_cell_evaluation, @cid, "c2"}
@@ -2789,9 +2892,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []}
         ])
 
       operation = {:cancel_cell_evaluation, @cid, "c1"}
@@ -2811,9 +2914,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c4", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2", "c3", "c4"]}
+          {:queue_cells_evaluation, @cid, ["c2", "c3", "c4"], []}
         ])
 
       operation = {:cancel_cell_evaluation, @cid, "c2"}
@@ -2844,9 +2947,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []}
         ])
 
       operation = {:cancel_cell_evaluation, @cid, "c2"}
@@ -2871,9 +2974,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"], []}
         ])
 
       operation = {:cancel_cell_evaluation, @cid, "c2"}
@@ -2907,7 +3010,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
@@ -2926,7 +3029,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
@@ -2939,7 +3042,7 @@ defmodule Livebook.Session.DataTest do
               %{
                 notebook: %{sections: [%{cells: [%{id: "c1", source: "content"}]}]}
               },
-              [{:report_delta, ^client_id, _cell, :primary, ^delta}]} =
+              [{:report_delta, ^client_id, _cell, :primary, ^delta, nil}]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -2953,7 +3056,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_started, @cid, "c1", delta1, nil, %{}, nil}
@@ -2969,7 +3072,7 @@ defmodule Livebook.Session.DataTest do
                   sections: [%{cells: [%{id: "c1", source: "content!", attrs: ^attrs}]}]
                 }
               },
-              [{:report_delta, ^client_id, _cell, :primary, ^delta2}]} =
+              [{:report_delta, ^client_id, _cell, :primary, ^delta2, nil}]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -2981,7 +3084,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
@@ -2999,7 +3102,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
@@ -3021,7 +3124,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
@@ -3038,7 +3141,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
@@ -3052,7 +3155,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_down, @cid, "c1"}
@@ -3076,9 +3179,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2", "c3"]}
+          {:queue_cells_evaluation, @cid, ["c2", "c3"], []}
         ])
 
       operation = {:erase_outputs, @cid}
@@ -3107,7 +3210,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :markdown, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c3"])
         ])
 
@@ -3135,7 +3238,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
           {:add_cell_doctest_report, @cid, "c1", %{status: :running, line: 5}}
         ])
@@ -3214,7 +3317,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_id, user},
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_id, "c1", :primary, delta1, 1}
+          {:apply_cell_delta, client1_id, "c1", :primary, delta1, nil, 0}
         ])
 
       client2_id = "cid2"
@@ -3289,7 +3392,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client2_id, User.new()},
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_id, "c1", :primary, delta1, 1}
+          {:apply_cell_delta, client1_id, "c1", :primary, delta1, nil, 0}
         ])
 
       operation = {:client_leave, client2_id}
@@ -3340,7 +3443,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, @cid, User.new()}
         ])
 
-      operation = {:apply_cell_delta, @cid, "nonexistent", :primary, Delta.new(), 1}
+      operation = {:apply_cell_delta, @cid, "nonexistent", :primary, Delta.new(), nil, 0}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -3353,7 +3456,7 @@ defmodule Livebook.Session.DataTest do
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, @cid, "c1", :primary, delta, 5}
+      operation = {:apply_cell_delta, @cid, "c1", :primary, delta, nil, 5}
 
       assert :error = Data.apply_operation(data, operation)
     end
@@ -3368,11 +3471,11 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_id, User.new()},
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_id, "c1", :primary, delta1, 1}
+          {:apply_cell_delta, client1_id, "c1", :primary, delta1, nil, 0}
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, @cid, "c1", :primary, delta, 1}
+      operation = {:apply_cell_delta, @cid, "c1", :primary, delta, nil, 0}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -3384,7 +3487,7 @@ defmodule Livebook.Session.DataTest do
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, @cid, "c1", :primary, delta, 1}
+      operation = {:apply_cell_delta, @cid, "c1", :primary, delta, nil, 0}
 
       assert {:ok,
               %{
@@ -3409,11 +3512,11 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client2_id, User.new()},
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_id, "c1", :primary, delta1, 1}
+          {:apply_cell_delta, client1_id, "c1", :primary, delta1, nil, 0}
         ])
 
       delta2 = Delta.new() |> Delta.insert("tea")
-      operation = {:apply_cell_delta, client2_id, "c1", :primary, delta2, 1}
+      operation = {:apply_cell_delta, client2_id, "c1", :primary, delta2, nil, 0}
 
       assert {:ok,
               %{
@@ -3426,7 +3529,7 @@ defmodule Livebook.Session.DataTest do
               }, _} = Data.apply_operation(data, operation)
     end
 
-    test "returns broadcast delta action with the transformed delta" do
+    test "returns broadcast delta action with the transformed delta and selection" do
       client1_id = "cid1"
       client2_id = "cid2"
 
@@ -3438,16 +3541,21 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client2_id, User.new()},
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_id, "c1", :primary, delta1, 1}
+          {:apply_cell_delta, client1_id, "c1", :primary, delta1, nil, 0}
         ])
 
       delta2 = Delta.new() |> Delta.insert("tea")
-      operation = {:apply_cell_delta, client2_id, "c1", :primary, delta2, 1}
+      selection = Text.Selection.new([{1, 3}])
+      operation = {:apply_cell_delta, client2_id, "c1", :primary, delta2, selection, 0}
 
       transformed_delta2 = Delta.new() |> Delta.retain(4) |> Delta.insert("tea")
+      transformed_selection = Text.Selection.new([{5, 7}])
 
-      assert {:ok, _data, [{:report_delta, ^client2_id, _cell, :primary, ^transformed_delta2}]} =
-               Data.apply_operation(data, operation)
+      assert {:ok, _data,
+              [
+                {:report_delta, ^client2_id, _cell, :primary, ^transformed_delta2,
+                 ^transformed_selection}
+              ]} = Data.apply_operation(data, operation)
     end
 
     test "given single client, does not keep deltas" do
@@ -3461,7 +3569,7 @@ defmodule Livebook.Session.DataTest do
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, client_id, "c1", :primary, delta, 1}
+      operation = {:apply_cell_delta, client_id, "c1", :primary, delta, nil, 0}
 
       assert {:ok,
               %{
@@ -3482,7 +3590,7 @@ defmodule Livebook.Session.DataTest do
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, client1_id, "c1", :primary, delta, 1}
+      operation = {:apply_cell_delta, client1_id, "c1", :primary, delta, nil, 0}
 
       assert {:ok,
               %{
@@ -3496,14 +3604,14 @@ defmodule Livebook.Session.DataTest do
           {:client_join, @cid, User.new()},
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 1, :smart, "c1", %{kind: "text"}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{},
            %{language: "text", placement: :bottom, source: ""}}
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, @cid, "c1", :secondary, delta, 1}
+      operation = {:apply_cell_delta, @cid, "c1", :secondary, delta, nil, 0}
 
       assert {:ok,
               %{
@@ -3537,7 +3645,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_id, User.new()},
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_id, "c1", :primary, Delta.new(insert: "cats"), 1}
+          {:apply_cell_delta, client1_id, "c1", :primary, Delta.new(insert: "cats"), nil, 0}
         ])
 
       operation = {:report_cell_revision, client2_id, "c1", :primary, 1}
@@ -3568,7 +3676,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client2_id, User.new()},
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_id, "c1", :primary, delta1, 1}
+          {:apply_cell_delta, client1_id, "c1", :primary, delta1, nil, 0}
         ])
 
       operation = {:report_cell_revision, client2_id, "c1", :primary, 1}
@@ -3617,14 +3725,14 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}}
         ])
 
-      attrs = %{disable_formatting: true, reevaluate_automatically: true}
+      attrs = %{reevaluate_automatically: true}
       operation = {:set_cell_attributes, @cid, "c1", attrs}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
-                    %{cells: [%{disable_formatting: true, reevaluate_automatically: true}]}
+                    %{cells: [%{reevaluate_automatically: true}]}
                   ]
                 }
               }, _} = Data.apply_operation(data, operation)
@@ -3636,7 +3744,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"], uses: %{"c2" => ["c1"]}),
           evaluate_cells_operations(["c1"], versions: %{"c1" => 1})
         ])
@@ -3663,16 +3771,14 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "stores new input value" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()}
         ])
 
       operation = {:set_input_value, @cid, "i1", "stuff"}
@@ -3682,8 +3788,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "given input value change, marks evaluated bound cells and their dependents as stale" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -3692,10 +3796,10 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2", "c3", "c4"],
             bind_inputs: %{"c3" => ["i1"]},
             uses: %{"c2" => ["c1"], "c3" => ["c2"], "c4" => ["c3"]}
@@ -3716,13 +3820,146 @@ defmodule Livebook.Session.DataTest do
   end
 
   describe "apply_operation/2 given :set_runtime" do
+    test "returns an error if the runtime is connecting" do
+      data =
+        data_after_operations!([
+          {:connect_runtime, @cid}
+        ])
+
+      operation = {:set_runtime, @cid, Livebook.Runtime.NoopRuntime.new()}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
     test "updates data with the given runtime" do
       data = Data.new()
 
-      runtime = connected_noop_runtime()
+      runtime = Livebook.Runtime.NoopRuntime.new()
       operation = {:set_runtime, @cid, runtime}
 
-      assert {:ok, %{runtime: ^runtime}, []} = Data.apply_operation(data, operation)
+      assert {:ok, %{runtime: ^runtime, runtime_status: :disconnected}, []} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "disconnects the current runtime if connected" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"], []}
+        ])
+
+      prev_runtime = data.runtime
+
+      runtime = Livebook.Runtime.Embedded.new()
+      operation = {:set_runtime, @cid, runtime}
+
+      assert {:ok,
+              %{
+                runtime: ^runtime,
+                runtime_status: :disconnected,
+                cell_infos: %{
+                  "c1" => %{eval: %{validity: :aborted, status: :ready}}
+                }
+              }, [{:disconnect_runtime, ^prev_runtime}]} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :connect_runtime" do
+    test "returns an error if the current runtime is not disconnected" do
+      data =
+        data_after_operations!([
+          {:connect_runtime, @cid}
+        ])
+
+      operation = {:connect_runtime, @cid}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates runtime status to connecting and returns connect action" do
+      data = Data.new()
+
+      operation = {:connect_runtime, @cid}
+
+      assert {:ok, %{runtime_status: :connecting}, [:connect_runtime]} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :runtime_connected" do
+    test "returns an error if the runtime is not connecting" do
+      data = Data.new()
+
+      runtime = Livebook.Runtime.NoopRuntime.new()
+      operation = {:runtime_connected, @cid, runtime}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates data with the given runtime" do
+      data =
+        data_after_operations!([
+          {:connect_runtime, @cid}
+        ])
+
+      runtime = Livebook.Runtime.Embedded.new()
+      operation = {:runtime_connected, @cid, runtime}
+
+      assert {:ok, %{runtime: ^runtime, runtime_status: :connected}, _actions} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "starts evaluation if there are queued cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:queue_cells_evaluation, @cid, ["setup"], []}
+        ])
+
+      runtime = Livebook.Runtime.Embedded.new()
+      operation = {:runtime_connected, @cid, runtime}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "setup" => %{eval: %{status: :evaluating}}
+                },
+                section_infos: %{
+                  "setup-section" => %{evaluating_cell_id: "setup"}
+                }
+              } = new_data,
+              [{:start_evaluation, %{id: "setup"}, %{id: "setup-section"}, []}]} =
+               Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["setup-section"].evaluation_queue == MapSet.new([])
+    end
+  end
+
+  describe "apply_operation/2 given :disconnect_runtime" do
+    test "returns an error if the runtime is disconnected" do
+      data = Data.new()
+
+      operation = {:disconnect_runtime, @cid}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns disconnect runtime action" do
+      data =
+        data_after_operations!([
+          connect_noop_runtime_operations()
+        ])
+
+      runtime = data.runtime
+
+      operation = {:disconnect_runtime, @cid}
+
+      assert {:ok, %{runtime_status: :disconnected}, [{:disconnect_runtime, ^runtime}]} =
+               Data.apply_operation(data, operation)
     end
 
     test "clears all statuses and the per-section queues" do
@@ -3734,16 +3971,16 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
           {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3", "c4"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3", "c4"], []}
         ])
 
-      runtime = connected_noop_runtime()
-      operation = {:set_runtime, @cid, runtime}
+      operation = {:runtime_down, @cid}
 
       assert {:ok,
               %{
+                runtime_status: :disconnected,
                 cell_infos: %{
                   "c1" => %{eval: %{validity: :aborted, status: :ready}},
                   "c2" => %{eval: %{validity: :fresh, status: :ready}},
@@ -3754,36 +3991,74 @@ defmodule Livebook.Session.DataTest do
                   "s1" => %{evaluating_cell_id: nil},
                   "s2" => %{evaluating_cell_id: nil}
                 }
-              } = new_data, []} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
       assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
     end
 
-    test "starts evaluation if there was no runtime before and there is now" do
+    test "clears runtime-related state" do
+      data =
+        data_after_operations!([
+          connect_noop_runtime_operations(),
+          {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
+          {:set_runtime_connected_nodes, @cid, [:node@host]}
+        ])
+
+      operation = {:runtime_down, @cid}
+
+      assert {:ok,
+              %{
+                runtime_status: :disconnected,
+                smart_cell_definitions: [],
+                runtime_connected_nodes: []
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :runtime_down" do
+    test "returns an error if the runtime is disconnected" do
+      data = Data.new()
+
+      operation = {:runtime_down, @cid}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "sets runtime status to disconnected and clear evaluation" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:queue_cells_evaluation, @cid, ["setup"]}
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      runtime = connected_noop_runtime()
-      operation = {:set_runtime, @cid, runtime}
+      operation = {:runtime_down, @cid}
 
       assert {:ok,
               %{
+                runtime_status: :disconnected,
                 cell_infos: %{
-                  "setup" => %{eval: %{status: :evaluating}}
-                },
-                section_infos: %{
-                  "setup-section" => %{evaluating_cell_id: "setup"}
+                  "c1" => %{eval: %{validity: :aborted, status: :ready}}
                 }
-              } = new_data,
-              [{:start_evaluation, %{id: "setup"}, %{id: "setup-section"}}]} =
-               Data.apply_operation(data, operation)
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
 
-      assert new_data.section_infos["setup-section"].evaluation_queue == MapSet.new([])
+  describe "apply_operation/2 given :set_runtime_transient_state" do
+    test "sets the definitions and starts dead cells with matching kinds" do
+      data =
+        data_after_operations!([
+          connect_noop_runtime_operations()
+        ])
+
+      transient_state = %{state: "anything"}
+      operation = {:set_runtime_transient_state, @cid, transient_state}
+
+      assert {:ok, %{runtime_transient_state: ^transient_state}, _actions} =
+               Data.apply_operation(data, operation)
     end
   end
 
@@ -3793,7 +4068,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
-          {:set_runtime, @cid, connected_noop_runtime()}
+          connect_noop_runtime_operations()
         ])
 
       operation = {:set_smart_cell_definitions, @cid, @smart_cell_definitions}
@@ -3914,6 +4189,62 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, %{notebook: notebook}, []} = Data.apply_operation(data, operation)
       assert notebook.quarantine_file_entry_names == MapSet.new()
+    end
+  end
+
+  describe "apply_operation/2 given :rename_file_entry" do
+    test "returns an error if no file entry with the given name exists" do
+      data = Data.new()
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "replaces file entry name" do
+      file_entry = %{type: :attachment, name: "image.jpg"}
+
+      data =
+        data_after_operations!([
+          {:add_file_entries, @cid, [file_entry]}
+        ])
+
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+
+      assert {:ok, %{notebook: %{file_entries: [%{type: :attachment, name: "image2.jpg"}]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "replaces existing file entry with the same name" do
+      file_entry1 = %{type: :attachment, name: "image.jpg"}
+      file_entry2 = %{type: :attachment, name: "image2.jpg"}
+
+      data =
+        data_after_operations!([
+          {:add_file_entries, @cid, [file_entry1, file_entry2]}
+        ])
+
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+
+      assert {:ok, %{notebook: %{file_entries: [%{type: :attachment, name: "image2.jpg"}]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "updates matching file entry name in quarantine" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/image.jpg"))
+
+      file_entry = %{type: :file, name: "image.jpg", file: file}
+
+      notebook = %{
+        Notebook.new()
+        | file_entries: [file_entry],
+          quarantine_file_entry_names: MapSet.new(["image.jpg"])
+      }
+
+      data = Data.new(notebook: notebook)
+
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+
+      assert {:ok, %{notebook: notebook}, []} = Data.apply_operation(data, operation)
+      assert notebook.quarantine_file_entry_names == MapSet.new(["image2.jpg"])
     end
   end
 
@@ -4040,7 +4371,7 @@ defmodule Livebook.Session.DataTest do
     test "updates app status" do
       data =
         data_after_operations!(Data.new(mode: :app), [
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"])
         ])
 
@@ -4053,7 +4384,7 @@ defmodule Livebook.Session.DataTest do
     test "does not return terminate action if there are clients" do
       data =
         data_after_operations!(Data.new(mode: :app), [
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
           {:client_join, @cid, User.new()}
         ])
@@ -4072,9 +4403,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
@@ -4089,9 +4420,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []}
         ])
 
       operation =
@@ -4107,9 +4438,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2"]}
+          {:queue_cells_evaluation, @cid, ["c2"], []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
@@ -4118,20 +4449,105 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
-    test "changes status to :error when evaluation is aborted and returns recover action" do
+    test "changes status to :error when evaluation is aborted" do
       data =
         data_after_operations!(Data.new(mode: :app), [
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"], []}
+        ])
+
+      operation = {:reflect_main_evaluation_failure, @cid}
+
+      assert {:ok, %{app_data: %{status: %{execution: :error}}}, [:app_report_status]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "when fully executed and then aborted, recovers by evaluating from scratch" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"])
         ])
 
       operation = {:reflect_main_evaluation_failure, @cid}
 
-      assert {:ok, %{app_data: %{status: %{execution: :error}}},
-              [:app_report_status, :app_recover]} = Data.apply_operation(data, operation)
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "setup" => %{eval: %{status: :queued}},
+                  "c1" => %{eval: %{status: :queued}},
+                  "c2" => %{eval: %{status: :queued}}
+                },
+                app_data: %{status: %{execution: :executing}}
+              },
+              [:app_report_status, {:disconnect_runtime, _}, :connect_runtime]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "when fully executed and then runtime down, recovers by evaluating from scratch" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup", "c1", "c2"])
+        ])
+
+      operation = {:runtime_down, @cid}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "setup" => %{eval: %{status: :queued}},
+                  "c1" => %{eval: %{status: :queued}},
+                  "c2" => %{eval: %{status: :queued}}
+                },
+                app_data: %{status: %{execution: :executing}}
+              }, [:app_report_status, :connect_runtime]} = Data.apply_operation(data, operation)
+    end
+
+    test "changes status back to :executed after recovery" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup", "c1", "c2"]),
+          {:reflect_main_evaluation_failure, @cid},
+          {:runtime_connected, @cid, Livebook.Runtime.NoopRuntime.new()},
+          {:add_cell_evaluation_response, @cid, "setup", @eval_resp, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
+        ])
+
+      operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
+
+      assert {:ok, %{app_data: %{status: %{execution: :executed}}}, [:app_report_status]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "changes status to :error when the runtime goes down" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          connect_noop_runtime_operations(),
+          {:queue_cells_evaluation, @cid, ["setup"], []}
+        ])
+
+      operation = {:runtime_down, @cid}
+
+      assert {:ok, %{app_data: %{status: %{execution: :error}}}, [:app_report_status]} =
+               Data.apply_operation(data, operation)
     end
 
     test "changes status to :error when evaluation finishes with error" do
@@ -4140,9 +4556,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2"]}
+          {:queue_cells_evaluation, @cid, ["c2"], []}
         ])
 
       operation =
@@ -4158,9 +4574,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2"]}
+          {:queue_cells_evaluation, @cid, ["c2"], []}
         ])
 
       operation =
@@ -4170,29 +4586,10 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
-    test "changes status back to :executed after recovery" do
-      data =
-        data_after_operations!(Data.new(mode: :app), [
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2"]),
-          {:reflect_main_evaluation_failure, @cid},
-          evaluate_cells_operations(["setup", "c1"]),
-          {:queue_cells_evaluation, @cid, ["c2"]}
-        ])
-
-      operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
-
-      assert {:ok, %{app_data: %{status: %{execution: :executed}}}, [:app_report_status]} =
-               Data.apply_operation(data, operation)
-    end
-
     test "when the app is shutting down and the last client leaves, returns terminate action" do
       data =
         data_after_operations!(Data.new(mode: :app), [
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
           {:client_join, @cid, User.new()},
           {:app_shutdown, @cid}
@@ -4203,27 +4600,48 @@ defmodule Livebook.Session.DataTest do
       assert {:ok, %{app_data: %{status: %{lifecycle: :shutting_down}}}, [:app_terminate]} =
                Data.apply_operation(data, operation)
     end
+  end
 
-    test "does not automatically reevaluate" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+  describe "transform_selection/2" do
+    test "transforms the selection against more recent revisions" do
+      client1_id = "cid1"
+      client2_id = "cid2"
+
+      delta1 = Delta.new() |> Delta.insert("cats")
+      delta2 = Delta.new() |> Delta.insert("tea")
 
       data =
-        data_after_operations!(Data.new(mode: :app), [
+        data_after_operations!([
+          {:client_join, client1_id, User.new()},
+          {:client_join, client2_id, User.new()},
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_cell_attributes, @cid, "c2", %{reevaluate_automatically: true}},
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
-          evaluate_cells_operations(["c2"], bind_inputs: %{"c2" => ["i1"]})
+          {:apply_cell_delta, client1_id, "c1", :primary, delta1, nil, 0},
+          {:apply_cell_delta, client1_id, "c1", :primary, delta2, nil, 1}
         ])
 
-      operation = {:set_input_value, @cid, "i1", "stuff"}
+      selection = Text.Selection.new([{1, 3}])
 
-      assert {:ok, %{app_data: %{status: %{execution: :executed}}}, _actions} =
-               Data.apply_operation(data, operation)
+      assert Data.transform_selection(data, "c1", :primary, selection, 1) ==
+               Text.Selection.new([{4, 6}])
+    end
+
+    test "keeps the selection unchanged if the revision is already latest" do
+      client1_id = "cid1"
+
+      delta1 = Delta.new() |> Delta.insert("cats")
+
+      data =
+        data_after_operations!([
+          {:client_join, client1_id, User.new()},
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:apply_cell_delta, client1_id, "c1", :primary, delta1, nil, 0}
+        ])
+
+      selection = Text.Selection.new([{1, 3}])
+
+      assert Data.transform_selection(data, "c1", :primary, selection, 1) == selection
     end
   end
 
@@ -4234,8 +4652,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "returns code cells bound to the given input" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -4243,10 +4659,10 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:insert_cell, @cid, "s1", 4, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2", "c3", "c4"], %{
             bind_inputs: %{"c2" => ["i1"], "c4" => ["i1"]}
           })
@@ -4265,13 +4681,13 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
             uses: %{"c4" => ["c2"]}
           ),
           # Modify cell 2
           {:client_join, @cid, User.new()},
-          {:apply_cell_delta, @cid, "c2", :primary, Delta.new() |> Delta.insert("cats"), 1}
+          {:apply_cell_delta, @cid, "c2", :primary, Delta.new() |> Delta.insert("cats"), nil, 0}
         ])
 
       assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c2", "c4"]
@@ -4283,7 +4699,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c3"]),
           # Insert a fresh cell between cell 1 and cell 3
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}}
@@ -4298,7 +4714,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"],
             uses: %{"c2" => ["c1"]}
           ),
@@ -4317,7 +4733,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
             uses: %{"c4" => ["c2"]}
           )
@@ -4333,11 +4749,28 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          connect_noop_runtime_operations(),
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []}
         ])
 
       assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c3"]
+    end
+
+    test "includes all cells if the setup cell is evaluated and outdated" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          connect_noop_runtime_operations(),
+          evaluate_cells_operations(["setup", "c1", "c2"]),
+          # Modify the setup cell
+          {:client_join, @cid, User.new()},
+          {:apply_cell_delta, @cid, "setup", :primary, Delta.new() |> Delta.insert("cats"), nil,
+           0}
+        ])
+
+      assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c1", "c2", "setup"]
     end
   end
 
@@ -4346,7 +4779,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"])
         ])
 
@@ -4359,7 +4792,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"])
         ])
 
@@ -4372,7 +4805,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"],
             uses: %{"c2" => ["c1"]}
           ),
@@ -4389,7 +4822,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2"]),
           # Insert a new cell between the two evaluated cells
           {:insert_cell, @cid, "s1", 1, :code, "c3", %{}}
@@ -4409,7 +4842,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c4", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup", "c1", "c2", "c4"])
         ])
 
@@ -4423,8 +4856,21 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "returns inputs which value changed since they have been bound to some cell" do
-      input1 = %{id: "i1", type: :text, label: "Text", default: "hey"}
-      input2 = %{id: "i2", type: :text, label: "Text", default: "hey"}
+      input1 = %{
+        type: :input,
+        ref: "ref1",
+        id: "i1",
+        destination: nil,
+        attrs: %{type: :text, default: "hey", label: "Text", debounce: :blur}
+      }
+
+      input2 = %{
+        type: :input,
+        ref: "ref2",
+        id: "i2",
+        destination: nil,
+        attrs: %{type: :text, default: "hey", label: "Text", debounce: :blur}
+      }
 
       data =
         data_after_operations!([
@@ -4433,11 +4879,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:insert_cell, @cid, "s1", 4, :code, "c4", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input1}, eval_meta()},
-          {:add_cell_evaluation_response, @cid, "c2", {:input, input2}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1", "c2"], []},
+          {:add_cell_evaluation_response, @cid, "c1", input1, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c2", input2, eval_meta()},
           evaluate_cells_operations(["c3", "c4"], %{
             bind_inputs: %{"c3" => ["i1"], "c4" => ["i2"]}
           }),
@@ -4448,18 +4894,16 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "includes an input where one cell is bound with the old value and one with latest" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2", "c3"], %{
             bind_inputs: %{"c2" => ["i1"], "c3" => ["i1"]}
           }),
@@ -4472,17 +4916,15 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "does not return removed inputs" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
+          connect_noop_runtime_operations(),
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:queue_cells_evaluation, @cid, ["c1"], []},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2"], %{bind_inputs: %{"c2" => ["i1"]}}),
           {:set_input_value, @cid, "i1", "new value"},
           {:delete_cell, @cid, "c1"}
@@ -4498,7 +4940,7 @@ defmodule Livebook.Session.DataTest do
     bind_inputs = opts[:bind_inputs] || %{}
 
     [
-      {:queue_cells_evaluation, @cid, cell_ids},
+      {:queue_cells_evaluation, @cid, cell_ids, []},
       for cell_id <- cell_ids do
         # For convenience we make each cell evaluation define an identifier
         # corresponding to the cell id, this way it is easy to make any
@@ -4519,8 +4961,13 @@ defmodule Livebook.Session.DataTest do
     ]
   end
 
-  defp connected_noop_runtime() do
-    {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
-    runtime
+  defp connect_noop_runtime_operations() do
+    runtime = Livebook.Runtime.NoopRuntime.new()
+
+    [
+      {:set_runtime, @cid, runtime},
+      {:connect_runtime, @cid},
+      {:runtime_connected, @cid, runtime}
+    ]
   end
 end

@@ -1,15 +1,33 @@
 defmodule Livebook.TeamsServer do
-  @moduledoc false
   use GenServer
 
   defstruct [:node, :token, :user, :org, :teams_key, :port, :app_port, :url, :env]
 
   @name __MODULE__
   @timeout 10_000
-  @default_teams_dir "../hub"
+  @default_teams_dir "../teams"
 
   def available?() do
     System.get_env("TEAMS_PATH") != nil or File.exists?(@default_teams_dir)
+  end
+
+  def setup do
+    if available?() do
+      :ok =
+        mix(%__MODULE__{}, [
+          "do",
+          "compile",
+          "+",
+          "ecto.drop",
+          "--quiet",
+          "+",
+          "ecto.create",
+          "--quiet",
+          "+",
+          "ecto.migrate",
+          "--quiet"
+        ])
+    end
   end
 
   def start(opts \\ []) do
@@ -32,13 +50,6 @@ defmodule Livebook.TeamsServer do
     GenServer.call(@name, :fetch_node, @timeout)
   end
 
-  def drop_database() do
-    app_port = GenServer.call(@name, :fetch_port)
-    state_env = GenServer.call(@name, :fetch_env)
-
-    app_port |> env(state_env) |> mix(["ecto.drop", "--quiet"])
-  end
-
   # GenServer Callbacks
 
   @impl true
@@ -50,8 +61,6 @@ defmodule Livebook.TeamsServer do
   @impl true
   def handle_continue(:start_app, state) do
     ensure_app_dir!()
-    prepare_database(state)
-
     {:noreply, %{state | port: start_app(state)}}
   end
 
@@ -95,7 +104,10 @@ defmodule Livebook.TeamsServer do
 
   @impl true
   def handle_info({_port, {:data, message}}, state) do
-    info(message)
+    if Livebook.Config.boolean!("TEAMS_DEBUG", false) do
+      info(message)
+    end
+
     {:noreply, state}
   end
 
@@ -107,7 +119,7 @@ defmodule Livebook.TeamsServer do
   # Private
 
   defp call_erpc_function(node, function, args \\ []) do
-    :erpc.call(node, Hub.Integration, function, args)
+    :erpc.call(node, TeamsRPC, function, args)
   end
 
   defp ensure_session_token(state) do
@@ -152,7 +164,7 @@ defmodule Livebook.TeamsServer do
     args = [
       "-e",
       "spawn(fn -> IO.gets([]) && System.halt(0) end)",
-      "--sname",
+      "--name",
       to_string(state.node),
       "--cookie",
       to_string(Node.get_cookie()),
@@ -181,12 +193,6 @@ defmodule Livebook.TeamsServer do
     "http://localhost:#{port}"
   end
 
-  defp prepare_database(state) do
-    :ok = mix(state, ["ecto.drop", "--quiet"])
-    :ok = mix(state, ["ecto.create", "--quiet"])
-    :ok = mix(state, ["ecto.migrate", "--quiet"])
-  end
-
   defp ensure_app_dir! do
     dir = app_dir()
 
@@ -206,14 +212,6 @@ defmodule Livebook.TeamsServer do
 
   defp app_port do
     System.get_env("TEAMS_PORT", "4123")
-  end
-
-  defp debug do
-    System.get_env("TEAMS_DEBUG", "false")
-  end
-
-  defp proto do
-    System.get_env("TEAMS_LIVEBOOK_PROTO_PATH")
   end
 
   defp wait_on_start(state, port) do
@@ -255,13 +253,16 @@ defmodule Livebook.TeamsServer do
   end
 
   defp env(app_port, state_env) do
-    env = %{
-      "MIX_ENV" => "livebook",
-      "PORT" => to_string(app_port),
-      "DEBUG" => debug()
-    }
-
-    env = if proto(), do: Map.merge(env, %{"LIVEBOOK_PROTO_PATH" => proto()}), else: env
+    env =
+      Map.filter(
+        %{
+          "MIX_ENV" => "livebook",
+          "PORT" => to_string(app_port),
+          "DEBUG" => System.get_env("TEAMS_DEBUG", "false"),
+          "LIVEBOOK_PROTO_PATH" => System.get_env("TEAMS_LIVEBOOK_PROTO_PATH")
+        },
+        fn {_key, value} -> value not in ["", nil] end
+      )
 
     if state_env do
       Map.merge(env, state_env)
@@ -279,18 +280,12 @@ defmodule Livebook.TeamsServer do
   end
 
   defp hostname do
-    [nodename, hostname] =
+    [_nodename, hostname] =
       node()
       |> Atom.to_charlist()
       |> :string.split(~c"@")
 
-    with {:ok, nodenames} <- :erl_epmd.names(hostname),
-         true <- List.keymember?(nodenames, nodename, 0) do
-      hostname
-    else
-      _ ->
-        raise "Error"
-    end
+    hostname
   end
 
   defp info(message), do: log([:blue, message <> "\n"])

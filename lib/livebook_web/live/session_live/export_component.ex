@@ -5,25 +5,21 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
 
   @impl true
   def update(assigns, socket) do
+    {any_stale_cell?, assigns} = Map.pop!(assigns, :any_stale_cell?)
     socket = assign(socket, assigns)
 
-    socket =
-      if socket.assigns[:notebook] do
-        socket
-      else
-        # Note: we need to load the notebook, because the local data
-        # has cell contents stripped out
-        notebook = Session.get_notebook(socket.assigns.session.pid)
-        assign(socket, :notebook, notebook)
-      end
-
-    {:ok, socket}
+    {:ok,
+     socket
+     # Note: we need to load the notebook, because the local data
+     # has cell contents stripped out
+     |> assign_new(:notebook, fn -> Session.get_notebook(socket.assigns.session.pid) end)
+     |> assign_new(:any_stale_cell?, fn -> any_stale_cell? end)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 max-w-4xl flex flex-col space-y-3">
+    <div class="flex flex-col space-y-3">
       <h3 class="text-2xl font-semibold text-gray-800">
         Export
       </h3>
@@ -55,6 +51,7 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
             id={"export-notebook-#{@tab}"}
             session={@session}
             notebook={@notebook}
+            any_stale_cell?={@any_stale_cell?}
           />
         </div>
       </div>

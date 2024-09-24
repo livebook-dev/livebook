@@ -1,4 +1,4 @@
-import { getAttributeOrDefault, getAttributeOrThrow } from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 
 /**
  * A hook for client-preprocessed datetime input.
@@ -20,12 +20,12 @@ const UtcDateTimeInput = {
   },
 
   getProps() {
-    return {
-      utcValue: getAttributeOrDefault(this.el, "data-utc-value", null),
-      utcMin: getAttributeOrDefault(this.el, "data-utc-min", null),
-      utcMax: getAttributeOrDefault(this.el, "data-utc-max", null),
-      phxTarget: getAttributeOrThrow(this.el, "data-phx-target"),
-    };
+    return parseHookProps(this.el, [
+      "utc-value",
+      "utc-min",
+      "utc-max",
+      "phx-target",
+    ]);
   },
 
   updateAttrs() {

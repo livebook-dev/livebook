@@ -3,7 +3,7 @@ defmodule LivebookWeb.HomeLive do
 
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.{LearnHelpers, LayoutHelpers}
+  alias LivebookWeb.LayoutComponents
   alias Livebook.{Sessions, Notebook}
 
   on_mount LivebookWeb.SidebarHook
@@ -38,20 +38,20 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout
+    <LayoutComponents.layout
       current_page={@self_path}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
       <:topbar_action>
         <div class="flex space-x-2">
-          <.link navigate={~p"/open/file"} class="button-base button-outlined-gray whitespace-nowrap">
+          <.button color="gray" outlined navigate={~p"/open/storage"}>
             Open
-          </.link>
-          <.link class="button-base button-blue" patch={~p"/new"}>
-            <.remix_icon icon="add-line" class="align-middle mr-1" />
+          </.button>
+          <.button color="blue" patch={~p"/new"}>
+            <.remix_icon icon="add-line" />
             <span>New notebook</span>
-          </.link>
+          </.button>
         </div>
       </:topbar_action>
 
@@ -60,18 +60,15 @@ defmodule LivebookWeb.HomeLive do
 
       <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
-          <LayoutHelpers.title text="Home" />
+          <LayoutComponents.title text="Home" />
           <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">
-            <.link
-              navigate={~p"/open/file"}
-              class="button-base button-outlined-gray whitespace-nowrap"
-            >
+            <.button color="gray" outlined navigate={~p"/open/storage"}>
               Open
-            </.link>
-            <.link class="button-base button-blue" patch={~p"/new"}>
-              <.remix_icon icon="add-line" class="align-middle mr-1" />
+            </.button>
+            <.button color="blue" patch={~p"/new"}>
+              <.remix_icon icon="add-line" />
               <span>New notebook</span>
-            </.link>
+            </.button>
           </div>
         </div>
 
@@ -104,9 +101,14 @@ defmodule LivebookWeb.HomeLive do
               </:actions>
             </.no_entries>
             <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <% # Note: it's fine to use stateless components in this comprehension,
-              # because @notebook_infos never change %>
-              <LearnHelpers.notebook_card :for={info <- @notebook_infos} notebook_info={info} />
+              <%!--
+              Note: it's fine to use stateless components in this comprehension,
+              because @notebook_infos never change
+              --%>
+              <LivebookWeb.NotebookComponents.learn_notebook_card
+                :for={info <- @notebook_infos}
+                notebook_info={info}
+              />
             </div>
           <% else %>
             <.live_component
@@ -140,7 +142,7 @@ defmodule LivebookWeb.HomeLive do
           />
         </div>
       </div>
-    </LayoutHelpers.layout>
+    </LayoutComponents.layout>
 
     <.modal :if={@live_action == :import} id="import-modal" show width={:big} patch={@self_path}>
       <.live_component
@@ -157,7 +159,7 @@ defmodule LivebookWeb.HomeLive do
 
   defp update_notification(assigns) do
     ~H"""
-    <div class="px-2 py-2 bg-blue-200 text-gray-900 text-sm text-center">
+    <LayoutComponents.topbar>
       <span>
         Livebook v<%= @version %> available!
         <%= if @instructions_url do %>
@@ -189,16 +191,13 @@ defmodule LivebookWeb.HomeLive do
         <% end %>
         🚀
       </span>
-    </div>
+    </LayoutComponents.topbar>
     """
   end
 
   defp memory_notification(assigns) do
     ~H"""
-    <div
-      :if={@app_service_url && @memory.free < 30_000_000}
-      class="px-2 py-2 bg-red-200 text-gray-900 text-sm text-center"
-    >
+    <LayoutComponents.topbar :if={@app_service_url && @memory.free < 30_000_000} variant={:error}>
       <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
       Less than 30 MB of memory left, consider
       <a
@@ -215,7 +214,7 @@ defmodule LivebookWeb.HomeLive do
       >
         running sessions
       </a>
-    </div>
+    </LayoutComponents.topbar>
     """
   end
 
@@ -226,7 +225,7 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_params(%{}, _url, socket) when socket.assigns.live_action == :public_new_notebook do
-    {:noreply, create_session(socket)}
+    {:noreply, create_session(socket, queue_setup: true)}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}

@@ -1,3 +1,4 @@
+import Emitter from "./emitter";
 import { load, store } from "./storage";
 
 const SETTINGS_KEY = "settings";
@@ -7,35 +8,49 @@ export const EDITOR_FONT_SIZE = {
   large: 16,
 };
 
+export const EDITOR_MODE = {
+  default: "default",
+  emacs: "emacs",
+  vim: "vim",
+};
+
 export const EDITOR_THEME = {
   default: "default",
   light: "light",
 };
 
-const DEFAULT_SETTINGS = {
+const DEFAULTSETTINGS = {
   editor_auto_completion: true,
   editor_auto_signature: true,
   editor_font_size: EDITOR_FONT_SIZE.normal,
   editor_theme: EDITOR_THEME.default,
+  editor_ligatures: false,
   editor_markdown_word_wrap: true,
+  editor_mode: EDITOR_MODE.default,
+  custom_view_show_section: true,
+  custom_view_show_markdown: true,
+  custom_view_show_output: true,
+  custom_view_spotlight: false,
 };
 
 /**
  * Stores local configuration and persists it across browser sessions.
  */
 class SettingsStore {
-  constructor() {
-    this._subscribers = [];
-    this._settings = DEFAULT_SETTINGS;
+  /** @private */
+  _onChange = new Emitter();
 
-    this._loadSettings();
+  constructor() {
+    this.settings = DEFAULTSETTINGS;
+
+    this.loadSettings();
   }
 
   /**
    * Returns the current settings.
    */
   get() {
-    return this._settings;
+    return this.settings;
   }
 
   /**
@@ -44,12 +59,10 @@ class SettingsStore {
    * The given attributes are merged into the current settings.
    */
   update(newSettings) {
-    const prevSettings = this._settings;
-    this._settings = { ...this._settings, ...newSettings };
-    this._subscribers.forEach((callback) =>
-      callback(this._settings, prevSettings)
-    );
-    this._storeSettings();
+    const prevSettings = this.settings;
+    this.settings = { ...this.settings, ...newSettings };
+    this._onChange.dispatch(this.settings, prevSettings);
+    this.storeSettings();
   }
 
   /**
@@ -57,13 +70,17 @@ class SettingsStore {
    *
    * The given function is called immediately with the current
    * settings and then on every change.
+   *
+   * Returns a subscription object with `destroy` method that
+   * unsubscribes from changes.
    */
   getAndSubscribe(callback) {
-    this._subscribers.push(callback);
-    callback(this._settings);
+    callback(this.settings);
+    return this._onChange.addListener(callback);
   }
 
-  _loadSettings() {
+  /** @private */
+  loadSettings() {
     const settings = load(SETTINGS_KEY);
 
     if (settings) {
@@ -72,12 +89,13 @@ class SettingsStore {
         delete settings.editor_theme;
       }
 
-      this._settings = { ...this._settings, ...settings };
+      this.settings = { ...this.settings, ...settings };
     }
   }
 
-  _storeSettings() {
-    store(SETTINGS_KEY, this._settings);
+  /** @private */
+  storeSettings() {
+    store(SETTINGS_KEY, this.settings);
   }
 }
 

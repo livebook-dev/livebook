@@ -1,6 +1,4 @@
 defmodule LivebookWeb do
-  @moduledoc false
-
   def static_paths, do: ~w(assets images favicon.svg favicon.png robots.txt)
 
   def controller do
@@ -67,9 +65,6 @@ defmodule LivebookWeb do
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
 
-      # Custom helpers
-      import LivebookWeb.Helpers
-
       # Routes generation with the ~p sigil
       unquote(verified_routes())
     end
@@ -83,8 +78,10 @@ defmodule LivebookWeb do
         statics: LivebookWeb.static_paths()
 
       # We don't know the hostname Livebook runs on, so we don't use
-      # absolute URL helpers
-      import Phoenix.VerifiedRoutes, only: :sigils
+      # absolute URL helpers. We don't import sigil_p either, because
+      # we override it.
+      import Phoenix.VerifiedRoutes, only: []
+      import LivebookWeb.VerifiedRoutes, only: [sigil_p: 2]
     end
   end
 

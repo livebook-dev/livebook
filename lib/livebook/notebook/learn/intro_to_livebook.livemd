@@ -27,14 +27,14 @@ String.replace(message, "🍵", "☕")
 Note however that bindings are not global, so each cell *sees* only stuff
 that goes above itself. This approach helps to keep the notebook clean and
 predictable as you keep working on it. Furthermore, Livebook tracks which
-variables are used by each cell and in order to detect which cells become
+variables are used by each cell in order to detect which cells become
 stale. For example, try changing the `message` variable and you will see
 the status indicator on the bottom right of the second cell become yellow.
 
 ## Sections
 
 You can leverage so called **sections** to nicely group related cells together.
-Click on the "Book" icon (<i class="ri-livebook-sections"></i>) in the sidebar
+Click on the "Outline" icon (<i class="ri-node-tree"></i>) in the sidebar
 to reveal a list of all sections. As you can see, this approach helps to easily
 jump around the notebook, especially once it grows.
 
@@ -112,8 +112,8 @@ by pressing <kbd>?</kbd>.
 
 ## Autocompletion
 
-Elixir code cells also support autocompletion. Autocompletion
-happens automatically as you type but you can explicitly trigger
+Code cells also support autocompletion. Autocompletion happens
+automatically as you type but you can explicitly trigger
 it with <kbd>ctrl</kbd> + <kbd>␣</kbd>. You must start the runtime,
 by executing any cell at least once, for the autocompletion engine
 to load.
@@ -131,40 +131,6 @@ return the Elixir version.
 
 Note you can also press <kbd>tab</kbd> to cycle across the completion
 alternatives.
-
-<!-- livebook:{"branch_parent_index":1} -->
-
-## Storing secrets in Hubs
-
-Livebook is capable of managing all secrets that belong to a notebook.
-Secrets can be read by Elixir Code cells and also by Smart cells -
-a feature we will explore in future sections.
-
-Secrets are environment variables starting with the `LB_` prefix. For
-example, let's try reading an environment variable:
-
-```elixir
-System.fetch_env!("LB_MY_SECRETZ")
-```
-
-Execute the cell above. If the secret is not available, Livebook will
-automatically detect it and prompt you to add the missing secret. You
-can save a secret in two different locations:
-
-  * in your notebook session: once you restart the session or your
-    Livebook, the secret will be gone and you must input it again
-
-  * in a Hub: a Hub is a location where you can safely store secrets,
-    deploy notebooks, and more. Every Livebook application has a personal
-    Hub that can store secrets and stamp notebooks
-
-Once the secret is saved, execute the cell again and it will evaluate
-successfully.
-
-If you save secrets in your Hub, you will only need to input the secret
-once in notebooks authored by you. You can manage all of your secrets
-by clicking the lock icon (<i class="ri-livebook-secrets"></i>) on the
-sidebar.
 
 ## Markdown extensions
 
@@ -213,83 +179,45 @@ graph TD;
     C-->D;
 ```
 
-## Elixir integration
+## Erlang support
 
-Here are some tips on how to better integrate Livebook with Elixir.
+Livebook also allows developers to write Erlang code. To do so,
+click on the submenu option on the right side of the "Elixir" cell
+button and choose Erlang.
 
-### Mix projects
+Your Erlang code will run alongside your Elixir cells. This means
+you can leverage all of the dependency management and smart cell features
+outlined in the previous sections. In particular, integration between
+Erlang and Elixir will happen as follows:
 
-Sometimes you may want to run a notebook within the context of an existing
-Mix project. This is possible from Elixir v1.14 with the help of `Mix.install/2`.
+  * Variables in Elixir are available in Erlang cells in camel-case
+    fashion. `x` in Elixir becomes `X` in Erlang. `foo_bar` becomes
+    `FooBar`;
 
-As an example, imagine you have created a notebook inside your current project,
-at `notebooks/example.livemd`. In order to run within the root Mix project, using
-the same configuration and dependencies versions, you can change your notebook
-setup cell to invoke `Mix.install/2` with the following arguments:
+  * Variables in Erlang are available in Elixir cells in underscored
+    fashion. `X` in Erlang becomes `x` in Elixir. `FooBar` becomes
+    `foo_bar`;
 
-<!-- livebook:{"force_markdown":true} -->
+For example, to print all of the cats defined at the top of the notebook,
+but in Erlang:
 
-```elixir
-Mix.install(
-  [
-    {:my_app, path: Path.join(__DIR__, ".."), env: :dev}
-  ],
-  config_path: :my_app,
-  lockfile: :my_app
-)
+```erlang
+[io:format("~ts", [Cat]) || Cat <- Cats].
 ```
 
-<!-- livebook:{"break_markdown":true} -->
+We are just beginning the Erlang integration and contributions to
+further enrich it are welcome.
 
-### Runtimes
-
-Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
-for evaluating your code. You can choose the runtime by clicking the "Runtime" icon
-(<i class="ri-livebook-runtime"></i>) on the sidebar (or by using the <kbd>s</kbd> <kbd>r</kbd>
-keyboard shortcut).
-
-By default, a new Elixir node is started (similarly to starting `iex`). You can click
-reconnect whenever you want to discard the current node and start a new one.
-
-You can also manually *attach* to an existing distributed node by picking the
-"Attached Node" runtime. To do so, you will need the Erlang Name of the external node
-and its Erlang Cookie. For example, you can start a Phoenix application as follows:
-
-```shell
-$ iex --sname phoenix-app --cookie secret -S mix phx.server
-```
-
-Now open up a new notebook and click the "Runtime" icon on the sidebar.
-Click to "Configure" the runtime and choose "Attached node". Input the
-name and cookie as above and you should be ready to connect to it.
-
-Note, however, that you can't install new dependencies on a connected runtime.
-If you want to install dependencies, you have three options:
-
-  1. Add any Livebook related to dependencies directly to the project
-     (you may add them to a specific environment, such as `:dev` or
-     `:livebook`, and then set `MIX_ENV` accordingly when starting your
-     application)
-
-  2. Use the Mix project approach outlined in the previous section;
-
-  3. Use a regular notebook and use
-     [`Node.connect/1`](https://hexdocs.pm/elixir/Node.html#connect/1)
-     to connect to your application.
-     Use [the `:erpc` module](https://www.erlang.org/doc/man/erpc.html)
-     to fetch data from the remote node and execute code.
-
-<!-- livebook:{"break_markdown":true} -->
-
-### Evaluation vs compilation
+## Evaluation vs compilation
 
 Livebook automatically shows the execution time of each Code
 cell on the bottom-right of the cell. After evaluation, the total
 time can be seen by hovering the green dot.
 
 However, it is important to remember that all code outside of
-a module in Elixir is *evaluated*, and therefore executes much
-slower than code defined inside modules, which are *compiled*.
+a module in Erlang or Elixir is *evaluated*, and therefore
+executes much slower than code defined inside modules, which
+are *compiled*.
 
 Let's see an example. Run the cell below:
 
@@ -319,42 +247,16 @@ Now let's try running it:
 Bench.sum()
 ```
 
-The latest cell should execute a least an order of magnitude faster
+The latest cell should execute at least an order of magnitude faster
 than the previous `Enum.reduce/3` call. While the call `Bench.sum()`
 itself is evaluated, the one million iterations of `Enum.reduce/3`
 happen inside a module, which is compiled.
 
-If a notebook is performing slower than expected, consider moving
-the bulk of the execution to inside modules.
-
-## Erlang integration
-
-Livebook also allows developers to write Erlang code. To do so,
-click on the submenu option on the right side of the "Elixir" cell
-button and choose Erlang.
-
-Your Erlang code will run alongside your Elixir cells. This means
-you can leverage all of dependency management and smart cells features
-outlined in the previous sections. In particular, integration between
-Erlang and Elixir will happen as follows:
-
-  * Variables in Elixir are available in Erlang cells in camel-case
-    fashion. `x` in Elixir becomes `X` in Erlang. `foo_bar` becomes
-    `FooBar`;
-
-  * Variables in Erlang are available in Elixir cells in underscored
-    fashion. `X` in Erlang becomes `x` in Elixir. `FooBar` becomes
-    `foo_bar`;
-
-For example, to print all of the cats defined at the top of the notebook,
-but in Erlang:
-
-```erlang
-[io:format("~ts", [Cat]) || Cat <- Cats].
-```
-
-We are just beginning the Erlang integration and contributions to
-enrich the support are welcome.
+Another benefit is compiling code is that exceptions often have
+better stacktraces and error messages. Therefore, if a notebook is
+performing slower than expected or you need more information in case
+of failures, consider moving the bulk of the execution to inside
+modules.
 
 ## Running tests
 
@@ -364,7 +266,7 @@ There are two main ways of running tests inside Livebook.
 
 ### Doctests
 
-Doctests allows developers to provide and test examples directly
+Doctests allow developers to provide and test examples directly
 from their documentation. Doctests are defined with the `iex>`
 prompts under the `@moduledoc` and `@doc` attributes of your
 modules. Let's see an example:
@@ -383,7 +285,7 @@ defmodule MyModule do
 end
 ```
 
-Livebook automatically detect doctests for any defined modules
+Livebook automatically detects doctests for any defined modules
 and automatically executes them when you evaluate the cell.
 Doctests which fail are marked in red in the gutter and show
 the failure information right below them. Otherwise they are tagged
@@ -394,7 +296,7 @@ see [`ExUnit.Doctest`](https://hexdocs.pm/ex_unit/ExUnit.DocTest.html).
 
 ### ExUnit integration
 
-It is also possible to `ExUnit` suites directly from your notebooks.
+It is also possible to run `ExUnit` suites directly from your notebooks.
 The key is to disable `ExUnit`'s autorun feature and then explicitly
 run the test suite after all test cases have been defined:
 
@@ -423,6 +325,9 @@ That's our quick intro to Livebook! Where to go next?
   introduction to the language in the [Distributed portals
   with Elixir](/learn/notebooks/distributed-portals-with-elixir)
   notebook;
+
+* [Write and deploy a chat application](/learn/notebooks/deploy-apps)
+  using Livebook and learn more about our [use cases](https://hexdocs.pm/livebook/use_cases.html)
 
 * Go back [to the Learn page](/learn) and see how to use Livebook to
   deploy apps, explore data, plot graphs, and much more;

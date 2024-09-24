@@ -3,6 +3,7 @@ set -euo pipefail
 
 app_name=$ELIXIRKIT_APP_NAME
 app_dir=$PWD/.build/${app_name}.app
+(cd "${ELIXIRKIT_PROJECT_DIR}" && mix compile)
 app_version=`cd "${ELIXIRKIT_PROJECT_DIR}" && MIX_QUIET=1 mix eval "IO.puts Mix.Project.config()[:version]"`
 release_name="${ELIXIRKIT_RELEASE_NAME:-}"
 build_args="${ELIXIRKIT_BUILD_ARGS:-}"

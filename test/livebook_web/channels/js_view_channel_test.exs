@@ -8,7 +8,7 @@ defmodule LivebookWeb.JSViewChannelTest do
       LivebookWeb.Socket
       |> socket()
       |> subscribe_and_join(LivebookWeb.JSViewChannel, "js_view", %{
-        "session_token" => session_token(session_id, Livebook.Utils.random_id())
+        "session_token" => session_token(session_id, Livebook.Utils.random_long_id())
       })
 
     %{socket: socket}
@@ -55,6 +55,14 @@ defmodule LivebookWeb.JSViewChannelTest do
 
     send(from, {:event, "ping", [1, 2, 3], %{ref: "1"}})
     assert_push "event:1", %{"root" => [["ping"], [1, 2, 3]]}
+  end
+
+  test "ignores client events when no connection is found", %{socket: socket} do
+    push(socket, "event", %{"root" => [["ping", "1"], [1, 2, 3]]})
+
+    # The channel should still be operational
+    push(socket, "connect", %{"connect_token" => connect_token(), "ref" => "1", "id" => "id1"})
+    assert_receive {:connect, _from, %{}}
   end
 
   describe "binary payload" do

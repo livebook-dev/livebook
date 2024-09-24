@@ -8,17 +8,18 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, title: title(socket))}
+    {:ok, socket}
   end
 
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
 
-    secret_name = socket.assigns[:prefill_secret_name]
+    secret_name = socket.assigns.prefill_secret_name
 
     socket =
       socket
+      |> assign(title: title(socket))
       |> assign_new(:changeset, fn ->
         attrs = %{name: secret_name, value: nil, hub_id: nil}
         Secrets.change_secret(%Secret{}, attrs)
@@ -36,10 +37,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 w-full flex flex-col space-y-5">
+    <div class="flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= @title %>
       </h3>
+      <p class="text-gray-700">
+        The notebook can read the secret value as a LB_ prefixed environment variable.
+      </p>
       <.grant_access_message
         :if={@grant_access_secret}
         secret={@grant_access_secret}
@@ -47,7 +51,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         hub={@hub}
       />
       <div class="flex flex-columns gap-4">
-        <div :if={@select_secret_ref} class="basis-1/2 grow-0 pr-4 border-r">
+        <div :if={@select_secret_metadata} class="basis-1/2 grow-0 pr-4 border-r">
           <div class="flex flex-col space-y-4">
             <p class="text-gray-800">
               Choose a secret
@@ -97,7 +101,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           class="basis-1/2 grow"
         >
           <div class="flex flex-col space-y-4">
-            <p :if={@select_secret_ref} class="text-gray-700">
+            <p :if={@select_secret_metadata} class="text-gray-700">
               Add new secret
             </p>
             <.text_field
@@ -125,13 +129,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               ]}
             />
             <div class="flex space-x-2">
-              <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-                <.remix_icon icon="add-line" class="align-middle" />
+              <.button type="submit" disabled={not @changeset.valid?}>
+                <.remix_icon icon="add-line" />
                 <span class="font-normal">Add</span>
-              </button>
-              <.link patch={@return_to} class="button-base button-outlined-gray">
+              </.button>
+              <.button color="gray" outlined patch={@return_to}>
                 Cancel
-              </.link>
+              </.button>
             </div>
           </div>
         </.form>
@@ -186,7 +190,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <div class="mx-auto">
         <div class="rounded-lg bg-blue-600 py-1 px-4 shadow-sm">
           <div class="flex flex-wrap items-center justify-between">
-            <div class="flex w-0 flex-1 items-center">
+            <div class="flex w-0 flex-1 items-center pr-1">
               <.remix_icon
                 icon="error-warning-fill"
                 class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
@@ -194,18 +198,18 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               <span class="ml-2 text-sm font-normal text-gray-100">
                 There is a secret named
                 <span class="font-semibold text-white"><%= @secret.name %></span>
-                in <%= hub_label(@hub) %>. Allow this session to access it?
+                in the <%= hub_label(@hub) %> workspace. Allow this notebook to access it?
               </span>
             </div>
-            <button
-              class="button-base button-gray"
+            <.button
+              color="gray"
               phx-click="select_secret"
               phx-value-name={@secret.name}
               phx-value-hub={true}
               phx-target={@target}
             >
               Grant access
-            </button>
+            </.button>
           </div>
         </div>
       </div>
@@ -215,14 +219,18 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def handle_event("save", %{"secret" => attrs}, socket) do
-    with {:ok, secret} <- Secrets.update_secret(%Secret{}, attrs),
-         :ok <- set_secret(socket, secret) do
+    changeset = Secrets.change_secret(%Secret{}, attrs)
+
+    with {:ok, secret} <- Ecto.Changeset.apply_action(changeset, :insert),
+         :ok <- save_secret(socket, secret, changeset) do
+      Session.set_secret(socket.assigns.session.pid, secret)
+
       {:noreply,
        socket
        |> push_patch(to: socket.assigns.return_to)
        |> push_secret_selected(secret.name)}
     else
-      {:error, changeset} ->
+      {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
 
       {:transport_error, error} ->
@@ -246,7 +254,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     if attrs["hub"] do
       secret = Enum.find(socket.assigns.hub_secrets, &(&1.name == secret_name))
 
-      unless Session.Data.secret_toggled?(secret, socket.assigns.secrets) do
+      if secret && !Session.Data.secret_toggled?(secret, socket.assigns.secrets) do
         Session.set_secret(socket.assigns.session.pid, secret)
       end
     end
@@ -257,23 +265,29 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
      |> push_secret_selected(secret_name)}
   end
 
-  defp push_secret_selected(%{assigns: %{select_secret_ref: nil}} = socket, _), do: socket
+  defp push_secret_selected(%{assigns: %{select_secret_metadata: nil}} = socket, _), do: socket
 
-  defp push_secret_selected(%{assigns: %{select_secret_ref: ref}} = socket, secret_name) do
+  defp push_secret_selected(
+         %{assigns: %{select_secret_metadata: %{ref: ref}}} = socket,
+         secret_name
+       ) do
     push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_name: secret_name})
   end
 
-  defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
-  defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
+  defp title(%{assigns: %{select_secret_metadata: nil}}), do: "Add secret"
+  defp title(%{assigns: %{select_secret_metadata: %{options: %{"title" => title}}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp set_secret(socket, %Secret{hub_id: nil} = secret) do
-    Session.set_secret(socket.assigns.session.pid, secret)
-  end
-
-  defp set_secret(socket, %Secret{} = secret) do
-    with :ok <- Hubs.create_secret(socket.assigns.hub, secret) do
-      Session.set_secret(socket.assigns.session.pid, secret)
+  defp save_secret(socket, secret, changeset) do
+    if secret.hub_id do
+      with {:error, errors} <- Hubs.create_secret(socket.assigns.hub, secret) do
+        {:error,
+         changeset
+         |> Livebook.Utils.put_changeset_errors(errors)
+         |> Map.replace!(:action, :validate)}
+      end
+    else
+      :ok
     end
   end
 

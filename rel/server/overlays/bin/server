@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+cd -P -- "$(dirname -- "$0")"
+
+# Livebook does not start EPMD automatically, but we want to start it
+# here, becasue we need it for clustering
+epmd -daemon
+
+if [ -n "${FLAME_PARENT}" ]; then
+  exec elixir ./start_flame.exs
+elif [ -n "${LIVEBOOK_RUNTIME}" ]; then
+  # Note: keep the flags in sync with the standalone runtime
+  erl_flags="+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput"
+
+  # We add Livebook modules to the path, so that they are loaded from
+  # from disk, rather than having module binaries sent from the parent
+  # node. This cuts down the initialization time.
+  livebook_beams="$(dirname -- "$(pwd)")/lib/livebook_runtime_ebin"
+  erl_flags="$erl_flags -pa $livebook_beams"
+
+  exec elixir --erl "$erl_flags" ./start_runtime.exs
+else
+  exec ./livebook start
+fi

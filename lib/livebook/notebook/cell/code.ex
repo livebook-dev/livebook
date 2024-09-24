@@ -1,17 +1,14 @@
 defmodule Livebook.Notebook.Cell.Code do
-  @moduledoc false
-
-  # A cell with Elixir code.
+  # Notebook cell with evaluable code.
   #
-  # It consists of text content that the user can edit
-  # and produces some output once evaluated.
+  # It consists of text content that the user can edit and produces
+  # output once evaluated.
 
   defstruct [
     :id,
     :source,
     :outputs,
     :language,
-    :disable_formatting,
     :reevaluate_automatically,
     :continue_on_error
   ]
@@ -24,7 +21,6 @@ defmodule Livebook.Notebook.Cell.Code do
           source: String.t() | :__pruned__,
           outputs: list(Cell.indexed_output()),
           language: :elixir | :erlang,
-          disable_formatting: boolean(),
           reevaluate_automatically: boolean(),
           continue_on_error: boolean()
         }
@@ -39,7 +35,6 @@ defmodule Livebook.Notebook.Cell.Code do
       source: "",
       outputs: [],
       language: :elixir,
-      disable_formatting: false,
       reevaluate_automatically: false,
       continue_on_error: false
     }

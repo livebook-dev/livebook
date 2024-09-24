@@ -1,17 +1,14 @@
 defmodule Livebook.Intellisense.IdentifierMatcher do
-  @moduledoc false
-
-  # This module allows for extracting information about
-  # identifiers based on code and runtime information
-  # (binding, environment).
+  # This module allows for extracting information about identifiers
+  # based on code and runtime information (binding, environment).
   #
-  # This functionality is a basic building block to be
-  # used for code completion and information extraction.
+  # This functionality is a basic building block to be used for code
+  # completion and information extraction.
   #
-  # The implementation is based primarily on `IEx.Autocomplete`.
-  # It also takes insights from `ElixirSense.Providers.Suggestion.Complete`,
-  # which is a very extensive implementation used in the
-  # Elixir Language Server.
+  # The implementation is based primarily on `IEx.Autocomplete`. It
+  # also takes insights from `ElixirSense.Providers.Suggestion.Complete`,
+  # which is a very extensive implementation used in the Elixir Language
+  # Server.
 
   alias Livebook.Intellisense
   alias Livebook.Intellisense.Docs
@@ -103,41 +100,62 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @alias_only_charlists ~w(alias import require)c
 
   @doc """
-  Returns a list of identifiers matching the given `hint`
-  together with relevant information.
+  Clears all loaded entries stored for node.
+  """
+  def clear_all_loaded(node) do
+    :persistent_term.erase({__MODULE__, node})
+  end
+
+  defp cached_all_loaded(node) do
+    case :persistent_term.get({__MODULE__, node}, :error) do
+      :error ->
+        modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
+        :persistent_term.put({__MODULE__, node}, modules)
+        modules
+
+      [_ | _] = modules ->
+        modules
+    end
+  end
+
+  @doc """
+  Returns a list of identifiers matching the given `hint` together
+  with relevant information.
 
   Evaluation binding and environment is used to expand aliases,
   imports, nested maps, etc.
 
   `hint` may be a single token or line fragment like `if Enum.m`.
   """
-  @spec completion_identifiers(String.t(), Intellisense.context()) :: list(identifier_item())
-  def completion_identifiers(hint, intellisense_context) do
+  @spec completion_identifiers(String.t(), Intellisense.context(), node()) ::
+          list(identifier_item())
+  def completion_identifiers(hint, intellisense_context, node) do
     context = Code.Fragment.cursor_context(hint)
 
     ctx = %{
       fragment: hint,
       intellisense_context: intellisense_context,
       matcher: @prefix_matcher,
-      type: :completion
+      type: :completion,
+      node: node
     }
 
     context_to_matches(context, ctx)
   end
 
   @doc """
-  Extracts information about an identifier found in `column`
-  in `line`.
+  Extracts information about an identifier found in `column` in
+  `line`.
 
   The function returns range of columns where the identifier
   is located and a list of matching identifier items.
   """
-  @spec locate_identifier(String.t(), pos_integer(), Intellisense.context()) ::
+  @spec locate_identifier(String.t(), pos_integer(), Intellisense.context(), node()) ::
           %{
             matches: list(identifier_item()),
             range: nil | %{from: pos_integer(), to: pos_integer()}
           }
-  def locate_identifier(line, column, intellisense_context) do
+  def locate_identifier(line, column, intellisense_context, node) do
     case Code.Fragment.surround_context(line, {1, column}) do
       %{context: context, begin: {_, from}, end: {_, to}} ->
         fragment = String.slice(line, 0, to - 1)
@@ -146,7 +164,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           fragment: fragment,
           intellisense_context: intellisense_context,
           matcher: @exact_matcher,
-          type: :locate
+          type: :locate,
+          node: node
         }
 
         matches = context_to_matches(context, ctx)
@@ -320,6 +339,11 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
+  # This is ignoring information from remote nodes
+  # and only listing structs that are also structs
+  # in the current node. Doing this check remotely
+  # would unfortunately be too expensive. Alternatively
+  # we list all modules.
   defp match_struct(hint, ctx) do
     for %{kind: :module, module: module} = item <- match_alias(hint, ctx, true),
         has_struct?(module),
@@ -433,7 +457,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp container_context_struct_fields(pairs, mod, hint, ctx) do
-    map = Map.from_struct(mod.__struct__)
+    map = Map.from_struct(mod.__struct__())
     map = filter_out_fields(map, pairs)
 
     for {field, default} <- map,
@@ -501,7 +525,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod)
+          documentation: Intellisense.Docs.get_module_documentation(mod, ctx.node)
         }
   end
 
@@ -513,12 +537,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     |> expand_alias(ctx)
   end
 
-  defp expand_alias([name | rest], ctx) do
-    case Macro.Env.fetch_alias(ctx.intellisense_context.env, name) do
-      {:ok, name} when rest == [] -> name
-      {:ok, name} -> Module.concat([name | rest])
-      :error -> Module.concat([name | rest])
-    end
+  defp expand_alias([_ | _] = parts, ctx) do
+    Macro.expand({:__aliases__, [], parts}, ctx.intellisense_context.env)
   end
 
   defp match_env_alias(hint, ctx) do
@@ -529,7 +549,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod)
+          documentation: Intellisense.Docs.get_module_documentation(mod, ctx.node)
         }
   end
 
@@ -583,7 +603,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod)
+          documentation: Intellisense.Docs.get_module_documentation(mod, ctx.node)
         }
   end
 
@@ -607,39 +627,53 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp get_matching_modules(hint, ctx) do
-    get_modules()
+    ctx
+    |> get_modules()
     |> Enum.filter(&ctx.matcher.(Atom.to_string(&1), hint))
     |> Enum.uniq()
   end
 
-  defp get_modules() do
-    modules = Enum.map(:code.all_loaded(), &elem(&1, 0))
-
-    case :code.get_mode() do
-      :interactive -> modules ++ get_modules_from_applications()
-      _otherwise -> modules
+  defp get_modules(%{node: node} = ctx) do
+    # On interactive mode, we load modules from the application
+    # and then the ones from runtime. For a remote node, ideally
+    # we would get the applications one, but there is no cheap
+    # way to do such, so we get :code.all_loaded and cache it
+    # instead (which includes all modules anyway on embedded mode).
+    if node == node() and :code.get_mode() == :interactive do
+      runtime_modules(ctx.intellisense_context.ebin_path) ++ get_modules_from_applications()
+    else
+      cached_all_loaded(node)
     end
   end
 
-  defp get_modules_from_applications do
-    for [app] <- loaded_applications(),
-        {:ok, modules} = :application.get_key(app, :modules),
-        module <- modules,
-        do: module
+  defp runtime_modules(path) do
+    with true <- is_binary(path),
+         {:ok, beams} <- File.ls(path) do
+      for beam <- beams, String.ends_with?(beam, ".beam") do
+        beam
+        |> binary_slice(0..-6//1)
+        |> String.to_atom()
+      end
+    else
+      _ -> []
+    end
   end
 
-  defp loaded_applications do
+  defp get_modules_from_applications() do
     # If we invoke :application.loaded_applications/0,
     # it can error if we don't call safe_fixtable before.
     # Since in both cases we are reaching over the
     # application controller internals, we choose to match
     # for performance.
-    :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
+    for [app] <- :ets.match(:ac_tab, {{:loaded, :"$1"}, :_}),
+        {:ok, modules} = :application.get_key(app, :modules),
+        module <- modules,
+        do: module
   end
 
   defp match_module_function(mod, hint, ctx, funs \\ nil) do
-    if ensure_loaded?(mod) do
-      funs = funs || exports(mod)
+    if ensure_loaded?(mod, ctx.node) do
+      funs = funs || exports(mod, ctx.node)
 
       matching_funs =
         Enum.filter(funs, fn {name, _arity, _type} ->
@@ -651,6 +685,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         Intellisense.Docs.lookup_module_members(
           mod,
           Enum.map(matching_funs, &Tuple.delete_at(&1, 2)),
+          ctx.node,
           kinds: [:function, :macro]
         )
 
@@ -683,23 +718,35 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp exports(mod) do
-    if Code.ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
-      macros = mod.__info__(:macros)
-      functions = mod.__info__(:functions) -- [__info__: 1]
-      append_funs_type(macros, :macro) ++ append_funs_type(functions, :function)
+  defp exports(mod, node) do
+    try do
+      :erpc.call(node, mod, :module_info, [:exports])
+    rescue
+      _ -> []
     else
-      functions = mod.module_info(:exports) -- [module_info: 0, module_info: 1]
-      append_funs_type(functions, :function)
+      exports ->
+        for {fun, arity} <- exports,
+            not reflection?(fun, arity),
+            do: function_or_macro(Atom.to_string(fun), fun, arity)
     end
   end
+
+  defp reflection?(:module_info, 0), do: true
+  defp reflection?(:module_info, 1), do: true
+  defp reflection?(:__info__, 1), do: true
+  defp reflection?(_, _), do: false
+
+  defp function_or_macro("MACRO-" <> name, _, arity),
+    do: {String.to_atom(name), arity - 1, :macro}
+
+  defp function_or_macro(_, fun, arity), do: {fun, arity, :function}
 
   defp append_funs_type(funs, type) do
     Enum.map(funs, &Tuple.append(&1, type))
   end
 
   defp match_module_type(mod, hint, ctx) do
-    types = get_module_types(mod)
+    types = get_module_types(mod, ctx.node)
 
     matching_types =
       Enum.filter(types, fn {name, _arity} ->
@@ -707,7 +754,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         ctx.matcher.(name, hint)
       end)
 
-    doc_items = Intellisense.Docs.lookup_module_members(mod, matching_types, kinds: [:type])
+    doc_items =
+      Intellisense.Docs.lookup_module_members(mod, matching_types, ctx.node, kinds: [:type])
 
     Enum.map(matching_types, fn {name, arity} ->
       doc_item =
@@ -726,9 +774,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end)
   end
 
-  defp get_module_types(mod) do
-    with true <- ensure_loaded?(mod),
-         {:ok, types} <- Code.Typespec.fetch_types(mod) do
+  defp get_module_types(mod, node) do
+    with true <- ensure_loaded?(mod, node),
+         {:ok, types} <- :erpc.call(node, Code.Typespec, :fetch_types, [mod]) do
       for {kind, {name, _, args}} <- types, kind in [:type, :opaque] do
         {name, length(args)}
       end
@@ -737,8 +785,11 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp ensure_loaded?(Elixir), do: false
-  defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
+  # Skip Elixir to avoid warnings
+  defp ensure_loaded?(Elixir, _node), do: false
+  # Remote nodes only have loaded modules
+  defp ensure_loaded?(_mod, node) when node != node(), do: true
+  defp ensure_loaded?(mod, _node), do: Code.ensure_loaded?(mod)
 
   defp imports_from_env(env) do
     Enum.map(env.functions, fn {mod, funs} ->
@@ -755,9 +806,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         :error
 
       parts ->
-        {start, _} = List.last(parts)
-        size = byte_size(string)
-        {:ok, binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+        {start, length} = List.last(parts)
+        <<left::binary-size(start), _::binary-size(length), right::binary>> = string
+        {:ok, left, right}
     end
   end
 

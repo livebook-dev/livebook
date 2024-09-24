@@ -1,6 +1,4 @@
 defmodule Livebook.NotebookManager do
-  @moduledoc false
-
   use GenServer
 
   alias Livebook.Storage
@@ -102,14 +100,6 @@ defmodule Livebook.NotebookManager do
   end
 
   @doc """
-  Clears all information about notebooks from the removed file system.
-  """
-  @spec remove_file_system(Livebook.Utils.id()) :: :ok
-  def remove_file_system(file_system_id) do
-    GenServer.cast(__MODULE__, {:remove_file_system, file_system_id})
-  end
-
-  @doc """
   Updates the tracked notebook name for the given file.
 
   We track notebook names, so that we don't need to read and parse
@@ -123,6 +113,8 @@ defmodule Livebook.NotebookManager do
 
   @impl true
   def init(_opts) do
+    Livebook.Hubs.Broadcasts.subscribe([:file_systems])
+
     {:ok, nil, {:continue, :load_state}}
   end
 
@@ -147,7 +139,7 @@ defmodule Livebook.NotebookManager do
 
   @impl true
   def handle_cast({:add_recent_notebook, file, name}, state = prev_state) do
-    recent_notebooks = Enum.reject(state.recent_notebooks, &(&1.file == file))
+    recent_notebooks = Enum.reject(state.recent_notebooks, &FileSystem.File.equal?(&1.file, file))
 
     recent_notebooks = [
       %{file: file, name: name, added_at: DateTime.utc_now()} | recent_notebooks
@@ -166,7 +158,7 @@ defmodule Livebook.NotebookManager do
   end
 
   def handle_cast({:add_starred_notebook, file, name}, state = prev_state) do
-    if Enum.any?(state.starred_notebooks, &(&1.file == file)) do
+    if Enum.any?(state.starred_notebooks, &FileSystem.File.equal?(&1.file, file)) do
       {:noreply, state}
     else
       starred_notebooks = [
@@ -180,23 +172,17 @@ defmodule Livebook.NotebookManager do
   end
 
   def handle_cast({:remove_recent_notebook, file}, state = prev_state) do
-    recent_notebooks = Enum.reject(state.recent_notebooks, &(&1.file == file))
+    recent_notebooks = Enum.reject(state.recent_notebooks, &FileSystem.File.equal?(&1.file, file))
     state = %{state | recent_notebooks: recent_notebooks}
     broadcast_changes(state, prev_state)
     {:noreply, state, {:continue, :dump_state}}
   end
 
   def handle_cast({:remove_starred_notebook, file}, state = prev_state) do
-    starred_notebooks = Enum.reject(state.starred_notebooks, &(&1.file == file))
-    state = %{state | starred_notebooks: starred_notebooks}
-    broadcast_changes(state, prev_state)
-    {:noreply, state, {:continue, :dump_state}}
-  end
+    starred_notebooks =
+      Enum.reject(state.starred_notebooks, &FileSystem.File.equal?(&1.file, file))
 
-  def handle_cast({:remove_file_system, file_system_id}, state = prev_state) do
-    recent_notebooks = remove_notebooks_on_file_system(state.recent_notebooks, file_system_id)
-    starred_notebooks = remove_notebooks_on_file_system(state.starred_notebooks, file_system_id)
-    state = %{state | recent_notebooks: recent_notebooks, starred_notebooks: starred_notebooks}
+    state = %{state | starred_notebooks: starred_notebooks}
     broadcast_changes(state, prev_state)
     {:noreply, state, {:continue, :dump_state}}
   end
@@ -209,8 +195,19 @@ defmodule Livebook.NotebookManager do
     {:noreply, state, {:continue, :dump_state}}
   end
 
+  @impl true
+  def handle_info({:file_system_deleted, file_system}, state = prev_state) do
+    recent_notebooks = remove_notebooks_on_file_system(state.recent_notebooks, file_system.id)
+    starred_notebooks = remove_notebooks_on_file_system(state.starred_notebooks, file_system.id)
+    state = %{state | recent_notebooks: recent_notebooks, starred_notebooks: starred_notebooks}
+    broadcast_changes(state, prev_state)
+    {:noreply, state, {:continue, :dump_state}}
+  end
+
+  def handle_info(_message, state), do: {:noreply, state}
+
   defp remove_notebooks_on_file_system(notebook_infos, file_system_id) do
-    Enum.reject(notebook_infos, &(&1.file.file_system.id == file_system_id))
+    Enum.reject(notebook_infos, &(&1.file.file_system_id == file_system_id))
   end
 
   defp update_notebook_names(notebook_infos, file, name) do
@@ -245,31 +242,29 @@ defmodule Livebook.NotebookManager do
         _ -> %{}
       end
 
-    file_system_by_id =
-      for file_system <- Livebook.Settings.file_systems(),
-          do: {file_system.id, file_system},
-          into: %{}
-
     %{
-      recent_notebooks: load_notebook_infos(attrs[:recent_notebooks], file_system_by_id),
-      starred_notebooks: load_notebook_infos(attrs[:starred_notebooks], file_system_by_id)
+      recent_notebooks: load_notebook_infos(attrs[:recent_notebooks]),
+      starred_notebooks: load_notebook_infos(attrs[:starred_notebooks])
     }
   end
 
-  defp load_notebook_infos(nil, _file_system_by_id), do: []
+  defp load_notebook_infos(nil), do: []
 
-  defp load_notebook_infos(notebook_infos, file_system_by_id) do
+  defp load_notebook_infos(notebook_infos) do
     for %{file: file, name: name, added_at: added_at} <- notebook_infos,
-        file = load_file(file, file_system_by_id),
+        file = load_file(file),
         added_at = load_datetime(added_at) do
       %{file: file, name: name, added_at: added_at}
     end
   end
 
-  defp load_file(%{file_system_id: file_system_id, path: path}, file_system_by_id) do
-    if file_system = file_system_by_id[file_system_id] do
-      %FileSystem.File{file_system: file_system, path: path}
-    end
+  defp load_file(%{file_system_id: file_system_id, file_system_type: file_system_type, path: path}) do
+    %FileSystem.File{
+      file_system_id: file_system_id,
+      file_system_module: Livebook.FileSystems.type_to_module(file_system_type),
+      path: path,
+      origin_pid: self()
+    }
   end
 
   defp load_datetime(datetime) do
@@ -296,6 +291,10 @@ defmodule Livebook.NotebookManager do
   end
 
   defp dump_file(file) do
-    %{file_system_id: file.file_system.id, path: file.path}
+    %{
+      file_system_id: file.file_system_id,
+      file_system_type: Livebook.FileSystems.module_to_type(file.file_system_module),
+      path: file.path
+    }
   end
 end

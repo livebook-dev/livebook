@@ -2,6 +2,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Notebook.AppSettings
+  import LivebookWeb.Confirm
 
   @impl true
   def update(assigns, socket) do
@@ -20,11 +21,25 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 max-w-4xl flex flex-col space-y-8">
+    <div class="flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         App settings
       </h3>
-      <.form :let={f} for={@changeset} phx-change="validate" phx-target={@myself} autocomplete="off">
+      <.message_box :if={@context == "preview"} kind={:info}>
+        You must configure your app before previewing it.
+      </.message_box>
+      <.message_box :if={@context && @context != "preview"} kind={:info}>
+        You must configure your app before deploying it.
+      </.message_box>
+
+      <.form
+        :let={f}
+        for={@changeset}
+        phx-change="validate"
+        phx-submit="save"
+        phx-target={@myself}
+        autocomplete="off"
+      >
         <div class="flex flex-col space-y-4">
           <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce />
           <div class="flex flex-col space-y-1">
@@ -118,18 +133,13 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <% end %>
         </div>
         <div class="mt-8 flex space-x-2">
-          <button
-            class="button-base button-blue"
-            type="button"
-            phx-click={JS.patch(~p"/sessions/#{@session.id}") |> JS.push("deploy_app")}
-            disabled={not @changeset.valid?}
-          >
-            <.remix_icon icon="rocket-line" class="align-middle mr-1" />
-            <span>Deploy</span>
-          </button>
-          <button class="button-base button-outlined-gray" type="reset" name="reset">
+          <.button disabled={not @changeset.valid?}>
+            <%= if @context == "preview", do: "Launch", else: "Save" %>
+          </.button>
+
+          <.button color="gray" outlined type="reset" name="reset">
             Reset
-          </button>
+          </.button>
         </div>
       </.form>
     </div>
@@ -149,10 +159,71 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
       |> AppSettings.change(params)
       |> Map.put(:action, :validate)
 
-    with {:ok, settings} <- AppSettings.update(socket.assigns.settings, params) do
-      Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
+    {:noreply, assign(socket, changeset: changeset)}
+  end
+
+  def handle_event("save", %{"app_settings" => params}, socket) do
+    app_settings = socket.assigns.settings
+    deployed_app_slug = socket.assigns.deployed_app_slug
+
+    app_settings =
+      case AppSettings.update(app_settings, params) do
+        {:ok, app_settings} ->
+          Livebook.Session.set_app_settings(socket.assigns.session.pid, app_settings)
+          app_settings
+
+        {:error, _changeset} ->
+          app_settings
+      end
+
+    case socket.assigns.context do
+      "preview" ->
+        {:noreply, preview_app(socket, app_settings, deployed_app_slug)}
+
+      redirect when is_binary(redirect) ->
+        {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/#{redirect}")}
+
+      nil ->
+        {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+    end
+  end
+
+  def preview_app(socket, app_settings, deployed_app_slug) do
+    on_confirm = fn socket ->
+      Livebook.Session.deploy_app(socket.assigns.session.pid)
+      push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")
     end
 
-    {:noreply, assign(socket, changeset: changeset)}
+    slug = app_settings.slug
+
+    app =
+      case Livebook.Apps.fetch_app(slug) do
+        {:ok, app} -> app
+        :error -> nil
+      end
+
+    permanent? = app && app.permanent
+    slug_taken? = slug != deployed_app_slug and app != nil
+
+    cond do
+      permanent? ->
+        socket
+        |> put_flash(
+          :error,
+          "A permanent app with this slug already exists and cannot be replaced."
+        )
+        |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}")
+
+      slug_taken? ->
+        confirm(socket, on_confirm,
+          title: "Deploy app",
+          description:
+            "An app with this slug already exists, do you want to deploy a new version?",
+          confirm_text: "Replace"
+        )
+
+      true ->
+        on_confirm.(socket)
+    end
   end
 end

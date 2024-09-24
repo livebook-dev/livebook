@@ -2,6 +2,7 @@ import Config
 
 # Configures the endpoint
 config :livebook, LivebookWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
   url: [host: "localhost", path: "/"],
   pubsub_server: Livebook.PubSub,
   live_view: [signing_salt: "livebook"],
@@ -16,27 +17,33 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Add mime type to upload notebooks with `Phoenix.LiveView.Upload`
+# Additional mime types
 config :mime, :types, %{
+  "audio/m4a" => ["m4a"],
   "text/plain" => ["livemd"]
 }
 
-# We want CSRF tokens to be logged to help users with debugging
-config :plug_cowboy, :log_exceptions_with_status_code, [407..599]
-
 config :livebook,
-  teams_url: nil,
+  agent_name: "default",
+  allowed_uri_schemes: [],
   app_service_name: nil,
   app_service_url: nil,
-  authentication_mode: :token,
+  authentication: :token,
+  aws_credentials: false,
   feature_flags: [],
   force_ssl_host: nil,
   learn_notebooks: [],
   plugs: [],
+  rewrite_on: [],
   shutdown_callback: nil,
+  teams_auth?: false,
+  teams_url: "https://teams.livebook.dev",
+  github_release_info: %{repo: "livebook-dev/livebook", version: Mix.Project.config()[:version]},
   update_instructions_url: nil,
   within_iframe: false,
-  allowed_uri_schemes: []
+  k8s_kubeconfig_pipeline: Kubereq.Kubeconfig.Default
+
+config :livebook, Livebook.Apps.Manager, retry_backoff_base_ms: 5_000
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

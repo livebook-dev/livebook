@@ -46,7 +46,7 @@ defmodule Livebook.ZTA.GoogleIAPTest do
   test "returns the user when it's valid", %{options: options, conn: conn} do
     start_supervised!({GoogleIAP, options})
     {_conn, user} = GoogleIAP.authenticate(@name, conn, fields: @fields)
-    assert %{id: "1234567890", email: "tuka@peralta.com"} = user
+    assert %{id: "1234567890", email: "tuka@peralta.com", payload: %{}} = user
   end
 
   test "returns nil when the iss is invalid", %{options: options, conn: conn} do

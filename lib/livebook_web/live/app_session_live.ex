@@ -1,7 +1,7 @@
 defmodule LivebookWeb.AppSessionLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.AppHelpers
+  import LivebookWeb.AppComponents
 
   alias Livebook.Session
   alias Livebook.Notebook
@@ -40,7 +40,8 @@ defmodule LivebookWeb.AppSessionLive do
          client_id: client_id,
          data_view: data_to_view(data)
        )
-       |> assign_private(data: data)}
+       |> assign_private(data: data)
+       |> prune_outputs()}
     else
       {:ok,
        assign(socket,
@@ -106,10 +107,16 @@ defmodule LivebookWeb.AppSessionLive do
                 <.remix_icon icon="arrow-down-s-line" />
               </button>
             </:toggle>
-            <.menu_item>
+            <.menu_item :if={@livebook_authenticated?}>
               <.link navigate={~p"/"} role="menuitem">
                 <.remix_icon icon="home-6-line" />
                 <span>Home</span>
+              </.link>
+            </.menu_item>
+            <.menu_item>
+              <.link navigate={~p"/apps"} role="menuitem">
+                <.remix_icon icon="layout-grid-fill" />
+                <span>Apps</span>
               </.link>
             </.menu_item>
             <.menu_item :if={@data_view.multi_session}>
@@ -119,7 +126,10 @@ defmodule LivebookWeb.AppSessionLive do
               </.link>
             </.menu_item>
             <.menu_item :if={@data_view.show_source}>
-              <.link patch={~p"/apps/#{@data_view.slug}/#{@session.id}/source"} role="menuitem">
+              <.link
+                patch={~p"/apps/#{@data_view.slug}/sessions/#{@session.id}/source"}
+                role="menuitem"
+              >
                 <.remix_icon icon="code-line" />
                 <span>View source</span>
               </.link>
@@ -138,18 +148,15 @@ defmodule LivebookWeb.AppSessionLive do
             <%= @data_view.notebook_name %>
           </h1>
         </div>
-        <div class="pt-4 flex flex-col space-y-6" data-el-outputs-container id="outputs">
-          <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
-            <LivebookWeb.Output.outputs
-              outputs={[output_view.output]}
-              dom_id_map={%{}}
-              session_id={@session.id}
-              session_pid={@session.pid}
-              client_id={@client_id}
-              cell_id={output_view.cell_id}
-              input_views={output_view.input_views}
-            />
-          </div>
+        <div class="pt-4 flex flex-col gap-6">
+          <.live_component
+            :for={cell_view <- @data_view.cell_views}
+            module={LivebookWeb.AppSessionLive.CellOutputsComponent}
+            id={"outputs-#{cell_view.id}"}
+            cell_view={cell_view}
+            session={@session}
+            client_id={@client_id}
+          />
           <%= if @data_view.app_status.execution == :error do %>
             <div class={[
               "flex justify-between items-center px-4 py-2 border-l-4 shadow-custom-1",
@@ -168,13 +175,10 @@ defmodule LivebookWeb.AppSessionLive do
                   </.link>
                 </span>
                 <button
-                  class={[
-                    "button-base bg-transparent",
-                    "border-red-400 text-red-400 hover:bg-red-50 focus:bg-red-50"
-                  ]}
+                  class="px-5 py-2 font-medium text-sm inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1 border-red-400 text-red-400 hover:bg-red-50 focus:bg-red-50"
                   phx-click="queue_errored_cells_evaluation"
                 >
-                  <.remix_icon icon="play-circle-fill" class="align-middle mr-1" />
+                  <.remix_icon icon="play-circle-fill" />
                   <span>Retry</span>
                 </button>
               </div>
@@ -185,18 +189,21 @@ defmodule LivebookWeb.AppSessionLive do
       </div>
       <div class="fixed right-3 bottom-4 flex flex-col gap-2 items-center text-gray-600 w-10">
         <span
-          :if={@data_view.app_status.execution != :executing and @data_view.any_stale?}
+          :if={
+            @data_view.app_status.execution == :executed and
+              @data_view.any_stale?
+          }
           class="tooltip left"
           data-tooltip={
             ~S'''
-            Some inputs have changed since they were last processed.
-            Click this button to reprocess with latest values.
+            Some inputs have changed.
+            Click this button to process with latest values.
             '''
           }
         >
-          <button phx-click="queue_full_evaluation" class="icon-button">
-            <.remix_icon icon="play-circle-fill" class="text-3xl" />
-          </button>
+          <.icon_button phx-click="queue_full_evaluation">
+            <.remix_icon icon="play-circle-fill" class="text-3xl leading-none" />
+          </.icon_button>
         </span>
         <.app_status_circle status={@data_view.app_status} />
       </div>
@@ -207,7 +214,7 @@ defmodule LivebookWeb.AppSessionLive do
       id="source-modal"
       show
       width={:big}
-      patch={~p"/apps/#{@data_view.slug}/#{@session.id}"}
+      patch={~p"/apps/#{@data_view.slug}/sessions/#{@session.id}"}
     >
       <.live_component
         module={LivebookWeb.AppSessionLive.SourceComponent}
@@ -314,6 +321,17 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   @impl true
+  def handle_call({:get_input_value, input_id}, _from, socket) do
+    reply =
+      case socket.private.data.input_infos do
+        %{^input_id => %{value: value}} -> {:ok, socket.assigns.session.id, value}
+        %{} -> :error
+      end
+
+    {:reply, reply, socket}
+  end
+
+  @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
   end
@@ -358,6 +376,22 @@ defmodule LivebookWeb.AppSessionLive do
     end
   end
 
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_output, _client_id, _cell_id, _output}
+       ) do
+    prune_outputs(socket)
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_response, _client_id, _cell_id, _output, _metadata}
+       ) do
+    prune_outputs(socket)
+  end
+
   defp after_operation(socket, _prev_socket, {:app_deactivate, _client_id}) do
     redirect_on_closed(socket)
   end
@@ -378,25 +412,25 @@ defmodule LivebookWeb.AppSessionLive do
     |> push_navigate(to: ~p"/")
   end
 
-  defp update_data_view(data_view, _prev_data, data, operation) do
+  defp update_data_view(data_view, prev_data, data, operation) do
     case operation do
       # See LivebookWeb.SessionLive for more details
-      {:add_cell_evaluation_output, _client_id, _cell_id,
-       {:frame, _outputs, %{type: type, ref: ref}}}
-      when type != :default ->
-        for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
-          send_update(LivebookWeb.Output.FrameComponent,
-            id: "output-#{idx}",
-            outputs: frame_outputs,
-            update_type: type
-          )
+      {:add_cell_evaluation_output, _client_id, cell_id, output} ->
+        case LivebookWeb.SessionLive.send_output_update(prev_data, data, cell_id, output) do
+          :ok -> data_view
+          :continue -> data_to_view(data)
         end
-
-        data_view
 
       _ ->
         data_to_view(data)
     end
+  end
+
+  defp prune_outputs(%{private: %{data: data}} = socket) do
+    assign_private(
+      socket,
+      data: update_in(data.notebook, &Notebook.prune_cell_outputs/1)
+    )
   end
 
   defp data_to_view(data) do
@@ -404,15 +438,15 @@ defmodule LivebookWeb.AppSessionLive do
 
     %{
       notebook_name: data.notebook.name,
-      output_views:
-        for(
-          {cell_id, output} <- visible_outputs(data.notebook),
-          do: %{
-            output: output,
-            input_views: input_views_for_output(output, data, changed_input_ids),
-            cell_id: cell_id
+      cell_views:
+        for {cell, _section} <- Notebook.evaluable_cells_with_section(data.notebook) do
+          %{
+            id: cell.id,
+            input_views: input_views_for_cell(cell, data, changed_input_ids),
+            outputs: filter_outputs(cell.outputs, data.notebook.app_settings.output_type),
+            outputs_batch_number: data.cell_infos[cell.id].eval.outputs_batch_number
           }
-        ),
+        end,
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
@@ -434,22 +468,17 @@ defmodule LivebookWeb.AppSessionLive do
     Enum.any?(data.cell_infos, &match?({_, %{eval: %{validity: :stale}}}, &1))
   end
 
-  defp input_views_for_output(output, data, changed_input_ids) do
-    input_ids = for attrs <- Cell.find_inputs_in_output(output), do: attrs.id
+  defp input_views_for_cell(cell, data, changed_input_ids) do
+    input_ids =
+      for output <- cell.outputs,
+          input <- Cell.find_inputs_in_output(output),
+          do: input.id
 
     data.input_infos
     |> Map.take(input_ids)
     |> Map.new(fn {input_id, %{value: value}} ->
       {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
     end)
-  end
-
-  defp visible_outputs(notebook) do
-    for section <- Enum.reverse(notebook.sections),
-        cell <- Enum.reverse(section.cells),
-        Cell.evaluable?(cell),
-        output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
-        do: {cell.id, output}
   end
 
   defp filter_outputs(outputs, :all), do: outputs
@@ -460,34 +489,34 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   defp filter_output({idx, output})
-       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control, :input],
+       when output.type in [:plain_text, :markdown, :image, :js, :control, :input],
        do: {idx, output}
 
-  defp filter_output({idx, {:tabs, outputs, metadata}}) do
+  defp filter_output({idx, %{type: :tabs} = output}) do
     outputs_with_labels =
-      for {output, label} <- Enum.zip(outputs, metadata.labels),
+      for {output, label} <- Enum.zip(output.outputs, output.labels),
           output = filter_output(output),
           do: {output, label}
 
     {outputs, labels} = Enum.unzip(outputs_with_labels)
 
-    {idx, {:tabs, outputs, %{metadata | labels: labels}}}
+    {idx, %{output | outputs: outputs, labels: labels}}
   end
 
-  defp filter_output({idx, {:grid, outputs, metadata}}) do
-    outputs = rich_outputs(outputs)
+  defp filter_output({idx, %{type: :grid} = output}) do
+    outputs = rich_outputs(output.outputs)
 
     if outputs != [] do
-      {idx, {:grid, outputs, metadata}}
+      {idx, %{output | outputs: outputs}}
     end
   end
 
-  defp filter_output({idx, {:frame, outputs, metadata}}) do
-    outputs = rich_outputs(outputs)
-    {idx, {:frame, outputs, metadata}}
+  defp filter_output({idx, %{type: :frame} = output}) do
+    outputs = rich_outputs(output.outputs)
+    {idx, %{output | outputs: outputs}}
   end
 
-  defp filter_output({idx, {:error, _message, {:interrupt, _, _}} = output}),
+  defp filter_output({idx, %{type: :error, context: {:interrupt, _, _}} = output}),
     do: {idx, output}
 
   defp filter_output(_output), do: nil

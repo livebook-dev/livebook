@@ -31,6 +31,11 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
           <.switch_field name="include_outputs" label="Include outputs" value={@include_outputs} />
         </form>
       </div>
+      <.message_box
+        :if={@include_outputs and @any_stale_cell?}
+        kind={:warning}
+        message="There are stale cells, some outputs may be inaccurate. You may want to reevaluate the notebook to make sure the outputs are up to date."
+      />
       <div class="flex flex-col space-y-1">
         <div class="flex justify-between items-center">
           <span class="text-sm text-gray-700 font-semibold">
@@ -38,24 +43,23 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
           </span>
           <div class="flex justify-end space-x-2">
             <span class="tooltip left" data-tooltip="Copy source">
-              <button
-                class="icon-button"
+              <.icon_button
                 aria-label="copy source"
                 phx-click={JS.dispatch("lb:clipcopy", to: "#export-notebook-source")}
               >
-                <.remix_icon icon="clipboard-line" class="text-lg" />
-              </button>
+                <.remix_icon icon="clipboard-line" />
+              </.icon_button>
             </span>
             <span class="tooltip left" data-tooltip="Download source">
-              <a
-                class="icon-button"
+              <.icon_button
                 aria-label="download source"
                 href={
-                  ~p"/sessions/#{@session.id}/export/download/livemd?include_outputs=#{@include_outputs}"
+                  ~p"/sessions/#{@session.id}/download/export/livemd?include_outputs=#{@include_outputs}"
                 }
+                download
               >
-                <.remix_icon icon="download-2-line" class="text-lg" />
-              </a>
+                <.remix_icon icon="download-2-line" />
+              </.icon_button>
             </span>
           </div>
         </div>

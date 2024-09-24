@@ -1,11 +1,9 @@
 defmodule Livebook.Intellisense do
-  @moduledoc false
-
-  # This module provides intellisense related operations
-  # suitable for integration with a text editor.
+  # This module provides intellisense related operations suitable for
+  # integration with a text editor.
   #
-  # In a way, this provides the very basic features of a
-  # language server that Livebook uses.
+  # In a way, this provides the very basic features of a language
+  # server that Livebook uses.
 
   alias Livebook.Intellisense.{IdentifierMatcher, SignatureMatcher, Docs}
   alias Livebook.Runtime
@@ -17,13 +15,50 @@ defmodule Livebook.Intellisense do
   @typedoc """
   Evaluation state to consider for intellisense.
 
-  The `:map_binding` is only called when a value needs to
-  be extracted from binding.
+  The `:map_binding` is only called when a value needs to be extracted
+  from binding.
   """
   @type context :: %{
           env: Macro.Env.t(),
+          ebin_path: String.t() | nil,
           map_binding: (Code.binding() -> any())
         }
+
+  @doc """
+  Adjusts the system for more accurate intellisense.
+  """
+  @spec load() :: :ok
+  def load() do
+    # Completion looks for modules in loaded applications, so we ensure
+    # that the most relevant built-in applications are loaded
+    apps = [:erts, :crypto, :inets, :public_key, :runtime_tools, :ex_unit, :iex]
+
+    for app <- apps do
+      Application.load(app)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Clears all cache stored by the intellisense modules.
+  """
+  @spec clear_cache() :: :ok
+  def clear_cache() do
+    for node <- Node.list() do
+      clear_cache(node)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Clear any cache stored related to the given node.
+  """
+  @spec clear_cache(node()) :: :ok
+  def clear_cache(node) do
+    IdentifierMatcher.clear_all_loaded(node)
+  end
 
   @doc """
   Resolves an intellisense request as defined by `Runtime`.
@@ -33,24 +68,25 @@ defmodule Livebook.Intellisense do
   """
   @spec handle_request(
           Runtime.intellisense_request(),
-          context()
+          context(),
+          node()
         ) :: Runtime.intellisense_response()
-  def handle_request(request, context)
+  def handle_request(request, context, node)
 
-  def handle_request({:completion, hint}, context) do
-    items = get_completion_items(hint, context)
+  def handle_request({:completion, hint}, context, node) do
+    items = get_completion_items(hint, context, node)
     %{items: items}
   end
 
-  def handle_request({:details, line, column}, context) do
-    get_details(line, column, context)
+  def handle_request({:details, line, column}, context, node) do
+    get_details(line, column, context, node)
   end
 
-  def handle_request({:signature, hint}, context) do
-    get_signature_items(hint, context)
+  def handle_request({:signature, hint}, context, node) do
+    get_signature_items(hint, context, node)
   end
 
-  def handle_request({:format, code}, _context) do
+  def handle_request({:format, code}, _context, _node) do
     format_code(code)
   end
 
@@ -67,7 +103,7 @@ defmodule Livebook.Intellisense do
 
       %{code: formatted, code_markers: []}
     rescue
-      error ->
+      error in [SyntaxError, TokenMissingError, MismatchedDelimiterError] ->
         code_marker = %{line: error.line, description: error.description, severity: :error}
         %{code: nil, code_markers: [code_marker]}
     end
@@ -76,16 +112,16 @@ defmodule Livebook.Intellisense do
   @doc """
   Returns information about signatures matching the given `hint`.
   """
-  @spec get_signature_items(String.t(), context()) :: Runtime.signature_response() | nil
-  def get_signature_items(hint, context) do
-    case SignatureMatcher.get_matching_signatures(hint, context) do
+  @spec get_signature_items(String.t(), context(), node()) :: Runtime.signature_response() | nil
+  def get_signature_items(hint, context, node) do
+    case SignatureMatcher.get_matching_signatures(hint, context, node) do
       {:ok, [], _active_argument} ->
         nil
 
       {:ok, signature_infos, active_argument} ->
         %{
           active_argument: active_argument,
-          signature_items:
+          items:
             signature_infos
             |> Enum.map(&format_signature_item/1)
             |> Enum.uniq()
@@ -96,15 +132,10 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_signature_item({name, signature, documentation, specs}),
+  defp format_signature_item({_name, signature, _documentation, _specs}),
     do: %{
       signature: signature,
-      arguments: arguments_from_signature(signature),
-      documentation:
-        join_with_divider([
-          format_documentation(documentation, :short),
-          format_specs(specs, name, @line_length) |> code()
-        ])
+      arguments: arguments_from_signature(signature)
     }
 
   defp arguments_from_signature(signature) do
@@ -117,9 +148,9 @@ defmodule Livebook.Intellisense do
   @doc """
   Returns a list of completion suggestions for the given `hint`.
   """
-  @spec get_completion_items(String.t(), context()) :: list(Runtime.completion_item())
-  def get_completion_items(hint, context) do
-    IdentifierMatcher.completion_identifiers(hint, context)
+  @spec get_completion_items(String.t(), context(), node()) :: list(Runtime.completion_item())
+  def get_completion_items(hint, context, node) do
+    IdentifierMatcher.completion_identifiers(hint, context, node)
     |> Enum.filter(&include_in_completion?/1)
     |> Enum.map(&format_completion_item/1)
     |> Enum.concat(extra_completion_items(hint))
@@ -134,8 +165,7 @@ defmodule Livebook.Intellisense do
     do: %{
       label: Atom.to_string(name),
       kind: :variable,
-      detail: "variable",
-      documentation: nil,
+      documentation: "(variable)",
       insert_text: Atom.to_string(name)
     }
 
@@ -143,8 +173,7 @@ defmodule Livebook.Intellisense do
     do: %{
       label: Atom.to_string(name),
       kind: :field,
-      detail: "field",
-      documentation: nil,
+      documentation: "(field)",
       insert_text: Atom.to_string(name)
     }
 
@@ -152,8 +181,7 @@ defmodule Livebook.Intellisense do
     do: %{
       label: Atom.to_string(name),
       kind: :field,
-      detail: "field",
-      documentation: nil,
+      documentation: "(field)",
       insert_text: "#{name}: "
     }
 
@@ -166,16 +194,16 @@ defmodule Livebook.Intellisense do
        do: %{
          label: Atom.to_string(name),
          kind: :field,
-         detail: "#{inspect(struct)} struct field",
          documentation:
            join_with_divider([
-             code(name),
              """
+             `%#{inspect(struct)}{}` struct field.
+
              **Default**
 
              ```
              #{inspect(default, pretty: true, width: @line_length)}
-             ```
+             ```\
              """
            ]),
          insert_text: "#{name}: "
@@ -203,8 +231,11 @@ defmodule Livebook.Intellisense do
     %{
       label: display_name,
       kind: kind,
-      detail: detail,
-      documentation: format_documentation(documentation, :short),
+      documentation:
+        join_with_newlines([
+          format_documentation(documentation, :short),
+          "(#{detail})"
+        ]),
       insert_text: String.trim_leading(display_name, ":")
     }
   end
@@ -217,17 +248,15 @@ defmodule Livebook.Intellisense do
          type: type,
          display_name: display_name,
          documentation: documentation,
-         signatures: signatures,
-         specs: specs
+         signatures: signatures
        }),
        do: %{
          label: "#{display_name}/#{arity}",
          kind: :function,
-         detail: format_signatures(signatures, module),
          documentation:
            join_with_newlines([
              format_documentation(documentation, :short),
-             format_specs(specs, name, @line_length) |> code()
+             code(format_signatures(signatures, module, name, arity))
            ]),
          insert_text:
            cond do
@@ -248,13 +277,12 @@ defmodule Livebook.Intellisense do
 
              true ->
                # A snippet with cursor in parentheses
-               "#{display_name}($0)"
+               "#{display_name}(${})"
            end
        }
 
   defp format_completion_item(%{
          kind: :type,
-         module: module,
          name: name,
          arity: arity,
          documentation: documentation,
@@ -263,7 +291,6 @@ defmodule Livebook.Intellisense do
        do: %{
          label: "#{name}/#{arity}",
          kind: :type,
-         detail: format_type_signature(type_spec, module),
          documentation:
            join_with_newlines([
              format_documentation(documentation, :short),
@@ -272,7 +299,7 @@ defmodule Livebook.Intellisense do
          insert_text:
            cond do
              arity == 0 -> "#{Atom.to_string(name)}()"
-             true -> "#{Atom.to_string(name)}($0)"
+             true -> "#{Atom.to_string(name)}(${})"
            end
        }
 
@@ -280,8 +307,11 @@ defmodule Livebook.Intellisense do
        do: %{
          label: Atom.to_string(name),
          kind: :variable,
-         detail: "module attribute",
-         documentation: format_documentation(documentation, :short),
+         documentation:
+           join_with_newlines([
+             format_documentation(documentation, :short),
+             "(module attribute)"
+           ]),
          insert_text: Atom.to_string(name)
        }
 
@@ -290,14 +320,13 @@ defmodule Livebook.Intellisense do
       if arity == 0 do
         Atom.to_string(name)
       else
-        "#{name}($0)"
+        "#{name}(${})"
       end
 
     %{
       label: Atom.to_string(name),
-      kind: :bitstring_option,
-      detail: "bitstring option",
-      documentation: nil,
+      kind: :type,
+      documentation: "(bitstring option)",
       insert_text: insert_text
     }
   end
@@ -337,38 +366,27 @@ defmodule Livebook.Intellisense do
   defp extra_completion_items(hint) do
     items = [
       %{
-        label: "do",
-        kind: :keyword,
-        detail: "do-end block",
-        documentation: nil,
-        insert_text: "do\n  $0\nend"
-      },
-      %{
         label: "true",
         kind: :keyword,
-        detail: "boolean",
-        documentation: nil,
+        documentation: "(boolean)",
         insert_text: "true"
       },
       %{
         label: "false",
         kind: :keyword,
-        detail: "boolean",
-        documentation: nil,
+        documentation: "(boolean)",
         insert_text: "false"
       },
       %{
         label: "nil",
         kind: :keyword,
-        detail: "special atom",
-        documentation: nil,
+        documentation: "(special atom)",
         insert_text: "nil"
       },
       %{
         label: "when",
         kind: :keyword,
-        detail: "guard operator",
-        documentation: nil,
+        documentation: "(guard operator)",
         insert_text: "when"
       }
     ]
@@ -394,8 +412,12 @@ defmodule Livebook.Intellisense do
     :bitstring_option
   ]
 
-  defp completion_item_priority(%{kind: :struct, detail: "exception"} = completion_item) do
-    {length(@ordered_kinds), completion_item.label}
+  defp completion_item_priority(%{kind: :struct} = completion_item) do
+    if completion_item.documentation =~ "(exception)" do
+      {length(@ordered_kinds), completion_item.label}
+    else
+      {completion_item_kind_priority(completion_item.kind), completion_item.label}
+    end
   end
 
   defp completion_item_priority(completion_item) do
@@ -410,17 +432,23 @@ defmodule Livebook.Intellisense do
   Returns detailed information about an identifier located
   in `column` in `line`.
   """
-  @spec get_details(String.t(), pos_integer(), context()) :: Runtime.details_response() | nil
-  def get_details(line, column, context) do
-    %{matches: matches, range: range} = IdentifierMatcher.locate_identifier(line, column, context)
+  @spec get_details(String.t(), pos_integer(), context(), node()) ::
+          Runtime.details_response() | nil
+  def get_details(line, column, context, node) do
+    %{matches: matches, range: range} =
+      IdentifierMatcher.locate_identifier(line, column, context, node)
 
     case Enum.filter(matches, &include_in_details?/1) do
       [] ->
         nil
 
       matches ->
+        matches = Enum.sort_by(matches, & &1[:arity], :asc)
         contents = Enum.map(matches, &format_details_item/1)
-        %{range: range, contents: contents}
+
+        definition = get_definition_location(hd(matches), context)
+
+        %{range: range, contents: contents, definition: definition}
     end
   end
 
@@ -442,7 +470,7 @@ defmodule Livebook.Intellisense do
 
       ```
       #{inspect(default, pretty: true, width: @line_length)}
-      ```
+      ```\
       """
     ])
   end
@@ -466,7 +494,7 @@ defmodule Livebook.Intellisense do
          meta: meta
        }) do
     join_with_divider([
-      format_signatures(signatures, module) |> code(),
+      format_signatures(signatures, module, name, arity) |> code(),
       join_with_middle_dot([
         format_docs_link(module, {:function, name, arity}),
         format_meta(:since, meta)
@@ -486,7 +514,7 @@ defmodule Livebook.Intellisense do
          type_spec: type_spec
        }) do
     join_with_divider([
-      format_type_signature(type_spec, module) |> code(),
+      format_type_signature(type_spec, module, name, arity) |> code(),
       format_docs_link(module, {:type, name, arity}),
       format_type_spec(type_spec, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
@@ -498,6 +526,37 @@ defmodule Livebook.Intellisense do
       code("@#{name}"),
       format_documentation(documentation, :all)
     ])
+  end
+
+  defp get_definition_location(%{kind: :module, module: module}, context) do
+    get_definition_location(module, context, {:module, module})
+  end
+
+  defp get_definition_location(
+         %{kind: :function, module: module, name: name, arity: arity},
+         context
+       ) do
+    get_definition_location(module, context, {:function, name, arity})
+  end
+
+  defp get_definition_location(%{kind: :type, module: module, name: name, arity: arity}, context) do
+    get_definition_location(module, context, {:type, name, arity})
+  end
+
+  defp get_definition_location(_idenfitier, _context), do: nil
+
+  defp get_definition_location(module, context, identifier) do
+    if context.ebin_path do
+      path = Path.join(context.ebin_path, "#{module}.beam")
+
+      with true <- File.exists?(path),
+           {:ok, line} <- Docs.locate_definition(String.to_charlist(path), identifier) do
+        file = module.module_info(:compile)[:source]
+        %{file: to_string(file), line: line}
+      else
+        _otherwise -> nil
+      end
+    end
   end
 
   # Formatting helpers
@@ -527,15 +586,10 @@ defmodule Livebook.Intellisense do
 
   defp format_docs_link(module, function_or_type \\ nil) do
     app = Application.get_application(module)
-
-    module_name =
-      case Atom.to_string(module) do
-        "Elixir." <> name -> name
-        name -> name
-      end
+    module_name = module_name(module)
 
     is_otp? =
-      case :code.which(app || module) do
+      case :code.which(module) do
         :preloaded -> true
         [_ | _] = path -> List.starts_with?(path, :code.lib_dir())
         _ -> false
@@ -569,9 +623,11 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_signatures([], _module), do: nil
+  defp format_signatures([], module, name, arity) do
+    signature_fallback(module, name, arity)
+  end
 
-  defp format_signatures(signatures, module) do
+  defp format_signatures(signatures, module, _name, _arity) do
     signatures_string = Enum.join(signatures, "\n")
 
     # Don't add module prefix to operator signatures
@@ -582,11 +638,18 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_type_signature(nil, _module), do: nil
+  defp format_type_signature(nil, module, name, arity) do
+    signature_fallback(module, name, arity)
+  end
 
-  defp format_type_signature({_type_kind, type}, module) do
+  defp format_type_signature({_type_kind, type}, module, _name, _arity) do
     {:"::", _env, [lhs, _rhs]} = Code.Typespec.type_to_quoted(type)
     inspect(module) <> "." <> Macro.to_string(lhs)
+  end
+
+  defp signature_fallback(module, name, arity) do
+    args = Enum.map_join(1..arity//1, ", ", fn n -> "arg#{n}" end)
+    "#{inspect(module)}.#{name}(#{args})"
   end
 
   defp format_meta(:deprecated, %{deprecated: deprecated}) do
@@ -873,5 +936,12 @@ defmodule Livebook.Intellisense do
          [{:li, [], prev_content} | acc]
        ) do
     group_type_list_items(items, [{:li, [], prev_content ++ [{:p, [], content}]} | acc])
+  end
+
+  defp module_name(module) do
+    case Atom.to_string(module) do
+      "Elixir." <> name -> name
+      name -> name
+    end
   end
 end

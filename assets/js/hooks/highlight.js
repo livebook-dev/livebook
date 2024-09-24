@@ -1,20 +1,21 @@
-import { getAttributeOrThrow } from "../lib/attribute";
-import { highlight } from "./cell_editor/live_editor/monaco";
+import { parseHookProps } from "../lib/attribute";
+import { highlight } from "./cell_editor/live_editor/highlight";
 import { findChildOrThrow } from "../lib/utils";
 
 /**
  * A hook used to highlight source code in the root element.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-language` - language of the source code
+ *   * `language` - language of the source code
  *
- * The element should have two children:
+ * ## Children
  *
  *   * `[data-source]` - an element containing the source code to be
  *     highlighted
  *
  *   * `[data-target]` - the element to render highlighted code into
+ *
  */
 const Highlight = {
   mounted() {
@@ -32,18 +33,15 @@ const Highlight = {
   },
 
   getProps() {
-    return {
-      language: getAttributeOrThrow(this.el, "data-language"),
-    };
+    return parseHookProps(this.el, ["language"]);
   },
 
   updateDOM() {
     const code = this.sourceEl.innerText;
 
-    highlight(code, this.props.language).then((html) => {
-      this.targetEl.innerHTML = html;
-      this.el.setAttribute("data-highlighted", "");
-    });
+    const html = highlight(code, this.props.language);
+    this.targetEl.innerHTML = html;
+    this.el.setAttribute("data-highlighted", "");
   },
 };
 

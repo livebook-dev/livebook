@@ -1,11 +1,13 @@
 defmodule Livebook.Hubs do
-  @moduledoc false
-
+  alias Livebook.FileSystem
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Metadata, Personal, Provider, Team}
   alias Livebook.Secrets.Secret
 
+  require Logger
+
   @namespace :hubs
+  @supervisor Livebook.HubsSupervisor
 
   @type connected_hub :: %{
           required(:pid) => pid(),
@@ -24,20 +26,10 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
-  Gets a list of hubs from storage with given capabilities.
+  Gets a list of metadata from storage.
   """
-  @spec get_hubs(Provider.capabilities()) :: list(Provider.t())
-  def get_hubs(capabilities) do
-    for hub <- get_hubs(),
-        capability?(hub, capabilities),
-        do: hub
-  end
-
-  @doc """
-  Gets a list of metadatas from storage.
-  """
-  @spec get_metadatas() :: list(Metadata.t())
-  def get_metadatas do
+  @spec get_metadata() :: list(Metadata.t())
+  def get_metadata do
     for hub <- get_hubs() do
       Provider.to_metadata(hub)
     end
@@ -79,8 +71,8 @@ defmodule Livebook.Hubs do
   """
   @spec save_hub(Provider.t()) :: Provider.t()
   def save_hub(struct) do
-    attributes = struct |> Map.from_struct() |> Map.to_list()
-    :ok = Storage.insert(@namespace, struct.id, attributes)
+    attributes = Provider.dump(struct)
+    :ok = Storage.insert(@namespace, struct.id, Map.to_list(attributes))
     :ok = connect_hub(struct)
     :ok = Broadcasts.hub_changed(struct.id)
 
@@ -94,16 +86,52 @@ defmodule Livebook.Hubs do
   def delete_hub(id) do
     with {:ok, hub} <- fetch_hub(id) do
       true = Provider.type(hub) != "personal"
-      :ok = Broadcasts.hub_changed(hub.id)
+      :ok = maybe_unset_default_hub(hub.id)
       :ok = Storage.delete(@namespace, id)
+      :ok = Broadcasts.hub_deleted(hub.id)
       :ok = disconnect_hub(hub)
     end
 
     :ok
   end
 
+  @spec set_default_hub(String.t()) :: :ok
+  def set_default_hub(id) do
+    with {:ok, hub} <- fetch_hub(id) do
+      :ok = Storage.insert(:default_hub, "default_hub", [{:default_hub, hub.id}])
+    end
+
+    :ok
+  end
+
+  @spec unset_default_hub() :: :ok
+  def unset_default_hub() do
+    :ok = Storage.delete(:default_hub, "default_hub")
+  end
+
+  @spec get_default_hub() :: Provider.t()
+  def get_default_hub() do
+    with {:ok, %{default_hub: id}} <- Storage.fetch(:default_hub, "default_hub"),
+         {:ok, hub} <- fetch_hub(id) do
+      hub
+    else
+      _ -> fetch_hub!(Personal.id())
+    end
+  end
+
+  defp maybe_unset_default_hub(hub_id) do
+    if get_default_hub().id == hub_id, do: unset_default_hub(), else: :ok
+  end
+
   defp disconnect_hub(hub) do
+    # We use a task supervisor because the hub connection itself
+    # calls delete_hub (which calls this function), otherwise we deadlock.
     Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+      # Since other processes may have been communicating
+      # with the hub, we don't want to terminate abruptly and
+      # make them crash, so we give it some time to shut down.
+      #
+      # The default backoff is 5.5s, so we round it down to 5s.
       Process.sleep(30_000)
       :ok = Provider.disconnect(hub)
     end)
@@ -111,60 +139,12 @@ defmodule Livebook.Hubs do
     :ok
   end
 
-  @doc """
-  Subscribes to one or more subtopics in `"hubs"`.
-
-  ## Messages
-
-  Topic `hubs:crud`:
-
-    * `{:hub_changed, hub_id}`
-
-  Topic `hubs:connection`:
-
-    * `{:hub_connected, hub_id}`
-    * `{:hub_disconnected, hub_id}`
-    * `{:hub_connection_failed, hub_id, reason}`
-    * `{:hub_server_error, hub_id, reason}`
-
-  Topic `hubs:secrets`:
-
-    * `{:secret_created, %Secret{}}`
-    * `{:secret_updated, %Secret{}}`
-    * `{:secret_deleted, %Secret{}}`
-
-  """
-  @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
-  def subscribe(topics) when is_list(topics) do
-    for topic <- topics, do: subscribe(topic)
-
-    :ok
-  end
-
-  def subscribe(topic) do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "hubs:#{topic}")
-  end
-
-  @doc """
-  Unsubscribes from `subscribe/0`.
-  """
-  @spec unsubscribe(atom() | list(atom())) :: :ok
-  def unsubscribe(topics) when is_list(topics) do
-    for topic <- topics, do: unsubscribe(topic)
-
-    :ok
-  end
-
-  def unsubscribe(topic) do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs:#{topic}")
-  end
-
   defp to_struct(%{id: "personal-" <> _} = fields) do
     Provider.load(%Personal{}, fields)
   end
 
   defp to_struct(%{id: "team-" <> _} = fields) do
-    Provider.load(%Team{}, fields)
+    Provider.load(Team.new(), fields)
   end
 
   @doc """
@@ -178,14 +158,23 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- get_hubs([:connect]), do: connect_hub(hub)
+    for hub <- get_hubs(), do: connect_hub(hub)
 
     :ok
   end
 
   defp connect_hub(hub) do
     if child_spec = Provider.connection_spec(hub) do
-      DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
+      case DynamicSupervisor.start_child(@supervisor, child_spec) do
+        {:ok, _} ->
+          :ok
+
+        {:error, {:already_started, _pid}} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error("Could not start Workspace #{hub.id}: #{Exception.format_exit(reason)}")
+      end
     end
 
     :ok
@@ -198,7 +187,7 @@ defmodule Livebook.Hubs do
   """
   @spec get_secrets() :: list(Secret.t())
   def get_secrets do
-    for hub <- get_hubs([:list_secrets]),
+    for hub <- get_hubs(),
         secret <- Provider.get_secrets(hub),
         do: secret
   end
@@ -208,11 +197,9 @@ defmodule Livebook.Hubs do
   """
   @spec get_secrets(Provider.t()) :: list(Secret.t())
   def get_secrets(hub) do
-    if capability?(hub, [:list_secrets]) do
-      Provider.get_secrets(hub)
-    else
-      []
-    end
+    hub
+    |> Provider.get_secrets()
+    |> Enum.sort()
   end
 
   @doc """
@@ -220,11 +207,9 @@ defmodule Livebook.Hubs do
   """
   @spec create_secret(Provider.t(), Secret.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, Provider.field_errors()}
           | {:transport_error, String.t()}
   def create_secret(hub, %Secret{} = secret) do
-    true = capability?(hub, [:create_secret])
-
     Provider.create_secret(hub, secret)
   end
 
@@ -233,7 +218,7 @@ defmodule Livebook.Hubs do
   """
   @spec update_secret(Provider.t(), Secret.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, Provider.field_errors()}
           | {:transport_error, String.t()}
   def update_secret(hub, %Secret{} = secret) do
     Provider.update_secret(hub, secret)
@@ -260,37 +245,72 @@ defmodule Livebook.Hubs do
   Verifies a notebook stamp and returns the decrypted metadata.
   """
   @spec verify_notebook_stamp(Provider.t(), iodata(), Provider.notebook_stamp()) ::
-          {:ok, metadata :: map()} | :error
+          {:ok, metadata :: map()} | {:error, :invalid | :too_recent_version}
   def verify_notebook_stamp(hub, notebook_source, stamp) do
     Provider.verify_notebook_stamp(hub, notebook_source, stamp)
   end
 
   @doc """
-  Checks the hub capability for given hub.
+  Gets a list of file systems from all hubs.
   """
-  @spec capability?(Provider.t(), list(atom())) :: boolean()
-  def capability?(hub, capabilities) do
-    capabilities -- Provider.capabilities(hub) == []
-  end
+  @spec get_file_systems() :: list(FileSystem.t())
+  def get_file_systems() do
+    file_systems = Enum.flat_map(get_hubs(), &Provider.get_file_systems/1)
+    local_file_system = Livebook.Config.local_file_system()
 
-  @offline_hub_key :livebook_offline_hub
-
-  @doc """
-  Gets the offline hub if the given id matches.
-  """
-  @spec get_offline_hub(String.t()) :: Provider.t() | nil
-  def get_offline_hub(id) do
-    case :persistent_term.get(@offline_hub_key, nil) do
-      %{id: ^id} = hub -> hub
-      _ -> nil
-    end
+    [local_file_system | Enum.sort_by(file_systems, & &1.id)]
   end
 
   @doc """
-  Sets a offline hub that will be kept only in memory.
+  Gets a list of file systems for given hub.
   """
-  @spec set_offline_hub(Provider.t()) :: :ok
-  def set_offline_hub(hub) do
-    :persistent_term.put(@offline_hub_key, hub)
+  @spec get_file_systems(Provider.t(), keyword()) :: list(FileSystem.t())
+  def get_file_systems(hub, opts \\ []) do
+    hub_file_systems = Provider.get_file_systems(hub)
+    sorted_hub_file_systems = Enum.sort_by(hub_file_systems, & &1.id)
+
+    if opts[:hub_only],
+      do: sorted_hub_file_systems,
+      else: [Livebook.Config.local_file_system() | sorted_hub_file_systems]
+  end
+
+  @doc """
+  Creates a file system for given hub.
+  """
+  @spec create_file_system(Provider.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Provider.field_errors()}
+          | {:transport_error, String.t()}
+  def create_file_system(hub, file_system) do
+    Provider.create_file_system(hub, file_system)
+  end
+
+  @doc """
+  Updates a file system for given hub.
+  """
+  @spec update_file_system(Provider.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Provider.field_errors()}
+          | {:transport_error, String.t()}
+  def update_file_system(hub, file_system) do
+    Provider.update_file_system(hub, file_system)
+  end
+
+  @doc """
+  Deletes a file system for given hub.
+  """
+  @spec delete_file_system(Provider.t(), FileSystem.t()) :: :ok | {:transport_error, String.t()}
+  def delete_file_system(hub, file_system) do
+    Provider.delete_file_system(hub, file_system)
+  end
+
+  @doc """
+  Gets a list of hub app specs.
+  """
+  @spec get_app_specs() :: list(Livebook.AppSpec.t())
+  def get_app_specs() do
+    for hub <- get_hubs(),
+        app_spec <- Provider.get_app_specs(hub),
+        do: app_spec
   end
 end

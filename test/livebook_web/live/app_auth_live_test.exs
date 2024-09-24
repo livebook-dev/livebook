@@ -1,5 +1,5 @@
 defmodule LivebookWeb.AppAuthLiveTest do
-  use LivebookWeb.ConnCase, async: false
+  use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 
@@ -10,19 +10,11 @@ defmodule LivebookWeb.AppAuthLiveTest do
       Livebook.App.close(app_pid)
     end)
 
-    Application.put_env(:livebook, :authentication_mode, :password)
-    Application.put_env(:livebook, :password, ctx[:livebook_password])
-
-    on_exit(fn ->
-      Application.put_env(:livebook, :authentication_mode, :disabled)
-      Application.delete_env(:livebook, :password)
-    end)
-
-    %{slug: slug}
+    [slug: slug]
   end
 
   defp create_app(app_settings_attrs) do
-    slug = Livebook.Utils.random_id()
+    slug = Livebook.Utils.random_long_id()
 
     app_settings =
       Livebook.Notebook.AppSettings.new()
@@ -30,11 +22,20 @@ defmodule LivebookWeb.AppAuthLiveTest do
       |> Map.merge(app_settings_attrs)
 
     notebook = %{Livebook.Notebook.new() | app_settings: app_settings}
+    app_spec = Livebook.Apps.NotebookAppSpec.new(notebook)
 
-    {:ok, app_pid} = Livebook.Apps.deploy(notebook)
+    deployer_pid = Livebook.Apps.Deployer.local_deployer()
+    ref = Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
+
+    app_pid =
+      receive do
+        {:deploy_result, ^ref, {:ok, pid}} -> pid
+      end
 
     {slug, app_pid}
   end
+
+  @moduletag authentication: %{mode: :password, secret: "long_livebook_password"}
 
   # Integration tests for the authentication scenarios
 
@@ -52,7 +53,6 @@ defmodule LivebookWeb.AppAuthLiveTest do
   end
 
   describe "protected app" do
-    @describetag livebook_password: "long_livebook_password"
     @describetag app_settings: %{access_type: :protected, password: "long_app_password"}
 
     test "redirect to auth page when not authenticated", %{conn: conn, slug: slug} do
@@ -108,7 +108,7 @@ defmodule LivebookWeb.AppAuthLiveTest do
 
       {:ok, view, _} =
         conn
-        |> live(~p"/apps/#{slug}/#{session_id}")
+        |> live(~p"/apps/#{slug}/sessions/#{session_id}")
         |> follow_redirect(conn)
 
       view
@@ -118,7 +118,7 @@ defmodule LivebookWeb.AppAuthLiveTest do
       assert_push_event(view, "persist_app_auth", %{"slug" => ^slug, "token" => _token})
 
       assert {:error, {:live_redirect, %{to: to}}} = render_hook(view, "app_auth_persisted")
-      assert to == ~p"/apps/#{slug}/#{session_id}"
+      assert to == ~p"/apps/#{slug}/sessions/#{session_id}"
     end
 
     test "redirects to the app page when authenticating in Livebook", %{conn: conn, slug: slug} do

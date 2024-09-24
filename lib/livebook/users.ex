@@ -1,6 +1,4 @@
 defmodule Livebook.Users do
-  @moduledoc false
-
   alias Livebook.Users.User
 
   @doc """
@@ -12,7 +10,7 @@ defmodule Livebook.Users do
   end
 
   @doc """
-  Updates an User from given changeset.
+  Updates a User from given changeset.
 
   With success, notifies interested processes about user data change.
   Otherwise, it will return an error tuple with changeset.

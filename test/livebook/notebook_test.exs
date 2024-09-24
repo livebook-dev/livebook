@@ -1,6 +1,8 @@
 defmodule Livebook.NotebookTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.Notebook
   alias Livebook.Notebook.{Section, Cell}
 
@@ -264,8 +266,7 @@ defmodule Livebook.NotebookTest do
   describe "find_asset_info/2" do
     test "returns asset info matching the given type if found" do
       assets_info = %{archive: "/path/to/archive.tar.gz", hash: "abcd", js_path: "main.js"}
-      js_info = %{js_view: %{assets: assets_info}}
-      output = {:js, js_info}
+      output = %{type: :js, js_view: %{assets: assets_info}, export: nil}
 
       notebook = %{
         Notebook.new()
@@ -282,7 +283,7 @@ defmodule Livebook.NotebookTest do
   end
 
   describe "add_cell_output/3" do
-    test "merges consecutive stdout results" do
+    test "merges consecutive text outputs when both are chunks" do
       notebook = %{
         Notebook.new()
         | sections: [
@@ -290,7 +291,11 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
+                  %{
+                    Cell.new(:code)
+                    | id: "c1",
+                      outputs: [{0, terminal_text("Hola", true)}]
+                  }
                 ]
             }
           ],
@@ -300,13 +305,58 @@ defmodule Livebook.NotebookTest do
       assert %{
                sections: [
                  %{
-                   cells: [%{outputs: [{0, {:stdout, "Hola amigo!"}}]}]
+                   cells: [%{outputs: [{0, terminal_text("Hola amigo!", true)}]}]
                  }
                ]
-             } = Notebook.add_cell_output(notebook, "c1", {:stdout, " amigo!"})
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c1",
+                 terminal_text(" amigo!", true)
+               )
     end
 
-    test "normalizes individual stdout results to respect CR" do
+    test "adds separate text outputs when they are not chunks" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{
+                    Cell.new(:code)
+                    | id: "c1",
+                      outputs: [{0, terminal_text("Hola")}]
+                  }
+                ]
+            }
+          ],
+          output_counter: 1
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [
+                     %{
+                       outputs: [
+                         {1, terminal_text(" amigo!", true)},
+                         {0, terminal_text("Hola")}
+                       ]
+                     }
+                   ]
+                 }
+               ]
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c1",
+                 terminal_text(" amigo!", true)
+               )
+    end
+
+    test "normalizes individual terminal text outputs to respect CR" do
       notebook = %{
         Notebook.new()
         | sections: [
@@ -324,13 +374,18 @@ defmodule Livebook.NotebookTest do
       assert %{
                sections: [
                  %{
-                   cells: [%{outputs: [{0, {:stdout, "Hey"}}]}]
+                   cells: [%{outputs: [{0, terminal_text("Hey")}]}]
                  }
                ]
-             } = Notebook.add_cell_output(notebook, "c1", {:stdout, "Hola\rHey"})
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c1",
+                 terminal_text("Hola\rHey")
+               )
     end
 
-    test "normalizes consecutive stdout results to respect CR" do
+    test "normalizes consecutive terminal text outputs to respect CR" do
       notebook = %{
         Notebook.new()
         | sections: [
@@ -338,7 +393,11 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
+                  %{
+                    Cell.new(:code)
+                    | id: "c1",
+                      outputs: [{0, terminal_text("Hola", true)}]
+                  }
                 ]
             }
           ],
@@ -348,10 +407,15 @@ defmodule Livebook.NotebookTest do
       assert %{
                sections: [
                  %{
-                   cells: [%{outputs: [{0, {:stdout, "amigo!\r"}}]}]
+                   cells: [%{outputs: [{0, terminal_text("amigo!\r", true)}]}]
                  }
                ]
-             } = Notebook.add_cell_output(notebook, "c1", {:stdout, "\ramigo!\r"})
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c1",
+                 terminal_text("\ramigo!\r", true)
+               )
     end
 
     test "updates existing frames on frame update output" do
@@ -365,12 +429,12 @@ defmodule Livebook.NotebookTest do
                   %{
                     Cell.new(:code)
                     | id: "c1",
-                      outputs: [{0, {:frame, [], %{ref: "1", type: :default}}}]
+                      outputs: [{0, %{type: :frame, ref: "1", outputs: [], placeholder: true}}]
                   },
                   %{
                     Cell.new(:code)
                     | id: "c2",
-                      outputs: [{1, {:frame, [], %{ref: "1", type: :default}}}]
+                      outputs: [{1, %{type: :frame, ref: "1", outputs: [], placeholder: true}}]
                   }
                 ]
             }
@@ -384,12 +448,12 @@ defmodule Livebook.NotebookTest do
                    cells: [
                      %{
                        outputs: [
-                         {0, {:frame, [{2, {:text, "hola"}}], %{ref: "1", type: :default}}}
+                         {0, %{type: :frame, ref: "1", outputs: [{2, terminal_text("hola")}]}}
                        ]
                      },
                      %{
                        outputs: [
-                         {1, {:frame, [{3, {:text, "hola"}}], %{ref: "1", type: :default}}}
+                         {1, %{type: :frame, ref: "1", outputs: [{3, terminal_text("hola")}]}}
                        ]
                      }
                    ]
@@ -399,8 +463,47 @@ defmodule Livebook.NotebookTest do
                Notebook.add_cell_output(
                  notebook,
                  "c2",
-                 {:frame, [{:text, "hola"}], %{ref: "1", type: :replace}}
+                 %{type: :frame_update, ref: "1", update: {:replace, [terminal_text("hola")]}}
                )
+    end
+
+    test "merges chunked text outputs in a new frame" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [%{Cell.new(:code) | id: "c1", outputs: []}]
+            }
+          ],
+          output_counter: 0
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [
+                     %{
+                       outputs: [
+                         {2,
+                          %{
+                            type: :frame,
+                            ref: "1",
+                            outputs: [{1, terminal_text("hola amigo!", true)}]
+                          }}
+                       ]
+                     }
+                   ]
+                 }
+               ]
+             } =
+               Notebook.add_cell_output(notebook, "c1", %{
+                 type: :frame,
+                 ref: "1",
+                 outputs: [terminal_text(" amigo!", true), terminal_text("hola", true)],
+                 placeholder: true
+               })
     end
 
     test "skips ignored output" do
@@ -422,32 +525,28 @@ defmodule Livebook.NotebookTest do
                    cells: [%{outputs: []}]
                  }
                ]
-             } = Notebook.add_cell_output(notebook, "c1", :ignored)
+             } = Notebook.add_cell_output(notebook, "c1", %{type: :ignored})
     end
   end
 
   describe "find_frame_outputs/2" do
     test "returns frame outputs with matching ref" do
-      frame_output = {0, {:frame, [], %{ref: "1", type: :default}}}
+      frame_output = {0, %{type: :frame, ref: "1", outputs: [], placeholder: true}}
 
-      notebook = %{
-        Notebook.new()
-        | sections: [%{Section.new() | cells: [%{Cell.new(:code) | outputs: [frame_output]}]}]
-      }
+      cell = %{Cell.new(:code) | outputs: [frame_output]}
+      notebook = %{Notebook.new() | sections: [%{Section.new() | cells: [cell]}]}
 
-      assert [^frame_output] = Notebook.find_frame_outputs(notebook, "1")
+      assert [{^frame_output, ^cell}] = Notebook.find_frame_outputs(notebook, "1")
     end
 
     test "finds a nested frame" do
-      nested_frame_output = {0, {:frame, [], %{ref: "2", type: :default}}}
-      frame_output = {0, {:frame, [nested_frame_output], %{ref: "1", type: :default}}}
+      nested_frame_output = {0, %{type: :frame, ref: "2", outputs: [], placeholder: true}}
+      frame_output = {0, %{type: :frame, ref: "1", outputs: [nested_frame_output]}}
 
-      notebook = %{
-        Notebook.new()
-        | sections: [%{Section.new() | cells: [%{Cell.new(:code) | outputs: [frame_output]}]}]
-      }
+      cell = %{Cell.new(:code) | outputs: [frame_output]}
+      notebook = %{Notebook.new() | sections: [%{Section.new() | cells: [cell]}]}
 
-      assert [^nested_frame_output] = Notebook.find_frame_outputs(notebook, "2")
+      assert [{^nested_frame_output, ^cell}] = Notebook.find_frame_outputs(notebook, "2")
     end
   end
 end

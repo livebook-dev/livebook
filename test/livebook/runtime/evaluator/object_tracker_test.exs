@@ -1,4 +1,4 @@
-defmodule Livebook.Runtime.Evaluator.ObjecTrackerTest do
+defmodule Livebook.Runtime.Evaluator.ObjectTrackerTest do
   use ExUnit.Case, async: true
 
   alias Livebook.Runtime.Evaluator.ObjectTracker
@@ -24,7 +24,7 @@ defmodule Livebook.Runtime.Evaluator.ObjecTrackerTest do
     ObjectTracker.remove_reference_sync(object_tracker, {self(), :ref1})
     ObjectTracker.remove_reference_sync(object_tracker, {self(), :ref2})
 
-    assert_receive :object1_released
+    assert_received :object1_released
   end
 
   test "does not execute hooks when other references still point to the object",
@@ -36,10 +36,10 @@ defmodule Livebook.Runtime.Evaluator.ObjecTrackerTest do
 
     ObjectTracker.remove_reference_sync(object_tracker, {self(), :ref1})
 
-    refute_receive :object1_released
+    refute_received :object1_released
   end
 
-  test "remove_reference_sync/2 awaits for monitor acknowledgements",
+  test "remove_reference_sync/2 awaits for monitor acknowledgments",
        %{object_tracker: object_tracker} do
     ObjectTracker.add_reference(object_tracker, :object1, {self(), :ref1})
 

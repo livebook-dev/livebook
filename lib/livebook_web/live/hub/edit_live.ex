@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.EditLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.LayoutComponents
   alias Livebook.Hubs
   alias Livebook.Hubs.Provider
 
@@ -9,36 +9,47 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, hub: nil, type: nil, page_title: "Hub - Livebook", params: %{})}
+    if connected?(socket) do
+      Hubs.Broadcasts.subscribe([:connection])
+      Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments, :agents])
+    end
+
+    {:ok,
+     assign(socket,
+       hub: nil,
+       counter: 0,
+       type: nil,
+       page_title: "Workspace - Livebook",
+       params: %{}
+     )}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
-    Hubs.subscribe([:secrets])
-    hub = Hubs.fetch_hub!(params["id"])
-    type = Provider.type(hub)
+    {id, params} = Map.pop(params, "id")
 
-    {:noreply, assign(socket, hub: hub, type: type, params: params, counter: 0)}
+    {:noreply,
+     socket
+     |> load_hub(id)
+     |> assign(:params, params)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout
+    <LayoutComponents.layout
       current_page={~p"/hub/#{@hub.id}"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
-        <.hub_component
-          type={@type}
-          hub={@hub}
-          live_action={@live_action}
-          params={@params}
-          counter={@counter}
-        />
-      </div>
-    </LayoutHelpers.layout>
+      <.hub_component
+        type={@type}
+        hub={@hub}
+        counter={@counter}
+        live_action={@live_action}
+        params={@params}
+      />
+    </LayoutComponents.layout>
     """
   end
 
@@ -48,8 +59,8 @@ defmodule LivebookWeb.Hub.EditLive do
       module={LivebookWeb.Hub.Edit.PersonalComponent}
       hub={@hub}
       params={@params}
-      live_action={@live_action}
       counter={@counter}
+      live_action={@live_action}
       id="personal-form"
     />
     """
@@ -62,6 +73,7 @@ defmodule LivebookWeb.Hub.EditLive do
       hub={@hub}
       live_action={@live_action}
       params={@params}
+      counter={@counter}
       id="team-form"
     />
     """
@@ -73,44 +85,44 @@ defmodule LivebookWeb.Hub.EditLive do
       Hubs.delete_hub(id)
 
       socket
-      |> put_flash(:success, "Hub deleted successfully")
-      |> push_navigate(to: "/")
+      |> put_flash(:success, "Workspace deleted successfully")
+      |> push_navigate(to: ~p"/")
     end
 
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Delete hub",
-       description: "Are you sure you want to delete this hub?",
+       title: "Delete workspace",
+       description: "Are you sure you want to delete this workspace?",
        confirm_text: "Delete",
        confirm_icon: "close-circle-line"
      )}
   end
 
   @impl true
-  def handle_info({:secret_created, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
-    {:noreply,
-     socket
-     |> increment_counter()
-     |> put_flash(:success, "Secret created successfully")}
+  def handle_info({:hub_connected, id}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, load_hub(socket, id)}
   end
 
-  def handle_info({:secret_updated, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
-    {:noreply,
-     socket
-     |> increment_counter()
-     |> put_flash(:success, "Secret updated successfully")}
+  def handle_info({_event, id, _reason}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, load_hub(socket, id)}
   end
 
-  def handle_info({:secret_deleted, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
-    {:noreply,
-     socket
-     |> increment_counter()
-     |> put_flash(:success, "Secret deleted successfully")}
+  def handle_info({_event, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, load_hub(socket, id)}
   end
 
   def handle_info(_message, socket) do
     {:noreply, socket}
   end
 
-  defp increment_counter(socket), do: assign(socket, counter: socket.assigns.counter + 1)
+  defp load_hub(socket, id) do
+    hub = Hubs.fetch_hub!(id)
+    type = Provider.type(hub)
+
+    socket
+    |> assign(hub: hub, type: type)
+    # Hub-specific components load data, such as secrets and we use
+    # a counter to force re-render on every patch.
+    |> update(:counter, &(&1 + 1))
+  end
 end

@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Evaluator.Doctests do
-  @moduledoc false
-
   @test_timeout 5_000
   @line_width 80
   @pad_size 3
@@ -50,7 +48,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
           tests
           |> Enum.sort_by(& &1.tags.doctest_line)
           |> Enum.each(fn test ->
-            report_doctest_running(test)
+            report_doctest_running(test, lines)
             test = run_test(test)
             report_doctest_result(test, lines)
           end)
@@ -77,42 +75,36 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     end
   end
 
-  defp report_doctest_running(test) do
+  defp report_doctest_running(test, lines) do
+    {line, column} = doctest_line_and_column(test, lines)
+
     send_doctest_report(%{
-      line: test.tags.doctest_line,
-      status: :running
+      status: :running,
+      line: line,
+      column: column
     })
   end
 
-  defp report_doctest_result(%{state: nil} = test, _lines) do
+  defp report_doctest_result(%{state: nil} = test, lines) do
+    {line, column} = doctest_line_and_column(test, lines)
+
     send_doctest_report(%{
-      line: test.tags.doctest_line,
-      status: :success
+      status: :success,
+      line: line,
+      column: column
     })
   end
 
   defp report_doctest_result(%{state: {:failed, failure}} = test, lines) do
+    {line, column} = doctest_line_and_column(test, lines)
+
     doctest_line = test.tags.doctest_line
-    [prompt_line | _] = lines = Enum.drop(lines, doctest_line - 1)
-
-    end_line =
-      if end_line = test.tags[:doctest_data][:end_line] do
-        end_line
-      else
-        # TODO: Remove this branch once we require Elixir v1.15+
-        interval =
-          lines
-          |> Enum.take_while(&(not end_of_doctest?(&1)))
-          |> length()
-
-        interval + doctest_line - 1
-      end
+    lines = Enum.drop(lines, doctest_line - 1)
+    end_line = test.tags[:doctest_data][:end_line]
 
     end_line =
       with {:error, %ExUnit.AssertionError{}, [{_, _, _, location} | _]} <- failure,
            assertion_line = location[:line],
-           # TODO: Remove this check once we require Elixir v1.15+
-           true <- is_integer(test.tags[:doctest_data][:end_line]),
            true <- assertion_line in doctest_line..end_line do
         end_line -
           length(
@@ -128,12 +120,19 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
       end
 
     send_doctest_report(%{
-      column: count_columns(prompt_line, 0),
-      line: doctest_line,
-      end_line: end_line,
       status: :failed,
+      line: line,
+      column: column,
+      end_line: end_line,
       details: IO.iodata_to_binary(format_failure(failure, test))
     })
+  end
+
+  defp doctest_line_and_column(test, lines) do
+    doctest_line = test.tags.doctest_line
+    [prompt_line | _] = Enum.drop(lines, doctest_line - 1)
+    column = count_columns(prompt_line, 0)
+    {doctest_line, column}
   end
 
   defp count_columns(" " <> rest, counter), do: count_columns(rest, counter + 1)
@@ -146,17 +145,6 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
       "iex(" <> _ -> true
       "...>" <> _ -> true
       "...(" <> _ -> true
-      _ -> false
-    end
-  end
-
-  defp end_of_doctest?(line) do
-    case String.trim_leading(line) do
-      "" -> true
-      "```" <> _ -> true
-      "~~~" <> _ -> true
-      "'''" <> _ -> true
-      "\"\"\"" <> _ -> true
       _ -> false
     end
   end
@@ -336,7 +324,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   end
 
   defp format_stacktrace_entry(entry, _test_case, _test) do
-    Exception.format_stacktrace_entry(entry)
+    Livebook.Runtime.Evaluator.Formatter.format_stacktrace_entry(entry)
   end
 
   defp format_label(label), do: colorize(:cyan, "#{label}:")

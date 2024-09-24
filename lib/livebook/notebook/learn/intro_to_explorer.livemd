@@ -2,20 +2,19 @@
 
 ```elixir
 Mix.install([
-  {:explorer, "~> 0.5.5"},
-  {:kino_explorer, "~> 0.1.4"}
+  {:kino_explorer, "~> 0.1.20"}
 ])
 ```
 
 ## Introduction
 
-To explore and transform data in Livebook we need two libraries:
+To explore and transform data in Livebook we use two libraries:
 
-* The [`explorer`](https://github.com/elixir-nx/explorer)
+* The [`explorer`](https://hexdocs.pm/explorer/)
   package brings series (one-dimensional) and dataframes (two-dimensional)
   for fast data exploration to Elixir.
 
-* The [`kino_explorer`](https://github.com/livebook-dev/kino_explorer)
+* The [`kino_explorer`](https://hexdocs.pm/kino_explorer/)
   package automatically renders an `Explorer.DataFrame` or `Explorer.Series`
   as a data table.
 
@@ -32,14 +31,14 @@ require Explorer.DataFrame
 
 All set, let's go.
 
-## Quick introduction to Explorer and DataTable
+## Quick introduction to Explorer and data tables
 
 In short, Explorer is the DataFrame library for Elixir. It brings the
 essential data analysis, exploration, and transformation tools to the
 Elixir ecosystem, while the integration provided by KinoExplorer makes
-it effortless to visualize and interact with data through the DataTable.
+it effortless to visualize and interact with data through data tables.
 
-The DataTable offers a variety of features to make viewing data more
+Data tables offers a variety of features to make viewing data more
 convenient. You can easily select cells, columns or even the entire table,
 switch between paging and infinite scrolling, sort the columns or search
 for specific data. [Keyboard shortcuts](#shortcuts), including copy
@@ -55,7 +54,7 @@ Explorer.Datasets.fossil_fuels()
 
 ## The Data transform smart cell
 
-The DataTable lets us quickly view the raw data, without modifying it,
+Data tables let us quickly view the raw data, without modifying it,
 while the Data transform cell allows us to transform it, creating insightful
 and flexible data pipelines and seeing the results on the fly.
 
@@ -128,5 +127,5 @@ For example, to plot a chart using the Chart cell.
 | <kbd>ctrl</kbd> + <kbd>␣</kbd>                                                                 | Selects the current col                                             |
 | <kbd>esc</kbd>                                                                                   | Clear the current selection                                         |
 | <kbd>ctrl</kbd> + <kbd>C</kbd>                                                                   | Copies the current selection                                        |
-| <kbd>ctrl</kbd> + <kbd>home</kbd> <kbd>end</kbd>                                                 | Moves the selection to the first/last cell in the DataTable         |
-| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>home</kbd> <kbd>end</kbd>                              | Extends the selection to the first/last cell in the Datatable       |
+| <kbd>ctrl</kbd> + <kbd>home</kbd> <kbd>end</kbd>                                                 | Moves the selection to the first/last cell in the data table        |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>home</kbd> <kbd>end</kbd>                              | Extends the selection to the first/last cell in the data table      |

@@ -1,25 +1,48 @@
 defmodule Livebook.Session do
-  @moduledoc false
-
-  # Server corresponding to a single notebook session.
+  # Server process representing a single notebook session.
   #
-  # The process keeps the current notebook state and serves
-  # as a source of truth that multiple clients talk to.
-  # Receives update requests from the clients and notifies
-  # them of any changes applied to the notebook.
+  # Session keeps a notebook document, as well as additional ephemeral
+  # state, such as evaluation outputs. It serves as a source of truth
+  # that multiple clients talk to. Those clients send update requests
+  # or commands to the session, while the session notifies them of any
+  # changes applied to the notebook state.
   #
   # ## Collaborative state
   #
-  # The core concept is the `Livebook.Session.Data` structure
-  # to which we can apply reproducible operations.
-  # See `Livebook.Session.Data` for more information.
+  # The core concept is the `%Livebook.Session.Data{}` struct, which
+  # holds state shared across all of the clients. Refer to the module
+  # documentation for more details.
+  #
+  # ## Runtime
+  #
+  # Code evaluation, as well as related features, such as intellisense,
+  # smart cells and dependency management are abstracted into the
+  # `Livebook.Runtime` protocol.
+  #
+  # Conceptually, we draw a thick line between Livebook server and the
+  # runtime. In particular, even though Livebook is Elixir centric, it
+  # rarely makes any Elixir specific assumptions. In theory, the runtime
+  # could be implemented for another language, as long as it is possible
+  # to adhere to certain semantics. As a result, the `Livebook.Runtime`
+  # protocol uses rather generic wording and data types.
   #
   # ## Evaluation
   #
-  # All regular sections are evaluated in the same process
-  # (the :main_flow evaluation container). On the other hand,
-  # each branching section is evaluated in its own process
-  # and thus runs concurrently.
+  # The evaluation in Livebook is sequential, that is, all cells in
+  # regular sections run one by one in the same evaluation container
+  # (= process) named `:main_flow`. Additionally, Livebook supports
+  # branching sections. Each branching section forks the evaluation
+  # state at a certain point and is evaluated in its own container
+  # (= process) concurrently, while still being a linear continuation
+  # of the parent section.
+  #
+  # The evaluation is sequential, however Livebook is smart about
+  # reevaluating cells. We keep track of dependencies between cells,
+  # based on which cells are marked as "stale" and only these cells
+  # are reevaluated in order to bring the notebook up to date.
+  #
+  # For evaluation-specific details refer to `Livebook.Runtime.ErlDist.RuntimeServer`
+  # and `Livebook.Runtime.Evaluator`.
   #
   # ### Implementation considerations
   #
@@ -43,9 +66,9 @@ defmodule Livebook.Session do
   # for a single specific evaluation context we make sure to copy
   # as little memory as necessary.
 
-  # The struct holds the basic session information that we track
-  # and pass around. The notebook and evaluation state is kept
-  # within the process state.
+  # The struct holds the basic session information that we track and
+  # pass around. The notebook and evaluation state is kept within the
+  # process state.
   defstruct [
     :id,
     :pid,
@@ -60,11 +83,9 @@ defmodule Livebook.Session do
 
   use GenServer, restart: :temporary
 
-  import Livebook.Notebook.Cell, only: [is_file_input_value: 1]
-
   alias Livebook.NotebookManager
   alias Livebook.Session.{Data, FileGuard}
-  alias Livebook.{Utils, Notebook, Delta, Runtime, LiveMarkdown, FileSystem}
+  alias Livebook.{Utils, Notebook, Text, Runtime, LiveMarkdown, FileSystem}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
@@ -90,9 +111,10 @@ defmodule Livebook.Session do
           data: Data.t(),
           client_pids_with_id: %{pid() => Data.client_id()},
           created_at: DateTime.t(),
+          runtime_connect: %{ref: reference(), pid: pid()} | nil,
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
-          autosave_path: String.t(),
+          autosave_path: String.t() | nil,
           save_task_ref: reference() | nil,
           saved_default_file: FileSystem.File.t() | nil,
           memory_usage: memory_usage(),
@@ -101,7 +123,13 @@ defmodule Livebook.Session do
           registered_files: %{
             String.t() => %{file_ref: Runtime.file_ref(), linked_client_id: Data.client_id()}
           },
-          client_id_with_assets: %{Data.client_id() => map()}
+          client_id_with_assets: %{Data.client_id() => map()},
+          deployment_ref: reference() | nil,
+          deployed_app_monitor_ref: reference() | nil,
+          app_pid: pid() | nil,
+          auto_shutdown_ms: non_neg_integer() | nil,
+          auto_shutdown_timer_ref: reference() | nil,
+          started_by: Livebook.Users.User.t() | nil
         }
 
   @type memory_usage ::
@@ -109,6 +137,9 @@ defmodule Livebook.Session do
             runtime: Livebook.Runtime.runtime_memory() | nil,
             system: Livebook.SystemResources.memory()
           }
+
+  @type files_source ::
+          {:dir, FileSystem.File.t()} | {:url, String.t()} | {:inline, %{String.t() => binary()}}
 
   @typedoc """
   An id assigned to every running session process.
@@ -135,7 +166,7 @@ defmodule Livebook.Session do
 
         * `{:dir, dir}` - a directory file
 
-        * `{:url, url} - a base url to the files directory (with `/` suffix)
+        * `{:url, url}` - a base url to the files directory (with `/` suffix)
 
         * `{:inline, contents_map}` - a map with file names pointing to their
           binary contents
@@ -170,7 +201,7 @@ defmodule Livebook.Session do
   @doc """
   Fetches session information from the session server.
   """
-  @spec get_by_pid(pid()) :: Session.t()
+  @spec get_by_pid(pid()) :: t()
   def get_by_pid(pid) do
     GenServer.call(pid, :describe_self, @timeout)
   end
@@ -190,6 +221,16 @@ defmodule Livebook.Session do
   @spec register_client(pid(), pid(), User.t()) :: {Data.t(), Data.client_id()}
   def register_client(pid, client_pid, user) do
     GenServer.call(pid, {:register_client, client_pid, user}, @timeout)
+  end
+
+  @doc """
+  Resets the auto shutdown timer, if ticking.
+
+  When the session has connected clients, nothing changes.
+  """
+  @spec reset_auto_shutdown(pid()) :: :ok
+  def reset_auto_shutdown(pid) do
+    GenServer.cast(pid, :reset_auto_shutdown)
   end
 
   @doc """
@@ -265,18 +306,20 @@ defmodule Livebook.Session do
   @spec fetch_assets(pid(), String.t()) :: :ok | {:error, String.t()}
   def fetch_assets(pid, hash) do
     local_assets_path = local_assets_path(hash)
+    flag_path = Path.join(local_assets_path, ".lb-done")
 
-    if non_empty_dir?(local_assets_path) do
+    if File.exists?(flag_path) do
       :ok
     else
       with {:ok, runtime, archive_path} <-
              GenServer.call(pid, {:get_runtime_and_archive_path, hash}, @timeout) do
         fun = fn ->
           # Make sure the file hasn't been fetched by this point
-          unless non_empty_dir?(local_assets_path) do
+          unless File.exists?(flag_path) do
             {:ok, archive_binary} = Runtime.read_file(runtime, archive_path)
             extract_archive!(archive_binary, local_assets_path)
             gzip_files(local_assets_path)
+            File.touch(flag_path)
           end
         end
 
@@ -288,10 +331,6 @@ defmodule Livebook.Session do
         end
       end
     end
-  end
-
-  defp non_empty_dir?(path) do
-    match?({:ok, [_ | _]}, File.ls(path))
   end
 
   @doc """
@@ -316,6 +355,14 @@ defmodule Livebook.Session do
   @spec insert_section_into(pid(), Section.id(), non_neg_integer()) :: :ok
   def insert_section_into(pid, section_id, index) do
     GenServer.cast(pid, {:insert_section_into, self(), section_id, index})
+  end
+
+  @doc """
+  Sends branching section insertion request to the server.
+  """
+  @spec insert_branching_section_into(pid(), Section.id(), non_neg_integer()) :: :ok
+  def insert_branching_section_into(pid, section_id, index) do
+    GenServer.cast(pid, {:insert_branching_section_into, self(), section_id, index})
   end
 
   @doc """
@@ -407,19 +454,11 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends disable dependencies cache request to the server.
-  """
-  @spec disable_dependencies_cache(pid()) :: :ok
-  def disable_dependencies_cache(pid) do
-    GenServer.cast(pid, :disable_dependencies_cache)
-  end
-
-  @doc """
   Sends cell evaluation request to the server.
   """
-  @spec queue_cell_evaluation(pid(), Cell.id()) :: :ok
-  def queue_cell_evaluation(pid, cell_id) do
-    GenServer.cast(pid, {:queue_cell_evaluation, self(), cell_id})
+  @spec queue_cell_evaluation(pid(), Cell.id(), keyword()) :: :ok
+  def queue_cell_evaluation(pid, cell_id, evaluation_opts \\ []) do
+    GenServer.cast(pid, {:queue_cell_evaluation, self(), cell_id, evaluation_opts})
   end
 
   @doc """
@@ -499,11 +538,12 @@ defmodule Livebook.Session do
           pid(),
           Cell.id(),
           Data.cell_source_tag(),
-          Delta.t(),
+          Text.Delta.t(),
+          Selection.t() | nil,
           Data.cell_revision()
         ) :: :ok
-  def apply_cell_delta(pid, cell_id, tag, delta, revision) do
-    GenServer.cast(pid, {:apply_cell_delta, self(), cell_id, tag, delta, revision})
+  def apply_cell_delta(pid, cell_id, tag, delta, selection, revision) do
+    GenServer.cast(pid, {:apply_cell_delta, self(), cell_id, tag, delta, selection, revision})
   end
 
   @doc """
@@ -539,12 +579,20 @@ defmodule Livebook.Session do
 
   @doc """
   Sends runtime update to the server.
-
-  If the runtime is connected, the session takes the ownership.
   """
   @spec set_runtime(pid(), Runtime.t()) :: :ok
   def set_runtime(pid, runtime) do
     GenServer.cast(pid, {:set_runtime, self(), runtime})
+  end
+
+  @doc """
+  Sends request to connect to the configured runtime.
+
+  Once the runtime is connected, the session takes the ownership.
+  """
+  @spec connect_runtime(pid()) :: :ok
+  def connect_runtime(pid) do
+    GenServer.cast(pid, {:connect_runtime, self()})
   end
 
   @doc """
@@ -580,6 +628,23 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a deployment group selection request to the server.
+  """
+  @spec set_notebook_deployment_group(pid(), String.t()) :: :ok
+  def set_notebook_deployment_group(pid, id) do
+    GenServer.cast(pid, {:set_notebook_deployment_group, self(), id})
+  end
+
+  @doc """
+  Fetches information about a proxy request handler, if available.
+  """
+  @spec fetch_proxy_handler_spec(pid()) ::
+          {:ok, Runtime.proxy_handler_spec()} | {:error, :not_found | :disconnected}
+  def fetch_proxy_handler_spec(pid) do
+    GenServer.call(pid, :fetch_proxy_handler_spec)
+  end
+
+  @doc """
   Sends a file entries addition request to the server.
 
   Note that if file entries with any of the given names already exist
@@ -588,6 +653,14 @@ defmodule Livebook.Session do
   @spec add_file_entries(pid(), list(Notebook.file_entry())) :: :ok
   def add_file_entries(pid, file_entries) do
     GenServer.cast(pid, {:add_file_entries, self(), file_entries})
+  end
+
+  @doc """
+  Sends a file entry rename request to the server.
+  """
+  @spec rename_file_entry(pid(), String.t(), String.t()) :: :ok
+  def rename_file_entry(pid, name, new_name) do
+    GenServer.cast(pid, {:rename_file_entry, self(), name, new_name})
   end
 
   @doc """
@@ -685,6 +758,18 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Looks up file entry with the given name and returns a local path
+  for accessing the file.
+
+  When a file is available remotely, it is first downloaded into a
+  cached location.
+  """
+  @spec fetch_file_entry_path(pid(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def fetch_file_entry_path(pid, name) do
+    GenServer.call(pid, {:fetch_file_entry_path, name}, :infinity)
+  end
+
+  @doc """
   Closes one or more sessions.
 
   This results in saving the file and broadcasting
@@ -760,7 +845,8 @@ defmodule Livebook.Session do
   @impl true
   def init(opts) do
     Livebook.Settings.subscribe()
-    Livebook.Hubs.subscribe([:secrets])
+    Livebook.Hubs.Broadcasts.subscribe([:crud, :secrets])
+
     id = Keyword.fetch!(opts, :id)
 
     {:ok, worker_pid} = Livebook.Session.Worker.start_link(id)
@@ -782,10 +868,14 @@ defmodule Livebook.Session do
         Process.monitor(app_pid)
       end
 
-      if state.data.mode == :app do
-        {:ok, state, {:continue, :app_init}}
-      else
-        {:ok, state}
+      session = self_from_state(state)
+
+      with :ok <- Livebook.Tracker.track_session(session) do
+        if state.data.mode == :app do
+          {:ok, state, {:continue, :app_init}}
+        else
+          {:ok, state}
+        end
       end
     else
       {:error, error} ->
@@ -801,6 +891,7 @@ defmodule Livebook.Session do
         data: data,
         client_pids_with_id: %{},
         created_at: DateTime.utc_now(),
+        runtime_connect: nil,
         runtime_monitor_ref: nil,
         autosave_timer_ref: nil,
         autosave_path: opts[:autosave_path],
@@ -811,6 +902,7 @@ defmodule Livebook.Session do
         registered_file_deletion_delay: opts[:registered_file_deletion_delay] || 15_000,
         registered_files: %{},
         client_id_with_assets: %{},
+        deployment_ref: nil,
         deployed_app_monitor_ref: nil,
         app_pid: opts[:app_pid],
         auto_shutdown_ms: opts[:auto_shutdown_ms],
@@ -848,7 +940,11 @@ defmodule Livebook.Session do
   """
   @spec default_notebook() :: Notebook.t()
   def default_notebook() do
-    %{Notebook.new() | sections: [%{Section.new() | cells: [Cell.new(:code)]}]}
+    %{
+      Notebook.new()
+      | sections: [%{Section.new() | cells: [Cell.new(:code)]}],
+        hub_id: Livebook.Hubs.get_default_hub().id
+    }
   end
 
   defp schedule_autosave(state) do
@@ -875,29 +971,35 @@ defmodule Livebook.Session do
   defp schedule_auto_shutdown(state) do
     client_count = map_size(state.data.clients_map)
 
-    case {client_count, state.auto_shutdown_timer_ref} do
-      {0, nil} when state.auto_shutdown_ms != nil ->
+    cond do
+      client_count == 0 and state.auto_shutdown_timer_ref == nil and state.auto_shutdown_ms != nil ->
         timer_ref = Process.send_after(self(), :close, state.auto_shutdown_ms)
         %{state | auto_shutdown_timer_ref: timer_ref}
 
-      {client_count, timer_ref} when client_count > 0 and timer_ref != nil ->
-        if Process.cancel_timer(timer_ref) == false do
-          receive do
-            :close -> :ok
-          end
-        end
+      client_count > 0 ->
+        cancel_auto_shutdown_timer(state)
 
-        %{state | auto_shutdown_timer_ref: nil}
-
-      _ ->
+      true ->
         state
     end
+  end
+
+  defp cancel_auto_shutdown_timer(%{auto_shutdown_timer_ref: nil} = state), do: state
+
+  defp cancel_auto_shutdown_timer(state) do
+    if Process.cancel_timer(state.auto_shutdown_timer_ref) == false do
+      receive do
+        :close -> :ok
+      end
+    end
+
+    %{state | auto_shutdown_timer_ref: nil}
   end
 
   @impl true
   def handle_continue(:app_init, state) do
     cell_ids = Data.cell_ids_for_full_evaluation(state.data, [])
-    operation = {:queue_cells_evaluation, @client_id, cell_ids}
+    operation = {:queue_cells_evaluation, @client_id, cell_ids, []}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -931,18 +1033,16 @@ defmodule Livebook.Session do
       Notebook.find_asset_info(state.data.notebook, hash) ||
         Enum.find_value(state.client_id_with_assets, fn {_client_id, assets} -> assets[hash] end)
 
-    runtime = state.data.runtime
-
     reply =
       cond do
         assets_info == nil ->
           {:error, "unknown hash"}
 
-        not Runtime.connected?(runtime) ->
+        state.data.runtime_status != :connected ->
           {:error, "runtime not started"}
 
         true ->
-          {:ok, runtime, assets_info.archive_path}
+          {:ok, state.data.runtime, assets_info.archive_path}
       end
 
     {:reply, reply, state}
@@ -976,21 +1076,34 @@ defmodule Livebook.Session do
 
   def handle_call({:disconnect_runtime, client_pid}, _from, state) do
     client_id = client_id(state, client_pid)
-
-    state =
-      if Runtime.connected?(state.data.runtime) do
-        {:ok, runtime} = Runtime.disconnect(state.data.runtime)
-
-        %{state | runtime_monitor_ref: nil}
-        |> handle_operation({:set_runtime, client_id, runtime})
-      else
-        state
-      end
-
+    state = handle_operation(state, {:disconnect_runtime, client_id})
     {:reply, :ok, state}
   end
 
+  def handle_call({:fetch_file_entry_path, name}, from, state) do
+    file_entry_path(state, name, fn reply ->
+      GenServer.reply(from, reply)
+    end)
+
+    {:noreply, state}
+  end
+
+  def handle_call(:fetch_proxy_handler_spec, _from, state) do
+    if state.data.runtime_status == :connected do
+      {:reply, Runtime.fetch_proxy_handler_spec(state.data.runtime), state}
+    else
+      {:reply, {:error, :disconnected}, state}
+    end
+  end
+
   @impl true
+  def handle_cast(:reset_auto_shutdown, state) do
+    {:noreply,
+     state
+     |> cancel_auto_shutdown_timer()
+     |> schedule_auto_shutdown()}
+  end
+
   def handle_cast({:set_notebook_attributes, client_pid, attrs}, state) do
     client_id = client_id(state, client_pid)
     operation = {:set_notebook_attributes, client_id, attrs}
@@ -1008,6 +1121,13 @@ defmodule Livebook.Session do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
     operation = {:insert_section_into, client_id, section_id, index, Utils.random_id()}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:insert_branching_section_into, client_pid, section_id, index}, state) do
+    client_id = client_id(state, client_pid)
+    # Include new id in the operation, so it's reproducible
+    operation = {:insert_branching_section_into, client_id, section_id, index, Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1076,14 +1196,12 @@ defmodule Livebook.Session do
              Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
         index = Enum.find_index(section.cells, &(&1 == cell))
         chunks = cell.chunks || [{0, byte_size(cell.source)}]
-        chunk_count = length(chunks)
 
         state =
           for {{offset, size}, chunk_idx} <- Enum.with_index(chunks), reduce: state do
             state ->
-              outputs = if(chunk_idx == chunk_count - 1, do: cell.outputs, else: [])
               source = binary_part(cell.source, offset, size)
-              attrs = %{source: source, outputs: outputs}
+              attrs = %{source: source}
               cell_idx = index + chunk_idx
               cell_id = Utils.random_id()
 
@@ -1105,17 +1223,9 @@ defmodule Livebook.Session do
     {:noreply, do_add_dependencies(state, dependencies)}
   end
 
-  def handle_cast(:disable_dependencies_cache, state) do
-    if Runtime.connected?(state.data.runtime) do
-      Runtime.disable_dependencies_cache(state.data.runtime)
-    end
-
-    {:noreply, state}
-  end
-
-  def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
+  def handle_cast({:queue_cell_evaluation, client_pid, cell_id, evaluation_opts}, state) do
     client_id = client_id(state, client_pid)
-    operation = {:queue_cells_evaluation, client_id, [cell_id]}
+    operation = {:queue_cells_evaluation, client_id, [cell_id], evaluation_opts}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1125,7 +1235,7 @@ defmodule Livebook.Session do
     case Notebook.fetch_section(state.data.notebook, section_id) do
       {:ok, section} ->
         cell_ids = for cell <- section.cells, Cell.evaluable?(cell), do: cell.id
-        operation = {:queue_cells_evaluation, client_id, cell_ids}
+        operation = {:queue_cells_evaluation, client_id, cell_ids, []}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -1140,7 +1250,7 @@ defmodule Livebook.Session do
       for {bound_cell, _} <- Data.bound_cells_with_section(state.data, input_id),
           do: bound_cell.id
 
-    operation = {:queue_cells_evaluation, client_id, cell_ids}
+    operation = {:queue_cells_evaluation, client_id, cell_ids, []}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1149,7 +1259,7 @@ defmodule Livebook.Session do
 
     cell_ids = Data.cell_ids_for_full_evaluation(state.data, forced_cell_ids)
 
-    operation = {:queue_cells_evaluation, client_id, cell_ids}
+    operation = {:queue_cells_evaluation, client_id, cell_ids, []}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1158,7 +1268,7 @@ defmodule Livebook.Session do
 
     cell_ids = Data.cell_ids_for_reevaluation(state.data)
 
-    operation = {:queue_cells_evaluation, client_id, cell_ids}
+    operation = {:queue_cells_evaluation, client_id, cell_ids, []}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1186,9 +1296,12 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:apply_cell_delta, client_pid, cell_id, tag, delta, revision}, state) do
+  def handle_cast(
+        {:apply_cell_delta, client_pid, cell_id, tag, delta, selection, revision},
+        state
+      ) do
     client_id = client_id(state, client_pid)
-    operation = {:apply_cell_delta, client_id, cell_id, tag, delta, revision}
+    operation = {:apply_cell_delta, client_id, cell_id, tag, delta, selection, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1212,19 +1325,12 @@ defmodule Livebook.Session do
 
   def handle_cast({:set_runtime, client_pid, runtime}, state) do
     client_id = client_id(state, client_pid)
-
-    if Runtime.connected?(state.data.runtime) do
-      {:ok, _} = Runtime.disconnect(state.data.runtime)
-    end
-
-    state =
-      if Runtime.connected?(runtime) do
-        own_runtime(runtime, state)
-      else
-        state
-      end
-
     {:noreply, handle_operation(state, {:set_runtime, client_id, runtime})}
+  end
+
+  def handle_cast({:connect_runtime, client_pid}, state) do
+    client_id = client_id(state, client_pid)
+    {:noreply, handle_operation(state, {:connect_runtime, client_id})}
   end
 
   def handle_cast({:set_file, client_pid, file}, state) do
@@ -1295,19 +1401,17 @@ defmodule Livebook.Session do
   def handle_cast({:deploy_app, _client_pid}, state) do
     # In the initial state app settings are empty, hence not valid,
     # so we double-check that we can actually deploy
-    if Notebook.AppSettings.valid?(state.data.notebook.app_settings) do
-      files_dir = files_dir_from_state(state)
-      {:ok, pid} = Livebook.Apps.deploy(state.data.notebook, files_source: {:dir, files_dir})
+    if Notebook.AppSettings.valid?(state.data.notebook.app_settings) and
+         state.deployment_ref == nil do
+      app_spec = %Livebook.Apps.PreviewAppSpec{
+        slug: state.data.notebook.app_settings.slug,
+        session_id: state.session_id
+      }
 
-      if ref = state.deployed_app_monitor_ref do
-        Process.demonitor(ref, [:flush])
-      end
+      deployer_pid = Livebook.Apps.Deployer.local_deployer()
+      deployment_ref = Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
 
-      ref = Process.monitor(pid)
-      state = put_in(state.deployed_app_monitor_ref, ref)
-
-      operation = {:set_deployed_app_slug, @client_id, state.data.notebook.app_settings.slug}
-      {:noreply, handle_operation(state, operation)}
+      {:noreply, %{state | deployment_ref: deployment_ref}}
     else
       {:noreply, state}
     end
@@ -1329,9 +1433,21 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:set_notebook_deployment_group, client_pid, id}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:set_notebook_deployment_group, client_id, id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:add_file_entries, client_pid, file_entries}, state) do
     client_id = client_id(state, client_pid)
     operation = {:add_file_entries, client_id, file_entries}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:rename_file_entry, client_pid, name, new_name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:rename_file_entry, client_id, name, new_name}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1349,21 +1465,40 @@ defmodule Livebook.Session do
 
   @impl true
   def handle_info({:DOWN, ref, :process, _, reason}, state)
+      when ref == state.runtime_connect.ref do
+    broadcast_error(
+      state.session_id,
+      "connecting runtime failed unexpectedly - #{Exception.format_exit(reason)}"
+    )
+
+    {:noreply,
+     %{state | runtime_connect: nil}
+     |> handle_operation({:runtime_down, @client_id})}
+  end
+
+  def handle_info({:DOWN, ref, :process, _, reason}, state)
       when ref == state.runtime_monitor_ref do
     broadcast_error(
       state.session_id,
-      "runtime node terminated unexpectedly - #{Exception.format_exit(reason)}"
+      "runtime terminated unexpectedly - #{Exception.format_exit(reason)}"
     )
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
-     |> handle_operation(
-       {:set_runtime, @client_id, Livebook.Runtime.duplicate(state.data.runtime)}
-     )}
+     |> handle_operation({:runtime_down, @client_id})}
   end
 
   def handle_info({:DOWN, ref, :process, _, _}, state) when ref == state.save_task_ref do
     {:noreply, %{state | save_task_ref: nil}}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, reason}, state) when ref == state.deployment_ref do
+    broadcast_error(
+      state.session_id,
+      "app deployment failed, deployer terminated unexpectedly, reason: #{inspect(reason)}"
+    )
+
+    {:noreply, %{state | deployment_ref: nil}}
   end
 
   def handle_info({:DOWN, ref, :process, _, _}, state)
@@ -1390,12 +1525,39 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:runtime_connect_info, pid, info}, state)
+      when pid == state.runtime_connect.pid do
+    state = handle_operation(state, {:set_runtime_connect_info, @client_id, info})
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_connect_done, pid, result}, state)
+      when pid == state.runtime_connect.pid do
+    Process.demonitor(state.runtime_connect.ref, [:flush])
+
+    state =
+      case result do
+        {:ok, runtime} ->
+          state = own_runtime(runtime, state)
+          handle_operation(state, {:runtime_connected, @client_id, runtime})
+
+        {:error, message} ->
+          broadcast_error(state.session_id, "connecting runtime failed - #{message}")
+          handle_operation(state, {:runtime_down, @client_id})
+      end
+
+    {:noreply, %{state | runtime_connect: nil}}
+  end
+
   def handle_info({:runtime_evaluation_output, cell_id, output}, state) do
+    output = normalize_runtime_output(output)
     operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info({:runtime_evaluation_output_to, client_id, cell_id, output}, state) do
+    output = normalize_runtime_output(output)
+
     client_pid =
       Enum.find_value(state.client_pids_with_id, fn {pid, id} ->
         id == client_id && pid
@@ -1426,6 +1588,7 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_evaluation_output_to_clients, cell_id, output}, state) do
+    output = normalize_runtime_output(output)
     operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
     broadcast_operation(state.session_id, operation)
 
@@ -1446,9 +1609,10 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:runtime_evaluation_response, cell_id, response, metadata}, state) do
+  def handle_info({:runtime_evaluation_response, cell_id, output, metadata}, state) do
     {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
-    operation = {:add_cell_evaluation_response, @client_id, cell_id, response, metadata}
+    output = normalize_runtime_output(output)
+    operation = {:add_cell_evaluation_response, @client_id, cell_id, output, metadata}
 
     {:noreply,
      state
@@ -1527,7 +1691,25 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_app_info_request, reply_to}, state) do
-    send(reply_to, {:runtime_app_info_reply, app_info_for_runtime(state)})
+    send(reply_to, {:runtime_app_info_reply, {:ok, app_info_for_runtime(state)}})
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_user_info_request, reply_to, client_id}, state) do
+    reply =
+      cond do
+        not state.data.notebook.teams_enabled ->
+          {:error, :not_available}
+
+        user_id = state.data.clients_map[client_id] ->
+          user = Map.fetch!(state.data.users_map, user_id)
+          {:ok, user_info(user)}
+
+        true ->
+          {:error, :not_found}
+      end
+
+    send(reply_to, {:runtime_user_info_reply, reply})
     {:noreply, state}
   end
 
@@ -1562,12 +1744,19 @@ defmodule Livebook.Session do
     {:noreply, state |> put_memory_usage(runtime_memory) |> notify_update()}
   end
 
+  def handle_info({:runtime_connected_nodes, nodes}, state) do
+    operation = {:set_runtime_connected_nodes, @client_id, nodes}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_info({:runtime_smart_cell_definitions, definitions}, state) do
     operation = {:set_smart_cell_definitions, @client_id, definitions}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info({:runtime_smart_cell_started, id, info}, state) do
+    info = normalize_smart_cell_started_info(info)
+
     info =
       if info.editor do
         normalize_newlines = &String.replace(&1, "\r\n", "\n")
@@ -1579,11 +1768,10 @@ defmodule Livebook.Session do
 
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
-        chunks = info[:chunks]
-        delta = Livebook.JSInterop.diff(cell.source, info.source)
+        delta = Livebook.Text.Delta.diff(cell.source, info.source)
 
         operation =
-          {:smart_cell_started, @client_id, id, delta, chunks, info.js_view, info.editor}
+          {:smart_cell_started, @client_id, id, delta, info.chunks, info.js_view, info.editor}
 
         {:noreply, handle_operation(state, operation)}
 
@@ -1601,7 +1789,7 @@ defmodule Livebook.Session do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         chunks = info[:chunks]
-        delta = Livebook.JSInterop.diff(cell.source, source)
+        delta = Livebook.Text.Delta.diff(cell.source, source)
         operation = {:update_smart_cell, @client_id, id, attrs, delta, chunks}
         state = handle_operation(state, operation)
 
@@ -1621,11 +1809,48 @@ defmodule Livebook.Session do
     end
   end
 
+  def handle_info({:runtime_smart_cell_editor_update, id, options}, state) do
+    case Notebook.fetch_cell_and_section(state.data.notebook, id) do
+      {:ok, cell, _section} when cell.editor != nil ->
+        state =
+          case options do
+            %{source: source} ->
+              delta = Livebook.Text.Delta.diff(cell.editor.source, source)
+              revision = state.data.cell_infos[cell.id].sources.secondary.revision
+
+              operation =
+                {:apply_cell_delta, @client_id, cell.id, :secondary, delta, nil, revision}
+
+              handle_operation(state, operation)
+
+            %{} ->
+              state
+          end
+
+        state =
+          case Map.take(options, [:intellisense_node, :visible]) do
+            updates when updates != %{} ->
+              editor = Map.merge(cell.editor, updates)
+              operation = {:set_cell_attributes, @client_id, cell.id, %{editor: editor}}
+              handle_operation(state, operation)
+
+            %{} ->
+              state
+          end
+
+        {:noreply, state}
+
+      _ ->
+        {:noreply, state}
+    end
+  end
+
   def handle_info({:pong, {:smart_cell_evaluation, cell_id}, _info}, state) do
     state =
       with {:ok, cell, section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
            :evaluating <- state.data.cell_infos[cell.id].eval.status do
-        start_evaluation(state, cell, section)
+        evaluation_opts = state.data.cell_infos[cell.id].eval.evaluation_opts
+        start_evaluation(state, cell, section, evaluation_opts)
       else
         _ -> state
       end
@@ -1633,8 +1858,13 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:runtime_transient_state, transient_state}, state) do
+    operation = {:set_runtime_transient_state, @client_id, transient_state}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_info({:env_var_set, env_var}, state) do
-    if Runtime.connected?(state.data.runtime) do
+    if state.data.runtime_status == :connected do
       Runtime.put_system_envs(state.data.runtime, [{env_var.name, env_var.value}])
     end
 
@@ -1642,7 +1872,7 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:env_var_unset, env_var}, state) do
-    if Runtime.connected?(state.data.runtime) do
+    if state.data.runtime_status == :connected do
       Runtime.delete_system_envs(state.data.runtime, [env_var.name])
     end
 
@@ -1654,7 +1884,7 @@ defmodule Livebook.Session do
 
     case File.rm_rf(path) do
       {:ok, _} ->
-        if Runtime.connected?(state.data.runtime) do
+        if state.data.runtime_status == :connected do
           {:file, file_id} = file_ref
           Runtime.revoke_file(state.data.runtime, file_id)
         end
@@ -1677,6 +1907,37 @@ defmodule Livebook.Session do
              secret.hub_id == state.data.notebook.hub_id do
     operation = {:sync_hub_secrets, @client_id}
     {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:hub_deleted, id}, %{data: %{notebook: %{hub_id: id}}} = state) do
+    # Since the hub got deleted, we close all sessions using that hub.
+    # This way we clean up all secrets and other in-memory state that
+    # is related to the hub
+    send(self(), :close)
+    {:noreply, state}
+  end
+
+  def handle_info({:deploy_result, ref, result}, state) do
+    Process.demonitor(ref, [:flush])
+
+    state = %{state | deployment_ref: nil}
+
+    case result do
+      {:ok, pid} ->
+        if ref = state.deployed_app_monitor_ref do
+          Process.demonitor(ref, [:flush])
+        end
+
+        ref = Process.monitor(pid)
+        state = put_in(state.deployed_app_monitor_ref, ref)
+
+        operation = {:set_deployed_app_slug, @client_id, state.data.notebook.app_settings.slug}
+        {:noreply, handle_operation(state, operation)}
+
+      {:error, error} ->
+        broadcast_error(state.session_id, "app deployment failed, #{error}")
+        {:noreply, state}
+    end
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -1775,6 +2036,17 @@ defmodule Livebook.Session do
     end
   end
 
+  @doc """
+  Returns a local path to a session-registered file with the given
+  reference.
+  """
+  @spec registered_file_path(id(), Livebook.Runtime.file_ref()) :: String.t()
+  def registered_file_path(session_id, file_ref) do
+    {:file, file_id} = file_ref
+    %{path: session_dir} = session_tmp_dir(session_id)
+    Path.join([session_dir, "registered_files", file_id])
+  end
+
   defp encode_path_component(component) do
     String.replace(component, [".", "/", "\\", ":"], "_")
   end
@@ -1804,14 +2076,14 @@ defmodule Livebook.Session do
   end
 
   defp initialize_files_from(state, {:dir, dir}) do
-    copy_files(state, dir)
+    copy_notebook_files(state, dir)
   end
 
-  defp copy_files(state, source) do
-    with {:ok, source_exists?} <- FileSystem.File.exists?(source) do
+  defp copy_notebook_files(state, source_dir) do
+    with {:ok, source_exists?} <- FileSystem.File.exists?(source_dir) do
       if source_exists? do
         write_attachment_file_entries(state, fn destination_file, file_entry ->
-          source_file = FileSystem.File.resolve(source, file_entry.name)
+          source_file = FileSystem.File.resolve(source_dir, file_entry.name)
 
           case FileSystem.File.copy(source_file, destination_file) do
             :ok ->
@@ -1832,9 +2104,10 @@ defmodule Livebook.Session do
   end
 
   defp write_attachment_file_entries(state, write_fun) do
+    notebook = state.data.notebook
     files_dir = files_dir_from_state(state)
 
-    state.data.notebook.file_entries
+    notebook.file_entries
     |> Enum.filter(&(&1.type == :attachment))
     |> Task.async_stream(
       fn file_entry ->
@@ -1889,6 +2162,14 @@ defmodule Livebook.Session do
 
   defp own_runtime(runtime, state) do
     runtime_monitor_ref = Runtime.take_ownership(runtime, runtime_broadcast_to: state.worker_pid)
+
+    if state.data.runtime_transient_state != %{} do
+      Runtime.restore_transient_state(runtime, state.data.runtime_transient_state)
+    end
+
+    client_ids = Map.keys(state.data.clients_map)
+    Runtime.register_clients(runtime, client_ids)
+
     %{state | runtime_monitor_ref: runtime_monitor_ref}
   end
 
@@ -1901,12 +2182,12 @@ defmodule Livebook.Session do
         state
 
       {:ok, new_source} ->
-        delta = Livebook.JSInterop.diff(cell.source, new_source)
-        revision = state.data.cell_infos[cell.id].sources.primary.revision + 1
+        delta = Livebook.Text.Delta.diff(cell.source, new_source)
+        revision = state.data.cell_infos[cell.id].sources.primary.revision
 
         handle_operation(
           state,
-          {:apply_cell_delta, @client_id, cell.id, :primary, delta, revision}
+          {:apply_cell_delta, @client_id, cell.id, :primary, delta, nil, revision}
         )
 
       {:error, message} ->
@@ -1952,24 +2233,21 @@ defmodule Livebook.Session do
     notify_update(state)
   end
 
-  defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
-    if Runtime.connected?(runtime) do
-      set_runtime_secrets(state, state.data.secrets)
-      set_runtime_env_vars(state)
+  defp after_operation(state, _prev_state, {:runtime_connected, _client_id, _runtime}) do
+    set_runtime_secrets(state, state.data.secrets)
+    set_runtime_env_vars(state)
+    state
+  end
 
-      state
-    else
-      state
-      |> put_memory_usage(nil)
-      |> notify_update()
-    end
+  defp after_operation(state, _prev_state, {:runtime_down, _client_id}) do
+    after_runtime_disconnected(state)
   end
 
   defp after_operation(state, prev_state, {:set_file, _client_id, _file}) do
     prev_files_dir = files_dir_from_state(prev_state)
 
     if prev_state.data.file do
-      copy_files(state, prev_files_dir)
+      copy_notebook_files(state, prev_files_dir)
     else
       move_files(state, prev_files_dir)
     end
@@ -2002,6 +2280,10 @@ defmodule Livebook.Session do
 
     state = put_in(state.client_id_with_assets[client_id], %{})
 
+    if state.data.runtime_status == :connected do
+      Runtime.register_clients(state.data.runtime, [client_id])
+    end
+
     app_report_client_count_change(state)
 
     schedule_auto_shutdown(state)
@@ -2016,6 +2298,10 @@ defmodule Livebook.Session do
 
     state = delete_client_files(state, client_id)
     {_, state} = pop_in(state.client_id_with_assets[client_id])
+
+    if state.data.runtime_status == :connected do
+      Runtime.unregister_clients(state.data.runtime, [client_id])
+    end
 
     app_report_client_count_change(state)
 
@@ -2043,7 +2329,7 @@ defmodule Livebook.Session do
   defp after_operation(
          state,
          _prev_state,
-         {:apply_cell_delta, _client_id, cell_id, tag, _delta, _revision}
+         {:apply_cell_delta, _client_id, cell_id, tag, _delta, _selection, _revision}
        ) do
     hydrate_cell_source_digest(state, cell_id, tag)
 
@@ -2061,7 +2347,7 @@ defmodule Livebook.Session do
          _prev_state,
          {:smart_cell_started, _client_id, cell_id, delta, _chunks, _js_view, _editor}
        ) do
-    unless Delta.empty?(delta) do
+    unless Text.Delta.empty?(delta) do
       hydrate_cell_source_digest(state, cell_id, :primary)
     end
 
@@ -2078,12 +2364,18 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, _prev_state, {:set_secret, _client_id, secret}) do
-    if Runtime.connected?(state.data.runtime), do: set_runtime_secret(state, secret)
+    if state.data.runtime_status == :connected do
+      set_runtime_secret(state, secret)
+    end
+
     state
   end
 
   defp after_operation(state, _prev_state, {:unset_secret, _client_id, secret_name}) do
-    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [secret_name])
+    if state.data.runtime_status == :connected do
+      delete_runtime_secrets(state, [secret_name])
+    end
+
     state
   end
 
@@ -2091,14 +2383,26 @@ defmodule Livebook.Session do
     notify_update(state)
   end
 
-  defp after_operation(state, prev_state, {:add_file_entries, _client_id, _file_entries}) do
+  defp after_operation(state, prev_state, {:add_file_entries, _client_id, file_entries}) do
+    names = for entry <- file_entries, do: entry.name, into: MapSet.new()
+
     replaced_names =
-      Enum.map(
-        prev_state.data.notebook.file_entries -- state.data.notebook.file_entries,
-        & &1.name
-      )
+      for file_entry <- prev_state.data.notebook.file_entries,
+          file_entry.name in names,
+          do: file_entry.name
 
     cleanup_file_entries(state, replaced_names)
+    state
+  end
+
+  defp after_operation(state, prev_state, {:rename_file_entry, _client_id, name, new_name}) do
+    replaced_names =
+      for file_entry <- prev_state.data.notebook.file_entries,
+          file_entry.name == new_name,
+          do: file_entry.name
+
+    cleanup_file_entries(state, replaced_names)
+    remap_file_entry(state, name, new_name)
     state
   end
 
@@ -2114,18 +2418,24 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, :connect_runtime) do
-    case Runtime.connect(state.data.runtime) do
-      {:ok, runtime} ->
-        state = own_runtime(runtime, state)
-        handle_operation(state, {:set_runtime, @client_id, runtime})
+    pid = Runtime.connect(state.data.runtime)
+    ref = Process.monitor(pid)
+    %{state | runtime_connect: %{pid: pid, ref: ref}}
+  end
 
-      {:error, error} ->
-        broadcast_error(state.session_id, "failed to connect runtime - #{error}")
-        handle_operation(state, {:set_runtime, @client_id, state.data.runtime})
+  defp handle_action(state, {:disconnect_runtime, runtime}) do
+    if state.runtime_connect do
+      Process.demonitor(state.runtime_connect.ref, [:flush])
+      Process.exit(state.runtime_connect.pid, :kill)
+      %{state | runtime_connect: nil}
+    else
+      Runtime.disconnect(runtime)
+      state = %{state | runtime_monitor_ref: nil}
+      after_runtime_disconnected(state)
     end
   end
 
-  defp handle_action(state, {:start_evaluation, cell, section}) do
+  defp handle_action(state, {:start_evaluation, cell, section, evaluation_opts}) do
     info = state.data.cell_infos[cell.id]
 
     if is_struct(cell, Cell.Smart) and info.status == :started do
@@ -2138,12 +2448,12 @@ defmodule Livebook.Session do
 
       state
     else
-      start_evaluation(state, cell, section)
+      start_evaluation(state, cell, section, evaluation_opts)
     end
   end
 
   defp handle_action(state, {:stop_evaluation, section}) do
-    if Runtime.connected?(state.data.runtime) do
+    if state.data.runtime_status == :connected do
       Runtime.drop_container(state.data.runtime, container_ref_for_section(section))
     end
 
@@ -2151,7 +2461,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:forget_evaluation, cell, section}) do
-    if Runtime.connected?(state.data.runtime) do
+    if state.data.runtime_status == :connected do
       Runtime.forget_evaluation(state.data.runtime, {container_ref_for_section(section), cell.id})
     end
 
@@ -2159,7 +2469,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:start_smart_cell, cell, _section}) do
-    if Runtime.connected?(state.data.runtime) do
+    if state.data.runtime_status == :connected do
       parent_locators = parent_locators_for_cell(state.data, cell)
 
       Runtime.start_smart_cell(
@@ -2175,7 +2485,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:set_smart_cell_parents, cell, _section, parents}) do
-    if Runtime.connected?(state.data.runtime) do
+    if state.data.runtime_status == :connected do
       parent_locators = evaluation_parents_to_locators(parents)
       Runtime.set_smart_cell_parent_locators(state.data.runtime, cell.id, parent_locators)
     end
@@ -2184,7 +2494,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:stop_smart_cell, cell}) do
-    if Runtime.connected?(state.data.runtime) do
+    if state.data.runtime_status == :connected do
       Runtime.stop_smart_cell(state.data.runtime, cell.id)
     end
 
@@ -2192,14 +2502,8 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:clean_up_input_values, input_infos}) do
-    for {_input_id, %{value: value}} <- input_infos do
-      case value do
-        value when is_file_input_value(value) ->
-          schedule_file_deletion(state, value.file_ref)
-
-        _ ->
-          :ok
-      end
+    for {_input_id, %{value: %{file_ref: file_ref}}} <- input_infos do
+      schedule_file_deletion(state, file_ref)
     end
 
     state
@@ -2209,21 +2513,7 @@ defmodule Livebook.Session do
     status = state.data.app_data.status
     send(state.app_pid, {:app_status_changed, state.session_id, status})
 
-    notify_update(state)
-  end
-
-  defp handle_action(state, :app_recover) do
-    if Runtime.connected?(state.data.runtime) do
-      {:ok, _} = Runtime.disconnect(state.data.runtime)
-    end
-
-    new_runtime = Livebook.Runtime.duplicate(state.data.runtime)
-    cell_ids = Data.cell_ids_for_full_evaluation(state.data, [])
-
     state
-    |> handle_operation({:erase_outputs, @client_id})
-    |> handle_operation({:set_runtime, @client_id, new_runtime})
-    |> handle_operation({:queue_cells_evaluation, @client_id, cell_ids})
   end
 
   defp handle_action(state, :app_terminate) do
@@ -2234,9 +2524,9 @@ defmodule Livebook.Session do
 
   defp handle_action(state, _action), do: state
 
-  defp start_evaluation(state, cell, section) do
+  defp start_evaluation(state, cell, section, evaluation_opts) do
     path =
-      case state.data.file do
+      case state.data.file || default_notebook_file(state) do
         nil -> ""
         file -> file.path
       end
@@ -2249,7 +2539,7 @@ defmodule Livebook.Session do
         _ -> nil
       end
 
-    opts = [file: file, smart_cell_ref: smart_cell_ref]
+    opts = evaluation_opts ++ [file: file, smart_cell_ref: smart_cell_ref]
 
     locator = {container_ref_for_section(section), cell.id}
     parent_locators = parent_locators_for_cell(state.data, cell)
@@ -2314,6 +2604,12 @@ defmodule Livebook.Session do
   defp set_runtime_env_vars(state) do
     env_vars = Enum.map(Livebook.Settings.fetch_env_vars(), &{&1.name, &1.value})
     Runtime.put_system_envs(state.data.runtime, env_vars)
+  end
+
+  defp after_runtime_disconnected(state) do
+    state
+    |> put_memory_usage(nil)
+    |> notify_update()
   end
 
   defp notify_update(state) do
@@ -2436,11 +2732,6 @@ defmodule Livebook.Session do
     end
   end
 
-  defp registered_file_path(session_id, {:file, file_id}) do
-    %{path: session_dir} = session_tmp_dir(session_id)
-    Path.join([session_dir, "registered_files", file_id])
-  end
-
   defp schedule_file_deletion(state, file_ref) do
     Process.send_after(
       self(),
@@ -2561,29 +2852,31 @@ defmodule Livebook.Session do
   end
 
   defp file_entry_spec_from_file(file) do
-    if FileSystem.File.local?(file) do
-      if FileSystem.File.exists?(file) == {:ok, true} do
-        {:ok, %{type: :local, path: file.path}}
-      else
-        {:error, "no file exists at path #{inspect(file.path)}"}
-      end
-    else
-      spec =
-        case file.file_system do
-          %FileSystem.S3{} = file_system ->
-            "/" <> key = file.path
-
-            %{
-              type: :s3,
-              bucket_url: file_system.bucket_url,
-              region: file_system.region,
-              access_key_id: file_system.access_key_id,
-              secret_access_key: file_system.secret_access_key,
-              key: key
-            }
+    case file.file_system_module do
+      FileSystem.Local ->
+        case FileSystem.File.exists?(file) do
+          {:ok, true} -> {:ok, %{type: :local, path: file.path}}
+          {:ok, false} -> {:error, "no file exists at path #{inspect(file.path)}"}
+          {:error, error} -> {:error, error}
         end
 
-      {:ok, spec}
+      FileSystem.S3 ->
+        "/" <> key = file.path
+
+        with {:ok, file_system} <- FileSystem.File.fetch_file_system(file) do
+          credentials = FileSystem.S3.credentials(file_system)
+
+          {:ok,
+           %{
+             type: :s3,
+             bucket_url: file_system.bucket_url,
+             region: file_system.region,
+             access_key_id: credentials.access_key_id,
+             secret_access_key: credentials.secret_access_key,
+             token: credentials.token,
+             key: key
+           }}
+        end
     end
   end
 
@@ -2598,10 +2891,31 @@ defmodule Livebook.Session do
       cache_file = file_entry_cache_file(state.session_id, name)
       FileSystem.File.remove(cache_file)
 
-      if Runtime.connected?(state.data.runtime) do
+      if state.data.runtime_status == :connected do
         file_id = file_entry_file_id(name)
         Runtime.revoke_file(state.data.runtime, file_id)
       end
+    end
+  end
+
+  defp remap_file_entry(state, name, new_name) do
+    cache_file = file_entry_cache_file(state.session_id, name)
+    new_cache_file = file_entry_cache_file(state.session_id, new_name)
+    FileSystem.File.rename(cache_file, new_cache_file)
+
+    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == new_name))
+
+    if file_entry.type == :attachment do
+      files_dir = files_dir_from_state(state)
+      file = FileSystem.File.resolve(files_dir, name)
+      new_file = FileSystem.File.resolve(files_dir, new_name)
+      FileSystem.File.rename(file, new_file)
+    end
+
+    if state.data.runtime_status == :connected do
+      file_id = file_entry_file_id(name)
+      new_file_id = file_entry_file_id(new_name)
+      Runtime.relabel_file(state.data.runtime, file_id, new_file_id)
     end
   end
 
@@ -2616,11 +2930,7 @@ defmodule Livebook.Session do
         info = %{type: :multi_session}
 
         if user = state.started_by do
-          started_by =
-            user
-            |> Map.take([:id, :name, :email])
-            |> Map.put(:source, Livebook.Config.identity_source())
-
+          started_by = user_info(user)
           Map.put(info, :started_by, started_by)
         else
           info
@@ -2773,4 +3083,197 @@ defmodule Livebook.Session do
         {:error, "download failed, " <> message, status}
     end
   end
+
+  defp user_info(user) do
+    {type, _module, _key} = Livebook.Config.identity_provider()
+
+    user
+    |> Map.take([:id, :name, :email, :payload])
+    |> Map.put(:source, type)
+  end
+
+  # Normalizes output to match the most recent specification.
+  #
+  # Rewrites legacy output formats and adds defaults for newly introduced
+  # attributes that are missing.
+  defp normalize_runtime_output(output)
+
+  # Traverse composite outputs
+
+  # defp normalize_runtime_output(output) when output.type in [:frame, :tabs, :grid] do
+  #   outputs = Enum.map(output.outputs, &normalize_runtime_output/1)
+  #   %{output | outputs: outputs}
+  # end
+
+  # defp normalize_runtime_output(%{type: :frame_update} = output) do
+  #   {update_type, new_outputs} = output.update
+  #   new_outputs = Enum.map(new_outputs, &normalize_runtime_output/1)
+  #   %{output | update: {update_type, new_outputs}}
+  # end
+
+  defp normalize_runtime_output(output) when is_map(output), do: output
+
+  # TODO: Remove this when Kino v0.10.0 is a long time in the past.
+  # Rewrite tuples to maps for backward compatibility with Kino <= 0.10.0
+
+  defp normalize_runtime_output(:ignored) do
+    %{type: :ignored}
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:text, text}) do
+    %{type: :terminal_text, text: text, chunk: false}
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:plain_text, text}) do
+    %{type: :plain_text, text: text, chunk: false}
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:markdown, text}) do
+    %{type: :markdown, text: text, chunk: false}
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:image, content, mime_type}) do
+    %{type: :image, content: content, mime_type: mime_type}
+    |> normalize_runtime_output()
+  end
+
+  # Rewrite older output format for backward compatibility with Kino <= 0.5.2
+  defp normalize_runtime_output({:js, %{ref: ref, pid: pid, assets: assets, export: export}}) do
+    {:js, %{js_view: %{ref: ref, pid: pid, assets: assets}, export: export}}
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:js, info}) do
+    %{type: :js, js_view: info.js_view, export: info.export}
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :default} = info}) do
+    %{
+      type: :frame,
+      ref: ref,
+      outputs: Enum.map(outputs, &normalize_runtime_output/1),
+      placeholder: Map.get(info, :placeholder, true)
+    }
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :replace}}) do
+    %{
+      type: :frame_update,
+      ref: ref,
+      update: {:replace, Enum.map(outputs, &normalize_runtime_output/1)}
+    }
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :append}}) do
+    %{
+      type: :frame_update,
+      ref: ref,
+      update: {:append, Enum.map(outputs, &normalize_runtime_output/1)}
+    }
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:tabs, outputs, %{labels: labels}}) do
+    %{type: :tabs, outputs: Enum.map(outputs, &normalize_runtime_output/1), labels: labels}
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:grid, outputs, info}) do
+    %{
+      type: :grid,
+      outputs: Enum.map(outputs, &normalize_runtime_output/1),
+      columns: Map.get(info, :columns, 1),
+      gap: Map.get(info, :gap, 8),
+      boxed: Map.get(info, :boxed, false)
+    }
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:input, attrs}) do
+    {fields, %{type: type} = attrs} = Map.split(attrs, [:ref, :id, :destination])
+
+    attrs =
+      cond do
+        type in [:textarea] ->
+          attrs
+          |> Map.put_new(:monospace, false)
+          |> Map.put_new(:debounce, :blur)
+
+        type in [:text, :password, :number, :url, :color] ->
+          Map.put_new(attrs, :debounce, :blur)
+
+        type in [:range] ->
+          Map.put_new(attrs, :debounce, 250)
+
+        true ->
+          attrs
+      end
+
+    Map.merge(fields, %{type: :input, attrs: attrs})
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:control, attrs}) do
+    {fields, attrs} = Map.split(attrs, [:ref, :destination])
+
+    attrs =
+      case attrs.type do
+        :keyboard ->
+          Map.put_new(attrs, :default_handlers, :off)
+
+        :form ->
+          Map.update!(attrs, :fields, fn fields ->
+            Enum.map(fields, fn {field, attrs} ->
+              {field, normalize_runtime_output({:input, attrs})}
+            end)
+          end)
+
+        _other ->
+          attrs
+      end
+
+    Map.merge(fields, %{type: :control, attrs: attrs})
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output({:error, message, type}) do
+    context =
+      case type do
+        :other -> nil
+        type -> type
+      end
+
+    %{type: :error, message: message, context: context}
+    |> normalize_runtime_output()
+  end
+
+  defp normalize_runtime_output(other) do
+    %{type: :unknown, output: other}
+    |> normalize_runtime_output()
+  end
+
+  # Normalizes :runtime_smart_cell_started info to match the latest
+  # specification.
+  defp normalize_smart_cell_started_info(info) when not is_map_key(info, :chunks) do
+    normalize_smart_cell_started_info(put_in(info[:chunks], nil))
+  end
+
+  defp normalize_smart_cell_started_info(info)
+       when info.editor != nil and not is_map_key(info.editor, :intellisense_node) do
+    normalize_smart_cell_started_info(put_in(info.editor[:intellisense_node], nil))
+  end
+
+  defp normalize_smart_cell_started_info(info)
+       when info.editor != nil and not is_map_key(info.editor, :visible) do
+    normalize_smart_cell_started_info(put_in(info.editor[:visible], true))
+  end
+
+  defp normalize_smart_cell_started_info(info), do: info
 end

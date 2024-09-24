@@ -1,8 +1,6 @@
 defmodule Livebook do
   @moduledoc """
-  Livebook is an interactive notebook system for Elixir.
-
-  This module includes the public API.
+  This module provides a public Elixir API for integrating with Livebook.
 
   ## Configuration
 
@@ -70,6 +68,7 @@ defmodule Livebook do
           path: "/path/to/other_notebook.livemd"
         }
       ]
+
   """
 
   @doc """
@@ -83,12 +82,24 @@ defmodule Livebook do
 
   """
   def config_runtime do
+    if root = System.get_env("RELEASE_ROOT") do
+      for file <- Path.wildcard(Path.join(root, "user/extensions/*.exs")) do
+        Code.require_file(file)
+      end
+    end
+
     import Config
+
+    config :livebook, :random_boot_id, :crypto.strong_rand_bytes(3)
 
     config :livebook, LivebookWeb.Endpoint,
       secret_key_base:
         Livebook.Config.secret!("LIVEBOOK_SECRET_KEY_BASE") ||
-          Base.encode64(:crypto.strong_rand_bytes(48))
+          Livebook.Utils.random_secret_key_base()
+
+    if Livebook.Config.debug!("LIVEBOOK_DEBUG") do
+      config :logger, level: :debug
+    end
 
     if port = Livebook.Config.port!("LIVEBOOK_PORT") do
       config :livebook, LivebookWeb.Endpoint, http: [port: port]
@@ -103,15 +114,20 @@ defmodule Livebook do
       config :livebook, LivebookWeb.Endpoint, url: [path: base_url_path]
     end
 
-    cond do
-      password = Livebook.Config.password!("LIVEBOOK_PASSWORD") ->
-        config :livebook, authentication_mode: :password, password: password
+    if public_base_url_path =
+         Livebook.Config.base_url_path!("LIVEBOOK_PUBLIC_BASE_URL_PATH") do
+      config :livebook, :public_base_url_path, public_base_url_path
+    end
 
-      Livebook.Config.boolean!("LIVEBOOK_TOKEN_ENABLED", true) ->
-        config :livebook, token: Livebook.Utils.random_id()
-
-      true ->
-        config :livebook, authentication_mode: :disabled
+    if password = Livebook.Config.password!("LIVEBOOK_PASSWORD") do
+      config :livebook, :authentication, {:password, password}
+    else
+      case Livebook.Config.boolean!("LIVEBOOK_TOKEN_ENABLED", nil) do
+        true -> config :livebook, :authentication, :token
+        false -> config :livebook, :authentication, :disabled
+        # Keep the environment-specific default
+        nil -> :ok
+      end
     end
 
     if port = Livebook.Config.port!("LIVEBOOK_IFRAME_PORT") do
@@ -123,7 +139,7 @@ defmodule Livebook do
     end
 
     if url = Livebook.Config.teams_url!("LIVEBOOK_TEAMS_URL") do
-      config :livebook, :teams_url, url
+      config :livebook, teams_url: url, warn_on_live_teams_server: false
     end
 
     if Livebook.Config.boolean!("LIVEBOOK_SHUTDOWN_ENABLED", false) do
@@ -134,18 +150,24 @@ defmodule Livebook do
       config :livebook, :within_iframe, true
     end
 
+    if Livebook.Config.boolean!("LIVEBOOK_AWS_CREDENTIALS", false) do
+      config :livebook, :aws_credentials, true
+    end
+
     config :livebook,
            :default_runtime,
            Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
-             Livebook.Runtime.ElixirStandalone.new()
+             Livebook.Runtime.Standalone.new()
 
-    config :livebook, :default_app_runtime, Livebook.Runtime.ElixirStandalone.new()
+    config :livebook, :default_app_runtime, Livebook.Runtime.Standalone.new()
 
     config :livebook,
            :runtime_modules,
            [
-             Livebook.Runtime.ElixirStandalone,
-             Livebook.Runtime.Attached
+             Livebook.Runtime.Standalone,
+             Livebook.Runtime.Attached,
+             Livebook.Runtime.Fly,
+             Livebook.Runtime.K8s
            ]
 
     if home = Livebook.Config.writable_dir!("LIVEBOOK_HOME") do
@@ -168,17 +190,33 @@ defmodule Livebook do
       config :livebook, :apps_path_password, apps_path_password
     end
 
+    if apps_path_warmup = Livebook.Config.apps_path_warmup!("LIVEBOOK_APPS_PATH_WARMUP") do
+      config :livebook, :apps_path_warmup, apps_path_warmup
+    end
+
     if force_ssl_host = Livebook.Config.force_ssl_host!("LIVEBOOK_FORCE_SSL_HOST") do
       config :livebook, :force_ssl_host, force_ssl_host
     end
 
+    if cacertfile = Livebook.Config.cacertfile!("LIVEBOOK_CACERTFILE") do
+      config :livebook, :cacertfile, cacertfile
+    end
+
+    config :livebook, :rewrite_on, Livebook.Config.rewrite_on!("LIVEBOOK_PROXY_HEADERS")
+
     config :livebook,
            :cookie,
-           Livebook.Config.cookie!("LIVEBOOK_COOKIE") ||
-             Livebook.Config.cookie!("RELEASE_COOKIE") ||
-             Livebook.Utils.random_cookie()
+           Livebook.Config.cookie!("LIVEBOOK_COOKIE") || Livebook.Utils.random_cookie()
 
-    if node = Livebook.Config.node!("LIVEBOOK_NODE", "LIVEBOOK_DISTRIBUTION") do
+    # TODO: remove in v1.0
+    if System.get_env("LIVEBOOK_DISTRIBUTION") == "sname" do
+      IO.warn(
+        ~s/Ignoring LIVEBOOK_DISTRIBUTION=sname, because short names are no longer supported./,
+        []
+      )
+    end
+
+    if node = Livebook.Config.node!("LIVEBOOK_NODE") do
       config :livebook, :node, node
     end
 
@@ -201,8 +239,25 @@ defmodule Livebook do
 
     config :livebook,
            :identity_provider,
-           Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER") ||
-             {LivebookWeb.SessionIdentity, :unused}
+           Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER")
+
+    if dns_cluster_query = Livebook.Config.dns_cluster_query!("LIVEBOOK_CLUSTER") do
+      config :livebook, :dns_cluster_query, dns_cluster_query
+    end
+
+    if agent_name = Livebook.Config.agent_name!("LIVEBOOK_AGENT_NAME") do
+      config :livebook, :agent_name, agent_name
+    end
+
+    if Livebook.Config.boolean!("LIVEBOOK_FIPS", false) do
+      if :crypto.enable_fips_mode(true) do
+        IO.puts("[Livebook] FIPS mode enabled")
+      else
+        Livebook.Config.abort!(
+          "Requested FIPS mode via LIVEBOOK_FIPS, but this Erlang installation was compiled without FIPS support"
+        )
+      end
+    end
   end
 
   @doc """
@@ -221,7 +276,7 @@ defmodule Livebook do
   """
   @spec live_markdown_to_elixir(String.t()) :: String.t()
   def live_markdown_to_elixir(markdown) do
-    {notebook, _messages} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
+    {notebook, _info} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
     Livebook.Notebook.Export.Elixir.notebook_to_elixir(notebook)
   end
 end

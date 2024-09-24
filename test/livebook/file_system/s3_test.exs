@@ -1,42 +1,25 @@
 defmodule Livebook.FileSystem.S3Test do
-  use ExUnit.Case, async: true
+  use Livebook.DataCase, async: true
 
   alias Livebook.FileSystem
   alias Livebook.FileSystem.S3
 
   setup do
     bypass = Bypass.open()
-    {:ok, bypass: bypass}
-  end
+    file_system = build(:fs_s3, bucket_url: bucket_url(bypass.port))
 
-  describe "new/3" do
-    test "trims trailing slash in bucket URL" do
-      assert %{bucket_url: "https://example.com/mybucket"} =
-               S3.new("https://example.com/mybucket/", "key", "secret")
-    end
-
-    test "determines region based on the URL by default" do
-      assert %{region: "eu-central-1"} =
-               S3.new("https://s3.eu-central-1.amazonaws.com/mybucket", "key", "secret")
-    end
-
-    test "accepts explicit region as an option" do
-      assert %{region: "auto"} =
-               S3.new("https://s3.eu-central-1.amazonaws.com/mybucket", "key", "secret",
-                 region: "auto"
-               )
-    end
+    {:ok, bypass: bypass, file_system: file_system}
   end
 
   describe "FileSystem.default_path/1" do
     test "returns the root path" do
-      file_system = S3.new("https://example.com/mybucket", "key", "secret")
+      file_system = build(:fs_s3, bucket_url: "https://example.com/mybucket", region: "auto")
       assert FileSystem.default_path(file_system) == "/"
     end
   end
 
   describe "common request errors" do
-    test "authorization failure", %{bypass: bypass} do
+    test "authorization failure", %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("application/xml")
@@ -47,14 +30,13 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       dir_path = "/dir/"
 
       assert {:error, "access denied, reason for authorization failure"} =
                FileSystem.list(file_system, dir_path, false)
     end
 
-    test "an arbitrary error with message", %{bypass: bypass} do
+    test "an arbitrary error with message", %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("application/xml")
@@ -65,13 +47,12 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       dir_path = "/dir/"
 
       assert {:error, "error message"} = FileSystem.list(file_system, dir_path, false)
     end
 
-    test "successful response with unexpected body", %{bypass: bypass} do
+    test "successful response with unexpected body", %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("application/xml")
@@ -82,7 +63,6 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       dir_path = "/dir/"
 
       assert {:error, "unexpected response"} = FileSystem.list(file_system, dir_path, false)
@@ -90,7 +70,8 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.list/3" do
-    test "returns an error when a nonexistent directory is given", %{bypass: bypass} do
+    test "returns an error when a nonexistent directory is given",
+         %{bypass: bypass, file_system: file_system} do
       # When the directory doesn't exist, we get an empty list of matches
 
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
@@ -105,13 +86,14 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       dir_path = "/dir/"
 
-      assert {:error, "no such file or directory"} = FileSystem.list(file_system, dir_path, false)
+      assert {:error, "no such file or directory"} =
+               FileSystem.list(file_system, dir_path, false)
     end
 
-    test "does not return an error when the root directory is empty", %{bypass: bypass} do
+    test "does not return an error when the root directory is empty",
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"delimiter" => "/"} = conn.params
 
@@ -124,13 +106,13 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       dir_path = "/"
 
       assert {:ok, []} = FileSystem.list(file_system, dir_path, false)
     end
 
-    test "returns a list of absolute child object paths", %{bypass: bypass} do
+    test "returns a list of absolute child object paths",
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"delimiter" => "/"} = conn.params
 
@@ -152,7 +134,6 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       dir_path = "/"
 
       assert {:ok, paths} = FileSystem.list(file_system, dir_path, false)
@@ -164,7 +145,8 @@ defmodule Livebook.FileSystem.S3Test do
              ]
     end
 
-    test "includes nested objects when called with recursive flag", %{bypass: bypass} do
+    test "includes nested objects when called with recursive flag",
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"delimiter" => ""} = conn.params
 
@@ -195,7 +177,6 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       dir_path = "/"
 
       assert {:ok, paths} = FileSystem.list(file_system, dir_path, true)
@@ -212,7 +193,8 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.read/2" do
-    test "returns an error when a nonexistent key is given", %{bypass: bypass} do
+    test "returns an error when a nonexistent key is given",
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "GET", "/mybucket/nonexistent.txt", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("application/xml")
@@ -223,13 +205,13 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/nonexistent.txt"
 
       assert {:error, "no such file or directory"} = FileSystem.read(file_system, file_path)
     end
 
-    test "returns object contents under the given key", %{bypass: bypass} do
+    test "returns object contents under the given key",
+         %{bypass: bypass, file_system: file_system} do
       content = """
       <MyData>
         <Info>this should not be parsed</Info>
@@ -244,7 +226,6 @@ defmodule Livebook.FileSystem.S3Test do
         |> Plug.Conn.resp(200, content)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/dir/file.txt"
 
       assert {:ok, ^content} = FileSystem.read(file_system, file_path)
@@ -252,7 +233,7 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.write/3" do
-    test "writes contents under the file key", %{bypass: bypass} do
+    test "writes contents under the file key", %{bypass: bypass, file_system: file_system} do
       content = "content"
 
       Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
@@ -261,16 +242,14 @@ defmodule Livebook.FileSystem.S3Test do
         Plug.Conn.resp(conn, 200, "")
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/dir/file.txt"
 
       assert :ok = FileSystem.write(file_system, file_path, content)
     end
 
     # Google Cloud Storage XML API returns this type of response.
-    test "returns success when the status is 200 even if the content type is text/html", %{
-      bypass: bypass
-    } do
+    test "returns success when the status is 200 even if the content type is text/html",
+         %{bypass: bypass, file_system: file_system} do
       content = "content"
 
       Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
@@ -281,7 +260,6 @@ defmodule Livebook.FileSystem.S3Test do
         |> Plug.Conn.resp(200, "")
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/dir/file.txt"
 
       assert :ok = FileSystem.write(file_system, file_path, content)
@@ -289,14 +267,14 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.create_dir/2" do
-    test "write empty content under the directory key", %{bypass: bypass} do
+    test "write empty content under the directory key",
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "PUT", "/mybucket/dir/", fn conn ->
         assert {:ok, "", conn} = Plug.Conn.read_body(conn)
 
         Plug.Conn.resp(conn, 200, "")
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       dir_path = "/dir/"
 
       assert :ok = FileSystem.create_dir(file_system, dir_path)
@@ -304,7 +282,8 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.remove/2" do
-    test "returns successful value when a nonexistent key is given", %{bypass: bypass} do
+    test "returns successful value when a nonexistent key is given",
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "DELETE", "/mybucket/file.txt", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("application/xml")
@@ -315,25 +294,23 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/file.txt"
 
       assert :ok = FileSystem.remove(file_system, file_path)
     end
 
-    test "deletes object under the corresponding key", %{bypass: bypass} do
+    test "deletes object under the corresponding key", %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "DELETE", "/mybucket/file.txt", fn conn ->
         Plug.Conn.resp(conn, 204, "")
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/file.txt"
 
       assert :ok = FileSystem.remove(file_system, file_path)
     end
 
     test "when a directory is given, recursively lists and batch deletes all matching keys",
-         %{bypass: bypass} do
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"prefix" => "dir/", "delimiter" => ""} = conn.params
 
@@ -391,7 +368,6 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       dir_path = "/dir/"
 
       assert :ok = FileSystem.remove(file_system, dir_path)
@@ -400,7 +376,7 @@ defmodule Livebook.FileSystem.S3Test do
 
   describe "FileSystem.copy/3" do
     test "raises an error if the given paths have different type" do
-      file_system = S3.new("https://example.com/mybucket", "key", "secret")
+      file_system = build(:fs_s3, bucket_url: "https://example.com/mybucket")
       src_file_path = "/src_file.txt"
       dest_dir_path = "/dir/"
 
@@ -410,7 +386,7 @@ defmodule Livebook.FileSystem.S3Test do
     end
 
     test "given file paths, returns an error if the source object does not exist",
-         %{bypass: bypass} do
+         %{bypass: bypass, file_system: file_system} do
       # Request for the bucket name
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         conn
@@ -434,7 +410,6 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       src_file_path = "/src_file.txt"
       dest_file_path = "/dest_file.txt"
 
@@ -442,7 +417,8 @@ defmodule Livebook.FileSystem.S3Test do
                FileSystem.copy(file_system, src_file_path, dest_file_path)
     end
 
-    test "given file paths, copies contents into the new key", %{bypass: bypass} do
+    test "given file paths, copies contents into the new key",
+         %{bypass: bypass, file_system: file_system} do
       # Request for the bucket name
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         conn
@@ -465,7 +441,6 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       src_file_path = "/src_file.txt"
       dest_file_path = "/dest_file.txt"
 
@@ -473,7 +448,7 @@ defmodule Livebook.FileSystem.S3Test do
     end
 
     test "given directory paths, returns an error if the source directory does not exist",
-         %{bypass: bypass} do
+         %{bypass: bypass, file_system: file_system} do
       # Directory listing with no results
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"prefix" => "src_dir/", "delimiter" => ""} = conn.params
@@ -487,7 +462,6 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       src_dir_path = "/src_dir/"
       dest_dir_path = "/dest_dir/"
 
@@ -496,7 +470,7 @@ defmodule Livebook.FileSystem.S3Test do
     end
 
     test "given directory paths, recursively lists all matching keys and individually copies objects",
-         %{bypass: bypass} do
+         %{bypass: bypass, file_system: file_system} do
       # Directory listing
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"prefix" => "src_dir/", "delimiter" => ""} = conn.params
@@ -542,7 +516,6 @@ defmodule Livebook.FileSystem.S3Test do
         end)
       end
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       src_dir_path = "/src_dir/"
       dest_dir_path = "/dest_dir/"
 
@@ -552,7 +525,7 @@ defmodule Livebook.FileSystem.S3Test do
 
   describe "FileSystem.rename/3" do
     test "raises an error if the given paths have different type" do
-      file_system = S3.new("https://example.com/mybucket", "key", "secret")
+      file_system = build(:fs_s3, bucket_url: "https://example.com/mybucket")
       src_file_path = "/src_file.txt"
       dest_dir_path = "/dir/"
 
@@ -561,7 +534,8 @@ defmodule Livebook.FileSystem.S3Test do
       end
     end
 
-    test "returns an error when the destination file exists", %{bypass: bypass} do
+    test "returns an error when the destination file exists",
+         %{bypass: bypass, file_system: file_system} do
       # Existence is verified by listing
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"prefix" => "dest_file.txt", "delimiter" => "/"} = conn.params
@@ -578,7 +552,6 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       src_file_path = "/src_file.txt"
       dest_file_path = "/dest_file.txt"
 
@@ -589,7 +562,8 @@ defmodule Livebook.FileSystem.S3Test do
     # Rename is implemented as copy and delete, both of which are
     # tested separately, so here's just one integration test to
     # verify this behaviour
-    test "given file paths, copies the content and deletes the destination", %{bypass: bypass} do
+    test "given file paths, copies the content and deletes the destination",
+         %{bypass: bypass, file_system: file_system} do
       # Expects two requests:
       #   * destination existence check by listing, we return no entries
       #   * bucket name request
@@ -618,7 +592,6 @@ defmodule Livebook.FileSystem.S3Test do
         Plug.Conn.resp(conn, 204, "")
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       src_file_path = "/src_file.txt"
       dest_file_path = "/dest_file.txt"
 
@@ -627,25 +600,25 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.etag_for/2" do
-    test "returns an error when a nonexistent key is given", %{bypass: bypass} do
+    test "returns an error when a nonexistent key is given",
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "HEAD", "/mybucket/nonexistent.txt", fn conn ->
         Plug.Conn.resp(conn, 404, "")
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/nonexistent.txt"
 
       assert {:error, "no such file or directory"} = FileSystem.etag_for(file_system, file_path)
     end
 
-    test "returns the ETag value received from the server", %{bypass: bypass} do
+    test "returns the ETag value received from the server",
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "HEAD", "/mybucket/nonexistent.txt", fn conn ->
         conn
         |> Plug.Conn.put_resp_header("ETag", "value")
         |> Plug.Conn.resp(200, "")
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/nonexistent.txt"
 
       assert {:ok, "value"} = FileSystem.etag_for(file_system, file_path)
@@ -653,7 +626,8 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.exists?/2" do
-    test "returns false when the given object doesn't exist", %{bypass: bypass} do
+    test "returns false when the given object doesn't exist",
+         %{bypass: bypass, file_system: file_system} do
       # Existence is verified by listing
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"prefix" => "file.txt", "delimiter" => "/"} = conn.params
@@ -667,13 +641,12 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/file.txt"
 
       assert {:ok, false} = FileSystem.exists?(file_system, file_path)
     end
 
-    test "returns true when the given object exists", %{bypass: bypass} do
+    test "returns true when the given object exists", %{bypass: bypass, file_system: file_system} do
       # Existence is verified by listing
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"prefix" => "file.txt", "delimiter" => "/"} = conn.params
@@ -690,7 +663,6 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/file.txt"
 
       assert {:ok, true} = FileSystem.exists?(file_system, file_path)
@@ -699,7 +671,7 @@ defmodule Livebook.FileSystem.S3Test do
 
   describe "FileSystem.resolve_path/3" do
     test "resolves relative paths" do
-      file_system = S3.new("https://example.com/mybucket/", "key", "secret")
+      file_system = build(:fs_s3, bucket_url: "https://example.com/mybucket/")
 
       assert "/dir/" = FileSystem.resolve_path(file_system, "/dir/", "")
       assert "/dir/file.txt" = FileSystem.resolve_path(file_system, "/dir/", "file.txt")
@@ -712,7 +684,7 @@ defmodule Livebook.FileSystem.S3Test do
     end
 
     test "resolves absolute paths" do
-      file_system = S3.new("https://example.com/mybucket/", "key", "secret")
+      file_system = build(:fs_s3, bucket_url: "https://example.com/mybucket/")
 
       assert "/" = FileSystem.resolve_path(file_system, "/dir/", "/")
       assert "/file.txt" = FileSystem.resolve_path(file_system, "/dir/", "/file.txt")
@@ -725,29 +697,31 @@ defmodule Livebook.FileSystem.S3Test do
 
   describe "FileSystem chunked write" do
     test "accumulates small chunks and sends a single request if the content is small",
-         %{bypass: bypass} do
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
         assert {:ok, "ab", conn} = Plug.Conn.read_body(conn)
 
         Plug.Conn.resp(conn, 200, "")
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/dir/file.txt"
 
-      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
+      assert {:ok, state} =
+               FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
+
       assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, "a")
       assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, "b")
       assert :ok = FileSystem.write_stream_finish(file_system, state)
     end
 
-    test "creates a multi-part upload for contents over 50MB", %{bypass: bypass} do
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+    test "creates a multi-part upload for contents over 50MB",
+         %{bypass: bypass, file_system: file_system} do
       file_path = "/dir/file.txt"
 
       chunk_3kb = String.duplicate("a", 3_000)
 
-      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
+      assert {:ok, state} =
+               FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
 
       Bypass.expect_once(bypass, "POST", "/mybucket/dir/file.txt", fn conn ->
         assert %{"uploads" => ""} = conn.params
@@ -830,13 +804,13 @@ defmodule Livebook.FileSystem.S3Test do
       assert :ok = FileSystem.write_stream_finish(file_system, state)
     end
 
-    test "aborts the multi-part upload when halted", %{bypass: bypass} do
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+    test "aborts the multi-part upload when halted", %{bypass: bypass, file_system: file_system} do
       file_path = "/dir/file.txt"
 
       chunk_5kb = String.duplicate("a", 5_000)
 
-      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
+      assert {:ok, state} =
+               FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
 
       Bypass.expect_once(bypass, "POST", "/mybucket/dir/file.txt", fn conn ->
         assert %{"uploads" => ""} = conn.params
@@ -870,13 +844,14 @@ defmodule Livebook.FileSystem.S3Test do
       assert :ok = FileSystem.write_stream_halt(file_system, state)
     end
 
-    test "aborts the multi-part upload when finish fails", %{bypass: bypass} do
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+    test "aborts the multi-part upload when finish fails",
+         %{bypass: bypass, file_system: file_system} do
       file_path = "/dir/file.txt"
 
       chunk_5kb = String.duplicate("a", 5_000)
 
-      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
+      assert {:ok, state} =
+               FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
 
       Bypass.expect_once(bypass, "POST", "/mybucket/dir/file.txt", fn conn ->
         assert %{"uploads" => ""} = conn.params
@@ -935,7 +910,8 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.read_stream_into/2" do
-    test "returns an error when a nonexistent key is given", %{bypass: bypass} do
+    test "returns an error when a nonexistent key is given",
+         %{bypass: bypass, file_system: file_system} do
       Bypass.expect_once(bypass, "GET", "/mybucket/nonexistent.txt", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("application/xml")
@@ -946,14 +922,13 @@ defmodule Livebook.FileSystem.S3Test do
         """)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/nonexistent.txt"
 
       assert {:error, "no such file or directory"} =
                FileSystem.read_stream_into(file_system, file_path, <<>>)
     end
 
-    test "collects regular response", %{bypass: bypass} do
+    test "collects regular response", %{bypass: bypass, file_system: file_system} do
       content = """
       <MyData>
         <Info>this should not be parsed</Info>
@@ -968,13 +943,12 @@ defmodule Livebook.FileSystem.S3Test do
         |> Plug.Conn.resp(200, content)
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/dir/file.txt"
 
       assert {:ok, ^content} = FileSystem.read_stream_into(file_system, file_path, <<>>)
     end
 
-    test "collects chunked response", %{bypass: bypass} do
+    test "collects chunked response", %{bypass: bypass, file_system: file_system} do
       chunk = String.duplicate("a", 2048)
 
       Bypass.expect_once(bypass, "GET", "/mybucket/dir/file.txt", fn conn ->
@@ -987,11 +961,84 @@ defmodule Livebook.FileSystem.S3Test do
         end
       end)
 
-      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
       file_path = "/dir/file.txt"
 
       assert {:ok, content} = FileSystem.read_stream_into(file_system, file_path, <<>>)
       assert content == String.duplicate(chunk, 10)
+    end
+  end
+
+  describe "FileSystem.load/2" do
+    test "loads from atom keys" do
+      bucket_url = "https://mybucket.s3.amazonaws.com"
+      hash = :crypto.hash(:sha256, bucket_url)
+      encrypted_hash = Base.url_encode64(hash, padding: false)
+
+      fields = %{
+        id: "s3-#{encrypted_hash}",
+        bucket_url: bucket_url,
+        region: "us-east-1",
+        external_id: "123456789",
+        access_key_id: "key",
+        secret_access_key: "secret",
+        hub_id: "personal-hub"
+      }
+
+      assert FileSystem.load(%S3{}, fields) == %S3{
+               id: fields.id,
+               bucket_url: fields.bucket_url,
+               external_id: fields.external_id,
+               region: fields.region,
+               access_key_id: fields.access_key_id,
+               secret_access_key: fields.secret_access_key,
+               hub_id: fields.hub_id
+             }
+    end
+
+    test "loads from string keys" do
+      bucket_url = "https://mybucket.s3.amazonaws.com"
+      hash = :crypto.hash(:sha256, bucket_url)
+      encrypted_hash = Base.url_encode64(hash, padding: false)
+
+      fields = %{
+        "id" => "s3-#{encrypted_hash}",
+        "bucket_url" => bucket_url,
+        "region" => "us-east-1",
+        "external_id" => "123456789",
+        "access_key_id" => "key",
+        "secret_access_key" => "secret",
+        "hub_id" => "personal-hub"
+      }
+
+      assert FileSystem.load(%S3{}, fields) == %S3{
+               id: fields["id"],
+               bucket_url: fields["bucket_url"],
+               external_id: fields["external_id"],
+               region: fields["region"],
+               access_key_id: fields["access_key_id"],
+               secret_access_key: fields["secret_access_key"],
+               hub_id: fields["hub_id"]
+             }
+    end
+  end
+
+  describe "FileSystem.dump/1" do
+    test "dumps into a map ready to be stored" do
+      file_system =
+        build(:fs_s3,
+          id: "personal-hub-s3-HsVlgSlWeap3BklGso76U1WdxiX7afWg2k4cXs8z7hI",
+          bucket_url: "https://mybucket.s3.amazonaws.com"
+        )
+
+      assert FileSystem.dump(file_system) == %{
+               id: "personal-hub-s3-HsVlgSlWeap3BklGso76U1WdxiX7afWg2k4cXs8z7hI",
+               bucket_url: "https://mybucket.s3.amazonaws.com",
+               region: "us-east-1",
+               access_key_id: "key",
+               secret_access_key: "secret",
+               hub_id: "personal-hub",
+               external_id: nil
+             }
     end
   end
 

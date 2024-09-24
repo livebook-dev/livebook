@@ -16,7 +16,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUnlistedComponent do
       |> assign_new(:files, fn ->
         case FileSystem.File.list(assigns.session.files_dir) do
           {:ok, files} -> unlisted_files(files, assigns.file_entries)
-          {:error, _} -> []
+          {:error, _} -> :none
         end
       end)
 
@@ -37,12 +37,16 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUnlistedComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col">
-      <%= if @files == [] do %>
-        <p class="text-gray-700">
-          No other files found in the <code>files/</code> directory.
-        </p>
-      <% else %>
+    <div>
+      <p :if={@files == :none} class="text-gray-700">
+        There is no <code>files/</code> directory that exists alongside your notebook.
+      </p>
+
+      <p :if={@files == []} class="text-gray-700">
+        No other files found in the <code>files/</code> directory.
+      </p>
+
+      <div :if={match?([_ | _], @files)} class="flex flex-col">
         <p class="text-gray-700">
           Here are other files from the <code>files/</code> directory that you may want to add.
         </p>
@@ -65,19 +69,15 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUnlistedComponent do
             />
           </div>
           <div class="mt-6 flex space-x-3">
-            <button
-              class="button-base button-blue"
-              type="submit"
-              disabled={Enum.empty?(@selected_indices)}
-            >
+            <.button type="submit" disabled={Enum.empty?(@selected_indices)}>
               Add
-            </button>
-            <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
+            </.button>
+            <.button color="gray" outlined patch={~p"/sessions/#{@session.id}"}>
               Cancel
-            </.link>
+            </.button>
           </div>
         </form>
-      <% end %>
+      </div>
     </div>
     """
   end

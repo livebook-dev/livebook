@@ -1,6 +1,4 @@
 defmodule Livebook.Storage do
-  @moduledoc false
-
   # Storage for arbitrary data in [Entity-Attribute-Value](https://en.wikipedia.org/wiki/Entity%E2%80%93attribute%E2%80%93value_model)
   # fashion.
   #
@@ -22,8 +20,6 @@ defmodule Livebook.Storage do
   @type entity :: %{required(:id) => entity_id(), optional(attribute()) => value()}
 
   defmodule NotFoundError do
-    @moduledoc false
-
     defexception [:id, :namespace, plug_status: 404]
 
     def message(%{namespace: namespace, id: id}) do
@@ -144,12 +140,44 @@ defmodule Livebook.Storage do
     GenServer.call(__MODULE__, {:delete_key, namespace, entity_id, key})
   end
 
-  @doc """
-  Returns file path where the data is persisted.
-  """
-  @spec config_file_path() :: Path.t()
-  def config_file_path() do
-    Path.join([Livebook.Config.data_path(), "livebook_config.ets"])
+  defp config_file_path() do
+    migration_version = Livebook.Migration.migration_version()
+    Path.join([Livebook.Config.data_path(), "livebook_config.v#{migration_version}.ets"])
+  end
+
+  defp config_file_path_for_restore() do
+    # We look for a file matching the current expected version, or an
+    # older one that will get migrated.
+    #
+    # There may be files with a more recent version in case the user
+    # downgrated Livebook, and those files we ignore.
+
+    migration_version = Livebook.Migration.migration_version()
+    dir = Livebook.Config.data_path()
+
+    names =
+      case File.ls(dir) do
+        {:ok, names} -> names
+        {:error, _} -> []
+      end
+
+    candidates =
+      for name <- names, version = file_version(name), version <= migration_version do
+        %{name: name, version: version}
+      end
+
+    if candidates != [] do
+      %{name: name} = Enum.max_by(candidates, & &1.version)
+      Path.join([dir, name])
+    end
+  end
+
+  defp file_version(name) do
+    case String.split(name, ".") do
+      ["livebook_config", "ets"] -> 0
+      ["livebook_config", "v" <> version, "ets"] -> String.to_integer(version)
+      _ -> nil
+    end
   end
 
   @impl true
@@ -201,24 +229,23 @@ defmodule Livebook.Storage do
   defp table_name(), do: :persistent_term.get(__MODULE__)
 
   defp load_or_create_table() do
-    path = config_file_path()
+    tab =
+      if path = config_file_path_for_restore() do
+        path
+        |> String.to_charlist()
+        |> :ets.file2tab()
+        |> case do
+          {:ok, tab} ->
+            Logger.info("Reading storage from #{path}")
+            tab
 
-    path
-    |> String.to_charlist()
-    |> :ets.file2tab()
-    |> case do
-      {:ok, tab} ->
-        Logger.info("Reading storage from #{path}")
-        tab
-
-      {:error, reason} ->
-        case reason do
-          {:read_error, {:file_error, _, :enoent}} -> :ok
-          _ -> Logger.warning("Could not open up #{config_file_path()}: #{inspect(reason)}")
+          {:error, reason} ->
+            Logger.warning("Could not open up #{path}: #{inspect(reason)}")
+            nil
         end
+      end
 
-        :ets.new(__MODULE__, [:protected, :duplicate_bag])
-    end
+    tab || :ets.new(__MODULE__, [:protected, :duplicate_bag])
   end
 
   defp delete_keys(table, namespace, entity_id, keys) do

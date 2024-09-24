@@ -102,39 +102,4 @@ defmodule Livebook.StorageTest do
       assert [] = Storage.all(:unknown_namespace)
     end
   end
-
-  describe "persistence" do
-    defp read_table_and_lookup(entity) do
-      Process.sleep(1)
-
-      {:ok, tab} =
-        with {:error, _} <- read_table() do
-          # :ets.tab2file is asynchronous and may occasionally take
-          # longer, so we retry once
-          Process.sleep(100)
-          read_table()
-        end
-
-      :ets.lookup(tab, {:persistence, entity})
-    end
-
-    defp read_table() do
-      Storage.config_file_path()
-      |> String.to_charlist()
-      |> :ets.file2tab()
-    end
-
-    test "insert triggers saving to file" do
-      :ok = Storage.insert(:persistence, "insert", key: "val")
-
-      assert [_test] = read_table_and_lookup("insert")
-    end
-
-    test "delete triggers saving to file" do
-      :ok = Storage.insert(:persistence, "delete", key: "val")
-      :ok = Storage.delete(:persistence, "delete")
-
-      assert [] = read_table_and_lookup("delete")
-    end
-  end
 end

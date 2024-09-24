@@ -1,22 +1,24 @@
-import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
-import { base64ToBuffer, bufferToBase64 } from "../lib/utils";
+import { parseHookProps } from "../lib/attribute";
+import { encodeAnnotatedBuffer, encodePcmAsWav } from "../lib/codec";
 
 const dropClasses = ["bg-yellow-100", "border-yellow-300"];
 
 /**
  * A hook for client-preprocessed audio input.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-id` - a unique id
+ *   * `id` - a unique id
  *
- *   * `data-phx-target` - the component to send the `"change"` event to
+ *   * `phx-target` - the component to send the `"change"` event to
  *
- *   * `data-format` - the desired audio format
+ *   * `format` - the desired audio format
  *
- *   * `data-sampling-rate` - the audio sampling rate for
+ *   * `sampling-rate` - the audio sampling rate for
  *
- *   * `data-endianness` - the server endianness, either `"little"` or `"big"`
+ *   * `endianness` - the server endianness, either `"little"` or `"big"`
+ *
+ *   * `audio-url` - the URL to audio file to use for the current preview
  *
  */
 const AudioInput = {
@@ -32,21 +34,8 @@ const AudioInput = {
 
     this.mediaRecorder = null;
 
-    // Render updated value
-    this.handleEvent(
-      `audio_input_change:${this.props.id}`,
-      ({ audio_info: audioInfo }) => {
-        if (audioInfo) {
-          this.updatePreview({
-            data: this.decodeAudio(base64ToBuffer(audioInfo.data)),
-            numChannels: audioInfo.num_channels,
-            samplingRate: audioInfo.sampling_rate,
-          });
-        } else {
-          this.clearPreview();
-        }
-      }
-    );
+    // Set the current value URL
+    this.audioEl.src = this.props.audioUrl;
 
     // File selection
 
@@ -105,20 +94,19 @@ const AudioInput = {
 
   updated() {
     this.props = this.getProps();
+
+    this.audioEl.src = this.props.audioUrl;
   },
 
   getProps() {
-    return {
-      id: getAttributeOrThrow(this.el, "data-id"),
-      phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
-      samplingRate: getAttributeOrThrow(
-        this.el,
-        "data-sampling-rate",
-        parseInteger
-      ),
-      endianness: getAttributeOrThrow(this.el, "data-endianness"),
-      format: getAttributeOrThrow(this.el, "data-format"),
-    };
+    return parseHookProps(this.el, [
+      "id",
+      "phx-target",
+      "sampling-rate",
+      "endianness",
+      "format",
+      "audio-url",
+    ]);
   },
 
   startRecording() {
@@ -176,6 +164,8 @@ const AudioInput = {
   },
 
   loadEncodedAudio(buffer) {
+    this.pushEventTo(this.props.phxTarget, "decoding", {});
+
     const context = new AudioContext({ sampleRate: this.props.samplingRate });
 
     context.decodeAudioData(buffer, (audioBuffer) => {
@@ -184,65 +174,30 @@ const AudioInput = {
     });
   },
 
-  updatePreview(audioInfo) {
-    const oldUrl = this.audioEl.src;
-    const blob = audioInfoToWavBlob(audioInfo);
-    this.audioEl.src = URL.createObjectURL(blob);
-    oldUrl && URL.revokeObjectURL(oldUrl);
-  },
-
-  clearPreview() {
-    const oldUrl = this.audioEl.src;
-    this.audioEl.src = "";
-    oldUrl && URL.revokeObjectURL(oldUrl);
-  },
-
   pushAudio(audioInfo) {
-    this.pushEventTo(this.props.phxTarget, "change", {
-      data: bufferToBase64(this.encodeAudio(audioInfo)),
+    const meta = {
       num_channels: audioInfo.numChannels,
       sampling_rate: audioInfo.samplingRate,
-    });
+    };
+
+    const buffer = this.encodeAudio(audioInfo);
+
+    const blob = new Blob([buffer]);
+    blob.meta = () => meta;
+
+    this.uploadTo(this.props.phxTarget, "file", [blob]);
   },
 
   encodeAudio(audioInfo) {
     if (this.props.format === "pcm_f32") {
-      return this.fixEndianness32(audioInfo.data);
+      return convertEndianness32(audioInfo.data, this.props.endianness);
     } else if (this.props.format === "wav") {
-      return encodeWavData(
+      return encodePcmAsWav(
         audioInfo.data,
         audioInfo.numChannels,
-        audioInfo.samplingRate
+        audioInfo.samplingRate,
       );
     }
-  },
-
-  decodeAudio(buffer) {
-    if (this.props.format === "pcm_f32") {
-      return this.fixEndianness32(buffer);
-    } else if (this.props.format === "wav") {
-      return decodeWavData(buffer);
-    }
-  },
-
-  fixEndianness32(buffer) {
-    if (getEndianness() === this.props.endianness) {
-      return buffer;
-    }
-
-    // If the server uses different endianness, we swap bytes accordingly
-    for (let i = 0; i < buffer.byteLength / 4; i++) {
-      const b1 = buffer[i];
-      const b2 = buffer[i + 1];
-      const b3 = buffer[i + 2];
-      const b4 = buffer[i + 3];
-      buffer[i] = b4;
-      buffer[i + 1] = b3;
-      buffer[i + 2] = b2;
-      buffer[i + 3] = b1;
-    }
-
-    return buffer;
   },
 };
 
@@ -267,88 +222,24 @@ function audioBufferToAudioInfo(audioBuffer) {
   return { data: pcmArray.buffer, numChannels, samplingRate };
 }
 
-function audioInfoToWavBlob({ data, numChannels, samplingRate }) {
-  const wavBytes = encodeWavData(data, numChannels, samplingRate);
-  return new Blob([wavBytes], { type: "audio/wav" });
-}
-
-// See http://soundfile.sapp.org/doc/WaveFormat
-function encodeWavData(buffer, numChannels, samplingRate) {
-  const HEADER_SIZE = 44;
-
-  const wavBuffer = new ArrayBuffer(HEADER_SIZE + buffer.byteLength);
-  const view = new DataView(wavBuffer);
-
-  const numFrames = buffer.byteLength / 4;
-  const bytesPerSample = 4;
-
-  const blockAlign = numChannels * bytesPerSample;
-  const byteRate = samplingRate * blockAlign;
-  const dataSize = numFrames * blockAlign;
-
-  let offset = 0;
-
-  function writeUint32Big(int) {
-    view.setUint32(offset, int, false);
-    offset += 4;
+function convertEndianness32(buffer, targetEndianness) {
+  if (getEndianness() === targetEndianness) {
+    return buffer;
   }
 
-  function writeUint32(int) {
-    view.setUint32(offset, int, true);
-    offset += 4;
+  // If the server uses different endianness, we swap bytes accordingly
+  for (let i = 0; i < buffer.byteLength / 4; i++) {
+    const b1 = buffer[i];
+    const b2 = buffer[i + 1];
+    const b3 = buffer[i + 2];
+    const b4 = buffer[i + 3];
+    buffer[i] = b4;
+    buffer[i + 1] = b3;
+    buffer[i + 2] = b2;
+    buffer[i + 3] = b1;
   }
 
-  function writeUint16(int) {
-    view.setUint16(offset, int, true);
-    offset += 2;
-  }
-
-  function writeFloat32(int) {
-    view.setFloat32(offset, int, true);
-    offset += 4;
-  }
-
-  writeUint32Big(0x52494646);
-  writeUint32(36 + dataSize);
-  writeUint32Big(0x57415645);
-
-  writeUint32Big(0x666d7420);
-  writeUint32(16);
-  writeUint16(3); // 3 represents 32-bit float PCM
-  writeUint16(numChannels);
-  writeUint32(samplingRate);
-  writeUint32(byteRate);
-  writeUint16(blockAlign);
-  writeUint16(bytesPerSample * 8);
-
-  writeUint32Big(0x64617461);
-  writeUint32(dataSize);
-
-  const array = new Float32Array(buffer);
-
-  for (let i = 0; i < array.length; i++) {
-    writeFloat32(array[i]);
-  }
-
-  return wavBuffer;
-}
-
-// We assume the exact same format as above, since we only need to
-// decode data we encoded previously
-function decodeWavData(buffer) {
-  const HEADER_SIZE = 44;
-
-  const pcmBuffer = new ArrayBuffer(buffer.byteLength - HEADER_SIZE);
-  const pcmArray = new Float32Array(pcmBuffer);
-
-  const view = new DataView(buffer);
-
-  for (let i = 0; i < pcmArray.length; i++) {
-    const offset = HEADER_SIZE + i * 4;
-    pcmArray[i] = view.getFloat32(offset, true);
-  }
-
-  return pcmBuffer;
+  return buffer;
 }
 
 function getEndianness() {

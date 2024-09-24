@@ -1,6 +1,4 @@
 defmodule Livebook.UpdateCheck do
-  @moduledoc false
-
   # Periodically checks for available Livebook update.
 
   use GenServer
@@ -46,7 +44,7 @@ defmodule Livebook.UpdateCheck do
   @impl true
   def init({}) do
     state = %{
-      enabled: Livebook.Settings.update_check_enabled?(),
+      enabled: update_check_enabled?(),
       new_version: nil,
       timer_ref: nil,
       request_ref: nil
@@ -90,7 +88,7 @@ defmodule Livebook.UpdateCheck do
           schedule_check(state, @day_in_ms)
 
         {:error, error} ->
-          Logger.error("version check failed, #{error}")
+          Logger.warning("version check failed, #{error}")
           schedule_check(state, @hour_in_ms)
       end
 
@@ -98,11 +96,17 @@ defmodule Livebook.UpdateCheck do
   end
 
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{request_ref: ref} = state) do
-    Logger.error("version check failed, reason: #{inspect(reason)}")
+    Logger.warning("version check failed, reason: #{inspect(reason)}")
     {:noreply, %{state | request_ref: nil} |> schedule_check(@hour_in_ms)}
   end
 
   def handle_info(_msg, state), do: {:noreply, state}
+
+  if Mix.env() == :test do
+    defp update_check_enabled?(), do: false
+  else
+    defp update_check_enabled?(), do: Livebook.Settings.update_check_enabled?()
+  end
 
   defp schedule_check(%{enabled: false} = state, _time), do: state
 
@@ -124,11 +128,12 @@ defmodule Livebook.UpdateCheck do
   end
 
   defp fetch_latest_version() do
-    url = "https://api.github.com/repos/livebook-dev/livebook/releases/latest"
+    repo = Livebook.Config.github_release_info().repo
+    url = "https://api.github.com/repos/#{repo}/releases/latest"
     headers = [{"accept", "application/vnd.github.v3+json"}]
 
     case Livebook.Utils.HTTP.request(:get, url, headers: headers) do
-      {:ok, status, _headers, body} ->
+      {:ok, %{status: status, body: body}} ->
         with 200 <- status,
              {:ok, release} <- Jason.decode(body) do
           {:ok, release}
@@ -142,7 +147,7 @@ defmodule Livebook.UpdateCheck do
   end
 
   defp new_version(release) do
-    current_version = Livebook.Config.app_version()
+    current_version = Livebook.Config.github_release_info().version
 
     with %{
            "tag_name" => "v" <> version,

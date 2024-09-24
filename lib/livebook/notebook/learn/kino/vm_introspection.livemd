@@ -2,8 +2,8 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.10.0"},
-  {:kino_vega_lite, "~> 0.1.7"}
+  {:kino, "~> 0.14.0"},
+  {:kino_vega_lite, "~> 0.1.11"}
 ])
 ```
 
@@ -15,7 +15,12 @@ time. If you are not familiar with VegaLite, [read
 its introductory notebook](/learn/notebooks/intro-to-vega-lite).
 
 Both `Kino` and `VegaLite` have been listed as dependencies in the
-setup cell.
+setup cell. We will also import the [`Kino.Shorts`](https://hexdocs.pm/kino/Kino.Shorts.html)
+module, which provides conveniences around the `Kino` API:
+
+```elixir
+import Kino.Shorts
+```
 
 ## Processes all the way down
 
@@ -195,32 +200,21 @@ In production, those are often part of your
 configuration.
 
 Now let's connect the nodes together. We will capture the node name
-and cookie using Kino inputs. However, for convenience, we will use
-the node and cookie of the current notebook as default values. This
-means that, if you don't have a separate node, the runtime will
-connect and introspect itself. Let's render the inputs:
-
-```elixir
-node_input = Kino.Input.text("Node", default: node())
-cookie_input = Kino.Input.text("Cookie", default: Node.get_cookie())
-
-Kino.render(node_input)
-Kino.render(cookie_input)
-:ok
-```
-
-Now let's read the inputs, configure the cookie, and connect to the
-other node:
+and cookie using `Kino.Shorts.read_text/2`. For convenience, we will
+also use the node and cookie of the current notebook as default values.
+This means that, if you don't have a separate node, the runtime will
+connect and introspect itself. Let's render the inputs and connect
+to the other node:
 
 ```elixir
 node =
-  node_input
-  |> Kino.Input.read()
+  "Node"
+  |> read_text(default: node())
   |> String.to_atom()
 
 cookie =
-  cookie_input
-  |> Kino.Input.read()
+  "Cookie"
+  |> read_text(default: Node.get_cookie())
   |> String.to_atom()
 
 Node.set_cookie(node, cookie)
@@ -325,11 +319,11 @@ memory_plot =
   |> Kino.VegaLite.new()
 ```
 
-Now we can use `Kino.VegaLite.periodically/4` to create a self-updating
+Now we can use `Kino.listen/2` to create a self-updating
 plot of memory usage over time on the remote node:
 
 ```elixir
-Kino.VegaLite.periodically(memory_plot, 200, 1, fn i ->
+Kino.listen(200, fn i ->
   point =
     :erpc.call(node, :erlang, :memory, [])
     |> Enum.map(fn {type, bytes} -> {type, bytes / 1_000_000} end)
@@ -337,7 +331,6 @@ Kino.VegaLite.periodically(memory_plot, 200, 1, fn i ->
     |> Map.put(:iter, i)
 
   Kino.VegaLite.push(memory_plot, point, window: 1000)
-  {:cont, i + 1}
 end)
 ```
 

@@ -134,26 +134,12 @@ defmodule LivebookWeb.SessionLiveTest do
       continue_fun.()
     end
 
-    test "reevaluting the setup cell", %{conn: conn, session: session} do
-      Session.subscribe(session.id)
-      evaluate_setup(session.pid)
-
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
-
-      view
-      |> element(~s{[data-el-session]})
-      |> render_hook("queue_cell_evaluation", %{"cell_id" => "setup"})
-
-      assert_receive {:operation, {:set_runtime, _pid, %{} = _runtime}}
-    end
-
     test "reevaluting the setup cell with dependencies cache disabled",
          %{conn: conn, session: session} do
       Session.subscribe(session.id)
 
-      # Start the standalone runtime, to encapsulate env var changes
-      {:ok, runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
-      Session.set_runtime(session.pid, runtime)
+      # Use the standalone runtime, to encapsulate env var changes
+      Session.set_runtime(session.pid, Runtime.Standalone.new())
 
       evaluate_setup(session.pid)
 
@@ -176,8 +162,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[32m\"true\"\e[0m"},
-                       _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       terminal_text("\e[32m\"true\"\e[0m"), _}}
     end
 
     test "cancelling cell evaluation", %{conn: conn, session: session} do
@@ -244,11 +230,17 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
 
-      {:ok, view, _} =
-        live(
-          conn,
-          ~p"/sessions/#{session.id}/insert-image?section_id=#{section_id}&cell_id=#{cell_id}"
-        )
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(
+        ~s/[phx-click="insert_image"][phx-value-section_id="#{section_id}"][phx-value-cell_id="#{cell_id}"]/
+      )
+      |> render_click()
+
+      view
+      |> element(~s/#insert-image-modal form/)
+      |> render_change(%{"data" => %{"name" => "image.jpg"}})
 
       view
       |> file_input(~s/#insert-image-modal form/, :image, [
@@ -277,6 +269,135 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
                {:ok, "content"}
+    end
+
+    test "inserting a file", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "file.bin")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "file.bin"}])
+
+      Session.subscribe(session.id)
+      Session.set_runtime(session.pid, Livebook.Runtime.NoopRuntime.new(self()))
+      connect_and_await_runtime(session.pid)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("insert_file", %{
+        "file_entry_name" => "file.bin",
+        "section_id" => section_id,
+        "cell_id" => cell_id
+      })
+
+      view
+      |> element(~s/#insert-file-modal [phx-click]/, "Read file content")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{
+                     cells: [
+                       _first_cell,
+                       %Cell.Code{
+                         source: """
+                         content =
+                           Kino.FS.file_path("file.bin")
+                           |> File.read!()\
+                         """
+                       }
+                     ]
+                   }
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "inserting a file as markdown image", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      Session.subscribe(session.id)
+      Session.set_runtime(session.pid, Livebook.Runtime.NoopRuntime.new(self()))
+      connect_and_await_runtime(session.pid)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("insert_file", %{
+        "file_entry_name" => "image.jpg",
+        "section_id" => section_id,
+        "cell_id" => cell_id
+      })
+
+      view
+      |> element(~s/#insert-file-modal [phx-click]/, "Insert as Markdown image")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{cells: [_first_cell, %Cell.Markdown{source: "![](files/image.jpg)"}]}
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "inserting file after file drop upload", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.subscribe(session.id)
+      Session.set_runtime(session.pid, Livebook.Runtime.NoopRuntime.new(self()))
+      connect_and_await_runtime(session.pid)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> render_hook("handle_file_drop", %{"section_id" => section_id, "cell_id" => cell_id})
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_change(%{"data" => %{"name" => "image.jpg"}})
+
+      view
+      |> file_input(~s{#add-file-entry-form}, :file, [
+        %{
+          last_modified: 1_594_171_879_000,
+          name: "image.jpg",
+          content: "content",
+          size: 7,
+          type: "text/plain"
+        }
+      ])
+      |> render_upload("image.jpg")
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"data" => %{"name" => "image.jpg"}})
+
+      view
+      |> element(~s/#insert-file-modal [phx-click]/, "Insert as Markdown image")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{cells: [_first_cell, %Cell.Markdown{source: "![](files/image.jpg)"}]}
+                 ]
+               }
+             } = Session.get_data(session.pid)
     end
 
     test "deleting section with no cells requires no confirmation",
@@ -354,17 +475,16 @@ defmodule LivebookWeb.SessionLiveTest do
       Process.register(self(), test)
 
       input = %{
-        ref: :input_ref,
+        type: :input,
+        ref: "ref1",
         id: "input1",
-        type: :number,
-        label: "Name",
-        default: 1,
-        destination: test
+        destination: test,
+        attrs: %{type: :number, default: 1, label: "Name", debounce: :blur}
       }
 
       Session.subscribe(session.id)
 
-      insert_cell_with_output(session.pid, section_id, {:input, input})
+      insert_cell_with_output(session.pid, section_id, input)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -374,7 +494,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert %{input_infos: %{"input1" => %{value: 10}}} = Session.get_data(session.pid)
 
-      assert_receive {:event, :input_ref, %{value: 10, type: :change}}
+      assert_receive {:event, "ref1", %{value: 10, type: :change}}
     end
 
     test "newlines in text input are normalized", %{conn: conn, session: session, test: test} do
@@ -383,17 +503,22 @@ defmodule LivebookWeb.SessionLiveTest do
       Process.register(self(), test)
 
       input = %{
-        ref: :input_ref,
+        type: :input,
+        ref: "ref1",
         id: "input1",
-        type: :textarea,
-        label: "Name",
-        default: "hey",
-        destination: test
+        destination: test,
+        attrs: %{
+          type: :textarea,
+          default: "hey",
+          label: "Name",
+          debounce: :blur,
+          monospace: false
+        }
       }
 
       Session.subscribe(session.id)
 
-      insert_cell_with_output(session.pid, section_id, {:input, input})
+      insert_cell_with_output(session.pid, section_id, input)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -411,27 +536,29 @@ defmodule LivebookWeb.SessionLiveTest do
       Process.register(self(), test)
 
       form_control = %{
-        type: :form,
-        ref: :form_ref,
+        type: :control,
+        ref: "control_ref1",
         destination: test,
-        fields: [
-          name: %{
-            ref: :input_ref,
-            id: "input1",
-            type: :text,
-            label: "Name",
-            default: "initial",
-            destination: test
-          }
-        ],
-        submit: "Send",
-        report_changes: %{},
-        reset_on_submit: []
+        attrs: %{
+          type: :form,
+          fields: [
+            name: %{
+              type: :input,
+              ref: "input_ref1",
+              id: "input1",
+              destination: test,
+              attrs: %{type: :text, default: "initial", label: "Name", debounce: :blur}
+            }
+          ],
+          submit: "Send",
+          report_changes: %{},
+          reset_on_submit: []
+        }
       }
 
       Session.subscribe(session.id)
 
-      insert_cell_with_output(session.pid, section_id, {:control, form_control})
+      insert_cell_with_output(session.pid, section_id, form_control)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -448,7 +575,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-outputs-container] button/, "Send")
       |> render_click()
 
-      assert_receive {:event, :form_ref, %{data: %{name: "sherlock"}, type: :submit}}
+      assert_receive {:event, "control_ref1", %{data: %{name: "sherlock"}, type: :submit}}
     end
 
     test "file input", %{conn: conn, session: session, test: test} do
@@ -457,18 +584,16 @@ defmodule LivebookWeb.SessionLiveTest do
       Process.register(self(), test)
 
       input = %{
-        ref: :input_ref,
+        type: :input,
+        ref: "ref1",
         id: "input1",
-        type: :file,
-        label: "File",
-        default: nil,
         destination: test,
-        accept: :any
+        attrs: %{type: :file, default: nil, label: "File", accept: :any}
       }
 
       Session.subscribe(session.id)
 
-      insert_cell_with_output(session.pid, section_id, {:input, input})
+      insert_cell_with_output(session.pid, section_id, input)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -495,7 +620,7 @@ defmodule LivebookWeb.SessionLiveTest do
   end
 
   describe "outputs" do
-    test "stdout output update", %{conn: conn, session: session} do
+    test "chunked text output update", %{conn: conn, session: session} do
       Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
@@ -504,14 +629,15 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 1\n"}})
+      send(session.pid, {:runtime_evaluation_output, cell_id, terminal_text("line 1\n", true)})
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       assert render(view) =~ "line 1"
 
-      send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 2\n"}})
+      send(session.pid, {:runtime_evaluation_output, cell_id, terminal_text("line 2\n", true)})
+
       wait_for_session_update(session.pid)
-      # Render once, so that stdout send_update is processed
+      # Render once, so that the send_update is processed
       _ = render(view)
       assert render(view) =~ "line 2"
     end
@@ -525,20 +651,92 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      send(
-        session.pid,
-        {:runtime_evaluation_output, cell_id,
-         {:frame, [{:text, "In frame"}], %{ref: "1", type: :default}}}
-      )
+      frame = %{type: :frame, ref: "1", outputs: [terminal_text("In frame")], placeholder: true}
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame})
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       assert render(view) =~ "In frame"
 
-      send(
-        session.pid,
-        {:runtime_evaluation_output, cell_id,
-         {:frame, [{:text, "Updated frame"}], %{ref: "1", type: :replace}}}
-      )
+      frame_update = %{
+        type: :frame_update,
+        ref: "1",
+        update: {:replace, [terminal_text("Updated frame")]}
+      }
+
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame_update})
+
+      wait_for_session_update(session.pid)
+
+      # Render once, so that frame send_update is processed
+      _ = render(view)
+
+      content = render(view)
+      assert content =~ "Updated frame"
+      refute content =~ "In frame"
+    end
+
+    test "chunked text within frame output update", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      evaluate_setup(session.pid)
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      frame = %{
+        type: :frame,
+        ref: "1",
+        outputs: [terminal_text("line 1\n", true)],
+        placeholder: true
+      }
+
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame})
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      assert render(view) =~ "line 1"
+
+      frame_update = %{
+        type: :frame_update,
+        ref: "1",
+        update: {:append, [terminal_text("line 2\n", true)]}
+      }
+
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame_update})
+
+      wait_for_session_update(session.pid)
+
+      # Render once, so that frame send_update is processed
+      _ = render(view)
+
+      content = render(view)
+      assert content =~ "line 1"
+      assert content =~ "line 2"
+    end
+
+    test "frame output update when within grid", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      evaluate_setup(session.pid)
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      frame = %{type: :frame, ref: "1", outputs: [terminal_text("In frame")], placeholder: true}
+      grid = %{type: :grid, outputs: [frame], columns: ["Frame"], gap: 8, boxed: false}
+      send(session.pid, {:runtime_evaluation_output, cell_id, grid})
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      assert render(view) =~ "In frame"
+
+      frame_update = %{
+        type: :frame_update,
+        ref: "1",
+        update: {:replace, [terminal_text("Updated frame")]}
+      }
+
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame_update})
 
       wait_for_session_update(session.pid)
 
@@ -564,11 +762,11 @@ defmodule LivebookWeb.SessionLiveTest do
 
       send(
         session.pid,
-        {:runtime_evaluation_output_to, client_id, cell_id, {:stdout, "line 1\n"}}
+        {:runtime_evaluation_output_to, client_id, cell_id, terminal_text("line 1\n", true)}
       )
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, "line 1\n"}}}
+                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text("line 1\n", true)}}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
@@ -589,11 +787,11 @@ defmodule LivebookWeb.SessionLiveTest do
 
       send(
         session.pid,
-        {:runtime_evaluation_output_to_clients, cell_id, {:stdout, "line 1\n"}}
+        {:runtime_evaluation_output_to_clients, cell_id, terminal_text("line 1\n")}
       )
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, "line 1\n"}}}
+                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text("line 1\n")}}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
@@ -606,17 +804,16 @@ defmodule LivebookWeb.SessionLiveTest do
       Process.register(self(), test)
 
       input = %{
-        ref: :input_ref,
+        type: :input,
+        ref: "ref1",
         id: "input1",
-        type: :number,
-        label: "Name",
-        default: 1,
-        destination: test
+        destination: test,
+        attrs: %{type: :number, default: 1, label: "Name", debounce: :blur}
       }
 
       Session.subscribe(session.id)
 
-      insert_cell_with_output(session.pid, section_id, {:input, input})
+      insert_cell_with_output(session.pid, section_id, input)
 
       code = source_for_input_read(input.id)
       cell_id = insert_text_cell(session.pid, section_id, :code, code)
@@ -625,12 +822,52 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
-      refute render(view) =~ "This input has changed since it was last processed."
+      refute render(view) =~ "This input has changed."
 
       Session.set_input_value(session.pid, input.id, 10)
       wait_for_session_update(session.pid)
 
-      assert render(view) =~ "This input has changed since it was last processed."
+      assert render(view) =~ "This input has changed."
+    end
+
+    test "frame output update with input", %{conn: conn, session: session, test: test} do
+      Session.subscribe(session.id)
+      evaluate_setup(session.pid)
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      frame = %{type: :frame, ref: "1", outputs: [], placeholder: true}
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame})
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      input = %{
+        type: :input,
+        ref: "ref1",
+        id: "input1",
+        destination: test,
+        attrs: %{type: :number, default: 1, label: "Input inside frame", debounce: :blur}
+      }
+
+      frame_update = %{
+        type: :frame_update,
+        ref: "1",
+        update: {:replace, [input]}
+      }
+
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame_update})
+
+      wait_for_session_update(session.pid)
+
+      # Render once, so that frame send_update is processed
+      _ = render(view)
+
+      content = render(view)
+      assert content =~ "Input inside frame"
+      assert has_element?(view, ~s/input[value="1"]/)
     end
   end
 
@@ -639,8 +876,8 @@ defmodule LivebookWeb.SessionLiveTest do
          %{conn: conn, session: session} do
       insert_section(session.pid)
 
-      {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
-      Session.set_runtime(session.pid, runtime)
+      Session.subscribe(session.id)
+      connect_and_await_runtime(session.pid)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -659,28 +896,576 @@ defmodule LivebookWeb.SessionLiveTest do
   end
 
   describe "runtime settings" do
-    test "connecting to elixir standalone updates connect button to reconnect",
+    test "connecting to standalone updates connect button to reconnect",
          %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
 
       Session.subscribe(session.id)
 
       view
-      |> element("button", "Elixir standalone")
+      |> element("#runtime-settings-modal button", "Standalone")
       |> render_click()
 
-      [elixir_standalone_view] = live_children(view)
-
-      elixir_standalone_view
-      |> element("button", "Connect")
+      view
+      |> element("#runtime-settings-modal button", "Connect")
       |> render_click()
 
-      assert_receive {:operation, {:set_runtime, _pid, %Runtime.ElixirStandalone{} = runtime}}
+      assert_receive {:operation, {:set_runtime, _pid, %Runtime.Standalone{}}}
+      assert_receive {:operation, {:runtime_connected, _pid, %Runtime.Standalone{} = runtime}}
+
+      assert_patch(view, "/sessions/#{session.id}")
+      assert render(view) =~ Atom.to_string(runtime.node)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
 
       page = render(view)
-      assert page =~ Atom.to_string(runtime.node)
       assert page =~ "Reconnect"
       assert page =~ "Disconnect"
+    end
+
+    test "disconnecting a connected node", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      Session.set_runtime(session.pid, Livebook.Runtime.NoopRuntime.new(self()))
+      connect_and_await_runtime(session.pid)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert render(view) =~ "No connected nodes"
+
+      # Mimic the runtime reporting a connected node
+      node = :node@host
+      send(session.pid, {:runtime_connected_nodes, [node]})
+
+      assert_receive {:operation, {:set_runtime_connected_nodes, _pid, _nodes}}
+
+      refute render(view) =~ "No connected nodes"
+      assert render(view) =~ "#{node}"
+
+      view
+      |> element(~s{button[phx-click="runtime_disconnect_node"]})
+      |> render_click()
+
+      assert_receive {:runtime_trace, :disconnect_node, [^node]}
+    end
+
+    test "configuring fly runtime", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      Session.subscribe(session.id)
+
+      view
+      |> element("#runtime-settings-modal button", "Fly.io machine")
+      |> render_click()
+
+      Livebook.FlyAPI.stub(fn conn when conn.method == "POST" ->
+        Req.Test.json(conn, %{
+          "data" => nil,
+          "errors" => [
+            %{
+              "extensions" => %{"code" => "UNAUTHORIZED"},
+              "locations" => [%{"column" => 3, "line" => 2}],
+              "message" => "You must be authenticated to view this.",
+              "path" => ["organizations"]
+            }
+          ]
+        })
+      end)
+
+      view
+      |> element(~s{form[phx-change="set_token"]})
+      |> render_change(%{token: "invalid"})
+
+      assert render_async(view) =~ "Error: could not authorize with the given token"
+
+      Livebook.FlyAPI.stub(fn conn when conn.method == "POST" ->
+        Req.Test.json(conn, %{
+          "data" => %{
+            "organizations" => %{
+              "nodes" => [
+                %{
+                  "id" => "1",
+                  "name" => "Grumpy Cat",
+                  "rawSlug" => "grumpy-cat",
+                  "slug" => "personal"
+                }
+              ]
+            },
+            "platform" => %{
+              "regions" => [
+                %{"code" => "ams", "name" => "Amsterdam, Netherlands"},
+                %{"code" => "fra", "name" => "Frankfurt, Germany"}
+              ],
+              "requestRegion" => "fra"
+            }
+          }
+        })
+      end)
+
+      view
+      |> element(~s{form[phx-change="set_token"]})
+      |> render_change(%{token: "valid"})
+
+      assert render_async(view) =~ "Grumpy Cat"
+
+      # Selects the closest region by default
+      assert view
+             |> element(~s/select[name="region"] option[value="fra"][selected]/)
+             |> has_element?()
+
+      Livebook.FlyAPI.stub(fn conn
+                              when conn.method == "GET" and
+                                     conn.path_info == ["v1", "apps", "new-app", "volumes"] ->
+        conn
+        |> Plug.Conn.put_status(404)
+        |> Req.Test.json(%{"error" => "App not found"})
+      end)
+
+      # Create a new app
+      view
+      |> element(~s{form[phx-change="set_app_name"]})
+      |> render_change(%{app_name: "new-app"})
+
+      assert render_async(view) =~ ~r/App .*new-app.* does not exist yet/
+
+      Livebook.FlyAPI.stub(fn conn
+                              when conn.method == "POST" and conn.path_info == ["v1", "apps"] ->
+        Plug.Conn.send_resp(conn, 201, "")
+      end)
+
+      view
+      |> element(~s/button[phx-click="create_app"]/)
+      |> render_click()
+
+      assert render_async(view) =~ "CPU kind"
+
+      # Create a new volume
+
+      Livebook.FlyAPI.stub(fn conn
+                              when conn.method == "POST" and
+                                     conn.path_info == ["v1", "apps", "new-app", "volumes"] ->
+        Req.Test.json(conn, %{
+          "id" => "vol_1",
+          "name" => "new_volume",
+          "region" => "ams",
+          "size_gb" => 1,
+          "state" => "created"
+        })
+      end)
+
+      view
+      |> element(~s/button[phx-click="new_volume"]/)
+      |> render_click()
+
+      view
+      |> element(~s/form[phx-submit="create_volume"]/)
+      |> render_submit(%{volume: %{name: "new_volume", size_gb: "1"}})
+
+      assert render_async(view) =~ "name: new_volume"
+
+      # The volume is automatically selected
+      assert view
+             |> element(~s/select[name="volume_id"] option[value="vol_1"][selected]/)
+             |> has_element?()
+
+      # Delete the volume
+
+      Livebook.FlyAPI.stub(fn conn
+                              when conn.method == "DELETE" and
+                                     conn.path_info == [
+                                       "v1",
+                                       "apps",
+                                       "new-app",
+                                       "volumes",
+                                       "vol_1"
+                                     ] ->
+        Req.Test.json(conn, %{})
+      end)
+
+      view
+      |> element(~s/button[phx-click="delete_volume"]/)
+      |> render_click()
+
+      view
+      |> element(~s/button[phx-click="confirm_delete_volume"]/)
+      |> render_click()
+
+      refute render_async(view) =~ "name: new_volume"
+
+      assert view
+             |> element(~s/select[name="volume_id"] option[value=""][selected]/)
+             |> has_element?()
+
+      # We do not actually connect the runtime. We test connecting
+      # againast the real API separately
+    end
+
+    test "populates fly runtime config form existing runtime", %{conn: conn, session: session} do
+      runtime =
+        Runtime.Fly.new(%{
+          token: "my-token",
+          app_name: "my-app",
+          region: "ams",
+          cpu_kind: "performance",
+          cpus: 1,
+          memory_gb: 1,
+          gpu_kind: nil,
+          gpus: nil,
+          volume_id: "vol_1",
+          docker_tag: "nightly"
+        })
+
+      Session.set_runtime(session.pid, runtime)
+
+      Livebook.FlyAPI.stub(fn
+        conn when conn.method == "POST" ->
+          Req.Test.json(conn, %{
+            "data" => %{
+              "organizations" => %{
+                "nodes" => [
+                  %{
+                    "id" => "1",
+                    "name" => "Grumpy Cat",
+                    "rawSlug" => "grumpy-cat",
+                    "slug" => "personal"
+                  }
+                ]
+              },
+              "platform" => %{
+                "regions" => [
+                  %{"code" => "ams", "name" => "Amsterdam, Netherlands"},
+                  %{"code" => "fra", "name" => "Frankfurt, Germany"}
+                ],
+                "requestRegion" => "fra"
+              }
+            }
+          })
+
+        conn
+        when conn.method == "GET" and
+               conn.path_info == ["v1", "apps", "my-app", "volumes"] ->
+          Req.Test.json(conn, [
+            %{
+              "id" => "vol_1",
+              "name" => "new_volume",
+              "region" => "ams",
+              "size_gb" => 1,
+              "state" => "created"
+            }
+          ])
+      end)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      assert render_async(view) =~ "Grumpy Cat"
+
+      assert view
+             |> element(~s/select[name="region"] option[value="ams"][selected]/)
+             |> has_element?()
+
+      assert view
+             |> element(~s/select[name="volume_id"] option[value="vol_1"][selected]/)
+             |> has_element?()
+
+      assert view
+             |> element(~s/select[name="specs[cpu_kind]"] option[value="performance"][selected]/)
+             |> has_element?()
+    end
+
+    test "configuring k8s runtime", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      Session.subscribe(session.id)
+
+      Req.Test.stub(:k8s_cluster, Livebook.K8sClusterStub)
+
+      view
+      |> element("#runtime-settings-modal button", "Kubernetes Pod")
+      |> render_click()
+
+      # Check context switcher and switch to context with no permission
+
+      view
+      |> element(~s{form[phx-change="set_context"]})
+      |> render_change(%{context: "no-permission"})
+
+      rendered = render_async(view)
+
+      assert rendered =~ "Authenticated user has no permission to"
+      refute rendered =~ "You can fully customize"
+
+      # Test cluster with full access
+
+      view
+      |> element(~s{form[phx-change="set_context"]})
+      |> render_change(%{context: "default"})
+
+      render_async(view)
+
+      view
+      |> element(~s{form[phx-change="set_namespace"]})
+      |> render_change(%{namespace: "default"})
+
+      render_async(view)
+
+      assert view
+             |> element(~s{select[name="pvc_name"] option[value="foo-pvc"]})
+             |> has_element?()
+
+      assert view
+             |> element(~s{select[name="pvc_name"] option[value="new-pvc"]})
+             |> has_element?()
+
+      assert render_async(view) =~ "You can fully customize"
+
+      # Create new PVC
+
+      view
+      |> element(~s{button[phx-click="new_pvc"]})
+      |> render_click()
+
+      assert view
+             |> element(~s{form[phx-submit="create_pvc"]})
+             |> has_element?()
+
+      # Cancel button intermezzo
+
+      view
+      |> element(~s{button[phx-click="cancel_new_pvc"]})
+      |> render_click()
+
+      refute view
+             |> element(~s{form[phx-submit="create_pvc"]})
+             |> has_element?()
+
+      # Create new PVC again
+
+      view
+      |> element(~s{button[phx-click="new_pvc"]})
+      |> render_click()
+
+      assert view
+             |> element(
+               ~s{form[phx-submit="create_pvc"] select[name="pvc[storage_class]"] option[value="first-storage-class"]}
+             )
+             |> has_element?()
+
+      assert view
+             |> element(
+               ~s{form[phx-submit="create_pvc"] select[name="pvc[storage_class]"] option[value="second-storage-class"]}
+             )
+             |> has_element?()
+
+      assert view
+             |> element(~s{form[phx-submit="create_pvc"] button[type="submit"][disabled]})
+             |> has_element?()
+
+      view
+      |> element(~s{form[phx-submit="create_pvc"]})
+      |> render_change(%{pvc: %{name: "new-pvc", size_gb: 1}})
+
+      assert view
+             |> element(~s{form[phx-submit="create_pvc"] button[type="submit"]:not([disabled])})
+             |> has_element?()
+
+      Req.Test.expect(:k8s_cluster, Livebook.K8sClusterStub)
+
+      view
+      |> element(~s{form[phx-submit="create_pvc"]})
+      |> render_submit(%{pvc: %{name: "new-pvc", size_gb: 1}})
+
+      Req.Test.verify!()
+
+      # Delete a PVC
+
+      view
+      |> element(~s{button[phx-click="delete_pvc"]})
+      |> render_click()
+
+      assert render_async(view) =~
+               "Are you sure you want to irreversibly delete Persistent Volume Claim"
+
+      Req.Test.expect(:k8s_cluster, Livebook.K8sClusterStub)
+
+      view
+      |> element(~s{button[phx-click="confirm_delete_pvc"]})
+      |> render_click()
+
+      Req.Test.verify!()
+
+      # Pod Template Validation
+
+      refute render_async(view) =~ ~s/Make sure to define a valid resource of apiVersion /
+
+      view
+      |> element(~s{form[phx-change="set_pod_template"]})
+      |> render_change(%{pod_template: ""})
+
+      assert render_async(view) =~ ~s/Make sure to define a valid resource of apiVersion /
+
+      view
+      |> element(~s{form[phx-change="set_pod_template"]})
+      |> render_change(%{
+        pod_template: """
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          generateName: livebook-runtime-
+        spec:
+          containers:
+            - name: other-name
+        """
+      })
+
+      assert render_async(view) =~ ~s/Main container is missing./
+
+      # We do not actually connect the runtime. We test connecting againast the
+      # real API separately
+    end
+
+    test "populates k8s runtime config form existing runtime", %{conn: conn, session: session} do
+      pod_template = """
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        generateName: livebook-runtime-
+        labels:
+          livebook.dev/component: test
+      spec:
+        containers:
+          - name: livebook-runtime\
+      """
+
+      runtime =
+        Runtime.K8s.new(%{
+          context: "default",
+          namespace: "default",
+          pvc_name: "foo-pvc",
+          docker_tag: "nightly",
+          pod_template: pod_template
+        })
+
+      Req.Test.stub(:k8s_cluster, Livebook.K8sClusterStub)
+
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      assert render_async(view) =~ "You can fully customize"
+
+      assert view
+             |> element(~s{select[name="pvc_name"] option[value="foo-pvc"][selected]})
+             |> has_element?()
+
+      assert view
+             |> element(~s{select[name="pvc_name"] option[value="new-pvc"]})
+             |> has_element?()
+
+      assert view
+             |> element(~s{button[phx-click="init"]:not([disabled])})
+             |> has_element?()
+    end
+
+    test "saving and loading config from secret", %{conn: conn, session: session} do
+      runtime =
+        Runtime.Fly.new(%{
+          token: "my-token",
+          app_name: "my-app",
+          region: "ams",
+          cpu_kind: "performance",
+          cpus: 1,
+          memory_gb: 1,
+          gpu_kind: nil,
+          gpus: nil,
+          volume_id: "vol_1",
+          docker_tag: "nightly"
+        })
+
+      Session.set_runtime(session.pid, runtime)
+
+      Livebook.FlyAPI.stub(fn
+        conn when conn.method == "POST" ->
+          Req.Test.json(conn, %{
+            "data" => %{
+              "organizations" => %{
+                "nodes" => [
+                  %{
+                    "id" => "1",
+                    "name" => "Grumpy Cat",
+                    "rawSlug" => "grumpy-cat",
+                    "slug" => "personal"
+                  }
+                ]
+              },
+              "platform" => %{
+                "regions" => [
+                  %{"code" => "ams", "name" => "Amsterdam, Netherlands"},
+                  %{"code" => "fra", "name" => "Frankfurt, Germany"}
+                ],
+                "requestRegion" => "fra"
+              }
+            }
+          })
+
+        conn
+        when conn.method == "GET" and
+               conn.path_info == ["v1", "apps", "my-app", "volumes"] ->
+          Req.Test.json(conn, [
+            %{
+              "id" => "vol_1",
+              "name" => "new_volume",
+              "region" => "ams",
+              "size_gb" => 1,
+              "state" => "created"
+            }
+          ])
+      end)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      # The form is already filled with the runtime configuration, we
+      # just save it in a secret
+      view
+      |> element("button", "Save config")
+      |> render_click()
+
+      secret_name = "FLY_RUNTIME_#{System.unique_integer([:positive])}"
+
+      view
+      |> element(~s/form[phx-submit="save_config"]/)
+      |> render_submit(%{secret: %{name: secret_name}})
+
+      assert render_async(view) =~ "Load config"
+
+      # Set a different runtime, so there are no defaults
+      Session.set_runtime(session.pid, Runtime.Standalone.new())
+
+      # Open new runtime configuratino
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      view
+      |> element("#runtime-settings-modal button", "Fly.io machine")
+      |> render_click()
+
+      refute render(view) =~ "CPU kind"
+
+      # Load the configuration from secret
+      view
+      |> element("#config-secret-menu-content button", secret_name)
+      |> render_click()
+
+      assert render_async(view) =~ "Grumpy Cat"
+
+      assert view
+             |> element(~s/select[name="region"] option[value="ams"][selected]/)
+             |> has_element?()
+
+      assert view
+             |> element(~s/select[name="volume_id"] option[value="vol_1"][selected]/)
+             |> has_element?()
+
+      assert view
+             |> element(~s/select[name="specs[cpu_kind]"] option[value="performance"][selected]/)
+             |> has_element?()
     end
   end
 
@@ -693,7 +1478,7 @@ defmodule LivebookWeb.SessionLiveTest do
       path = Path.join(tmp_dir, "notebook.livemd")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       view
@@ -723,7 +1508,7 @@ defmodule LivebookWeb.SessionLiveTest do
       path = Path.join(tmp_dir, "notebook.livemd")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       view
@@ -735,6 +1520,26 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       assert %{notebook: %{persist_outputs: true}} = Session.get_data(session.pid)
+    end
+
+    @tag :tmp_dir
+    test "showing all files from default directory",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      old_dir = Livebook.Settings.default_dir()
+      new_dir = Livebook.FileSystem.File.local(tmp_dir)
+
+      Livebook.Settings.set_default_dir(new_dir)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
+
+      assert render(view) =~ new_dir.path
+
+      Livebook.Settings.set_default_dir(old_dir)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
+
+      refute render(view) =~ new_dir.path
+      assert render(view) =~ old_dir.path
     end
   end
 
@@ -763,8 +1568,8 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(10)")
 
-      {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
-      Session.set_runtime(session.pid, runtime)
+      Session.subscribe(session.id)
+      connect_and_await_runtime(session.pid)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -1320,8 +2125,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # Clicks the button and fills the form to create a new secret
       # that prefilled the name with the received from exception.
       render_click(add_secret_button)
-      secrets_component = with_target(view, "#secrets-modal")
-      form_element = element(secrets_component, "form[phx-submit='save']")
+      form_element = element(view, "#secrets-modal form[phx-submit='save']")
       assert has_element?(form_element)
       render_submit(form_element, %{secret: %{value: secret.value, hub_id: secret.hub_id}})
 
@@ -1335,7 +2139,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
@@ -1367,12 +2171,11 @@ defmodule LivebookWeb.SessionLiveTest do
       # is being shown, so clicks it's button to set the app secret
       # to the session, allowing the user to fetches the secret.
       render_click(add_secret_button)
-      secrets_component = with_target(view, "#secrets-modal")
 
-      assert render(secrets_component) =~
-               "in #{hub_label(secret)}. Allow this session to access it?"
+      assert render(view) =~
+               "in the #{hub_label(secret)} workspace. Allow this notebook to access it?"
 
-      grant_access_button = element(secrets_component, "button", "Grant access")
+      grant_access_button = element(view, "#secrets-modal button", "Grant access")
       render_click(grant_access_button)
 
       # Checks if the secret exists and is inside the session,
@@ -1382,7 +2185,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
@@ -1426,7 +2229,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
       # clicks the button to edit a secret
       view
-      |> with_target("#secrets_list")
       |> element("#hub-#{hub.id}-secret-#{secret_name}-edit-button")
       |> render_click()
 
@@ -1459,7 +2261,7 @@ defmodule LivebookWeb.SessionLiveTest do
   end
 
   describe "environment variables" do
-    test "outputs persisted env var from ets", %{conn: conn, session: session} do
+    test "outputs persisted env var from settings", %{conn: conn, session: session} do
       Session.subscribe(session.id)
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -1473,7 +2275,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       terminal_text("\e[35mnil\e[0m"), _}}
 
       attrs = params_for(:env_var, name: "MY_AWESOME_ENV", value: "MyEnvVarValue")
       Settings.set_env_var(attrs)
@@ -1484,7 +2287,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id,
-                       {:text, "\e[32m\"MyEnvVarValue\"\e[0m"}, _}}
+                       terminal_text("\e[32m\"MyEnvVarValue\"\e[0m"), _}}
 
       Settings.set_env_var(%{attrs | value: "OTHER_VALUE"})
 
@@ -1494,7 +2297,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id,
-                       {:text, "\e[32m\"OTHER_VALUE\"\e[0m"}, _}}
+                       terminal_text("\e[32m\"OTHER_VALUE\"\e[0m"), _}}
 
       Settings.unset_env_var("MY_AWESOME_ENV")
 
@@ -1503,15 +2306,21 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       terminal_text("\e[35mnil\e[0m"), _}}
     end
 
     @tag :tmp_dir
     test "outputs persisted PATH delimited with os PATH env var",
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
-      # Start the standalone runtime, to encapsulate env var changes
-      {:ok, runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
-      Session.set_runtime(session.pid, runtime)
+      # Use the standalone runtime, to encapsulate env var changes
+      Session.set_runtime(session.pid, Runtime.Standalone.new())
+
+      # We start the runtime before adding the env var setting,
+      # otherwise a concurrent embedded runtime server could set PATH
+      # in this node and the standalone runtime would inherit it
+      Session.subscribe(session.id)
+      connect_and_await_runtime(session.pid)
 
       separator =
         case :os.type() do
@@ -1525,7 +2334,6 @@ defmodule LivebookWeb.SessionLiveTest do
       attrs = params_for(:env_var, name: "PATH", value: tmp_dir)
       Settings.set_env_var(attrs)
 
-      Session.subscribe(session.id)
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
@@ -1537,7 +2345,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
 
       assert output == "\e[32m\"#{String.replace(expected_path, "\\", "\\\\")}\"\e[0m"
 
@@ -1548,7 +2356,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
 
       assert output == "\e[32m\"#{String.replace(initial_os_path, "\\", "\\\\")}\"\e[0m"
     end
@@ -1556,17 +2364,17 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "file management" do
     @tag :tmp_dir
-    test "adding :attachment file entry from file",
+    test "adding :attachment file entry from storage",
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
       Session.subscribe(session.id)
 
       path = Path.join(tmp_dir, "image.jpg")
       File.write!(path, "content")
 
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/file")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       # Validations
@@ -1589,14 +2397,14 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     @tag :tmp_dir
-    test "adding :file file entry from file", %{conn: conn, session: session, tmp_dir: tmp_dir} do
+    test "adding :file file entry from storage", %{conn: conn, session: session, tmp_dir: tmp_dir} do
       path = Path.join(tmp_dir, "image.jpg")
       File.write!(path, "content")
 
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/file")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       view
@@ -1609,7 +2417,10 @@ defmodule LivebookWeb.SessionLiveTest do
                    %{
                      type: :file,
                      name: "image.jpg",
-                     file: %FileSystem.File{file_system: %FileSystem.Local{}, path: ^path}
+                     file: %FileSystem.File{
+                       file_system_module: Livebook.FileSystem.Local,
+                       path: ^path
+                     }
                    }
                  ]
                }
@@ -1672,6 +2483,16 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/upload")
 
+      # Validations
+      assert view
+             |> element(~s{#add-file-entry-form})
+             |> render_change(%{"data" => %{"name" => "na me"}}) =~
+               "should contain only alphanumeric characters, dash, underscore and dot"
+
+      assert view
+             |> element(~s{#add-file-entry-form})
+             |> render_change(%{"data" => %{"name" => "image.jpg"}})
+
       view
       |> file_input(~s{#add-file-entry-form}, :file, [
         %{
@@ -1683,12 +2504,6 @@ defmodule LivebookWeb.SessionLiveTest do
         }
       ])
       |> render_upload("image.jpg")
-
-      # Validations
-      assert view
-             |> element(~s{#add-file-entry-form})
-             |> render_change(%{"data" => %{"name" => "na me"}}) =~
-               "should contain only alphanumeric characters, dash, underscore and dot"
 
       view
       |> element(~s{#add-file-entry-form})
@@ -1729,6 +2544,32 @@ defmodule LivebookWeb.SessionLiveTest do
                  ]
                }
              } = Session.get_data(session.pid)
+    end
+
+    test "renaming :attachment file entry", %{conn: conn, session: session} do
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+
+      view
+      |> element(~s/[data-el-files-list] menu a/, "Rename")
+      |> render_click()
+
+      view
+      |> element(~s/#rename-file-entry-form/)
+      |> render_submit(%{"data" => %{"name" => "image2.jpg"}})
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image2.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      page = view |> element(~s/[data-el-files-list]/) |> render()
+      assert page =~ "image2.jpg"
+      refute page =~ "image.jpg"
     end
 
     test "deleting :attachment file entry and removing the file from the file system",
@@ -1793,7 +2634,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
 
       view
-      |> element(~s/[data-el-files-list] menu button/, "Copy to files")
+      |> element(~s/[data-el-files-list] menu button/, "Move to attachments")
       |> render_click()
 
       assert_receive {:operation,
@@ -1821,6 +2662,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, session} = Sessions.create_session(notebook: notebook)
 
+      Session.subscribe(session.id)
+
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       assert view
@@ -1832,6 +2675,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       render_confirm(view)
+
+      assert_receive {:operation, {:allow_file_entry, _client_id, "document.pdf"}}
 
       refute view
              |> element(~s/[data-el-files-list]/)
@@ -1847,7 +2692,12 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
-      insert_cell_with_output(session.pid, section_id, {:text, "Hello from the app!"})
+
+      insert_cell_with_output(
+        session.pid,
+        section_id,
+        terminal_text("Hello from the app!")
+      )
 
       slug = Livebook.Utils.random_short_id()
 
@@ -1862,7 +2712,11 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{"app_settings" => %{"slug" => slug}})
 
       view
-      |> element(~s/#app-settings-modal button/, "Deploy")
+      |> element(~s/#app-settings-modal form/)
+      |> render_submit(%{"app_settings" => %{"slug" => slug}})
+
+      view
+      |> element(~s/[data-el-app-info] button/, "Launch preview")
       |> render_click()
 
       assert_receive {:app_created, %{slug: ^slug} = app}
@@ -1911,7 +2765,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:app_updated,
                       %{slug: ^slug, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
 
-      assert render(view) =~ "/apps/#{slug}/#{app_session.id}"
+      assert render(view) =~ "/apps/#{slug}/sessions/#{app_session.id}"
 
       view
       |> element(~s/[data-el-app-info] button[aria-label="terminate app session"]/)
@@ -1919,7 +2773,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert_receive {:app_updated, %{slug: ^slug, sessions: []}}
 
-      refute render(view) =~ "/apps/#{slug}/#{app_session.id}"
+      refute render(view) =~ "/apps/#{slug}/sessions/#{app_session.id}"
 
       Livebook.App.close(app.pid)
     end
@@ -1931,7 +2785,116 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       assert render(view) =~
-               "You defined session secrets, but those are not available to the deployed app, only Hub secrets are."
+               "The notebook uses session secrets, but those are not available to deployed apps. Convert them to Workspace secrets instead."
     end
+  end
+
+  describe "docker deployment" do
+    test "instructs to choose a file when the notebook is not persisted",
+         %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert render(view) =~ "To deploy this app, make sure to save the notebook first."
+      assert render(view) =~ ~p"/sessions/#{session.id}/settings/file"
+    end
+
+    @tag :tmp_dir
+    test "instructs to change app settings when invalid",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      file = Livebook.FileSystem.File.local(notebook_path)
+      Session.set_file(session.pid, file)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert render(view) =~ "To deploy this app, make sure to specify valid settings."
+      assert render(view) =~ ~p"/sessions/#{session.id}/settings/app"
+    end
+
+    @tag :tmp_dir
+    test "shows dockerfile and allows saving it",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      file = Livebook.FileSystem.File.local(notebook_path)
+      Session.set_file(session.pid, file)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert render(view) =~ "FROM ghcr.io/livebook-dev/livebook:"
+
+      view
+      |> element("button", "Save alongside notebook")
+      |> render_click()
+
+      dockerfile_path = Path.join(tmp_dir, "Dockerfile")
+
+      assert File.read!(dockerfile_path) =~ "COPY notebook.livemd /apps"
+    end
+  end
+
+  test "defined modules under sections", %{conn: conn, session: session} do
+    Code.put_compiler_option(:debug_info, true)
+
+    Session.subscribe(session.id)
+
+    {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+    refute render(view) =~ "LivebookWeb.SessionLiveTest.MyBigModuleName"
+
+    cell_id =
+      insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
+      defmodule LivebookWeb.SessionLiveTest.MyBigModuleName do
+        def bar, do: :baz
+      end
+      ''')
+
+    Session.queue_cell_evaluation(session.pid, cell_id)
+    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+    assert has_element?(
+             view,
+             "[data-el-outline-definition-item] span",
+             "LivebookWeb.SessionLiveTest.MyBigModuleName"
+           )
+
+    assert render(view) =~
+             ~s'data-file="#cell:#{cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.MyBigModuleName"'
+
+    second_cell_id =
+      insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
+      defmodule LivebookWeb.SessionLiveTest.AnotherModule do
+        def bar, do: :baz
+      end
+
+      defmodule LivebookWeb.SessionLiveTest.Foo do
+        def bar, do: :baz
+      end
+      ''')
+
+    Session.queue_cell_evaluation(session.pid, second_cell_id)
+    assert_receive {:operation, {:add_cell_evaluation_response, _, ^second_cell_id, _, _}}
+
+    assert has_element?(
+             view,
+             "[data-el-outline-definition-item] span",
+             "LivebookWeb.SessionLiveTest.AnotherModule"
+           )
+
+    assert has_element?(
+             view,
+             "[data-el-outline-definition-item] span",
+             "LivebookWeb.SessionLiveTest.Foo"
+           )
+
+    assert render(view) =~
+             ~s'data-file="#cell:#{second_cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.AnotherModule"'
+
+    assert render(view) =~
+             ~s'data-file="#cell:#{second_cell_id}" data-line="5" title="LivebookWeb.SessionLiveTest.Foo"'
+  after
+    Code.put_compiler_option(:debug_info, false)
   end
 end

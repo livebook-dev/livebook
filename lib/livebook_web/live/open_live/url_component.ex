@@ -16,7 +16,11 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
 
     cast({data, types}, attrs, [:url])
     |> validate_required([:url])
-    |> Livebook.Utils.validate_url(:url)
+    |> Livebook.Utils.validate_url(:url, allow_file_scheme: true)
+    |> Livebook.Utils.validate_not_s3_url(
+      :url,
+      ~s{invalid s3:// URL scheme, you must first connect to the Cloud Storage in your Workspace page and then choose the relevant file in "From storage"}
+    )
   end
 
   @impl true
@@ -54,9 +58,11 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
           aria-labelledby="import-from-url"
           spellcheck="false"
         />
-        <button class="mt-5 button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-          Import
-        </button>
+        <div class="mt-5">
+          <.button type="submit" disabled={not @changeset.valid?}>
+            Import
+          </.button>
+        </div>
       </.form>
     </div>
     """

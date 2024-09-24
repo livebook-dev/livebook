@@ -19,8 +19,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       },
       %{
         seq: ["ctrl", "shift", "i"],
-        seq_mac: ["⇧", "⌥", "f"],
-        seq_windows: ["shift", "alt", "f"],
+        seq_mac: ["⌥", "⇧", "f"],
+        seq_windows: ["alt", "shift", "f"],
         press_all: true,
         desc: "Format Elixir code",
         basic: true
@@ -95,18 +95,25 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["C"], desc: "Expand/collapse all sections"},
       %{seq: ["v", "z"], desc: "Toggle code zen view"},
       %{seq: ["v", "p"], desc: "Toggle presentation view"},
+      %{seq: ["v", "c"], desc: "Toggle custom view"},
       %{seq: ["d", "d"], desc: "Delete cell", basic: true},
       %{seq: ["e", "e"], desc: "Evaluate cell"},
       %{seq: ["e", "s"], desc: "Evaluate section"},
       %{seq: ["e", "a"], desc: "Evaluate all outdated cells", basic: true},
       %{seq: ["e", "x"], desc: "Cancel cell evaluation"},
-      %{seq: ["s", "s"], desc: "Toggle sections panel"},
+      %{seq: ["s", "o"], desc: "Toggle outline panel"},
       %{seq: ["s", "u"], desc: "Toggle users panel"},
-      %{seq: ["s", "e"], desc: "Toggle secrets panel"},
+      %{seq: ["s", "s"], desc: "Toggle secrets panel"},
       %{seq: ["s", "r"], desc: "Show runtime panel"},
       %{seq: ["s", "b"], desc: "Show bin"},
       %{seq: ["s", "p"], desc: "Show package search"},
-      %{seq: ["0", "0"], desc: "Reconnect current runtime"}
+      %{seq: ["0", "0"], desc: "Reconnect current runtime"},
+      %{
+        seq: ["ctrl", "k"],
+        seq_mac: ["⌘", "k"],
+        press_all: true,
+        desc: "Toggle keyboard control in cell output"
+      }
     ],
     universal: [
       %{
@@ -148,7 +155,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 flex flex-col space-y-5">
+    <div class="flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         Keyboard shortcuts
       </h3>

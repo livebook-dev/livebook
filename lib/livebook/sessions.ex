@@ -1,6 +1,4 @@
 defmodule Livebook.Sessions do
-  @moduledoc false
-
   # This module is responsible for starting and discovering sessions.
   #
   # Every session has a server process and is described by a `%Session{}`
@@ -12,8 +10,6 @@ defmodule Livebook.Sessions do
 
   @doc """
   Spawns a new `Session` process with the given options.
-
-  Makes the session globally visible within the session tracker.
   """
   @spec create_session(keyword()) :: {:ok, Session.t()} | {:error, any()}
   def create_session(opts \\ []) do
@@ -23,16 +19,7 @@ defmodule Livebook.Sessions do
 
     case DynamicSupervisor.start_child(Livebook.SessionSupervisor, {Session, opts}) do
       {:ok, pid} ->
-        session = Session.get_by_pid(pid)
-
-        case Livebook.Tracker.track_session(session) do
-          :ok ->
-            {:ok, session}
-
-          {:error, reason} ->
-            Session.close(pid)
-            {:error, reason}
-        end
+        {:ok, Session.get_by_pid(pid)}
 
       {:error, reason} ->
         {:error, reason}
@@ -50,21 +37,32 @@ defmodule Livebook.Sessions do
   @doc """
   Returns tracked session with the given id.
   """
-  @spec fetch_session(Session.id()) :: {:ok, Session.t()} | :error
+  @spec fetch_session(Session.id()) ::
+          {:ok, Session.t()} | {:error, :not_found | :different_boot_id}
   def fetch_session(id) do
     case Livebook.Tracker.fetch_session(id) do
       {:ok, session} ->
         {:ok, session}
 
       :error ->
-        # The local tracker server doesn't know about this session,
-        # but it may not have propagated yet, so we extract the session
-        # node from id and ask the corresponding tracker directly
-        with {:ok, other_node} when other_node != node() <- Utils.node_from_node_aware_id(id),
-             {:ok, session} <- :rpc.call(other_node, Livebook.Tracker, :fetch_session, [id]) do
-          {:ok, session}
-        else
-          _ -> :error
+        boot_id = Livebook.Config.random_boot_id()
+
+        case Utils.node_from_node_aware_id(id) do
+          # The local tracker server doesn't know about this session,
+          # but it may not have propagated yet, so we extract the session
+          # node from id and ask the corresponding tracker directly
+          {:ok, other_node, _other_boot_id} when other_node != node() ->
+            case :rpc.call(other_node, Livebook.Tracker, :fetch_session, [id]) do
+              {:ok, session} -> {:ok, session}
+              _ -> {:error, :not_found}
+            end
+
+          {:ok, other_node, other_boot_id}
+          when other_node == node() and other_boot_id != boot_id ->
+            {:error, :different_boot_id}
+
+          _ ->
+            {:error, :not_found}
         end
     end
   end

@@ -1,14 +1,5 @@
 defmodule Livebook.ZTA.Cloudflare do
-  @doc """
-  To integrate your Cloudflare Zero Trust authentication with Livebook,
-  set the `LIVEBOOK_IDENTITY_PROVIDER` environment variable to `cloudflare:<your-team-name>`
-
-  For more information about Cloudflare Zero Trust,
-  see: https://developers.cloudflare.com/cloudflare-one/
-
-  For more details about how to find your team-name,
-  see: https://developers.cloudflare.com/cloudflare-one/glossary/#team-name
-  """
+  @behaviour Livebook.ZTA
 
   use GenServer
   require Logger
@@ -18,50 +9,47 @@ defmodule Livebook.ZTA.Cloudflare do
   @renew_afer 24 * 60 * 60 * 1000
   @fields %{"user_uuid" => :id, "name" => :name, "email" => :email}
 
-  defstruct [:name, :req_options, :identity, :keys]
+  defstruct [:req_options, :identity, :name]
 
   def start_link(opts) do
-    identity = opts[:custom_identity] || identity(opts[:identity][:key])
-    options = [req_options: [url: identity.certs], identity: identity, keys: nil]
-    GenServer.start_link(__MODULE__, options, name: opts[:name])
+    identity = opts[:custom_identity] || identity(opts[:identity_key])
+    name = Keyword.fetch!(opts, :name)
+    options = [req_options: [url: identity.certs], identity: identity, name: name]
+    GenServer.start_link(__MODULE__, options, name: name)
   end
 
-  def authenticate(name, conn, fields: fields) do
+  @impl true
+  def authenticate(name, conn, _opts) do
     token = get_req_header(conn, @assertion)
-    user = GenServer.call(name, {:authenticate, token, fields})
-    {conn, user}
+    {identity, keys} = Livebook.ZTA.get(name)
+    {conn, authenticate_user(token, identity, keys)}
   end
 
   @impl true
   def init(options) do
     state = struct!(__MODULE__, options)
-    {:ok, %{state | keys: keys(state)}}
-  end
-
-  @impl true
-  def handle_call({:authenticate, token, fields}, _from, state) do
-    user = authenticated_user(token, fields, state.identity, state.keys)
-    {:reply, user, state}
+    {:ok, renew(state)}
   end
 
   @impl true
   def handle_info(:renew, state) do
-    {:noreply, %{state | keys: keys(state)}}
+    {:noreply, renew(state)}
   end
 
-  defp keys(state) do
+  defp renew(state) do
     Logger.debug("[#{inspect(__MODULE__)}] requesting #{inspect(state.req_options)}")
     keys = Req.request!(state.req_options).body["keys"]
     Process.send_after(self(), :renew, @renew_afer)
-    keys
+    Livebook.ZTA.put(state.name, {state.identity, keys})
+    state
   end
 
-  defp authenticated_user(token, _fields, identity, keys) do
+  defp authenticate_user(token, identity, keys) do
     with [encoded_token] <- token,
          {:ok, token} <- verify_token(encoded_token, keys),
          :ok <- verify_iss(token, identity.iss),
          {:ok, user} <- get_user_identity(encoded_token, identity.user_identity) do
-      for({k, v} <- user, new_k = @fields[k], do: {new_k, v}, into: %{})
+      for({k, v} <- user, new_k = @fields[k], do: {new_k, v}, into: %{payload: token.fields})
     else
       _ -> nil
     end
@@ -80,8 +68,8 @@ defmodule Livebook.ZTA.Cloudflare do
   defp verify_iss(_, _), do: :error
 
   defp get_user_identity(token, url) do
-    token = "CF_Authorization=#{token}"
-    resp = Req.request!(url: url, headers: [{"cookie", token}])
+    cookie = "CF_Authorization=#{token}"
+    resp = Req.request!(url: url, headers: [cookie: cookie])
     if resp.status == 200, do: {:ok, resp.body}, else: :error
   end
 

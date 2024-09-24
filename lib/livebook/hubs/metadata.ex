@@ -1,6 +1,4 @@
 defmodule Livebook.Hubs.Metadata do
-  @moduledoc false
-
   defstruct [:id, :name, :provider, :emoji, connected?: false]
 
   @type t :: %__MODULE__{

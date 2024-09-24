@@ -1,14 +1,11 @@
 defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
-  import LivebookWeb.FileSystemHelpers
-  import Livebook.Utils, only: [format_bytes: 1]
+  import LivebookWeb.FileSystemComponents
 
-  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
-  alias Livebook.Notebook.{Cell, ContentLoader}
-  alias Livebook.JSInterop
+  alias Livebook.{Session, Text, Notebook, Runtime}
+  alias Livebook.Notebook.Cell
 
   on_mount LivebookWeb.SidebarHook
 
@@ -16,7 +13,7 @@ defmodule LivebookWeb.SessionLive do
   def mount(%{"id" => session_id}, _session, socket) do
     # We use the tracked sessions to locate the session pid, but then
     # we talk to the session process exclusively for getting all the information
-    case Sessions.fetch_session(session_id) do
+    case Livebook.Sessions.fetch_session(session_id) do
       {:ok, %{pid: session_pid}} ->
         {data, client_id} =
           if connected?(socket) do
@@ -46,6 +43,7 @@ defmodule LivebookWeb.SessionLive do
         socket =
           if connected?(socket) do
             payload = %{
+              client_id: client_id,
               clients:
                 Enum.map(data.clients_map, fn {client_id, user_id} ->
                   client_info(client_id, data.users_map[user_id])
@@ -85,8 +83,7 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           select_secret_ref: nil,
-           select_secret_options: nil,
+           action_assigns: %{},
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
            starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files()
          )
@@ -94,8 +91,18 @@ defmodule LivebookWeb.SessionLive do
          |> prune_outputs()
          |> prune_cell_sources()}
 
-      :error ->
+      {:error, :not_found} ->
         {:ok, redirect(socket, to: ~p"/")}
+
+      {:error, :different_boot_id} ->
+        {:ok,
+         socket
+         |> put_flash(
+           :error,
+           "Could not find notebook session because Livebook has rebooted. " <>
+             "This may happen if Livebook runs out of memory while installing dependencies or executing code."
+         )
+         |> redirect(to: ~p"/")}
     end
   end
 
@@ -116,828 +123,73 @@ defmodule LivebookWeb.SessionLive do
   end
 
   @impl true
-  def render(assigns) do
-    ~H"""
-    <div
-      class="flex grow h-full"
-      id={"session-#{@session.id}"}
-      data-el-session
-      phx-hook="Session"
-      data-global-status={elem(@data_view.global_status, 0)}
-      data-autofocus-cell-id={@autofocus_cell_id}
-    >
-      <nav
-        class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-3 sm:py-5 bg-gray-900"
-        aria-label="sidebar"
-        data-el-sidebar
-      >
-        <span>
-          <.link navigate={~p"/"} aria-label="go to homepage">
-            <img src={~p"/images/logo.png"} height="40" width="40" alt="" />
-          </.link>
-        </span>
-
-        <.button_item
-          icon="booklet-fill"
-          label="Sections (ss)"
-          button_attrs={["data-el-sections-list-toggle": true]}
-        />
-        <.button_item
-          icon="group-fill"
-          label="Connected users (su)"
-          button_attrs={["data-el-clients-list-toggle": true]}
-        />
-        <.button_item
-          icon="folder-open-fill"
-          label="Files (sf)"
-          button_attrs={["data-el-files-list-toggle": true]}
-        />
-        <.button_item
-          icon="lock-password-line"
-          label="Secrets (se)"
-          button_attrs={["data-el-secrets-list-toggle": true]}
-        />
-        <div class="relative">
-          <.button_item
-            icon="rocket-line"
-            label="App settings (sa)"
-            button_attrs={["data-el-app-info-toggle": true]}
-          />
-          <div
-            data-el-app-indicator
-            class={[
-              "absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 pointer-events-none",
-              app_status_color(app_status(@app))
-            ]}
-          />
-        </div>
-        <.button_item
-          icon="cpu-line"
-          label="Runtime settings (sr)"
-          button_attrs={["data-el-runtime-info-toggle": true]}
-        />
-        <.link_item
-          icon="delete-bin-6-fill"
-          label="Bin (sb)"
-          path={~p"/sessions/#{@session.id}/bin"}
-          active={@live_action == :bin}
-          link_attrs={["data-btn-show-bin": true]}
-        />
-
-        <div class="grow"></div>
-
-        <.link_item
-          icon="keyboard-box-fill"
-          label="Keyboard shortcuts (?)"
-          path={~p"/sessions/#{@session.id}/shortcuts"}
-          active={@live_action == :shortcuts}
-          link_attrs={["data-btn-show-shortcuts": true]}
-        />
-
-        <span class="tooltip right distant" data-tooltip="User profile">
-          <button
-            class="text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center mt-2 group"
-            aria_label="user profile"
-            phx-click={show_current_user_modal()}
-          >
-            <.user_avatar
-              user={@current_user}
-              class="w-8 h-8 group-hover:ring-white group-hover:ring-2"
-              text_class="text-xs"
-            />
-          </button>
-        </span>
-      </nav>
-      <div
-        class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-8"
-        data-el-side-panel
-      >
-        <div class="flex grow" data-el-sections-list>
-          <.sections_list data_view={@data_view} />
-        </div>
-        <div data-el-clients-list>
-          <.clients_list data_view={@data_view} client_id={@client_id} />
-        </div>
-        <div data-el-files-list>
-          <.live_component
-            module={LivebookWeb.SessionLive.FilesListComponent}
-            id="files-list"
-            session={@session}
-            file_entries={@data_view.file_entries}
-            quarantine_file_entry_names={@data_view.quarantine_file_entry_names}
-          />
-        </div>
-        <div data-el-secrets-list>
-          <.live_component
-            module={LivebookWeb.SessionLive.SecretsListComponent}
-            id="secrets-list"
-            session={@session}
-            secrets={@data_view.secrets}
-            hub_secrets={@data_view.hub_secrets}
-            hub={@data_view.hub}
-          />
-        </div>
-        <div data-el-app-info>
-          <.live_component
-            module={LivebookWeb.SessionLive.AppInfoComponent}
-            id="app-info"
-            session={@session}
-            settings={@data_view.app_settings}
-            app={@app}
-            deployed_app_slug={@data_view.deployed_app_slug}
-            any_session_secrets?={@data_view.any_session_secrets?}
-          />
-        </div>
-        <div data-el-runtime-info>
-          <.runtime_info data_view={@data_view} session={@session} />
-        </div>
-      </div>
-      <div class="grow overflow-y-auto relative" data-el-notebook>
-        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
-        <LivebookWeb.SessionLive.IndicatorsComponent.render
-          session_id={@session.id}
-          file={@data_view.file}
-          dirty={@data_view.dirty}
-          persistence_warnings={@data_view.persistence_warnings}
-          autosave_interval_s={@data_view.autosave_interval_s}
-          runtime={@data_view.runtime}
-          global_status={@data_view.global_status}
-        />
-        <div
-          class="relative w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
-          data-el-notebook-content
-        >
-          <div class="pb-4 mb-2 border-b border-gray-200">
-            <div class="flex flex-nowrap items-center gap-2">
-              <div
-                class="grow"
-                data-el-notebook-headline
-                data-focusable-id="notebook"
-                id="notebook"
-                phx-hook="Headline"
-                data-on-value-change="set_notebook_name"
-                data-metadata="notebook"
-              >
-                <h1
-                  class="px-1 -ml-1.5 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
-                  tabindex="0"
-                  id="notebook-heading"
-                  data-el-heading
-                  spellcheck="false"
-                  phx-no-format
-                ><%= @data_view.notebook_name %></h1>
-              </div>
-
-              <.menu id="session-menu">
-                <:toggle>
-                  <button class="icon-button" aria-label="open notebook menu">
-                    <.remix_icon icon="more-2-fill" class="text-xl" />
-                  </button>
-                </:toggle>
-                <.menu_item>
-                  <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
-                    <.remix_icon icon="download-2-line" />
-                    <span>Export</span>
-                  </.link>
-                </.menu_item>
-                <.menu_item>
-                  <button role="menuitem" phx-click="erase_outputs">
-                    <.remix_icon icon="eraser-fill" />
-                    <span>Erase outputs</span>
-                  </button>
-                </.menu_item>
-                <.menu_item>
-                  <button role="menuitem" phx-click="fork_session">
-                    <.remix_icon icon="git-branch-line" />
-                    <span>Fork</span>
-                  </button>
-                </.menu_item>
-                <.menu_item>
-                  <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
-                    <.remix_icon icon="dashboard-2-line" />
-                    <span>See on Dashboard</span>
-                  </a>
-                </.menu_item>
-                <.menu_item variant={:danger}>
-                  <button role="menuitem" phx-click="close_session">
-                    <.remix_icon icon="close-circle-line" />
-                    <span>Close</span>
-                  </button>
-                </.menu_item>
-              </.menu>
-            </div>
-            <div class="flex flex-nowrap place-content-between items-center gap-2">
-              <.menu position={:bottom_left} id="notebook-hub-menu">
-                <:toggle>
-                  <div
-                    class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
-                    aria-label={@data_view.hub.hub_name}
-                  >
-                    <span>in</span>
-                    <span class="text-lg pl-1"><%= @data_view.hub.hub_emoji %></span>
-                    <span><%= @data_view.hub.hub_name %></span>
-                    <.remix_icon icon="arrow-down-s-line" class="invisible group-hover:visible" />
-                  </div>
-                </:toggle>
-                <.menu_item :for={hub <- @saved_hubs}>
-                  <button
-                    id={"select-hub-#{hub.id}"}
-                    phx-click={JS.push("select_hub", value: %{id: hub.id})}
-                    aria-label={hub.name}
-                    role="menuitem"
-                  >
-                    <%= hub.emoji %>
-                    <span class="ml-2"><%= hub.name %></span>
-                  </button>
-                </.menu_item>
-                <.menu_item>
-                  <.link navigate={~p"/hub"} aria-label="Add Hub" role="menuitem">
-                    <.remix_icon icon="add-line" class="align-middle mr-1" /> Add Hub
-                  </.link>
-                </.menu_item>
-              </.menu>
-
-              <div class="px-[1px]">
-                <%= cond do %>
-                  <% @data_view.file == nil -> %>
-                    <span class="tooltip left" data-tooltip="Save this notebook before starring it">
-                      <button class="icon-button" disabled>
-                        <.remix_icon icon="star-line text-lg" />
-                      </button>
-                    </span>
-                  <% @data_view.file in @starred_files -> %>
-                    <span class="tooltip left" data-tooltip="Unstar notebook">
-                      <button class="icon-button" phx-click="unstar_notebook">
-                        <.remix_icon icon="star-fill text-lg text-yellow-600" />
-                      </button>
-                    </span>
-                  <% true -> %>
-                    <span class="tooltip left" data-tooltip="Star notebook">
-                      <button class="icon-button" phx-click="star_notebook">
-                        <.remix_icon icon="star-line text-lg" />
-                      </button>
-                    </span>
-                <% end %>
-              </div>
-            </div>
-          </div>
-          <div>
-            <.live_component
-              module={LivebookWeb.SessionLive.CellComponent}
-              id={@data_view.setup_cell_view.id}
-              session_id={@session.id}
-              session_pid={@session.pid}
-              client_id={@client_id}
-              runtime={@data_view.runtime}
-              installing?={@data_view.installing?}
-              allowed_uri_schemes={@allowed_uri_schemes}
-              cell_view={@data_view.setup_cell_view}
-            />
-          </div>
-          <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
-            <div :if={@data_view.section_views == []} class="flex justify-center">
-              <button class="button-base button-small" phx-click="append_section">
-                + Section
-              </button>
-            </div>
-            <.live_component
-              :for={{section_view, index} <- Enum.with_index(@data_view.section_views)}
-              module={LivebookWeb.SessionLive.SectionComponent}
-              id={section_view.id}
-              index={index}
-              session_id={@session.id}
-              session_pid={@session.pid}
-              client_id={@client_id}
-              runtime={@data_view.runtime}
-              smart_cell_definitions={@data_view.smart_cell_definitions}
-              code_block_definitions={@data_view.code_block_definitions}
-              installing?={@data_view.installing?}
-              allowed_uri_schemes={@allowed_uri_schemes}
-              section_view={section_view}
-              default_language={@data_view.default_language}
-            />
-            <div style="height: 80vh"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <.current_user_modal current_user={@current_user} />
-
-    <.modal
-      :if={@live_action == :runtime_settings}
-      id="runtime-settings-modal"
-      show
-      width={:big}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.RuntimeComponent}
-        id="runtime-settings"
-        session={@session}
-        runtime={@data_view.runtime}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action == :file_settings}
-      id="persistence-modal"
-      show
-      width={:big}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.PersistenceComponent}
-        id="persistence"
-        session={@session}
-        file={@data_view.file}
-        persist_outputs={@data_view.persist_outputs}
-        autosave_interval_s={@data_view.autosave_interval_s}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action == :app_settings}
-      id="app-settings-modal"
-      show
-      width={:medium}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.AppSettingsComponent}
-        id="app-settings"
-        session={@session}
-        settings={@data_view.app_settings}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action == :add_file_entry}
-      id="add-file-entry-modal"
-      show
-      width={:big}
-      patch={@self_path}
-    >
-      <.add_file_entry_content session={@session} file_entries={@data_view.file_entries} tab={@tab} />
-    </.modal>
-
-    <.modal
-      :if={@live_action == :shortcuts}
-      id="shortcuts-modal"
-      show
-      width={:large}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.ShortcutsComponent}
-        id="shortcuts"
-        platform={@platform}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action == :cell_settings}
-      id="cell-settings-modal"
-      show
-      width={:medium}
-      patch={@self_path}
-    >
-      <.live_component
-        module={settings_component_for(@cell)}
-        id="cell-settings"
-        session={@session}
-        return_to={@self_path}
-        cell={@cell}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action == :insert_image}
-      id="insert-image-modal"
-      show
-      width={:medium}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.InsertImageComponent}
-        id="insert-image"
-        session={@session}
-        return_to={@self_path}
-        insert_image_metadata={@insert_image_metadata}
-      />
-    </.modal>
-
-    <.modal :if={@live_action == :bin} id="bin-modal" show width={:big} patch={@self_path}>
-      <.live_component
-        module={LivebookWeb.SessionLive.BinComponent}
-        id="bin"
-        session={@session}
-        return_to={@self_path}
-        bin_entries={@data_view.bin_entries}
-      />
-    </.modal>
-
-    <.modal :if={@live_action == :export} id="export-modal" show width={:big} patch={@self_path}>
-      <.live_component
-        module={LivebookWeb.SessionLive.ExportComponent}
-        id="export"
-        session={@session}
-        tab={@tab}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action == :package_search}
-      id="package-search-modal"
-      show
-      width={:medium}
-      patch={@self_path}
-    >
-      <%= live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
-        id: "package-search",
-        session: %{
-          "session_pid" => @session.pid,
-          "runtime" => @data_view.runtime,
-          "return_to" => @self_path
-        }
-      ) %>
-    </.modal>
-
-    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:large} patch={@self_path}>
-      <.live_component
-        module={LivebookWeb.SessionLive.SecretsComponent}
-        id="secrets"
-        session={@session}
-        secrets={@data_view.secrets}
-        hub_secrets={@data_view.hub_secrets}
-        hub={@data_view.hub}
-        prefill_secret_name={@prefill_secret_name}
-        select_secret_ref={@select_secret_ref}
-        select_secret_options={@select_secret_options}
-        return_to={@self_path}
-      />
-    </.modal>
-    """
-  end
-
-  defp button_item(assigns) do
-    ~H"""
-    <span class="tooltip right distant" data-tooltip={@label}>
-      <button
-        class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
-        aria-label={@label}
-        {@button_attrs}
-      >
-        <.remix_icon icon={@icon} />
-      </button>
-    </span>
-    """
-  end
-
-  defp link_item(assigns) do
-    assigns = assign_new(assigns, :link_attrs, fn -> [] end)
-
-    ~H"""
-    <span class="tooltip right distant" data-tooltip={@label}>
-      <.link
-        patch={@path}
-        class={[
-          "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center",
-          @active && "text-gray-50 bg-gray-700"
-        ]}
-        aria-label={@label}
-        {@link_attrs}
-      >
-        <.remix_icon icon={@icon} class="text-2xl" />
-      </.link>
-    </span>
-    """
-  end
-
-  defp sections_list(assigns) do
-    ~H"""
-    <div class="flex flex-col grow">
-      <h3 class="uppercase text-sm font-semibold text-gray-500">
-        Sections
-      </h3>
-      <div class="flex flex-col mt-4 space-y-4">
-        <div :for={section_item <- @data_view.sections_items} class="flex items-center">
-          <button
-            class="grow flex items-center text-gray-500 hover:text-gray-900 text-left"
-            data-el-sections-list-item
-            data-section-id={section_item.id}
-          >
-            <span class="flex items-center space-x-1">
-              <span><%= section_item.name %></span>
-              <% # Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-              # consequently we show the tooltip wrapped to a fixed number of characters %>
-              <span
-                :if={section_item.parent}
-                {branching_tooltip_attrs(section_item.name, section_item.parent.name)}
-              >
-                <.remix_icon
-                  icon="git-branch-line"
-                  class="text-lg font-normal leading-none flip-horizontally"
-                />
-              </span>
-            </span>
-          </button>
-          <.section_status
-            status={elem(section_item.status, 0)}
-            cell_id={elem(section_item.status, 1)}
-          />
-        </div>
-      </div>
-      <button
-        class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
-        phx-click="append_section"
-      >
-        <.remix_icon icon="add-line" class="text-lg align-center" />
-        <span>New section</span>
-      </button>
-      <div class="grow"></div>
-      <button
-        class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
-        data-el-section-toggle-collapse-all-button
-      >
-        <.remix_icon icon="split-cells-vertical" class="text-lg align-center" />
-        <span>Expand/collapse all</span>
-      </button>
-    </div>
-    """
-  end
-
-  defp clients_list(assigns) do
-    ~H"""
-    <div class="flex flex-col grow">
-      <div class="flex items-center justify-between space-x-4 -mt-1">
-        <h3 class="uppercase text-sm font-semibold text-gray-500">
-          Users
-        </h3>
-        <span class="flex items-center px-2 py-1 space-x-2 text-sm bg-gray-200 rounded-lg">
-          <span class="inline-flex w-3 h-3 bg-green-600 rounded-full"></span>
-          <span><%= length(@data_view.clients) %> connected</span>
-        </span>
-      </div>
-      <div class="flex flex-col mt-5 space-y-4">
-        <div
-          :for={{client_id, user} <- @data_view.clients}
-          class="flex items-center justify-between space-x-2"
-          id={"clients-list-item-#{client_id}"}
-          data-el-clients-list-item
-          data-client-id={client_id}
-        >
-          <button
-            class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
-            disabled={client_id == @client_id}
-            data-el-client-link
-          >
-            <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
-            <span class="text-left"><%= user.name || "Anonymous" %></span>
-          </button>
-          <%= if client_id != @client_id do %>
-            <span
-              class="tooltip left"
-              data-tooltip="Follow this user"
-              data-el-client-follow-toggle
-              data-meta="follow"
-            >
-              <button class="icon-button" aria-label="follow this user">
-                <.remix_icon icon="pushpin-line" class="text-lg" />
-              </button>
-            </span>
-            <span
-              class="tooltip left"
-              data-tooltip="Unfollow this user"
-              data-el-client-follow-toggle
-              data-meta="unfollow"
-            >
-              <button class="icon-button" aria-label="unfollow this user">
-                <.remix_icon icon="pushpin-fill" class="text-lg" />
-              </button>
-            </span>
-          <% end %>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  defp runtime_info(assigns) do
-    ~H"""
-    <div class="flex flex-col grow">
-      <div class="flex items-center justify-between">
-        <h3 class="uppercase text-sm font-semibold text-gray-500">
-          Runtime
-        </h3>
-        <.link patch={~p"/sessions/#{@session.id}/settings/runtime"} class="icon-button p-0">
-          <.remix_icon icon="settings-3-line text-xl" />
-        </.link>
-      </div>
-      <div class="flex flex-col mt-2 space-y-4">
-        <div class="flex flex-col space-y-3">
-          <.labeled_text
-            :for={{label, value} <- Runtime.describe(@data_view.runtime)}
-            label={label}
-            one_line
-          >
-            <%= value %>
-          </.labeled_text>
-        </div>
-        <div class="flex space-x-2">
-          <%= if Runtime.connected?(@data_view.runtime) do %>
-            <button class="button-base button-blue" phx-click="reconnect_runtime">
-              <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
-              <span>Reconnect</span>
-            </button>
-            <button
-              class="button-base button-outlined-red"
-              type="button"
-              phx-click="disconnect_runtime"
-            >
-              Disconnect
-            </button>
-          <% else %>
-            <button class="button-base button-blue" phx-click="connect_runtime">
-              <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
-              <span>Connect</span>
-            </button>
-            <.link
-              patch={~p"/sessions/#{@session.id}/settings/runtime"}
-              class="button-base button-outlined-gray bg-transparent"
-            >
-              Configure
-            </.link>
-          <% end %>
-        </div>
-        <%= if uses_memory?(@session.memory_usage) do %>
-          <.memory_info memory_usage={@session.memory_usage} />
-        <% else %>
-          <div class="mb-1 text-sm text-gray-800 py-6 flex flex-col">
-            <span class="w-full uppercase font-semibold text-gray-500">Memory</span>
-            <p class="py-1">
-              <%= format_bytes(@session.memory_usage.system.free) %> available out of <%= format_bytes(
-                @session.memory_usage.system.total
-              ) %>
-            </p>
-          </div>
-        <% end %>
-      </div>
-    </div>
-    """
-  end
-
-  defp memory_info(assigns) do
-    assigns = assign(assigns, :runtime_memory, runtime_memory(assigns.memory_usage))
-
-    ~H"""
-    <div class="py-6 flex flex-col justify-center">
-      <div class="mb-1 text-sm text-gray-800 flex flex-row justify-between">
-        <span class="text-gray-500 font-semibold uppercase">Memory</span>
-        <span class="text-right">
-          <%= format_bytes(@memory_usage.system.free) %> available
-        </span>
-      </div>
-      <div class="w-full h-8 flex flex-row py-1 gap-0.5">
-        <div
-          :for={{type, memory} <- @runtime_memory}
-          class={["h-6", memory_color(type)]}
-          style={"width: #{memory.percentage}%"}
-        >
-        </div>
-      </div>
-      <div class="flex flex-col py-1">
-        <div :for={{type, memory} <- @runtime_memory} class="flex flex-row items-center">
-          <span class={["w-4 h-4 mr-2 rounded", memory_color(type)]}></span>
-          <span class="capitalize text-gray-700"><%= type %></span>
-          <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
-        </div>
-        <div class="flex rounded justify-center my-2 py-0.5 text-sm text-gray-800 bg-gray-200">
-          Total: <%= format_bytes(@memory_usage.runtime.total) %>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  defp section_status(%{status: :evaluating} = assigns) do
-    ~H"""
-    <button data-el-focus-cell-button data-target={@cell_id}>
-      <.status_indicator variant={:progressing} />
-    </button>
-    """
-  end
-
-  defp section_status(%{status: :stale} = assigns) do
-    ~H"""
-    <button data-el-focus-cell-button data-target={@cell_id}>
-      <.status_indicator variant={:warning} />
-    </button>
-    """
-  end
-
-  defp section_status(assigns), do: ~H""
-
-  defp add_file_entry_content(assigns) do
-    ~H"""
-    <div class="p-6 max-w-4xl flex flex-col space-y-4">
-      <h3 class="text-2xl font-semibold text-gray-800">
-        Add file
-      </h3>
-      <div class="flex flex-col space-y-4">
-        <div class="tabs">
-          <.link
-            patch={~p"/sessions/#{@session.id}/add-file/file"}
-            class={["tab", @tab == "file" && "active"]}
-          >
-            <.remix_icon icon="file-3-line" class="align-middle" />
-            <span class="font-medium">From file</span>
-          </.link>
-          <.link
-            patch={~p"/sessions/#{@session.id}/add-file/url"}
-            class={["tab", @tab == "url" && "active"]}
-          >
-            <.remix_icon icon="download-cloud-2-line" class="align-middle" />
-            <span class="font-medium">From URL</span>
-          </.link>
-          <.link
-            patch={~p"/sessions/#{@session.id}/add-file/upload"}
-            class={["tab", @tab == "upload" && "active"]}
-          >
-            <.remix_icon icon="file-upload-line" class="align-middle" />
-            <span class="font-medium">From upload</span>
-          </.link>
-          <.link
-            patch={~p"/sessions/#{@session.id}/add-file/unlisted"}
-            class={["tab", @tab == "unlisted" && "active"]}
-          >
-            <.remix_icon icon="folder-shared-line" class="align-middle" />
-            <span class="font-medium">From unlisted</span>
-          </.link>
-          <div class="grow tab"></div>
-        </div>
-        <.live_component
-          :if={@tab == "file"}
-          module={LivebookWeb.SessionLive.AddFileEntryFileComponent}
-          id="add-file-entry-from-file"
-          session={@session}
-        />
-        <.live_component
-          :if={@tab == "url"}
-          module={LivebookWeb.SessionLive.AddFileEntryUrlComponent}
-          id="add-file-entry-from-url"
-          session={@session}
-        />
-        <.live_component
-          :if={@tab == "upload"}
-          module={LivebookWeb.SessionLive.AddFileEntryUploadComponent}
-          id="add-file-entry-from-upload"
-          session={@session}
-        />
-        <.live_component
-          :if={@tab == "unlisted"}
-          module={LivebookWeb.SessionLive.AddFileEntryUnlistedComponent}
-          id="add-file-entry-from-unlisted"
-          session={@session}
-          file_entries={@file_entries}
-        />
-      </div>
-    </div>
-    """
-  end
-
-  defp settings_component_for(%Cell.Code{}),
-    do: LivebookWeb.SessionLive.CodeCellSettingsComponent
-
-  defp branching_tooltip_attrs(name, parent_name) do
-    direction = if String.length(name) >= 16, do: "left", else: "right"
-
-    wrapped_name = Livebook.Utils.wrap_line("”" <> parent_name <> "”", 16)
-    label = "Branches from\n#{wrapped_name}"
-
-    [class: "tooltip #{direction}", data_tooltip: label]
-  end
+  defdelegate render(assigns), to: LivebookWeb.SessionLive.Render
 
   @impl true
-  def handle_params(%{"cell_id" => cell_id}, _url, socket)
-      when socket.assigns.live_action == :cell_settings do
+  def handle_params(params, url, socket) do
+    {socket, action_assigns} = handle_params(socket.assigns.live_action, params, url, socket)
+    socket = assign(socket, :action_assigns, action_assigns)
+    {:noreply, socket}
+  end
+
+  defp handle_params(:cell_settings, %{"cell_id" => cell_id}, _url, socket) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
-    {:noreply, assign(socket, cell: cell)}
+    {socket, %{cell: cell}}
   end
 
-  def handle_params(%{"section_id" => section_id, "cell_id" => cell_id}, _url, socket)
-      when socket.assigns.live_action == :insert_image do
-    cell_id =
-      case cell_id do
-        "" -> nil
-        id -> id
-      end
-
-    {:noreply, assign(socket, insert_image_metadata: %{section_id: section_id, cell_id: cell_id})}
+  defp handle_params(:insert_image, %{}, _url, socket) do
+    case pop_in(socket.assigns[:insert_image_metadata]) do
+      {nil, socket} -> {redirect_to_self(socket), %{}}
+      {metadata, socket} -> {socket, %{insert_image_metadata: metadata}}
+    end
   end
 
-  def handle_params(%{"path_parts" => path_parts}, requested_url, socket)
-      when socket.assigns.live_action == :catch_all do
+  defp handle_params(:insert_file, %{}, _url, socket) do
+    case pop_in(socket.assigns[:insert_file_metadata]) do
+      {nil, socket} -> {redirect_to_self(socket), %{}}
+      {metadata, socket} -> {socket, %{insert_file_metadata: metadata}}
+    end
+  end
+
+  defp handle_params(:rename_file_entry, %{"name" => name}, _url, socket) do
+    if file_entry = find_file_entry(socket, name) do
+      {socket, %{renaming_file_entry: file_entry}}
+    else
+      {redirect_to_self(socket), %{}}
+    end
+  end
+
+  defp handle_params(:export, %{"tab" => tab}, _url, socket) do
+    any_stale_cell? = any_stale_cell?(socket.private.data)
+    {socket, %{tab: tab, any_stale_cell?: any_stale_cell?}}
+  end
+
+  defp handle_params(:add_file_entry, %{"tab" => tab}, _url, socket) do
+    {file_drop_metadata, socket} = pop_in(socket.assigns[:file_drop_metadata])
+    {socket, %{tab: tab, file_drop_metadata: file_drop_metadata}}
+  end
+
+  defp handle_params(:secrets, params, _url, socket) do
+    {select_secret_metadata, socket} = pop_in(socket.assigns[:select_secret_metadata])
+
+    {socket,
+     %{select_secret_metadata: select_secret_metadata, prefill_secret_name: params["secret_name"]}}
+  end
+
+  defp handle_params(live_action, params, _url, socket)
+       when live_action in [:app_settings, :file_settings] do
+    {socket, %{context: params["context"]}}
+  end
+
+  defp handle_params(:add_agent, params, _url, socket) do
+    hub = Livebook.Hubs.fetch_hub!(socket.private.data.notebook.hub_id)
+    deployment_groups = Livebook.Hubs.Provider.deployment_groups(hub)
+    deployment_group_id = params["deployment_group_id"]
+    deployment_group = Enum.find(deployment_groups, &(&1.id == deployment_group_id))
+    {socket, %{deployment_group: deployment_group}}
+  end
+
+  defp handle_params(:catch_all, %{"path_parts" => path_parts}, requested_url, socket) do
     path_parts =
       Enum.map(path_parts, fn
         "__parent__" -> ".."
@@ -945,33 +197,12 @@ defmodule LivebookWeb.SessionLive do
       end)
 
     path = Path.join(path_parts)
-    {:noreply, handle_relative_path(socket, path, requested_url)}
+    socket = handle_relative_path(socket, path, requested_url)
+    {socket, %{}}
   end
 
-  def handle_params(%{"tab" => tab}, _url, socket)
-      when socket.assigns.live_action in [:export, :add_file_entry] do
-    {:noreply, assign(socket, tab: tab)}
-  end
-
-  def handle_params(params, _url, socket)
-      when socket.assigns.live_action == :secrets do
-    socket =
-      if params["preselect_name"] do
-        assign(socket, prefill_secret_name: params["preselect_name"])
-      else
-        # Erase any previously stored reference
-        assign(socket,
-          prefill_secret_name: params["secret_name"],
-          select_secret_ref: nil,
-          select_secret_options: nil
-        )
-      end
-
-    {:noreply, socket}
-  end
-
-  def handle_params(_params, _url, socket) do
-    {:noreply, socket}
+  defp handle_params(_live_action, _params, _url, socket) do
+    {socket, %{}}
   end
 
   @impl true
@@ -990,6 +221,19 @@ defmodule LivebookWeb.SessionLive do
              params["cell_id"]
            ) do
       Session.insert_section_into(socket.assigns.session.pid, section.id, index)
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("insert_branching_section_below", params, socket) do
+    with {:ok, section, index} <-
+           section_with_next_index(
+             socket.private.data.notebook,
+             params["section_id"],
+             params["cell_id"]
+           ) do
+      Session.insert_branching_section_into(socket.assigns.session.pid, section.id, index)
     end
 
     {:noreply, socket}
@@ -1015,44 +259,42 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, insert_cell_below(socket, params)}
   end
 
-  def handle_event("insert_code_block_below", params, socket) do
+  def handle_event("insert_example_snippet_below", params, socket) do
     data = socket.private.data
     %{"section_id" => section_id, "cell_id" => cell_id} = params
 
-    case code_block_definition_by_name(data, params["definition_name"]) do
-      {:ok, definition} ->
-        variant = Enum.fetch!(definition.variants, params["variant_idx"])
-        dependencies = Enum.map(variant.packages, & &1.dependency)
+    socket =
+      case socket.private.data.runtime_status do
+        :disconnected ->
+          reason = "To insert this block, you need a connected runtime."
+          confirm_setup_runtime(socket, reason)
 
-        has_dependencies? =
-          dependencies == [] or Livebook.Runtime.has_dependencies?(data.runtime, dependencies)
+        :connecting ->
+          message = "To insert this block, wait for the runtime to finish connecting."
+          {:noreply, put_flash(socket, :info, message)}
 
-        cond do
-          has_dependencies? ->
-            insert_code_block_below(socket, variant, section_id, cell_id)
-            {:noreply, socket}
+        :connected ->
+          case example_snippet_definition_by_name(data, params["definition_name"]) do
+            {:ok, definition} ->
+              variant = Enum.fetch!(definition.variants, params["variant_idx"])
 
-          Livebook.Runtime.fixed_dependencies?(data.runtime) ->
-            {:noreply,
-             put_flash(socket, :error, "This runtime doesn't support adding dependencies")}
-
-          true ->
-            on_confirm = fn socket ->
-              case insert_code_block_below(socket, variant, section_id, cell_id) do
-                :ok -> add_dependencies_and_reevaluate(socket, dependencies)
-                :error -> socket
+              fun = fn socket ->
+                with {:ok, section, index} <-
+                       section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
+                  attrs = %{source: variant.source}
+                  Session.insert_cell(socket.assigns.session.pid, section.id, index, :code, attrs)
+                  {:ok, socket}
+                end
               end
-            end
 
-            socket =
-              confirm_add_packages(socket, on_confirm, variant.packages, definition.name, "block")
+              ensure_packages_then(socket, variant.packages, definition.name, "block", fun)
 
-            {:noreply, socket}
-        end
+            _ ->
+              socket
+          end
+      end
 
-      _ ->
-        {:noreply, socket}
-    end
+    {:noreply, socket}
   end
 
   def handle_event("insert_smart_cell_below", params, socket) do
@@ -1066,32 +308,19 @@ defmodule LivebookWeb.SessionLive do
             Enum.at(definition.requirement_presets, preset_idx)
           end
 
-        if preset == nil do
-          insert_smart_cell_below(socket, definition, section_id, cell_id)
-          {:noreply, socket}
-        else
-          on_confirm = fn socket ->
-            case insert_smart_cell_below(socket, definition, section_id, cell_id) do
-              :ok ->
-                dependencies = Enum.map(preset.packages, & &1.dependency)
-                add_dependencies_and_reevaluate(socket, dependencies)
+        packages = if(preset, do: preset.packages, else: [])
 
-              :error ->
-                socket
+        socket =
+          ensure_packages_then(socket, packages, definition.name, "smart cell", fn socket ->
+            with {:ok, section, index} <-
+                   section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
+              attrs = %{kind: definition.kind}
+              Session.insert_cell(socket.assigns.session.pid, section.id, index, :smart, attrs)
+              {:ok, socket}
             end
-          end
+          end)
 
-          socket =
-            confirm_add_packages(
-              socket,
-              on_confirm,
-              preset.packages,
-              definition.name,
-              "smart cell"
-            )
-
-          {:noreply, socket}
-        end
+        {:noreply, socket}
 
       _ ->
         {:noreply, socket}
@@ -1137,12 +366,37 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event(
         "apply_cell_delta",
-        %{"cell_id" => cell_id, "tag" => tag, "delta" => delta, "revision" => revision},
+        %{
+          "cell_id" => cell_id,
+          "tag" => tag,
+          "delta" => delta,
+          "selection" => selection,
+          "revision" => revision
+        },
         socket
       ) do
     tag = String.to_atom(tag)
-    delta = Delta.from_compressed(delta)
-    Session.apply_cell_delta(socket.assigns.session.pid, cell_id, tag, delta, revision)
+    delta = Text.Delta.from_compressed(delta)
+    selection = selection && Text.Selection.from_compressed(selection)
+    Session.apply_cell_delta(socket.assigns.session.pid, cell_id, tag, delta, selection, revision)
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "report_cell_selection",
+        %{"cell_id" => cell_id, "tag" => tag, "selection" => selection, "revision" => revision},
+        socket
+      ) do
+    selection = selection && Text.Selection.from_compressed(selection)
+    tag = String.to_atom(tag)
+
+    Phoenix.PubSub.broadcast_from(
+      Livebook.PubSub,
+      self(),
+      "sessions:#{socket.assigns.session.id}",
+      {:report_cell_selection, socket.assigns.client_id, cell_id, tag, selection, revision}
+    )
 
     {:noreply, socket}
   end
@@ -1239,37 +493,15 @@ defmodule LivebookWeb.SessionLive do
      )}
   end
 
-  def handle_event("add_form_cell_dependencies", %{}, socket) do
-    Session.add_dependencies(socket.assigns.session.pid, [%{dep: {:kino, "~> 0.8.1"}, config: []}])
-
-    {status, socket} = maybe_reconnect_runtime(socket)
-
-    if status == :ok do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
-    end
-
-    {:noreply, socket}
-  end
-
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id} = params, socket) do
-    data = socket.private.data
-
-    {status, socket} =
-      with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
-           true <- Cell.setup?(cell),
-           false <- data.cell_infos[cell.id].eval.validity == :fresh do
-        maybe_reconnect_runtime(socket)
+    opts =
+      if params["disable_dependencies_cache"] do
+        [disable_dependencies_cache: true]
       else
-        _ -> {:ok, socket}
+        []
       end
 
-    if params["disable_dependencies_cache"] do
-      Session.disable_dependencies_cache(socket.assigns.session.pid)
-    end
-
-    if status == :ok do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
-    end
+    Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id, opts)
 
     {:noreply, socket}
   end
@@ -1325,35 +557,15 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("reconnect_runtime", %{}, socket) do
-    {_, socket} = maybe_reconnect_runtime(socket)
-    {:noreply, socket}
-  end
-
   def handle_event("connect_runtime", %{}, socket) do
-    {_, socket} = connect_runtime(socket)
+    Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
-  def handle_event("setup_default_runtime", %{"reason" => reason}, socket) do
-    on_confirm = fn socket ->
-      {status, socket} = connect_runtime(socket)
-
-      if status == :ok do
-        Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
-      end
-
-      socket
-    end
-
-    {:noreply,
-     confirm(socket, on_confirm,
-       title: "Setup runtime",
-       description: "#{reason} Do you want to connect and setup the default one?",
-       confirm_text: "Setup runtime",
-       confirm_icon: "play-line",
-       danger: false
-     )}
+  def handle_event("reconnect_runtime", %{}, socket) do
+    Session.disconnect_runtime(socket.assigns.session.pid)
+    Session.connect_runtime(socket.assigns.session.pid)
+    {:noreply, socket}
   end
 
   def handle_event("disconnect_runtime", %{}, socket) do
@@ -1361,29 +573,37 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("deploy_app", %{}, socket) do
-    on_confirm = fn socket ->
-      Livebook.Session.deploy_app(socket.assigns.session.pid)
-      socket
+  def handle_event("setup_runtime", %{"reason" => reason}, socket) do
+    {:noreply, confirm_setup_runtime(socket, reason)}
+  end
+
+  def handle_event("runtime_disconnect_node", %{"node" => node}, socket) do
+    node = Enum.find(socket.private.data.runtime_connected_nodes, &(Atom.to_string(&1) == node))
+
+    if node do
+      Runtime.disconnect_node(socket.private.data.runtime, node)
     end
 
-    data = socket.private.data
-    slug = data.notebook.app_settings.slug
-    slug_taken? = slug != data.deployed_app_slug and Livebook.Apps.exists?(slug)
-
-    socket =
-      if slug_taken? do
-        confirm(socket, on_confirm,
-          title: "Deploy app",
-          description:
-            "An app with this slug already exists, do you want to deploy a new version?",
-          confirm_text: "Replace"
-        )
-      else
-        on_confirm.(socket)
-      end
-
     {:noreply, socket}
+  end
+
+  def handle_event("deploy_app", _, socket) do
+    data = socket.private.data
+    app_settings = data.notebook.app_settings
+
+    if Livebook.Notebook.AppSettings.valid?(app_settings) do
+      {:noreply,
+       LivebookWeb.SessionLive.AppSettingsComponent.preview_app(
+         socket,
+         app_settings,
+         data.deployed_app_slug
+       )}
+    else
+      {:noreply,
+       push_patch(socket,
+         to: ~p"/sessions/#{socket.assigns.session.id}/settings/app?context=preview"
+       )}
+    end
   end
 
   def handle_event("intellisense_request", %{"cell_id" => cell_id} = params, socket) do
@@ -1393,7 +613,7 @@ defmodule LivebookWeb.SessionLive do
           {:completion, hint}
 
         %{"type" => "details", "line" => line, "column" => column} ->
-          column = JSInterop.js_column_to_elixir(column, line)
+          column = Text.JS.js_column_to_elixir(column, line)
           {:details, line, column}
 
         %{"type" => "signature", "hint" => hint} ->
@@ -1406,25 +626,28 @@ defmodule LivebookWeb.SessionLive do
     data = socket.private.data
 
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
-      if Runtime.connected?(data.runtime) do
+      if data.runtime_status == :connected do
         parent_locators = Session.parent_locators_for_cell(data, cell)
-        ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators)
+        node = intellisense_node(cell)
+
+        ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators, node)
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else
-        info =
+        reason =
           cond do
             params["type"] == "completion" and not params["editor_auto_completion"] ->
-              "You need to start a runtime (or evaluate a cell) for code completion"
+              "You need a connected runtime to enable code completion."
 
             params["type"] == "format" ->
-              "You need to start a runtime (or evaluate a cell) to enable code formatting"
+              "You need a connected runtime to enable code formatting."
 
             true ->
               nil
           end
 
-        socket = if info, do: put_flash(socket, :info, info), else: socket
+        socket = if reason, do: confirm_setup_runtime(socket, reason), else: socket
+
         {:reply, %{"ref" => nil}, socket}
       end
     else
@@ -1482,13 +705,15 @@ defmodule LivebookWeb.SessionLive do
       ) do
     socket =
       assign(socket,
-        select_secret_ref: select_secret_ref,
-        select_secret_options: select_secret_options
+        select_secret_metadata: %{
+          ref: select_secret_ref,
+          options: select_secret_options
+        }
       )
 
     {:noreply,
      push_patch(socket,
-       to: ~p"/sessions/#{socket.assigns.session.id}/secrets?preselect_name=#{preselect_name}"
+       to: ~p"/sessions/#{socket.assigns.session.id}/secrets?secret_name=#{preselect_name}"
      )}
   end
 
@@ -1499,15 +724,23 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("review_file_entry_access", %{"name" => name}, socket) do
-    file_entry = Enum.find(socket.private.data.notebook.file_entries, &(&1.name == name))
-
-    if file_entry do
+    if file_entry = find_file_entry(socket, name) do
       on_confirm = fn socket ->
         Session.allow_file_entry(socket.assigns.session.pid, file_entry.name)
         socket
       end
 
-      assigns = %{name: file_entry.name, file: file_entry.file}
+      file_system_label =
+        case Livebook.FileSystem.File.fetch_file_system(file_entry.file) do
+          {:ok, file_system} -> file_system_label(file_system)
+          _ -> "Not available"
+        end
+
+      assigns = %{
+        name: file_entry.name,
+        file: file_entry.file,
+        file_system_label: file_system_label
+      }
 
       description = ~H"""
       <div>
@@ -1516,7 +749,7 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="mt-4 flex flex-col gap-2 border border-gray-200 rounded-lg p-4">
         <.labeled_text label="Path"><%= @file.path %></.labeled_text>
-        <.labeled_text label="File system"><%= file_system_label(@file.file_system) %></.labeled_text>
+        <.labeled_text label="File system"><%= @file_system_label %></.labeled_text>
       </div>
       """
 
@@ -1533,23 +766,151 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  def handle_event("insert_image", params, socket) do
+    {:noreply,
+     socket
+     |> assign(
+       insert_image_metadata: %{section_id: params["section_id"], cell_id: params["cell_id"]}
+     )
+     |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-image")}
+  end
+
+  def handle_event(
+        "insert_file",
+        %{"section_id" => section_id, "cell_id" => cell_id, "file_entry_name" => file_entry_name},
+        socket
+      ) do
+    if file_entry = find_file_entry(socket, file_entry_name) do
+      case socket.private.data.runtime_status do
+        :connected ->
+          {:noreply,
+           socket
+           |> assign(
+             insert_file_metadata: %{
+               section_id: section_id,
+               cell_id: cell_id,
+               file_entry: file_entry,
+               handlers: handlers_for_file_entry(file_entry, socket.private.data.runtime)
+             }
+           )
+           |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-file")}
+
+        :connecting ->
+          message = "To see the available options, wait for the runtime to finish connecting."
+          {:noreply, put_flash(socket, :info, message)}
+
+        :disconnected ->
+          reason = "To see the available options, you need a connected runtime."
+          {:noreply, confirm_setup_runtime(socket, reason)}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("insert_file_action", %{"idx" => idx}, socket) do
+    %{section_id: section_id, cell_id: cell_id, file_entry: file_entry, handlers: handlers} =
+      socket.assigns.action_assigns.insert_file_metadata
+
+    handler = Enum.fetch!(handlers, idx)
+    source = String.replace(handler.definition.source, "{{NAME}}", file_entry.name)
+
+    socket =
+      socket
+      |> redirect_to_self()
+      |> ensure_packages_then(
+        handler.definition.packages,
+        handler.definition.description,
+        "action",
+        fn socket ->
+          with {:ok, section, index} <-
+                 section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
+            attrs = %{source: source}
+
+            Session.insert_cell(
+              socket.assigns.session.pid,
+              section.id,
+              index,
+              handler.cell_type,
+              attrs
+            )
+
+            {:ok, socket}
+          end
+        end
+      )
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "handle_file_drop",
+        %{"section_id" => section_id, "cell_id" => cell_id},
+        socket
+      ) do
+    case socket.private.data.runtime_status do
+      :disconnected ->
+        reason = "To see the available options, you need a connected runtime."
+        {:noreply, confirm_setup_runtime(socket, reason)}
+
+      :connecting ->
+        message = "To see the available options, wait for the runtime to finish connecting."
+        {:noreply, put_flash(socket, :info, message)}
+
+      :connected ->
+        {:noreply,
+         socket
+         |> assign(file_drop_metadata: %{section_id: section_id, cell_id: cell_id})
+         |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload")
+         |> push_event("finish_file_drop", %{})}
+    end
+  end
+
+  def handle_event("handle_file_drop", %{}, socket) do
+    {:noreply,
+     socket
+     |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload")
+     |> push_event("finish_file_drop", %{})}
+  end
+
+  def handle_event("open_custom_view_settings", %{}, socket) do
+    {:noreply,
+     push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
+  end
+
+  @impl true
+  def handle_call({:get_input_value, input_id}, _from, socket) do
+    reply =
+      case socket.private.data.input_infos do
+        %{^input_id => %{value: value}} -> {:ok, socket.assigns.session.id, value}
+        %{} -> :error
+      end
+
+    {:reply, reply, socket}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
   end
 
+  def handle_info({:error, error}, socket) when socket.assigns.live_action == :runtime_settings do
+    # When the runtime settings modal is open we assume the error is
+    # related to connecting the runtime and we show it dirrectly there
+
+    message = error |> to_string() |> upcase_first()
+
+    send_update(LivebookWeb.SessionLive.RuntimeComponent,
+      id: "runtime-settings",
+      event: {:error, message}
+    )
+
+    {:noreply, socket}
+  end
+
   def handle_info({:error, error}, socket) do
     message = error |> to_string() |> upcase_first()
     socket = put_flash(socket, :error, message)
-
-    # If there is an immediate patch, we apply it to keep the flash
-    socket =
-      receive do
-        {:push_patch, to} -> push_patch(socket, to: to)
-      after
-        0 -> socket
-      end
-
     {:noreply, socket}
   end
 
@@ -1602,6 +963,37 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_event(socket, "location_report", report)}
   end
 
+  def handle_info({:report_cell_selection, client_id, cell_id, tag, selection, revision}, socket) do
+    # Note that we transform the delta separately in each client's LV.
+    # This way we avoid a race condition with session sending us a new
+    # delta. We either acknowledge such delta and use it to transform
+    # the incoming selection, or send the selection as is and only then
+    # acknowledge the delta.
+
+    case Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id) do
+      {:ok, _cell, _section} ->
+        selection =
+          selection &&
+            Session.Data.transform_selection(
+              socket.private.data,
+              cell_id,
+              tag,
+              selection,
+              revision
+            )
+
+        payload = %{
+          "client_id" => client_id,
+          "selection" => selection && Text.Selection.to_compressed(selection)
+        }
+
+        {:noreply, push_event(socket, "cell_selection:#{cell_id}:#{tag}", payload)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info({:set_input_values, values, local}, socket) do
     if local do
       socket =
@@ -1637,12 +1029,32 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, insert_cell_below(socket, params)}
   end
 
-  def handle_info({:push_patch, to}, socket) do
-    {:noreply, push_patch(socket, to: to)}
+  def handle_info({:file_entry_uploaded, file_entry}, socket) do
+    case socket.assigns.action_assigns[:file_drop_metadata] do
+      %{section_id: section_id, cell_id: cell_id} ->
+        {:noreply,
+         socket
+         |> assign(
+           insert_file_metadata: %{
+             section_id: section_id,
+             cell_id: cell_id,
+             file_entry: file_entry,
+             handlers: handlers_for_file_entry(file_entry, socket.private.data.runtime)
+           }
+         )
+         |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-file")}
+
+      nil ->
+        {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+    end
   end
 
   def handle_info({:put_flash, kind, message}, socket) do
     {:noreply, put_flash(socket, kind, message)}
+  end
+
+  def handle_info({:push_patch, to}, socket) do
+    {:noreply, push_patch(socket, to: to)}
   end
 
   def handle_info({:starred_notebooks_updated, starred_notebooks}, socket) do
@@ -1657,7 +1069,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp handle_relative_path(socket, path, requested_url) do
     cond do
-      String.ends_with?(path, LiveMarkdown.extension()) ->
+      String.ends_with?(path, Livebook.LiveMarkdown.extension()) ->
         handle_relative_notebook_path(socket, path, requested_url)
 
       true ->
@@ -1683,7 +1095,7 @@ defmodule LivebookWeb.SessionLive do
         |> redirect_to_self()
 
       resolution_location ->
-        origin = ContentLoader.resolve_location(resolution_location, relative_path)
+        origin = Notebook.ContentLoader.resolve_location(resolution_location, relative_path)
         fallback_locations = fallback_relative_locations(resolution_location, relative_path)
 
         case session_id_by_location(origin) do
@@ -1756,12 +1168,12 @@ defmodule LivebookWeb.SessionLive do
     # flat, regardless of how they are structured in the file system
 
     name = relative_path |> String.split("/") |> Enum.at(-1)
-    flat_location = ContentLoader.resolve_location(resolution_location, name)
+    flat_location = Notebook.ContentLoader.resolve_location(resolution_location, name)
     [flat_location]
   end
 
   defp fetch_content_with_fallbacks(location, fallbacks) do
-    case ContentLoader.fetch_content_from_location(location) do
+    case Notebook.ContentLoader.fetch_content_from_location(location) do
       {:ok, content} ->
         {:ok, content}
 
@@ -1769,7 +1181,8 @@ defmodule LivebookWeb.SessionLive do
         fallbacks
         |> Enum.reject(&(&1 == location))
         |> Enum.find_value(error, fn fallback ->
-          with {:error, _} <- ContentLoader.fetch_content_from_location(fallback), do: nil
+          with {:error, _} <- Notebook.ContentLoader.fetch_content_from_location(fallback),
+               do: nil
         end)
     end
   end
@@ -1780,7 +1193,7 @@ defmodule LivebookWeb.SessionLive do
   defp file_and_notebook(_fork?, _origin, notebook), do: {nil, notebook}
 
   defp session_id_by_location(location) do
-    sessions = Sessions.list_sessions()
+    sessions = Livebook.Sessions.list_sessions()
 
     session_with_file =
       Enum.find(sessions, fn session ->
@@ -2002,11 +1415,15 @@ defmodule LivebookWeb.SessionLive do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
   end
 
-  defp handle_action(socket, {:report_delta, client_id, cell, tag, delta}) do
+  defp handle_action(socket, {:report_delta, client_id, cell, tag, delta, selection}) do
     if client_id == socket.assigns.client_id do
       push_event(socket, "cell_acknowledgement:#{cell.id}:#{tag}", %{})
     else
-      push_event(socket, "cell_delta:#{cell.id}:#{tag}", %{delta: Delta.to_compressed(delta)})
+      push_event(socket, "cell_delta:#{cell.id}:#{tag}", %{
+        client_id: client_id,
+        delta: Text.Delta.to_compressed(delta),
+        selection: selection && Text.Selection.to_compressed(selection)
+      })
     end
   end
 
@@ -2115,19 +1532,23 @@ defmodule LivebookWeb.SessionLive do
     %{
       response
       | range: %{
-          from: JSInterop.elixir_column_to_js(from, line),
-          to: JSInterop.elixir_column_to_js(to, line)
+          from: Text.JS.elixir_column_to_js(from, line),
+          to: Text.JS.elixir_column_to_js(to, line)
         }
     }
   end
 
-  # Currently we don't use signature docs, so we optimise the response
-  # to exclude them
-  defp process_intellisense_response(
-         %{signature_items: signature_items} = response,
-         {:signature, _hint}
-       ) do
-    %{response | signature_items: Enum.map(signature_items, &%{&1 | documentation: nil})}
+  defp process_intellisense_response(%{code: code} = response, {:format, original_code}) do
+    delta =
+      if code do
+        original_code
+        |> Text.Delta.diff(code)
+        |> Text.Delta.to_compressed()
+      end
+
+    response
+    |> Map.delete(:code)
+    |> Map.put(:delta, delta)
   end
 
   defp process_intellisense_response(response, _request), do: response
@@ -2135,59 +1556,68 @@ defmodule LivebookWeb.SessionLive do
   defp autofocus_cell_id(%Notebook{sections: [%{cells: [%{id: id, source: ""}]}]}), do: id
   defp autofocus_cell_id(_notebook), do: nil
 
-  defp connect_runtime(socket) do
-    case Runtime.connect(socket.private.data.runtime) do
-      {:ok, runtime} ->
-        Session.set_runtime(socket.assigns.session.pid, runtime)
-        {:ok, socket}
-
-      {:error, message} ->
-        {:error, put_flash(socket, :error, "Failed to connect runtime - #{message}")}
+  defp confirm_setup_runtime(socket, reason) do
+    on_confirm = fn socket ->
+      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+      socket
     end
-  end
 
-  defp maybe_reconnect_runtime(%{private: %{data: data}} = socket) do
-    if Runtime.connected?(data.runtime) do
-      data.runtime
-      |> Runtime.duplicate()
-      |> Runtime.connect()
-      |> case do
-        {:ok, new_runtime} ->
-          Session.set_runtime(socket.assigns.session.pid, new_runtime)
-          {:ok, clear_flash(socket, :error)}
-
-        {:error, message} ->
-          {:error, put_flash(socket, :error, "Failed to connect runtime - #{message}")}
-      end
-    else
-      {:ok, socket}
-    end
+    confirm(socket, on_confirm,
+      title: "Setup runtime",
+      description: "#{reason} Do you want to connect and setup the current one?",
+      confirm_text: "Setup runtime",
+      confirm_icon: "play-line",
+      danger: false
+    )
   end
 
   defp starred_files(starred_notebooks) do
     for info <- starred_notebooks, into: MapSet.new(), do: info.file
   end
 
-  defp code_block_definition_by_name(data, name) do
+  defp example_snippet_definition_by_name(data, name) do
     data.runtime
-    |> Livebook.Runtime.code_block_definitions()
-    |> Enum.find_value(:error, &(&1.name == name && {:ok, &1}))
+    |> Runtime.snippet_definitions()
+    |> Enum.find_value(:error, &(&1.type == :example && &1.name == name && {:ok, &1}))
   end
 
   defp smart_cell_definition_by_kind(data, kind) do
     Enum.find_value(data.smart_cell_definitions, :error, &(&1.kind == kind && {:ok, &1}))
   end
 
+  defp ensure_packages_then(socket, packages, target_name, target_type, fun) do
+    dependencies = Enum.map(packages, & &1.dependency)
+
+    has_dependencies? =
+      dependencies == [] or
+        Runtime.has_dependencies?(socket.private.data.runtime, dependencies)
+
+    cond do
+      has_dependencies? ->
+        case fun.(socket) do
+          {:ok, socket} -> socket
+          :error -> socket
+        end
+
+      Runtime.fixed_dependencies?(socket.private.data.runtime) ->
+        put_flash(socket, :error, "This runtime doesn't support adding dependencies")
+
+      true ->
+        on_confirm = fn socket ->
+          case fun.(socket) do
+            {:ok, socket} -> add_dependencies_and_reevaluate(socket, dependencies)
+            :error -> socket
+          end
+        end
+
+        confirm_add_packages(socket, on_confirm, packages, target_name, target_type)
+    end
+  end
+
   defp add_dependencies_and_reevaluate(socket, dependencies) do
     Session.add_dependencies(socket.assigns.session.pid, dependencies)
-
-    {status, socket} = maybe_reconnect_runtime(socket)
-
-    if status == :ok do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
-      Session.queue_cells_reevaluation(socket.assigns.session.pid)
-    end
-
+    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+    Session.queue_cells_reevaluation(socket.assigns.session.pid)
     socket
   end
 
@@ -2210,24 +1640,6 @@ defmodule LivebookWeb.SessionLive do
       confirm_icon: "add-line",
       danger: false
     )
-  end
-
-  defp insert_code_block_below(socket, variant, section_id, cell_id) do
-    with {:ok, section, index} <-
-           section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
-      attrs = %{source: variant.source}
-      Session.insert_cell(socket.assigns.session.pid, section.id, index, :code, attrs)
-      :ok
-    end
-  end
-
-  defp insert_smart_cell_below(socket, definition, section_id, cell_id) do
-    with {:ok, section, index} <-
-           section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
-      attrs = %{kind: definition.kind}
-      Session.insert_cell(socket.assigns.session.pid, section.id, index, :smart, attrs)
-      :ok
-    end
   end
 
   defp push_cell_editor_payloads(socket, data, cells, tags \\ :all) do
@@ -2294,8 +1706,59 @@ defmodule LivebookWeb.SessionLive do
   defp doctest_report_payload(doctest_report) do
     Map.replace_lazy(doctest_report, :details, fn details ->
       details
-      |> LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines()
-      |> Enum.map(&Phoenix.HTML.safe_to_string/1)
+      |> LivebookWeb.ANSIHelpers.ansi_string_to_html()
+      |> Phoenix.HTML.safe_to_string()
+    end)
+  end
+
+  defp find_file_entry(socket, name) do
+    Enum.find(socket.private.data.notebook.file_entries, &(&1.name == name))
+  end
+
+  defp handlers_for_file_entry(file_entry, runtime) do
+    handlers =
+      for definition <- Runtime.snippet_definitions(runtime),
+          definition.type == :file_action,
+          do: %{definition: definition, cell_type: :code}
+
+    handlers =
+      if file_entry.type == :attachment do
+        [
+          %{
+            cell_type: :markdown,
+            definition: %{
+              type: :file_action,
+              description: "Insert as Markdown image",
+              source: "![](files/{{NAME}})",
+              file_types: ["image/*"],
+              packages: []
+            }
+          }
+          | handlers
+        ]
+      else
+        handlers
+      end
+
+    handlers
+    |> Enum.filter(&matches_file_types?(file_entry.name, &1.definition.file_types))
+    |> Enum.sort_by(& &1.definition.description)
+  end
+
+  defp matches_file_types?(_name, :any), do: true
+
+  defp matches_file_types?(name, file_types) do
+    mime_type = MIME.from_path(name)
+    extension = Path.extname(name)
+
+    Enum.any?(file_types, fn file_type ->
+      case String.split(file_type, "/") do
+        [group, "*"] ->
+          String.starts_with?(mime_type, group <> "/")
+
+        _ ->
+          file_type == mime_type or file_type == extension
+      end
     end)
   end
 
@@ -2315,8 +1778,16 @@ defmodule LivebookWeb.SessionLive do
       dirty: data.dirty,
       persistence_warnings: data.persistence_warnings,
       runtime: data.runtime,
-      smart_cell_definitions: data.smart_cell_definitions,
-      code_block_definitions: Livebook.Runtime.code_block_definitions(data.runtime),
+      runtime_metadata: Runtime.describe(data.runtime),
+      runtime_status: data.runtime_status,
+      runtime_connect_info: data.runtime_connect_info,
+      runtime_connected_nodes: Enum.sort(data.runtime_connected_nodes),
+      smart_cell_definitions: Enum.sort_by(data.smart_cell_definitions, & &1.name),
+      example_snippet_definitions:
+        data.runtime
+        |> Runtime.snippet_definitions()
+        |> Enum.filter(&(&1.type == :example))
+        |> Enum.sort_by(& &1.name),
       global_status: global_status(data),
       notebook_name: data.notebook.name,
       sections_items:
@@ -2325,13 +1796,14 @@ defmodule LivebookWeb.SessionLive do
             id: section.id,
             name: section.name,
             parent: parent_section_view(section.parent_id, data),
-            status: cells_status(section.cells, data)
+            status: cells_status(section.cells, data),
+            identifier_definitions: cells_identifier_definitions(section.cells, data)
           }
         end,
       clients:
         data.clients_map
         |> Enum.map(fn {client_id, user_id} -> {client_id, data.users_map[user_id]} end)
-        |> Enum.sort_by(fn {_client_id, user} -> user.name end),
+        |> Enum.sort_by(fn {_client_id, user} -> user.name || "Anonymous" end),
       installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
       setup_cell_view: %{
         cell_to_view(hd(data.notebook.setup_section.cells), data, changed_input_ids)
@@ -2347,7 +1819,8 @@ defmodule LivebookWeb.SessionLive do
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
       quarantine_file_entry_names: data.notebook.quarantine_file_entry_names,
       app_settings: data.notebook.app_settings,
-      deployed_app_slug: data.deployed_app_slug
+      deployed_app_slug: data.deployed_app_slug,
+      deployment_group_id: data.notebook.deployment_group_id
     }
   end
 
@@ -2381,6 +1854,14 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp cells_identifier_definitions(cells, data) do
+    for %Cell.Code{} = cell <- cells,
+        Cell.evaluable?(cell),
+        info = data.cell_infos[cell.id].eval,
+        definition <- info.identifier_definitions,
+        do: definition
+  end
+
   defp global_status(data) do
     cells =
       data.notebook
@@ -2393,7 +1874,7 @@ defmodule LivebookWeb.SessionLive do
   defp section_views(sections, data, changed_input_ids) do
     sections
     |> Enum.map(& &1.name)
-    |> names_to_html_ids()
+    |> LivebookWeb.HTMLHelpers.names_to_html_ids()
     |> Enum.zip(sections)
     |> Enum.map(fn {html_id, section} ->
       %{
@@ -2454,7 +1935,8 @@ defmodule LivebookWeb.SessionLive do
           %{
             empty: cell.editor.source == "",
             language: cell.editor.language,
-            placement: cell.editor.placement
+            placement: cell.editor.placement,
+            visible: cell.editor.visible
           }
     }
   end
@@ -2489,8 +1971,8 @@ defmodule LivebookWeb.SessionLive do
   defp input_views_for_cell(cell, data, changed_input_ids) do
     input_ids =
       for output <- cell.outputs,
-          attrs <- Cell.find_inputs_in_output(output),
-          do: attrs.id
+          input <- Cell.find_inputs_in_output(output),
+          do: input.id
 
     data.input_infos
     |> Map.take(input_ids)
@@ -2498,9 +1980,6 @@ defmodule LivebookWeb.SessionLive do
       {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
     end)
   end
-
-  def app_status(%{sessions: [app_session | _]}), do: app_session.app_status
-  def app_status(_), do: nil
 
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
@@ -2510,37 +1989,16 @@ defmodule LivebookWeb.SessionLive do
       {:report_cell_revision, _client_id, _cell_id, _tag, _revision} ->
         data_view
 
-      {:apply_cell_delta, _client_id, _cell_id, _tag, _delta, _revision} ->
+      {:apply_cell_delta, _client_id, _cell_id, _tag, _delta, _selection, _revision} ->
         update_dirty_status(data_view, data)
 
       {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _chunks} ->
         update_dirty_status(data_view, data)
 
-      # For outputs that update existing outputs we send the update directly
-      # to the corresponding component, so the DOM patch is isolated and fast.
-      # This is important for intensive output updates
-      {:add_cell_evaluation_output, _client_id, _cell_id,
-       {:frame, _outputs, %{type: type, ref: ref}}}
-      when type != :default ->
-        for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
-          send_update(LivebookWeb.Output.FrameComponent,
-            id: "output-#{idx}",
-            outputs: frame_outputs,
-            update_type: type
-          )
-        end
-
-        data_view
-
-      {:add_cell_evaluation_output, _client_id, cell_id, {:stdout, text}} ->
-        # Lookup in previous data to see if the output is already there
-        case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
-          {:ok, %{outputs: [{idx, {:stdout, _}} | _]}, _section} ->
-            send_update(LivebookWeb.Output.StdoutComponent, id: "output-#{idx}", text: text)
-            data_view
-
-          _ ->
-            data_to_view(data)
+      {:add_cell_evaluation_output, _client_id, cell_id, output} ->
+        case send_output_update(prev_data, data, cell_id, output) do
+          :ok -> data_view
+          :continue -> data_to_view(data)
         end
 
       {:add_cell_doctest_report, _client_id, _cell_id, _doctest_report} ->
@@ -2549,6 +2007,70 @@ defmodule LivebookWeb.SessionLive do
       _ ->
         data_to_view(data)
     end
+  end
+
+  # For outputs that update existing outputs we send the update directly
+  # to the corresponding component, so the DOM patch is isolated and fast.
+  # This is important for intensive output updates
+  def send_output_update(prev_data, data, _cell_id, %{type: :frame_update} = output) do
+    %{ref: ref, update: {update_type, new_outputs}} = output
+
+    changed_input_ids = Session.Data.changed_input_ids(data)
+
+    # Lookup in previous data to see if there is a chunked output,
+    # and if so, send the chunk update directly to its component
+    with :append <- update_type,
+         [{{_idx, frame}, _cell} | _] <- Notebook.find_frame_outputs(prev_data.notebook, ref),
+         %{outputs: [{idx, %{type: type, chunk: true}} | _]} <- frame do
+      new_outputs
+      |> Enum.reverse()
+      |> Enum.take_while(&match?(%{type: ^type, chunk: true}, &1))
+      |> Enum.each(fn output ->
+        send_chunk_output_update(idx, output)
+      end)
+    end
+
+    for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
+      # Note that we are not updating data_view to avoid re-render,
+      # but any change that causes frame to re-render will update
+      # data_view first
+      input_views = input_views_for_cell(cell, data, changed_input_ids)
+
+      send_update(LivebookWeb.Output.FrameComponent,
+        id: "outputs-#{idx}-output",
+        event: {:update, update_type, frame.outputs, input_views}
+      )
+    end
+
+    :ok
+  end
+
+  def send_output_update(prev_data, _data, cell_id, %{type: type, chunk: true} = output)
+      when type in [:terminal_text, :plain_text, :markdown] do
+    # Lookup in previous data to see if the output is already there
+    case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
+      {:ok, %{outputs: [{idx, %{type: ^type, chunk: true}} | _]}, _section} ->
+        send_chunk_output_update(idx, output)
+        :ok
+
+      _ ->
+        :continue
+    end
+  end
+
+  def send_output_update(_prev_data, _data, _cell_id, _output) do
+    :continue
+  end
+
+  defp send_chunk_output_update(idx, output) do
+    module =
+      case output.type do
+        :terminal_text -> LivebookWeb.Output.TerminalTextComponent
+        :plain_text -> LivebookWeb.Output.PlainTextComponent
+        :markdown -> LivebookWeb.Output.MarkdownComponent
+      end
+
+    send_update(module, id: "outputs-#{idx}-output", event: {:append, output.text})
   end
 
   defp prune_outputs(%{private: %{data: data}} = socket) do
@@ -2594,31 +2116,14 @@ defmodule LivebookWeb.SessionLive do
     "#{notebook_name} - Livebook"
   end
 
-  defp memory_color(:atom), do: "bg-blue-500"
-  defp memory_color(:code), do: "bg-yellow-600"
-  defp memory_color(:processes), do: "bg-blue-700"
-  defp memory_color(:binary), do: "bg-green-500"
-  defp memory_color(:ets), do: "bg-red-500"
-  defp memory_color(:other), do: "bg-gray-400"
+  defp intellisense_node(%Cell.Smart{editor: %{intellisense_node: node_cookie}}), do: node_cookie
+  defp intellisense_node(_), do: nil
 
-  defp runtime_memory(%{runtime: memory}) do
-    memory
-    |> Map.drop([:total, :system])
-    |> Enum.map(fn {type, bytes} ->
-      {type,
-       %{
-         unit: format_bytes(bytes),
-         percentage: Float.round(bytes / memory.total * 100, 2),
-         value: bytes
-       }}
+  defp any_stale_cell?(data) do
+    data.notebook
+    |> Notebook.evaluable_cells_with_section()
+    |> Enum.any?(fn {cell, _section} ->
+      data.cell_infos[cell.id].eval.validity == :stale
     end)
   end
-
-  defp app_status_color(nil), do: "bg-gray-400"
-  defp app_status_color(%{lifecycle: :shutting_down}), do: "bg-gray-500"
-  defp app_status_color(%{lifecycle: :deactivated}), do: "bg-gray-500"
-  defp app_status_color(%{execution: :executing}), do: "bg-blue-500"
-  defp app_status_color(%{execution: :executed}), do: "bg-green-bright-400"
-  defp app_status_color(%{execution: :error}), do: "bg-red-400"
-  defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
 end

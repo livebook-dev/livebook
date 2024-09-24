@@ -21,7 +21,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     $x_{i} + y_{i}$
 
-    <!-- livebook:{"continue_on_error":true,"disable_formatting":true,"reevaluate_automatically":true} -->
+    <!-- livebook:{"continue_on_error":true,"reevaluate_automatically":true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -43,13 +43,13 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Process.info()
     ```
 
-    <!-- livebook:{"attrs":{"text":"My text"},"livebook_object":"smart_cell","kind":"text"} -->
+    <!-- livebook:{"attrs":"eyJ0ZXh0IjoiTXkgdGV4dCJ9","livebook_object":"smart_cell","kind":"text"} -->
 
     ```elixir
     IO.puts("My text")
     ```
 
-    <!-- livebook:{"attrs":{},"chunks":[[0,5],[7,5]],"kind":"multi_chunk","livebook_object":"smart_cell"} -->
+    <!-- livebook:{"attrs":"e30","chunks":[[0,5],[7,5]],"kind":"multi_chunk","livebook_object":"smart_cell"} -->
 
     ```elixir
     x = 1
@@ -84,7 +84,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      """
                    },
                    %Cell.Code{
-                     disable_formatting: true,
                      reevaluate_automatically: true,
                      continue_on_error: true,
                      source: """
@@ -246,7 +245,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert ["downgrading all headings, because 2 instances of heading 1 were found"] == messages
   end
 
-  test "preserves markdown modifiers in notebok/section names" do
+  test "preserves markdown modifiers in notebook/section names" do
     markdown = """
     # My *Notebook*
 
@@ -642,7 +641,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                        source: """
                        IO.puts("hey")\
                        """,
-                       outputs: [{0, {:text, ":ok"}}, {1, {:text, "hey"}}]
+                       outputs: [
+                         {0, terminal_text(":ok")},
+                         {1, terminal_text("hey")}
+                       ]
                      }
                    ]
                  }
@@ -746,7 +748,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   end
 
   test "imports notebook hub id when exists" do
-    %{id: hub_id} = Livebook.Factory.insert_hub(:team)
+    %{id: hub_id} = Livebook.HubHelpers.offline_hub()
 
     markdown = """
     <!-- livebook:{"hub_id":"#{hub_id}"} -->
@@ -768,8 +770,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
-    assert messages == ["ignoring notebook Hub with unknown id"]
     assert notebook.hub_id != "nonexistent"
+    assert ["this notebook belongs to an Organization you don't have access to" <> _] = messages
   end
 
   describe "app settings" do
@@ -809,6 +811,30 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       assert %Notebook{
                name: "My Notebook",
                app_settings: %{slug: "app", access_type: :protected}
+             } = notebook
+    end
+
+    test "imports password from stamp metadata" do
+      {markdown, []} =
+        %{
+          Notebook.new()
+          | name: "My Notebook",
+            app_settings: %{
+              Notebook.AppSettings.new()
+              | slug: "app",
+                access_type: :protected,
+                password: "verylongpass"
+            }
+        }
+        |> Livebook.LiveMarkdown.Export.notebook_to_livemd()
+
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               app_settings: %{
+                 access_type: :protected,
+                 password: "verylongpass"
+               }
              } = notebook
     end
   end
@@ -882,7 +908,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                        source: """
                        IO.puts("hey")\
                        """,
-                       outputs: [{0, {:text, ":ok"}}, {1, {:text, "hey"}}]
+                       outputs: [
+                         {0, terminal_text(":ok")},
+                         {1, terminal_text("hey")}
+                       ]
                      }
                    ]
                  }
@@ -907,6 +936,40 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       assert [
                "found Markdown images pointing to the images/ directory. Using this directory has been deprecated, please use notebook files instead"
              ] == messages
+    end
+
+    test "imports smart cell attributes as map" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      <!-- livebook:{"attrs":{"text":"My text"},"livebook_object":"smart_cell","kind":"text"} -->
+
+      ```elixir
+      IO.puts("My text")
+      ```
+      """
+
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               sections: [
+                 %Notebook.Section{
+                   name: "Section 1",
+                   cells: [
+                     %Cell.Smart{
+                       source: """
+                       IO.puts("My text")\
+                       """,
+                       attrs: %{"text" => "My text"},
+                       kind: "text"
+                     }
+                   ]
+                 }
+               ]
+             } = notebook
     end
   end
 
@@ -1117,10 +1180,28 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
+      <!-- livebook:{"offset":58,"stamp":{"token":"XCP.XcdH6x1x9B90SIKObuM8NWuEN7Tg2nyGWV3YhYtw6M0h8c4K0N5EFa8krthkrIqdIj6aEpUcsbEm4klRkSIh_W2YV1PXuMRQA0vCYU042IVFDbz1gq4","version":2}} -->
+      """
+
+      {notebook, %{warnings: [], stamp_verified?: true}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{hub_secret_names: ["DB_PASSWORD"]} = notebook
+    end
+
+    test "restores hub secret names from notebook stamp using personal hub v1 stamp" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
       <!-- livebook:{"offset":58,"stamp":{"token":"QTEyOEdDTQ.LF8LTeMYrtq8S7wsKMmk2YgOQzMAkEKT2d8fq1Gz3Ot1mydOgEZ1B4hcEZc.Wec6NwBQ584kE661.a_N-5jDiWrjhHha9zxHQ6JJOmxeqgiya3m6YlKt1Na_DPnEfXyLnengaUzQSrf8.ZoD5r6-H87RpTyvFkvEOQw","version":1}} -->
       """
 
-      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: [], stamp_verified?: true}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_secret_names: ["DB_PASSWORD"]} = notebook
     end
@@ -1135,13 +1216,42 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
-      <!-- livebook:{"offset":58,"stamp":{"token":"invalid","version":1}} -->
+      <!-- livebook:{"offset":58,"stamp":{"token":"invalid","version":2}} -->
       """
 
-      {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: messages, stamp_verified?: false}} =
+        Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_secret_names: []} = notebook
-      assert messages == ["failed to verify notebook stamp"]
+
+      assert ["this notebook can only access environment variables defined in this machine" <> _] =
+               messages
+    end
+
+    test "treats stamp as invalid when there is additional content after offset" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      ```elixir
+      # This cell has been added after stamping
+      ```
+
+      <!-- livebook:{"offset":58,"stamp":{"token":"XCP.XcdH6x1x9B90SIKObuM8NWuEN7Tg2nyGWV3YhYtw6M0h8c4K0N5EFa8krthkrIqdIj6aEpUcsbEm4klRkSIh_W2YV1PXuMRQA0vCYU042IVFDbz1gq4","version":2}} -->
+      """
+
+      {notebook, %{warnings: [message], stamp_verified?: false}} =
+        Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{hub_secret_names: []} = notebook
+
+      assert message =~
+               "this notebook can only access environment variables defined in this machine"
     end
 
     test "restores hub secret names from notebook stamp using offline hub" do
@@ -1156,13 +1266,13 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
-      <!-- livebook:{"offset":111,"stamp":{"token":"QTEyOEdDTQ.VezIVId8jnwawq79Mrxfx-bCeatRPQhg6zRw4gHjfGC_SimS5WSbdETLVnc.IXXzTiDf3JRLiNGt.rtLJ97RxNYLeF_x-2AigBt_y0bYdlh30bnEKUO7FKfJL-9EB6EQOgr1WbdHTkw.rU1OsjOhfU48tE3s0GB6Ag","token_signature":"M_LZP7ssEdLiVqo8_bZYFtJYAzqV5wczQF1mUdaOZeTYoCYXeLA9VuEajMCOwiVgMjfG24Y4PHrnABGUj0bB74xgEMOLtb6Ark42pCJfGUDLXpB2azMnwY6VRXi1nBUTnb_-MajpJVF_MgWGuj0cxyQ4rlfBu2VK1FQn8JGopLKBD7LcICZ9wkLJw3H_lXGTbVxnS6tLcvJZQdLJccTe4edpdF-_uG-d1KqtJva50jZ9vevyxh6zUubl0k5JnA3SUaTpc7AEsqmAMx9qQsoR64P-VobSFTKuuOFrlQsq21OupPCRKmUBU-RKrBvHbc6Fa1eoQigEQom5droj9cASdw","version":1}} -->
+      <!-- livebook:{"offset":111,"stamp":{"token":"XCP.PgQjafbthVPSi0vQHsWBVoxWjs2V-IWPR4ADSbNGEuePE0uneqtT1rDJHKkJs9W__Q5cflYclSPEyIQwkGWw6IKHlLsy56PBDH2CiHvvy5GfVEpq0vA","token_signature":"KPp0SdwSfEFubAml93UnBH06Yvd4OKULmtF4FmxZ_iE9qR_o2OwCiMQH_MX7A6yTiXeKCrwlZEV-8m6AhX-t6FXc177m8RL5FmXVqrRZw57V7FuxrGacZjYDCTwpGhBQmIAynhfDt6nVmeQyof8bsiW3sskii9171Fa_XFAoSqJqC1J_o2MFRk16o607N-xwTadGsCVyYSl4FUhmEXraOr0krIEe8bdSQOcpXxaDmRJNAUAJkJd3LRJDt8ZkwgmMm4UJopWozQIk2fZGfSO-cepEHoy9HlrgBGWuNL7_J6z7nLxB4p_vF_mOX7fMhIOfzVRxqmzUmzlXZkEPcKhhgQ","version":1}} -->
       """
 
-      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: [], stamp_verified?: true}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
-               hub_id: "personal-hub",
+               hub_id: "team-org-number-3079",
                hub_secret_names: ["DB_PASSWORD"],
                teams_enabled: true
              } = notebook
@@ -1183,14 +1293,15 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"offset":58,"stamp":{"token":"invalid","token_signature":"invalid","version":1}} -->
       """
 
-      {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: messages, stamp_verified?: false}} =
+        Import.notebook_from_livemd(markdown)
 
-      assert %Notebook{hub_id: "personal-hub", teams_enabled: false} = notebook
-      assert messages == ["failed to verify notebook stamp"]
+      assert %Notebook{hub_id: "team-org-number-3079", teams_enabled: false} = notebook
+      assert ["invalid notebook stamp" <> _] = messages
     end
 
     test "sets :teams_enabled to true when the teams hub exist regardless the stamp" do
-      %{id: hub_id} = Livebook.Factory.insert_hub(:team)
+      %{id: hub_id} = hub = Livebook.Factory.insert_fake_online_hub()
 
       markdown = """
       <!-- livebook:{"hub_id":"#{hub_id}"} -->
@@ -1206,16 +1317,18 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"offset":58,"stamp":{"token":"invalid","token_signature":"invalid","version":1}} -->
       """
 
-      {notebook, %{warnings: [_]}} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: [_], stamp_verified?: false}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_id: ^hub_id, teams_enabled: true} = notebook
+
+      Livebook.Hubs.delete_hub(hub.id)
     end
   end
 
   describe "file entries" do
     test "imports file entries" do
       markdown = """
-      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
+      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","file_system_type":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
 
       # My Notebook
       """
@@ -1229,7 +1342,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/document.pdf")
                    }
                  },
@@ -1238,23 +1351,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              } = notebook
     end
 
-    test "skips file entries from unknown file system" do
-      markdown = """
-      <!-- livebook:{"file_entries":[{"file":{"file_system_id":"s3-nonexistent","path":"/document.pdf"},"name":"document.pdf","type":"file"}]} -->
-
-      # My Notebook
-      """
-
-      {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
-
-      assert %Notebook{file_entries: []} = notebook
-
-      assert messages == ["skipping file document.pdf, since it points to an unknown file system"]
-    end
-
     test "imports :file file entries with quarantine when no stamp is given" do
       markdown = """
-      <!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"}]} -->
+      <!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","file_system_type":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"}]} -->
 
       # My Notebook
       """
@@ -1267,7 +1366,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/document.pdf")
                    }
                  }
@@ -1294,7 +1393,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # Change file path in the document
       markdown = String.replace(markdown, p("/document.pdf"), p("/other.pdf"))
 
-      {notebook, _} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: _}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                file_entries: [
@@ -1302,7 +1401,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/other.pdf")
                    }
                  }
@@ -1335,7 +1434,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document2.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/document.pdf")
                    }
                  },
@@ -1343,7 +1442,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document1.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/document.pdf")
                    }
                  }

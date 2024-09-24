@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Dependencies do
-  @moduledoc false
-
   @doc """
   Adds the given list of dependencies to the setup code.
   """
@@ -182,8 +180,8 @@ defmodule Livebook.Runtime.Dependencies do
       iex> Livebook.Runtime.Dependencies.parse_term(~s|{:jason, "~> 1.3.0"}|)
       {:ok, {:jason, "~> 1.3.0"}}
 
-      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:jason, "~> 1.3.0", runtime: false, meta: 'data'}|)
-      {:ok, {:jason, "~> 1.3.0", runtime: false, meta: 'data'}}
+      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:jason, "~> 1.3.0", runtime: false, meta: "data"}|)
+      {:ok, {:jason, "~> 1.3.0", runtime: false, meta: "data"}}
 
       iex> Livebook.Runtime.Dependencies.parse_term(~s|%{name: "Jake", numbers: [1, 2, 3.4]}|)
       {:ok, %{name: "Jake", numbers: [1, 2, 3.4]}}
@@ -255,7 +253,7 @@ defmodule Livebook.Runtime.Dependencies do
   through the given list of packages.
   """
   @spec search_packages_in_list(
-          list(Livebook.Runtime.package()),
+          list(Livebook.Runtime.package_details()),
           pid(),
           String.t()
         ) :: reference()
@@ -286,7 +284,7 @@ defmodule Livebook.Runtime.Dependencies do
     url = api_url <> "/packages?" <> URI.encode_query(params)
 
     case Livebook.Utils.HTTP.request(:get, url) do
-      {:ok, status, _headers, body} ->
+      {:ok, %{status: status, body: body}} ->
         with 200 <- status, {:ok, packages} <- Jason.decode(body) do
           packages =
             packages

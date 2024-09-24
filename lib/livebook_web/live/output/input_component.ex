@@ -12,7 +12,7 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   def update(assigns, socket) do
-    %{value: value, changed: changed} = assigns.input_views[assigns.attrs.id]
+    %{value: value, changed: changed} = assigns.input_views[assigns.input.id]
 
     socket =
       socket
@@ -23,51 +23,20 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   @impl true
-  def render(%{attrs: %{type: :image}} = assigns) do
+  def render(assigns) when assigns.input.attrs.type == :image do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.input_label label={@attrs.label} changed={@changed} />
+      <.input_label label={@input.attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.ImageInputComponent}
         id={"#{@id}-input"}
         input_component_id={@id}
         value={@value}
-        height={@attrs.size && elem(@attrs.size, 0)}
-        width={@attrs.size && elem(@attrs.size, 1)}
-        format={@attrs.format}
-        fit={@attrs.fit}
-      />
-    </div>
-    """
-  end
-
-  def render(%{attrs: %{type: :audio}} = assigns) do
-    ~H"""
-    <div id={"#{@id}-form-#{@counter}"}>
-      <.input_label label={@attrs.label} changed={@changed} />
-      <.live_component
-        module={LivebookWeb.Output.AudioInputComponent}
-        id={"#{@id}-input"}
-        input_component_id={@id}
-        value={@value}
-        format={@attrs.format}
-        sampling_rate={@attrs.sampling_rate}
-      />
-    </div>
-    """
-  end
-
-  def render(%{attrs: %{type: :file}} = assigns) do
-    ~H"""
-    <div id={"#{@id}-form-#{@counter}"}>
-      <.input_label label={@attrs.label} changed={@changed} />
-      <.live_component
-        module={LivebookWeb.Output.FileInputComponent}
-        id={"#{@id}-input"}
-        input_component_id={@id}
-        value={@value}
-        accept={@attrs.accept}
-        input_id={@attrs.id}
+        height={@input.attrs.size && elem(@input.attrs.size, 0)}
+        width={@input.attrs.size && elem(@input.attrs.size, 1)}
+        format={@input.attrs.format}
+        fit={@input.attrs.fit}
+        input_id={@input.id}
         session_pid={@session_pid}
         client_id={@client_id}
         local={@local}
@@ -76,54 +45,98 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  def render(%{attrs: %{type: :utc_datetime}} = assigns) do
+  def render(assigns) when assigns.input.attrs.type == :audio do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.input_label
-        label={@attrs.label}
-        changed={@changed}
-        help="Choose the time in your local time zone"
-      />
-      <input
-        id={@id}
-        type="datetime-local"
-        data-el-input
-        class="input w-auto invalid:input--error"
-        name="html_value"
-        step="60"
-        autocomplete="off"
-        phx-hook="UtcDateTimeInput"
-        data-utc-value={@value && NaiveDateTime.to_iso8601(@value)}
-        data-utc-min={@attrs.min && NaiveDateTime.to_iso8601(@attrs.min)}
-        data-utc-max={@attrs.max && NaiveDateTime.to_iso8601(@attrs.max)}
-        data-phx-target={@myself}
+      <.input_label label={@input.attrs.label} changed={@changed} />
+      <.live_component
+        module={LivebookWeb.Output.AudioInputComponent}
+        id={"#{@id}-input"}
+        input_component_id={@id}
+        value={@value}
+        format={@input.attrs.format}
+        sampling_rate={@input.attrs.sampling_rate}
+        input_id={@input.id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+        local={@local}
       />
     </div>
     """
   end
 
-  def render(%{attrs: %{type: :utc_time}} = assigns) do
+  def render(assigns) when assigns.input.attrs.type == :file do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <.input_label label={@input.attrs.label} changed={@changed} />
+      <.live_component
+        module={LivebookWeb.Output.FileInputComponent}
+        id={"#{@id}-input"}
+        input_component_id={@id}
+        value={@value}
+        accept={@input.attrs.accept}
+        input_id={@input.id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+        local={@local}
+      />
+    </div>
+    """
+  end
+
+  def render(assigns) when assigns.input.attrs.type == :utc_datetime do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
       <.input_label
-        label={@attrs.label}
+        label={@input.attrs.label}
         changed={@changed}
         help="Choose the time in your local time zone"
       />
-      <input
-        id={@id}
-        type="time"
-        data-el-input
-        class="input w-auto invalid:input--error"
-        name="html_value"
-        step="60"
-        autocomplete="off"
-        phx-hook="UtcTimeInput"
-        data-utc-value={@value && Time.to_iso8601(@value)}
-        data-utc-min={@attrs.min && Time.to_iso8601(@attrs.min)}
-        data-utc-max={@attrs.max && Time.to_iso8601(@attrs.max)}
-        data-phx-target={@myself}
+      <div class="inline-flex">
+        <.text_field
+          class="w-auto"
+          id={@id}
+          type="datetime-local"
+          data-el-input
+          name="html_value"
+          step="60"
+          autocomplete="off"
+          phx-hook="UtcDateTimeInput"
+          value={nil}
+          data-p-utc-value={hook_prop(@value && NaiveDateTime.to_iso8601(@value))}
+          data-p-utc-min={hook_prop(@input.attrs.min && NaiveDateTime.to_iso8601(@input.attrs.min))}
+          data-p-utc-max={hook_prop(@input.attrs.max && NaiveDateTime.to_iso8601(@input.attrs.max))}
+          data-p-phx-target={hook_prop(@myself)}
+        />
+      </div>
+    </div>
+    """
+  end
+
+  def render(assigns) when assigns.input.attrs.type == :utc_time do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <.input_label
+        label={@input.attrs.label}
+        changed={@changed}
+        help="Choose the time in your local time zone"
       />
+      <div class="inline-flex">
+        <.text_field
+          id={@id}
+          type="time"
+          data-el-input
+          name="html_value"
+          step="60"
+          autocomplete="off"
+          phx-hook="UtcTimeInput"
+          value={nil}
+          data-p-utc-value={hook_prop(@value && Time.to_iso8601(@value))}
+          data-p-utc-min={hook_prop(@input.attrs.min && Time.to_iso8601(@input.attrs.min))}
+          data-p-utc-max={hook_prop(@input.attrs.max && Time.to_iso8601(@input.attrs.max))}
+          data-p-phx-target={hook_prop(@myself)}
+        />
+      </div>
     </div>
     """
   end
@@ -131,23 +144,23 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(assigns) do
     ~H"""
     <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
-      <.input_label label={@attrs.label} changed={@changed} />
-      <.input_output id={"#{@id}-input"} attrs={@attrs} value={@value} myself={@myself} />
+      <.input_label label={@input.attrs.label} changed={@changed} />
+      <.input_output id={"#{@id}-input"} attrs={@input.attrs} value={@value} myself={@myself} />
     </form>
     """
   end
 
   defp input_output(%{attrs: %{type: :select}} = assigns) do
     ~H"""
-    <select data-el-input class="input w-60" name="html_value">
-      <option
-        :for={{{key, label}, idx} <- Enum.with_index(@attrs.options)}
-        value={idx}
-        selected={@value == key}
-      >
-        <%= label %>
-      </option>
-    </select>
+    <div class="w-60">
+      <.select_field
+        id={@id}
+        name="html_value"
+        value={Enum.find_index(@attrs.options, fn {key, _label} -> key == @value end)}
+        options={Enum.with_index(@attrs.options, fn {_key, label}, idx -> {label, idx} end)}
+        data-el-input
+      />
+    </div>
     """
   end
 
@@ -166,10 +179,11 @@ defmodule LivebookWeb.Output.InputComponent do
       <input
         type="range"
         data-el-input
-        class="input-range"
+        class="range-input"
+        id={@id}
         name="html_value"
         value={@value}
-        phx-debounce="blur"
+        phx-debounce={@attrs.debounce}
         phx-target={@myself}
         spellcheck="false"
         autocomplete="off"
@@ -184,75 +198,99 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp input_output(%{attrs: %{type: :textarea}} = assigns) do
     ~H"""
-    <textarea
+    <.textarea_field
       id={@id}
+      class="min-h-[38px] max-h-[300px]"
+      monospace={@attrs.monospace}
       data-el-input
-      class={["input min-h-[38px] max-h-[300px] tiny-scrollbar", @attrs[:monospace] && "font-mono"]}
       name="html_value"
+      value={@value}
       phx-hook="TextareaAutosize"
-      phx-debounce="blur"
+      phx-debounce={@attrs.debounce}
       phx-target={@myself}
       spellcheck="false"
-    ><%= [?\n, @value] %></textarea>
+    />
     """
   end
 
   defp input_output(%{attrs: %{type: :password}} = assigns) do
     ~H"""
-    <.with_password_toggle id={"#{@id}-password-toggle"}>
-      <input
-        type="password"
+    <div class="inline-flex">
+      <.password_field
+        id={@id}
         data-el-input
-        class="input w-auto bg-gray-50"
         name="html_value"
         value={@value}
-        phx-debounce="blur"
+        phx-debounce={@attrs.debounce}
         phx-target={@myself}
         spellcheck="false"
         autocomplete="off"
       />
-    </.with_password_toggle>
+    </div>
     """
   end
 
   defp input_output(%{attrs: %{type: :date}} = assigns) do
     ~H"""
-    <input
-      type="date"
-      data-el-input
-      class="input w-auto invalid:input--error"
-      name="html_value"
-      value={@value}
-      phx-debounce="blur"
-      phx-target={@myself}
-      min={@attrs.min}
-      max={@attrs.max}
-      autocomplete="off"
-    />
+    <div class="inline-flex">
+      <.text_field
+        type="date"
+        data-el-input
+        id={@id}
+        name="html_value"
+        value={@value}
+        phx-debounce="blur"
+        phx-target={@myself}
+        min={@attrs.min}
+        max={@attrs.max}
+        autocomplete="off"
+      />
+    </div>
+    """
+  end
+
+  defp input_output(%{attrs: %{type: :color}} = assigns) do
+    ~H"""
+    <div class="w-16">
+      <.text_field
+        type="color"
+        class="h-12"
+        data-el-input
+        id={@id}
+        name="html_value"
+        value={to_string(@value)}
+        phx-debounce={@attrs.debounce}
+        phx-target={@myself}
+        spellcheck="false"
+        autocomplete="off"
+      />
+    </div>
     """
   end
 
   defp input_output(%{attrs: %{type: type}} = assigns)
-       when type in [:number, :color, :url, :text] do
+       when type in [:number, :url, :text] do
     ~H"""
-    <input
-      type={html_input_type(@attrs.type)}
-      data-el-input
-      class="input w-auto invalid:input--error"
-      name="html_value"
-      value={to_string(@value)}
-      phx-debounce="blur"
-      phx-target={@myself}
-      spellcheck="false"
-      autocomplete="off"
-    />
+    <div class="inline-flex">
+      <.text_field
+        type={html_input_type(@attrs.type)}
+        data-el-input
+        id={@id}
+        name="html_value"
+        value={to_string(@value)}
+        phx-debounce={@attrs.debounce}
+        phx-target={@myself}
+        spellcheck="false"
+        autocomplete="off"
+      />
+    </div>
     """
   end
 
   defp input_output(assigns) do
     ~H"""
     <div class="text-red-600">
-      Unknown input type <%= @attrs.type %>
+      Unknown input type <%= @input.attrs.type %>
     </div>
     """
   end
@@ -266,11 +304,7 @@ defmodule LivebookWeb.Output.InputComponent do
     <.label help={@help}>
       <div class="flex items-center justify-between gap-1">
         <span><%= @label %></span>
-        <span
-          :if={@changed}
-          class="cursor-pointer tooltip top"
-          data-tooltip="This input has changed since it was last processed."
-        >
+        <span :if={@changed} class="cursor-pointer tooltip top" data-tooltip="This input has changed.">
           <.remix_icon icon="error-warning-line text-gray-500" />
         </span>
       </div>
@@ -279,13 +313,12 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp html_input_type(:number), do: "number"
-  defp html_input_type(:color), do: "color"
   defp html_input_type(:url), do: "url"
   defp html_input_type(:text), do: "text"
 
   @impl true
   def handle_event("change", %{"html_value" => html_value}, socket) do
-    case parse(html_value, socket.assigns.attrs) do
+    case parse(html_value, socket.assigns.input.attrs) do
       {:ok, value} ->
         {:noreply, handle_change(socket, value)}
 
@@ -296,10 +329,10 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   def handle_event("submit", %{"html_value" => html_value}, socket) do
-    case parse(html_value, socket.assigns.attrs) do
+    case parse(html_value, socket.assigns.input.attrs) do
       {:ok, value} ->
         socket = handle_change(socket, value)
-        send(self(), {:queue_bound_cells_evaluation, socket.assigns.attrs.id})
+        send(self(), {:queue_bound_cells_evaluation, socket.assigns.input.id})
         {:noreply, socket}
 
       :error ->
@@ -320,7 +353,7 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp report_change(%{assigns: assigns} = socket) do
-    send(self(), {:set_input_values, [{assigns.attrs.id, assigns.value}], assigns.local})
+    send(self(), {:set_input_values, [{assigns.input.id, assigns.value}], assigns.local})
 
     unless assigns.local do
       report_event(socket, assigns.value)
@@ -447,8 +480,8 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp report_event(socket, value) do
-    topic = socket.assigns.attrs.ref
+    topic = socket.assigns.input.ref
     event = %{value: value, origin: socket.assigns.client_id, type: :change}
-    send(socket.assigns.attrs.destination, {:event, topic, event})
+    send(socket.assigns.input.destination, {:event, topic, event})
   end
 end

@@ -73,7 +73,7 @@ defmodule LivebookWeb.HomeLiveTest do
         |> element(~s{[data-test-session-id="#{session.id}"] a}, "Download source")
         |> render_click
 
-      assert to == ~p"/sessions/#{session.id}/export/download/livemd?include_outputs=false"
+      assert to == ~p"/sessions/#{session.id}/download/export/livemd?include_outputs=false"
 
       Session.close(session.pid)
     end
@@ -99,7 +99,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "allows closing session after confirmation", %{conn: conn} do
-      {:ok, session} = Sessions.create_session()
+      {:ok, %{id: id} = session} = Sessions.create_session()
 
       {:ok, view, _} = live(conn, ~p"/")
 
@@ -109,15 +109,19 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element(~s{[data-test-session-id="#{session.id}"] button}, "Close")
       |> render_click()
 
+      Sessions.subscribe()
+
       render_confirm(view)
+
+      assert_receive {:session_closed, %{id: ^id}}
 
       refute render(view) =~ session.id
     end
 
     test "close all selected sessions using bulk action", %{conn: conn} do
-      {:ok, session1} = Sessions.create_session()
-      {:ok, session2} = Sessions.create_session()
-      {:ok, session3} = Sessions.create_session()
+      {:ok, %{id: id1} = session1} = Sessions.create_session()
+      {:ok, %{id: id2} = session2} = Sessions.create_session()
+      {:ok, %{id: id3} = session3} = Sessions.create_session()
 
       {:ok, view, _} = live(conn, ~p"/")
 
@@ -134,7 +138,13 @@ defmodule LivebookWeb.HomeLiveTest do
 
       assert render(view) =~ "Are you sure you want to close 3 sessions?"
 
+      Sessions.subscribe()
+
       render_confirm(view)
+
+      assert_receive {:session_closed, %{id: ^id1}}
+      assert_receive {:session_closed, %{id: ^id2}}
+      assert_receive {:session_closed, %{id: ^id3}}
 
       refute render(view) =~ session1.id
       refute render(view) =~ session2.id
@@ -205,20 +215,13 @@ defmodule LivebookWeb.HomeLiveTest do
   end
 
   describe "hubs" do
-    test "renders sidebar section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "HUBS"
-      assert html =~ "Add Teams"
-    end
+    test "renders persisted hubs in the sidebar", %{conn: conn} do
+      team = Livebook.HubHelpers.offline_hub()
 
-    test "renders sidebar persisted hubs", %{conn: conn} do
-      team = insert_hub(:team, id: "team-foo-bar-id")
-
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "HUBS"
-      assert html =~ team.hub_name
-
-      Livebook.Hubs.delete_hub("team-foo-bar-id")
+      {:ok, view, _} = live(conn, ~p"/")
+      assert render(view) =~ "WORKSPACES"
+      assert render(view) =~ team.hub_name
+      assert render(view) =~ "Add Organization"
     end
   end
 

@@ -1,8 +1,12 @@
+if System.otp_release() < "25" do
+  Mix.raise("Livebook requires Erlang/OTP 25+")
+end
+
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @elixir_requirement "~> 1.14.2 or ~> 1.15-dev"
-  @version "0.11.0-dev"
+  @elixir_requirement "~> 1.16"
+  @version "0.15.0-dev"
   @description "Automate code & data workflows with interactive notebooks"
 
   def project do
@@ -20,7 +24,11 @@ defmodule Livebook.MixProject do
       escript: escript(),
       package: package(),
       default_release: :livebook,
-      releases: releases()
+      releases: releases(),
+
+      # Docs
+      homepage_url: "https://livebook.dev",
+      docs: &docs/0
     ]
   end
 
@@ -57,9 +65,9 @@ defmodule Livebook.MixProject do
 
   defp aliases do
     [
-      setup: ["deps.get", "cmd npm install --prefix assets"],
+      setup: ["deps.get", "cmd --cd assets npm install"],
       "assets.deploy": ["cmd npm run deploy --prefix assets"],
-      "format.all": ["format", "cmd npm run format --prefix assets"],
+      "format.all": ["format", "cmd --cd assets npm run format"],
       "protobuf.generate": ["cmd --cd proto mix protobuf.generate"]
     ]
   end
@@ -67,7 +75,8 @@ defmodule Livebook.MixProject do
   defp escript do
     [
       main_module: LivebookCLI,
-      app: nil
+      app: nil,
+      emu_args: "-epmd_module Elixir.Livebook.EPMD"
     ]
   end
 
@@ -90,27 +99,34 @@ defmodule Livebook.MixProject do
   #
   defp deps do
     [
-      {:phoenix, "~> 1.7.0"},
-      {:phoenix_html, "~> 3.0"},
-      {:phoenix_live_view, "~> 0.19.0"},
-      {:phoenix_live_dashboard, "~> 0.8.0"},
-      {:telemetry_metrics, "~> 0.4"},
+      {:phoenix, "~> 1.7.8"},
+      {:phoenix_live_view, "~> 1.0.0-rc.0"},
+      {:phoenix_html, "~> 4.0"},
+      {:phoenix_live_dashboard, "~> 0.8.4-rc.0"},
+      {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"},
+      {:bandit, "~> 1.0"},
+      {:plug, "~> 1.16"},
+      {:plug_crypto, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
-      {:castore, "~> 1.0"},
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
+      {:aws_credentials, "~> 0.3.0", runtime: false},
       {:aws_signature, "~> 0.3.0"},
       {:mint_web_socket, "~> 1.0.0"},
-      {:protobuf, "~> 0.8.0"},
+      {:protobuf, "~> 0.12.0"},
+      {:dns_cluster, "~> 0.1.2"},
+      {:kubereq, "~> 0.2.0"},
+      {:yaml_elixir, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
       # ZTA deps
       {:jose, "~> 1.11.5"},
-      {:req, "~> 0.3.8"}
+      {:req, "~> 0.5.2"},
+      # Docs
+      {:ex_doc, "~> 0.30", only: :dev, runtime: false}
     ]
   end
 
@@ -118,7 +134,11 @@ defmodule Livebook.MixProject do
   defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
-              {:ok, quoted} <- Code.string_to_quoted(contents, warn_on_unnecessary_quotes: false),
+              {:ok, quoted} <-
+                Code.string_to_quoted(contents,
+                  warn_on_unnecessary_quotes: false,
+                  emit_warnings: false
+                ),
               {%{} = lock, _binding} <- Code.eval_quoted(quoted, []) do
            for {dep, hex} when elem(hex, 0) == :hex <- lock,
                do: {dep, elem(hex, 2)},
@@ -136,15 +156,20 @@ defmodule Livebook.MixProject do
 
   ## Releases
 
+  # aws_credentials has runtime: false, so explicitly add is as :load
+  @release_apps [livebook: :permanent, aws_credentials: :load]
+
   defp releases do
     [
       livebook: [
+        applications: @release_apps,
         include_executables_for: [:unix, :windows],
         include_erts: false,
         rel_templates_path: "rel/server",
-        steps: [:assemble, &remove_cookie/1]
+        steps: [:assemble, &remove_cookie/1, &write_runtime_modules/1]
       ],
       app: [
+        applications: @release_apps,
         include_erts: false,
         rel_templates_path: "rel/app",
         steps: [
@@ -157,7 +182,30 @@ defmodule Livebook.MixProject do
   end
 
   defp remove_cookie(release) do
+    # We remove the COOKIE file when assembling the release, because we
+    # don't want to share the same cookie across users.
+
     File.rm!(Path.join(release.path, "releases/COOKIE"))
+    release
+  end
+
+  defp write_runtime_modules(release) do
+    # We copy the subset of Livebook modules that are injected into
+    # the runtime node. See overlays/bin/server for more details
+
+    app = release.applications[:livebook]
+
+    source = Path.join([release.path, "lib", "livebook-#{app[:vsn]}", "ebin"])
+    destination = Path.join([release.path, "lib", "livebook_runtime_ebin"])
+
+    File.mkdir_p!(destination)
+
+    for module <- Livebook.Runtime.ErlDist.required_modules() do
+      from = Path.join(source, "#{module}.beam")
+      to = Path.join(destination, "#{module}.beam")
+      File.cp!(from, to)
+    end
+
     release
   end
 
@@ -175,5 +223,42 @@ defmodule Livebook.MixProject do
     |> Standalone.copy_elixir(elixir_version)
     |> Standalone.copy_hex()
     |> Standalone.copy_rebar3(rebar3_version)
+  end
+
+  defp docs() do
+    [
+      logo: "static/images/logo.png",
+      main: "readme",
+      api_reference: false,
+      extra_section: "Guides",
+      extras: extras(),
+      filter_modules: fn mod, _ -> mod in [Livebook] end,
+      assets: %{Path.expand("./docs/images") => "images"},
+      groups_for_extras: [
+        "Livebook Teams": Path.wildcard("docs/teams/*"),
+        Deployment: Path.wildcard("docs/deployment/*"),
+        Authentication: Path.wildcard("docs/authentication/*")
+      ]
+    ]
+  end
+
+  defp extras() do
+    [
+      {"README.md", title: "Welcome to Livebook"},
+      "docs/use_cases.md",
+      "docs/authentication.md",
+      "docs/deployment/docker.md",
+      "docs/deployment/clustering.md",
+      "docs/deployment/fips.md",
+      "docs/deployment/nginx_https.md",
+      "docs/teams/intro_to_teams.md",
+      "docs/teams/shared_secrets.md",
+      "docs/teams/shared_file_storages.md",
+      "docs/authentication/basic_auth.md",
+      "docs/authentication/cloudflare.md",
+      "docs/authentication/google_iap.md",
+      "docs/authentication/tailscale.md",
+      "docs/authentication/custom_auth.md"
+    ]
   end
 end

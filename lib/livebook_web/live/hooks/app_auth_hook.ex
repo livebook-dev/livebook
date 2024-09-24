@@ -60,9 +60,14 @@ defmodule LivebookWeb.AppAuthHook do
     end
   end
 
+  # Skip auth for non-app-specific routes
+  def on_mount(:default, %{}, _session, socket) do
+    {:cont, socket}
+  end
+
   defp livebook_authenticated?(session, socket) do
     uri = get_connect_info(socket, :uri)
-    LivebookWeb.AuthPlug.authenticated?(session, uri.port, Livebook.Config.auth_mode())
+    LivebookWeb.AuthPlug.authenticated?(session, uri.port)
   end
 
   defp has_valid_token?(socket, app_settings) do

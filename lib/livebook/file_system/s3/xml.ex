@@ -1,6 +1,4 @@
 defmodule Livebook.FileSystem.S3.XML do
-  @moduledoc false
-
   # Adapted from https://github.com/aws-beam/aws-elixir/blob/v0.8.0/lib/aws/xml.ex
 
   import Record
@@ -20,7 +18,6 @@ defmodule Livebook.FileSystem.S3.XML do
     map
     |> Map.to_list()
     |> Enum.map(&encode_xml_key_value/1)
-    |> :erlang.iolist_to_binary()
   end
 
   @doc """

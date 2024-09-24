@@ -62,7 +62,8 @@ defmodule Livebook.ZTA.CloudflareTest do
     start_supervised!({Cloudflare, context.options})
     {_conn, user} = Cloudflare.authenticate(@name, context.conn, fields: @fields)
 
-    assert %{id: "1234567890", email: "tuka@peralta.com", name: "Tuka Peralta"} = user
+    assert %{id: "1234567890", email: "tuka@peralta.com", name: "Tuka Peralta", payload: %{}} =
+             user
   end
 
   test "returns nil when the user_identity fails", context do

@@ -1,12 +1,13 @@
 /**
- * Delta is a format used to represent a set of changes introduced to a text document.
+ * Delta is a format used to represent a set of changes introduced to
+ * a text document.
  *
- * See `Livebook.Delta` for more details.
+ * See `Livebook.Text.Delta` for more details.
  *
- * An implementation of the full Delta specification is available
- * in the official quill-delta package (https://github.com/quilljs/delta)
- * licensed under MIT. Our version is based on that package,
- * but simplified to match our non rich-text use case.
+ * An implementation of the full Delta specification is available in
+ * the official quill-delta package (https://github.com/quilljs/delta)
+ * licensed under MIT. Our version is based on that package, but
+ * simplified to match our non rich-text use case.
  */
 export default class Delta {
   constructor(ops = []) {
@@ -49,7 +50,7 @@ export default class Delta {
   /**
    * Appends the given operation.
    *
-   * See `Livebook.Delta.append/2` for more details.
+   * See `Livebook.Text.Delta.append/2` for more details.
    */
   append(op) {
     if (this.ops.length === 0) {
@@ -124,12 +125,12 @@ export default class Delta {
    * The method takes a `priority` argument indicates which delta
    * is considered to have happened first and is used for conflict resolution.
    *
-   * See `Livebook.Delta.Transformation` for more details.
+   * See `Livebook.Text.Delta.Transformation` for more details.
    */
   transform(other, priority) {
     if (priority !== "left" && priority !== "right") {
       throw new Error(
-        `Invalid priority "${priority}", should be either "left" or "right"`
+        `Invalid priority "${priority}", should be either "left" or "right"`,
       );
     }
 
@@ -172,6 +173,33 @@ export default class Delta {
     }
 
     return this;
+  }
+
+  /**
+   * Transforms the given index with this delta's operations.
+   *
+   * See `Livebook.Text.Delta.Transformation` for more details.
+   */
+  transformPosition(index) {
+    const thisIter = new Iterator(this.ops);
+
+    let offset = 0;
+
+    while (thisIter.hasNext() && offset < index) {
+      const op = thisIter.next();
+      const length = operationLength(op);
+
+      if (isDelete(op)) {
+        index -= Math.min(length, index - offset);
+      } else if (isInsert(op)) {
+        index += length;
+        offset += length;
+      } else {
+        offset += length;
+      }
+    }
+
+    return index;
   }
 
   /**

@@ -1,8 +1,15 @@
 defmodule Livebook.TeamsTest do
   use Livebook.TeamsIntegrationCase, async: true
 
-  alias Livebook.Teams
+  alias Livebook.{FileSystem, Notebook, Teams, Utils}
   alias Livebook.Teams.Org
+
+  setup do
+    Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
+    Livebook.Teams.Broadcasts.subscribe([:clients, :deployment_groups, :app_deployments, :agents])
+
+    :ok
+  end
 
   describe "create_org/1" do
     test "returns the device flow data to confirm the org creation" do
@@ -31,9 +38,13 @@ defmodule Livebook.TeamsTest do
       org = build(:org)
       key_hash = Org.key_hash(org)
 
-      teams_org = :erpc.call(node, Hub.Integration, :create_org, [[name: org.name]])
-      :erpc.call(node, Hub.Integration, :create_org_key, [[org: teams_org, key_hash: key_hash]])
-      :erpc.call(node, Hub.Integration, :create_user_org, [[org: teams_org, user: user]])
+      teams_org = :erpc.call(node, TeamsRPC, :create_org, [[name: org.name]])
+
+      :erpc.call(node, TeamsRPC, :create_org_key, [
+        [org: teams_org, key_hash: key_hash]
+      ])
+
+      :erpc.call(node, TeamsRPC, :create_user_org, [[org: teams_org, user: user]])
 
       assert {:ok,
               %{
@@ -63,11 +74,14 @@ defmodule Livebook.TeamsTest do
 
   describe "get_org_request_completion_data/1" do
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
-      teams_key = Teams.Org.teams_key()
+      teams_key = Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
-      org_request = :erpc.call(node, Hub.Integration, :create_org_request, [[key_hash: key_hash]])
-      org_request = :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
+      org_request =
+        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
+
+      org_request =
+        :erpc.call(node, TeamsRPC, :confirm_org_request, [org_request, user])
 
       org =
         build(:org,
@@ -103,10 +117,11 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns the org request awaiting confirmation", %{node: node} do
-      teams_key = Teams.Org.teams_key()
+      teams_key = Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
-      org_request = :erpc.call(node, Hub.Integration, :create_org_request, [[key_hash: key_hash]])
+      org_request =
+        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
 
       org =
         build(:org,
@@ -122,17 +137,19 @@ defmodule Livebook.TeamsTest do
 
     test "returns error when org request doesn't exist" do
       org = build(:org, id: 0)
-      assert {:transport_error, _embarrassing} = Teams.get_org_request_completion_data(org, "")
+
+      assert {:transport_error, _embarrassing} =
+               Teams.get_org_request_completion_data(org, "")
     end
 
     test "returns error when org request expired", %{node: node} do
       now = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
       expires_at = NaiveDateTime.add(now, -5000)
-      teams_key = Teams.Org.teams_key()
+      teams_key = Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request =
-        :erpc.call(node, Hub.Integration, :create_org_request, [
+        :erpc.call(node, TeamsRPC, :create_org_request, [
           [expires_at: expires_at, key_hash: key_hash]
         ])
 
@@ -149,46 +166,96 @@ defmodule Livebook.TeamsTest do
     end
   end
 
-  describe "create_secret/2" do
-    test "creates a new secret", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+  describe "create_deployment_group/2" do
+    test "creates a new deployment group when the data is valid", %{user: user, node: node} do
+      team = connect_to_teams(user, node)
 
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
+      attrs = params_for(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
-      secret = build(:secret, name: "FOO", value: "BAR")
+      assert {:ok, deployment_group} = Teams.create_deployment_group(team, attrs)
 
-      assert Teams.create_secret(hub, secret) == :ok
+      %{id: id, name: name, mode: mode} = deployment_group
+
+      assert_receive {:deployment_group_created, %{id: ^id, name: ^name, mode: ^mode}}
 
       # Guarantee uniqueness
-      assert {:error, changeset} = Teams.create_secret(hub, secret)
+      assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
       assert "has already been taken" in errors_on(changeset).name
     end
 
-    test "returns changeset errors when data is invalid", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+    test "returns changeset errors when the name is invalid", %{user: user, node: node} do
+      team = connect_to_teams(user, node)
+      attrs = params_for(:deployment_group, name: "")
 
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
+      assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
+      assert "can't be blank" in errors_on(changeset).name
+    end
 
-      secret = build(:secret, name: "LB_FOO", value: "BAR")
+    test "returns changeset errors when the mode is invalid", %{user: user, node: node} do
+      team = connect_to_teams(user, node)
+      attrs = params_for(:deployment_group, mode: "invalid")
 
-      assert {:error, changeset} = Teams.create_secret(hub, secret)
-      assert "cannot start with the LB_ prefix" in errors_on(changeset).name
+      assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
+      assert "is invalid" in errors_on(changeset).mode
+    end
+  end
+
+  describe "deploy_app/2" do
+    @tag :tmp_dir
+    test "deploys app to Teams from a notebook", %{user: user, node: node, tmp_dir: tmp_dir} do
+      team = connect_to_teams(user, node)
+      attrs = params_for(:deployment_group, name: "BAZ", mode: :online)
+      {:ok, %{id: id}} = Teams.create_deployment_group(team, attrs)
+
+      assert_receive {:deployment_group_created, %{id: ^id}}
+
+      # creates the app deployment
+      slug = Utils.random_short_id()
+      title = "MyNotebook-#{slug}"
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
+
+      notebook = %{
+        Notebook.new()
+        | app_settings: app_settings,
+          name: title,
+          hub_id: team.id,
+          deployment_group_id: id
+      }
+
+      files_dir = FileSystem.File.local(tmp_dir)
+      assert {:ok, app_deployment} = Teams.AppDeployment.new(notebook, files_dir)
+      assert Teams.deploy_app(team, app_deployment) == :ok
+
+      sha = app_deployment.sha
+      multi_session = app_settings.multi_session
+      access_type = app_settings.access_type
+
+      assert_receive {:app_deployment_started,
+                      %Livebook.Teams.AppDeployment{
+                        slug: ^slug,
+                        sha: ^sha,
+                        title: ^title,
+                        multi_session: ^multi_session,
+                        access_type: ^access_type,
+                        deployment_group_id: ^id
+                      } = app_deployment2}
+
+      assert {:error,
+              %{errors: [slug: {"should only contain alphanumeric characters and dashes", []}]}} =
+               Teams.deploy_app(team, %{app_deployment | slug: "@abc"})
+
+      assert {:error, %{errors: [multi_session: {"can't be blank", []}]}} =
+               Teams.deploy_app(team, %{app_deployment | multi_session: nil})
+
+      assert {:error, %{errors: [access_type: {"can't be blank", []}]}} =
+               Teams.deploy_app(team, %{app_deployment | access_type: nil})
+
+      assert {:error, %{errors: [access_type: {"is invalid", []}]}} =
+               Teams.deploy_app(team, %{app_deployment | access_type: :abc})
+
+      # force app deployment to be stopped
+      erpc_call(node, :toggle_app_deployment, [app_deployment2.id, team.org_id])
+      assert_receive {:app_deployment_stopped, ^app_deployment2}
     end
   end
 end

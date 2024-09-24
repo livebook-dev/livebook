@@ -1,5 +1,7 @@
 import LiveEditor from "./cell_editor/live_editor";
-import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
+import Connection from "./cell_editor/live_editor/connection";
+import { parseHookProps } from "../lib/attribute";
+import { waitUntilInViewport } from "../lib/utils";
 
 const CellEditor = {
   mounted() {
@@ -9,40 +11,73 @@ const CellEditor = {
       `cell_editor_init:${this.props.cellId}:${this.props.tag}`,
       ({ source, revision, doctest_reports, code_markers }) => {
         const editorContainer = this.el.querySelector(
-          `[data-el-editor-container]`
+          `[data-el-editor-container]`,
         );
 
         const editorEl = document.createElement("div");
         editorContainer.appendChild(editorEl);
 
-        this.liveEditor = new LiveEditor(
+        this.connection = new Connection(
           this,
-          editorEl,
           this.props.cellId,
           this.props.tag,
+        );
+
+        this.liveEditor = new LiveEditor(
+          editorEl,
+          this.connection,
           source,
           revision,
           this.props.language,
           this.props.intellisense,
           this.props.readOnly,
-          code_markers,
-          doctest_reports
         );
+
+        this.liveEditor.setCodeMarkers(code_markers);
+        this.liveEditor.updateDoctests(doctest_reports);
+
+        const skeletonEl = editorContainer.querySelector(`[data-el-skeleton]`);
+
+        // Replace the skeleton with initial source, so that the
+        // whole page is still searchable, before the editors are
+        // lazily mounted. This also ensures the scroll has an
+        // accurate length right away.
+        const sourceEl = document.createElement("div");
+
+        sourceEl.classList.add(
+          "whitespace-pre",
+          "overflow-x-auto",
+          "text-editor",
+          "font-editor",
+          "px-12",
+        );
+        sourceEl.textContent = source;
+        skeletonEl.replaceChildren(sourceEl);
 
         this.liveEditor.onMount(() => {
           // Remove the content placeholder
-          const skeletonEl =
-            editorContainer.querySelector(`[data-el-skeleton]`);
-          skeletonEl && skeletonEl.remove();
+          skeletonEl.remove();
         });
 
         this.el.dispatchEvent(
           new CustomEvent("lb:cell:editor_created", {
             detail: { tag: this.props.tag, liveEditor: this.liveEditor },
             bubbles: true,
-          })
+          }),
         );
-      }
+
+        this.visibility = waitUntilInViewport(this.el, {
+          root: document.querySelector("[data-el-notebook]"),
+          proximity: 2000,
+        });
+
+        // We mount the editor lazily once it enters the viewport
+        this.visibility.promise.then(() => {
+          if (!this.liveEditor.isMounted()) {
+            this.liveEditor.mount();
+          }
+        });
+      },
     );
   },
 
@@ -52,32 +87,39 @@ const CellEditor = {
     // to clean up and mount a fresh hook, which we force by ensuring
     // the DOM id doesn't match
     this.el.removeAttribute("id");
+    // The container element has phx-update="ignore", so we want to
+    // make sure it is also replaced
+    this.el.querySelector(`[data-el-editor-container]`).removeAttribute("id");
   },
 
   destroyed() {
+    if (this.connection) {
+      this.connection.destroy();
+    }
+
     if (this.liveEditor) {
       this.el.dispatchEvent(
         new CustomEvent("lb:cell:editor_removed", {
           detail: { tag: this.props.tag },
           bubbles: true,
-        })
+        }),
       );
-      this.liveEditor.dispose();
+      this.liveEditor.destroy();
+    }
+
+    if (this.visibility) {
+      this.visibility.cancel();
     }
   },
 
   getProps() {
-    return {
-      cellId: getAttributeOrThrow(this.el, "data-cell-id"),
-      tag: getAttributeOrThrow(this.el, "data-tag"),
-      language: getAttributeOrThrow(this.el, "data-language"),
-      intellisense: getAttributeOrThrow(
-        this.el,
-        "data-intellisense",
-        parseBoolean
-      ),
-      readOnly: getAttributeOrThrow(this.el, "data-read-only", parseBoolean),
-    };
+    return parseHookProps(this.el, [
+      "cell-id",
+      "tag",
+      "language",
+      "intellisense",
+      "read-only",
+    ]);
   },
 };
 

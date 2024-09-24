@@ -7,53 +7,50 @@ defmodule LivebookWeb.Output.ControlComponent do
   end
 
   @impl true
-  def render(%{attrs: %{type: :keyboard}} = assigns) do
+  def render(assigns) when assigns.control.attrs.type == :keyboard do
     ~H"""
     <div
       class="flex"
       id={"#{@id}-root"}
       phx-hook="KeyboardControl"
-      data-keydown-enabled={to_string(@keyboard_enabled and :keydown in @attrs.events)}
-      data-keyup-enabled={to_string(@keyboard_enabled and :keyup in @attrs.events)}
-      data-target={@myself}
+      data-p-cell-id={hook_prop(@cell_id)}
+      data-p-default-handlers={hook_prop(@control.attrs.default_handlers)}
+      data-p-keydown-enabled={hook_prop(@keyboard_enabled and :keydown in @control.attrs.events)}
+      data-p-keyup-enabled={hook_prop(@keyboard_enabled and :keyup in @control.attrs.events)}
+      data-p-target={hook_prop(@myself)}
     >
       <span class="tooltip right" data-tooltip="Toggle keyboard control">
-        <button
-          class={
-            "button-base #{if @keyboard_enabled, do: "button-blue", else: "button-gray"} button-square-icon"
-          }
+        <.button
+          color={if(@keyboard_enabled, do: "blue", else: "gray")}
+          small
           type="button"
           aria-label="toggle keyboard control"
           phx-click={JS.push("toggle_keyboard", target: @myself)}
         >
-          <.remix_icon icon="keyboard-line" />
-        </button>
+          <.remix_icon icon="keyboard-line" class="text-xl leading-none py-1" />
+        </.button>
       </span>
     </div>
     """
   end
 
-  def render(%{attrs: %{type: :button}} = assigns) do
+  def render(assigns) when assigns.control.attrs.type == :button do
     ~H"""
     <div class="flex">
-      <button
-        class="button-base button-gray"
-        type="button"
-        phx-click={JS.push("button_click", target: @myself)}
-      >
-        <%= @attrs.label %>
-      </button>
+      <.button color="gray" type="button" phx-click={JS.push("button_click", target: @myself)}>
+        <%= @control.attrs.label %>
+      </.button>
     </div>
     """
   end
 
-  def render(%{attrs: %{type: :form}} = assigns) do
+  def render(assigns) when assigns.control.attrs.type == :form do
     ~H"""
     <div>
       <.live_component
         module={LivebookWeb.Output.ControlFormComponent}
         id={@id}
-        attrs={@attrs}
+        control={@control}
         input_views={@input_views}
         session_pid={@session_pid}
         client_id={@client_id}
@@ -65,29 +62,26 @@ defmodule LivebookWeb.Output.ControlComponent do
   def render(assigns) do
     ~H"""
     <div class="text-red-600">
-      Unknown control type <%= @attrs.type %>
+      Unknown control type <%= @control.attrs.type %>
     </div>
     """
   end
 
   @impl true
   def handle_event("toggle_keyboard", %{}, socket) do
-    socket = update(socket, :keyboard_enabled, &not/1)
-    maybe_report_status(socket)
-    {:noreply, socket}
+    enabled = !socket.assigns.keyboard_enabled
+    maybe_report_status(socket, enabled)
+    {:noreply, assign(socket, keyboard_enabled: enabled)}
+  end
+
+  def handle_event("enable_keyboard", %{}, socket) do
+    maybe_report_status(socket, true)
+    {:noreply, assign(socket, keyboard_enabled: true)}
   end
 
   def handle_event("disable_keyboard", %{}, socket) do
-    socket =
-      if socket.assigns.keyboard_enabled do
-        socket = assign(socket, keyboard_enabled: false)
-        maybe_report_status(socket)
-        socket
-      else
-        socket
-      end
-
-    {:noreply, socket}
+    maybe_report_status(socket, false)
+    {:noreply, assign(socket, keyboard_enabled: false)}
   end
 
   def handle_event("button_click", %{}, socket) do
@@ -105,15 +99,17 @@ defmodule LivebookWeb.Output.ControlComponent do
     {:noreply, socket}
   end
 
-  defp maybe_report_status(socket) do
-    if :status in socket.assigns.attrs.events do
-      report_event(socket, %{type: :status, enabled: socket.assigns.keyboard_enabled})
+  defp maybe_report_status(socket, enabled) do
+    %{assigns: %{control: %{attrs: attrs}, keyboard_enabled: current}} = socket
+
+    if :status in attrs.events and enabled != current do
+      report_event(socket, %{type: :status, enabled: enabled})
     end
   end
 
   defp report_event(socket, attrs) do
-    topic = socket.assigns.attrs.ref
+    topic = socket.assigns.control.ref
     event = Map.merge(%{origin: socket.assigns.client_id}, attrs)
-    send(socket.assigns.attrs.destination, {:event, topic, event})
+    send(socket.assigns.control.destination, {:event, topic, event})
   end
 end

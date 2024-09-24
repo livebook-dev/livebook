@@ -1,7 +1,7 @@
 defmodule LivebookWeb.AppLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.AppHelpers
+  import LivebookWeb.AppComponents
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) when socket.assigns.app_authenticated? do
@@ -16,7 +16,7 @@ defmodule LivebookWeb.AppLive do
     else
       {:ok, pid} = Livebook.Apps.fetch_pid(slug)
       session_id = Livebook.App.get_session_id(pid, user: socket.assigns.current_user)
-      {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/#{session_id}")}
+      {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/sessions/#{session_id}")}
     end
   end
 
@@ -49,8 +49,8 @@ defmodule LivebookWeb.AppLive do
       </div>
     </div>
 
-    <.modal id="sessions-modal" show width={:big} patch={~p"/"}>
-      <div class="p-6 max-w-4xl flex flex-col space-y-3">
+    <.modal id="sessions-modal" show width={:big} patch={~p"/apps"}>
+      <div class="flex flex-col space-y-3">
         <h3 class="text-2xl font-semibold text-gray-800">
           <%= @app.notebook_name %>
         </h3>
@@ -62,15 +62,15 @@ defmodule LivebookWeb.AppLive do
           <% end %>
         </p>
         <div class="flex justify-end">
-          <.link class="button-base button-outlined-blue" patch={~p"/apps/#{@app.slug}/new"}>
-            <.remix_icon icon="add-line" class="align-middle mr-1" />
+          <.button outlined patch={~p"/apps/#{@app.slug}/new"}>
+            <.remix_icon icon="add-line" />
             <span>New session</span>
-          </.link>
+          </.button>
         </div>
         <div :if={@app_settings.show_existing_sessions} class="w-full flex flex-col space-y-4">
           <.link
             :for={app_session <- active_sessions(@app.sessions)}
-            navigate={~p"/apps/#{@app.slug}/#{app_session.id}"}
+            navigate={~p"/apps/#{@app.slug}/sessions/#{app_session.id}"}
             class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex justify-between"
           >
             <span>
@@ -79,7 +79,7 @@ defmodule LivebookWeb.AppLive do
                 by
                 <span class="font-semibold"><%= app_session.started_by.name || "Anonymous" %></span>
               </span>
-              <%= format_datetime_relatively(app_session.created_at) %> ago
+              <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(app_session.created_at) %> ago
             </span>
             <div class="mr-0.5 flex">
               <.app_status status={app_session.app_status} show_label={false} />
@@ -98,7 +98,8 @@ defmodule LivebookWeb.AppLive do
     session_id =
       Livebook.App.get_session_id(socket.assigns.app.pid, user: socket.assigns.current_user)
 
-    {:noreply, push_navigate(socket, to: ~p"/apps/#{socket.assigns.app.slug}/#{session_id}")}
+    {:noreply,
+     push_navigate(socket, to: ~p"/apps/#{socket.assigns.app.slug}/sessions/#{session_id}")}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
