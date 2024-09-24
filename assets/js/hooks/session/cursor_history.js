@@ -35,14 +35,6 @@ export default class CursorHistory {
   }
 
   /**
-   * Immediately clears the stack and reset the current index.
-   */
-  destroy() {
-    this.entries = [];
-    this.index = -1;
-  }
-
-  /**
    * Removes all matching cells with given id from the stack.
    */
   removeAllFromCell(cellId) {
