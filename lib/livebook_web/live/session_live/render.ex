@@ -1065,7 +1065,7 @@ defmodule LivebookWeb.SessionLive.Render do
             aria-label="choose views to activate"
             data-el-views-enabled
           >
-            <.remix_icon icon="layout-5-line" class="text-xl text-green-bright-400" />
+            <.remix_icon icon="layout-5-line" />
           </button>
         </:toggle>
         <.menu_item>
