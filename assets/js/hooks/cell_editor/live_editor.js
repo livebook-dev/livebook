@@ -379,13 +379,13 @@ export default class LiveEditor {
         }),
         this.intellisense
           ? [
-            autocompletion({ override: [this.completionSource.bind(this)] }),
-            hoverDetails(this.docsHoverTooltipSource.bind(this)),
-            signature(this.signatureSource.bind(this), {
-              activateOnTyping: settings.editor_auto_signature,
-            }),
-            formatter(this.formatterSource.bind(this)),
-          ]
+              autocompletion({ override: [this.completionSource.bind(this)] }),
+              hoverDetails(this.docsHoverTooltipSource.bind(this)),
+              signature(this.signatureSource.bind(this), {
+                activateOnTyping: settings.editor_auto_signature,
+              }),
+              formatter(this.formatterSource.bind(this)),
+            ]
           : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
