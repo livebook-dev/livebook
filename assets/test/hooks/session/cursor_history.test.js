@@ -2,52 +2,51 @@ import CursorHistory from "../../../js/hooks/session/cursor_history";
 
 test("goBack returns when there's at least one cell", () => {
   const cursorHistory = new CursorHistory();
-  const expectedEntry = { cellId: "123", line: "1", column: "1" };
+  const entry = { cellId: Math.random().toString(36), line: 1, offset: 1 };
 
   expect(cursorHistory.canGoBack()).toBe(false);
+  expect(cursorHistory.getCurrent()).toStrictEqual(null);
 
-  cursorHistory.entries = [expectedEntry];
-  cursorHistory.index = 0;
+  cursorHistory.push(entry.cellId, entry.line, entry.offset);
 
-  expect(cursorHistory.index).toBe(0);
-  expect(cursorHistory.canGoBack()).toBe(true);
-  expect(cursorHistory.goBack()).toStrictEqual(expectedEntry);
+  expect(cursorHistory.canGoBack()).toBe(false);
+  expect(cursorHistory.getCurrent()).toStrictEqual(entry);
 });
 
 describe("push", () => {
   test("does not add duplicated cells", () => {
     const cursorHistory = new CursorHistory();
-    const entry = { cellId: "123", line: "1", column: "1" };
+    const entry = { cellId: Math.random().toString(36), line: 1, offset: 1 };
 
-    expect(cursorHistory.index).toBe(-1);
+    expect(cursorHistory.canGoBack()).toBe(false);
 
-    cursorHistory.entries = [entry];
-    cursorHistory.index = 0;
+    cursorHistory.push(entry.cellId, entry.line, entry.offset);
+    cursorHistory.push(entry.cellId, entry.line, 2);
+    expect(cursorHistory.canGoBack()).toBe(false);
 
-    cursorHistory.push(entry.cellId, entry.line, "2");
-    expect(cursorHistory.index).toBe(0);
-
-    cursorHistory.push(entry.cellId, "2", entry.column);
-    expect(cursorHistory.index).toBe(0);
+    cursorHistory.push(entry.cellId, 2, entry.offset);
+    expect(cursorHistory.canGoBack()).toBe(false);
   });
 
   test("removes oldest entries and keep it with a maximum of 20 entries", () => {
     const cursorHistory = new CursorHistory();
 
     for (let i = 0; i <= 19; i++) {
-      const value = (i + 1).toString();
-      cursorHistory.push(`123${value}`, value, "1");
+      const value = i + 1;
+      cursorHistory.push(`123${value}`, value, 1);
     }
 
-    expect(cursorHistory.index).toBe(19);
+    cursorHistory.push("231", 1, 1);
 
-    cursorHistory.push("231", "1", "1");
+    // Navigates to the bottom of the stack
+    for (let i = 0; i <= 18; i++) {
+      cursorHistory.goBack();
+    }
 
-    expect(cursorHistory.index).toBe(19);
-    expect(cursorHistory.entries[0]).toStrictEqual({
+    expect(cursorHistory.getCurrent()).toStrictEqual({
       cellId: "1232",
-      column: "1",
-      line: "2",
+      offset: 1,
+      line: 2,
     });
   });
 
@@ -55,27 +54,24 @@ describe("push", () => {
     const cursorHistory = new CursorHistory();
     expect(cursorHistory.canGoBack()).toBe(false);
 
-    cursorHistory.entries = [
-      { cellId: "123", line: "1", column: "1" },
-      { cellId: "456", line: "1", column: "1" },
-      { cellId: "789", line: "2", column: "1" },
-    ];
-    cursorHistory.index = 2;
+    cursorHistory.push(Math.random().toString(36), 1, 1);
+    cursorHistory.push(Math.random().toString(36), 1, 1);
+    cursorHistory.push(Math.random().toString(36), 2, 1);
 
     expect(cursorHistory.canGoBack()).toBe(true);
 
     // Go back to cell id 456
     cursorHistory.goBack();
-    expect(cursorHistory.index).toBe(1);
+    expect(cursorHistory.canGoBack()).toBe(true);
 
     // Go back to cell id 123
     cursorHistory.goBack();
-    expect(cursorHistory.index).toBe(0);
+    expect(cursorHistory.canGoBack()).toBe(false);
 
     // Removes the subsequent cells from stack
-    // and adds the cell id 999 to the stack
-    cursorHistory.push("999", "1", "1");
-    expect(cursorHistory.index).toBe(1);
+    // and adds this cell to the stack
+    cursorHistory.push(Math.random().toString(36), 1, 1);
+    expect(cursorHistory.canGoForward()).toBe(false);
   });
 });
 
@@ -83,17 +79,19 @@ test("removeAllFromCell removes the cells with given id", () => {
   const cursorHistory = new CursorHistory();
   const cellId = "123456789";
 
-  cursorHistory.entries = [
-    { cellId: "123", line: "1", column: "1" },
-    { cellId: "456", line: "1", column: "1" },
-    { cellId: cellId, line: "1", column: "1" },
-    { cellId: "1234", line: "1", column: "1" },
-    { cellId: cellId, line: "1", column: "1" },
-    { cellId: "8901", line: "1", column: "1" },
-    { cellId: cellId, line: "1", column: "1" },
-  ];
-  cursorHistory.index = 6;
+  cursorHistory.push("123", 1, 1);
+  cursorHistory.push("456", 1, 1);
+  cursorHistory.push(cellId, 1, 1);
+  cursorHistory.push("1234", 1, 1);
+  cursorHistory.push(cellId, 1, 1);
+  cursorHistory.push("8901", 1, 1);
+  cursorHistory.push(cellId, 1, 1);
 
   cursorHistory.removeAllFromCell(cellId);
-  expect(cursorHistory.index).toBe(3);
+  expect(cursorHistory.canGoForward()).toBe(false);
+  expect(cursorHistory.getCurrent()).toStrictEqual({
+    cellId: "8901",
+    line: 1,
+    offset: 1,
+  });
 });

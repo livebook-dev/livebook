@@ -323,11 +323,11 @@ const Session = {
       // On macOS, ctrl+alt+- becomes an em-dash, so we check for the code
       if (event.code === "Minus" && ctrl && alt) {
         cancelEvent(event);
-        this.goBackNavigationHistory();
+        this.cursorHistoryGoBack();
         return;
       } else if (key === "=" && ctrl && alt) {
         cancelEvent(event);
-        this.goForwardNavigationHistory();
+        this.cursorHistoryGoForward();
         return;
       } else if (cmd && shift && !alt && key === "Enter") {
         cancelEvent(event);
@@ -1339,9 +1339,9 @@ const Session = {
     }
   },
 
-  handleHistoryEvent(payload) {
-    if (payload.type === "navigation") {
-      this.saveNavigationHistory(payload);
+  handleHistoryEvent(event) {
+    if (event.type === "navigation") {
+      this.cursorHistory.push(event.cellId, event.line, event.offset);
     }
   },
 
@@ -1474,35 +1474,30 @@ const Session = {
     globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
   },
 
-  saveNavigationHistory({ cellId, line, column }) {
-    if (cellId === null || line === null || column === null) return;
-    this.cursorHistory.push(cellId, line, column);
-  },
-
-  goBackNavigationHistory() {
+  cursorHistoryGoBack() {
     if (this.cursorHistory.canGoBack()) {
-      const { cellId, line, column } = this.cursorHistory.goBack();
+      const { cellId, line, offset } = this.cursorHistory.goBack();
       this.setFocusedEl(cellId, { scroll: false });
       this.setInsertMode(true);
 
       globalPubsub.broadcast(`cells:${cellId}`, {
-        type: "jump_to_line_and_column",
+        type: "jump_to_line",
         line,
-        column,
+        offset,
       });
     }
   },
 
-  goForwardNavigationHistory() {
+  cursorHistoryGoForward() {
     if (this.cursorHistory.canGoForward()) {
-      const { cellId, line, column } = this.cursorHistory.goForward();
+      const { cellId, line, offset } = this.cursorHistory.goForward();
       this.setFocusedEl(cellId, { scroll: false });
       this.setInsertMode(true);
 
       globalPubsub.broadcast(`cells:${cellId}`, {
-        type: "jump_to_line_and_column",
+        type: "jump_to_line",
         line,
-        column,
+        offset,
       });
     }
   },

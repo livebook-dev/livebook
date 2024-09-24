@@ -99,6 +99,14 @@ export default class LiveEditor {
    */
   onFocus = this._onFocus.event;
 
+  /** @private */
+  _onViewUpdate = new Emitter();
+
+  /**
+   * Registers a callback called whenever the editor updates the view.
+   */
+  onViewUpdate = this._onViewUpdate.event;
+
   constructor(
     container,
     connection,
@@ -176,13 +184,9 @@ export default class LiveEditor {
 
     const pos = this.view.state.selection.main.head;
     const line = this.view.state.doc.lineAt(pos);
-    const lineLength = line.to - line.from;
-    const column = pos - line.from;
+    const offset = pos - line.from;
 
-    if (column < 1 || column > lineLength)
-      return { line: line.number, column: 1 };
-
-    return { line: line.number, column };
+    return { line: line.number, offset };
   }
 
   /**
@@ -202,10 +206,9 @@ export default class LiveEditor {
   /**
    * Updates editor selection such that cursor points to the given line.
    */
-  moveCursorToLine(lineNumber, column = "1") {
+  moveCursorToLine(lineNumber, offset) {
     const line = this.view.state.doc.line(lineNumber);
-    const columnNumber = parseInt(column);
-    const position = line.from + columnNumber;
+    const position = line.from + offset;
 
     this.view.dispatch({
       selection: EditorSelection.single(position),
@@ -329,6 +332,10 @@ export default class LiveEditor {
       { key: "Alt-Enter", run: insertBlankLineAndCloseHints },
     ];
 
+    const selectionChangeListener = EditorView.updateListener.of((viewUpdate) =>
+      this.handleViewUpdate(viewUpdate),
+    );
+
     this.view = new EditorView({
       parent: this.container,
       doc: this.source,
@@ -372,13 +379,13 @@ export default class LiveEditor {
         }),
         this.intellisense
           ? [
-              autocompletion({ override: [this.completionSource.bind(this)] }),
-              hoverDetails(this.docsHoverTooltipSource.bind(this)),
-              signature(this.signatureSource.bind(this), {
-                activateOnTyping: settings.editor_auto_signature,
-              }),
-              formatter(this.formatterSource.bind(this)),
-            ]
+            autocompletion({ override: [this.completionSource.bind(this)] }),
+            hoverDetails(this.docsHoverTooltipSource.bind(this)),
+            signature(this.signatureSource.bind(this), {
+              activateOnTyping: settings.editor_auto_signature,
+            }),
+            formatter(this.formatterSource.bind(this)),
+          ]
           : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
@@ -390,6 +397,7 @@ export default class LiveEditor {
           focus: this.handleEditorFocus.bind(this),
         }),
         EditorView.clickAddsSelectionRange.of((event) => event.altKey),
+        selectionChangeListener,
       ],
     });
   }
@@ -433,6 +441,11 @@ export default class LiveEditor {
     this._onFocus.dispatch();
 
     return false;
+  }
+
+  /** @private */
+  handleViewUpdate(viewUpdate) {
+    this._onViewUpdate.dispatch(viewUpdate);
   }
 
   /** @private */

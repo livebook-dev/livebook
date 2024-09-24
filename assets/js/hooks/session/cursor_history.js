@@ -3,10 +3,11 @@
  * and navigate inside this stack.
  */
 export default class CursorHistory {
-  constructor() {
-    this.entries = [];
-    this.index = -1;
-  }
+  /** @private */
+  entries = [];
+
+  /** @private */
+  index = -1;
 
   /**
    * Adds a new cell to the stack.
@@ -14,10 +15,10 @@ export default class CursorHistory {
    * If the stack length is greater than the stack limit,
    * it will remove the oldest entries.
    */
-  push(cellId, line, column) {
-    const entry = { cellId, line, column };
+  push(cellId, line, offset) {
+    const entry = { cellId, line, offset };
 
-    if (this.isTheSameCell(cellId)) {
+    if (this.isSameCell(cellId)) {
       this.entries[this.index] = entry;
     } else {
       if (this.entries[this.index + 1] !== undefined) {
@@ -87,6 +88,17 @@ export default class CursorHistory {
     return this.getFromHistory(1);
   }
 
+  /**
+   * Gets the entry in the current stack.
+   *
+   * If the stack have at least one entry, it will return the entry from current index.
+   * Otherwise, returns null;
+   */
+  getCurrent() {
+    if (this.entries.length <= 0) return null;
+    return this.entries[this.index];
+  }
+
   /** @private **/
   getFromHistory(direction) {
     if (!this.canGetFromHistory(direction)) return null;
@@ -99,12 +111,12 @@ export default class CursorHistory {
   canGetFromHistory(direction) {
     if (this.entries.length === 0) return false;
 
-    const index = Math.max(0, this.index + direction);
-    return this.entries[index] !== undefined;
+    const index = this.index + direction;
+    return 0 <= index && index < this.entries.length;
   }
 
   /** @private **/
-  isTheSameCell(cellId) {
+  isSameCell(cellId) {
     const lastEntry = this.entries[this.index];
     return lastEntry !== undefined && cellId === lastEntry.cellId;
   }

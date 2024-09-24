@@ -157,11 +157,7 @@ const Cell = {
       this.handleDispatchQueueEvaluation(event.dispatch);
     } else if (event.type === "jump_to_line") {
       if (this.isFocused) {
-        this.currentEditor().moveCursorToLine(event.line);
-      }
-    } else if (event.type === "jump_to_line_and_column") {
-      if (this.isFocused) {
-        this.currentEditor().moveCursorToLine(event.line, event.column);
+        this.currentEditor().moveCursorToLine(event.line, event.offset || 0);
       }
     }
   },
@@ -198,8 +194,6 @@ const Cell = {
         if (this.isFocused && this.insertMode) {
           this.currentEditor().focus();
         }
-
-        this.sendCursorHistory();
       }, 0);
     });
 
@@ -213,7 +207,15 @@ const Cell = {
         // gives it focus
         if (!this.isFocused || !this.insertMode) {
           this.currentEditor().blur();
-        } else if (this.insertMode) {
+        }
+      }, 0);
+    });
+
+    liveEditor.onViewUpdate((viewUpdate) => {
+      // We defer the check to happen after all focus/click events have
+      // been processed, in case the state changes as a result
+      setTimeout(() => {
+        if (this.isFocused && viewUpdate.selectionSet) {
           this.sendCursorHistory();
         }
       }, 0);
@@ -380,10 +382,9 @@ const Cell = {
     if (cursor === null) return;
 
     globalPubsub.broadcast("history", {
+      ...cursor,
       type: "navigation",
       cellId: this.props.cellId,
-      line: cursor.line.toString(),
-      column: cursor.column.toString(),
     });
   },
 };
