@@ -46,15 +46,12 @@ export default class CursorHistory {
 
     for (let i = 0; i <= this.index; i++) {
       const entry = this.get(i);
-      if (entry === null) continue;
-
       if (entry.cellId === cellId) cellIdCount++;
     }
 
-    this.index = this.index - cellIdCount;
-    if (this.index < 0) this.index = 0;
-
     this.entries = this.entries.filter((entry) => entry.cellId !== cellId);
+    this.index = this.index - cellIdCount;
+    if (this.index === -1 && this.entries.length > 0) this.index = 0;
   }
 
   /**
