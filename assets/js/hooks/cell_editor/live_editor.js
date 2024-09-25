@@ -99,6 +99,14 @@ export default class LiveEditor {
    */
   onFocus = this._onFocus.event;
 
+  /** @private */
+  _onSelectionChange = new Emitter();
+
+  /**
+   * Registers a callback called whenever the editor changes selection.
+   */
+  onSelectionChange = this._onSelectionChange.event;
+
   constructor(
     container,
     connection,
@@ -167,6 +175,21 @@ export default class LiveEditor {
   }
 
   /**
+   * Returns the current main cursor position.
+   */
+  getCurrentCursorPosition() {
+    if (!this.isMounted()) {
+      return null;
+    }
+
+    const pos = this.view.state.selection.main.head;
+    const line = this.view.state.doc.lineAt(pos);
+    const offset = pos - line.from;
+
+    return { line: line.number, offset };
+  }
+
+  /**
    * Focuses the editor.
    *
    * Note that this forces the editor to be mounted, if it is not already
@@ -183,11 +206,12 @@ export default class LiveEditor {
   /**
    * Updates editor selection such that cursor points to the given line.
    */
-  moveCursorToLine(lineNumber) {
+  moveCursorToLine(lineNumber, offset) {
     const line = this.view.state.doc.line(lineNumber);
+    const position = line.from + offset;
 
     this.view.dispatch({
-      selection: EditorSelection.single(line.from),
+      selection: EditorSelection.single(position),
     });
   }
 
@@ -308,6 +332,10 @@ export default class LiveEditor {
       { key: "Alt-Enter", run: insertBlankLineAndCloseHints },
     ];
 
+    const selectionChangeListener = EditorView.updateListener.of((update) =>
+      this.handleViewUpdate(update),
+    );
+
     this.view = new EditorView({
       parent: this.container,
       doc: this.source,
@@ -369,6 +397,7 @@ export default class LiveEditor {
           focus: this.handleEditorFocus.bind(this),
         }),
         EditorView.clickAddsSelectionRange.of((event) => event.altKey),
+        selectionChangeListener,
       ],
     });
   }
@@ -389,7 +418,6 @@ export default class LiveEditor {
     // We dispatch escape event, but only if it is not consumed by any
     // registered handler in the editor, such as closing autocompletion
     // or escaping Vim insert mode
-
     if (event.key === "Escape") {
       this.container.dispatchEvent(
         new CustomEvent("lb:editor_escape", { bubbles: true }),
@@ -413,6 +441,13 @@ export default class LiveEditor {
     this._onFocus.dispatch();
 
     return false;
+  }
+
+  /** @private */
+  handleViewUpdate(update) {
+    if (!update.state.selection.eq(update.startState.selection)) {
+      this._onSelectionChange.dispatch();
+    }
   }
 
   /** @private */

@@ -18,6 +18,7 @@ import { leaveChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 import { settingsStore } from "../lib/settings";
 import { LiveStore } from "../lib/live_store";
+import CursorHistory from "./session/cursor_history";
 
 /**
  * A hook managing the whole session.
@@ -81,6 +82,7 @@ const Session = {
     this.viewOptions = null;
     this.keyBuffer = new KeyBuffer();
     this.lastLocationReportByClientId = {};
+    this.cursorHistory = new CursorHistory();
     this.followedClientId = null;
     this.store = LiveStore.create("session");
 
@@ -161,6 +163,7 @@ const Session = {
       globalPubsub.subscribe("jump_to_editor", ({ line, file }) =>
         this.jumpToLine(file, line),
       ),
+      globalPubsub.subscribe("history", this.handleHistoryEvent.bind(this)),
     ];
 
     this.initializeDragAndDrop();
@@ -304,6 +307,7 @@ const Session = {
     }
 
     const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+    const ctrl = event.ctrlKey;
     const alt = event.altKey;
     const shift = event.shiftKey;
     const key = event.key;
@@ -316,7 +320,16 @@ const Session = {
         event.target.closest(`[data-el-outputs-container]`)
       )
     ) {
-      if (cmd && shift && !alt && key === "Enter") {
+      // On macOS, ctrl+alt+- becomes an em-dash, so we check for the code
+      if (event.code === "Minus" && ctrl && alt) {
+        cancelEvent(event);
+        this.cursorHistoryGoBack();
+        return;
+      } else if (key === "=" && ctrl && alt) {
+        cancelEvent(event);
+        this.cursorHistoryGoForward();
+        return;
+      } else if (cmd && shift && !alt && key === "Enter") {
         cancelEvent(event);
         this.queueFullCellsEvaluation(true);
         return;
@@ -1227,6 +1240,8 @@ const Session = {
   },
 
   handleCellDeleted(cellId, siblingCellId) {
+    this.cursorHistory.removeAllFromCell(cellId);
+
     if (this.focusedId === cellId) {
       if (this.view) {
         const visibleSiblingId = this.ensureVisibleFocusableEl(siblingCellId);
@@ -1321,6 +1336,12 @@ const Session = {
       ) {
         this.setFocusedEl(report.focusableId);
       }
+    }
+  },
+
+  handleHistoryEvent(event) {
+    if (event.type === "navigation") {
+      this.cursorHistory.push(event.cellId, event.line, event.offset);
     }
   },
 
@@ -1447,11 +1468,38 @@ const Session = {
 
   jumpToLine(file, line) {
     const [_filename, cellId] = file.split("#cell:");
-
     this.setFocusedEl(cellId, { scroll: false });
     this.setInsertMode(true);
 
     globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
+  },
+
+  cursorHistoryGoBack() {
+    if (this.cursorHistory.canGoBack()) {
+      const { cellId, line, offset } = this.cursorHistory.goBack();
+      this.setFocusedEl(cellId, { scroll: false });
+      this.setInsertMode(true);
+
+      globalPubsub.broadcast(`cells:${cellId}`, {
+        type: "jump_to_line",
+        line,
+        offset,
+      });
+    }
+  },
+
+  cursorHistoryGoForward() {
+    if (this.cursorHistory.canGoForward()) {
+      const { cellId, line, offset } = this.cursorHistory.goForward();
+      this.setFocusedEl(cellId, { scroll: false });
+      this.setInsertMode(true);
+
+      globalPubsub.broadcast(`cells:${cellId}`, {
+        type: "jump_to_line",
+        line,
+        offset,
+      });
+    }
   },
 };
 

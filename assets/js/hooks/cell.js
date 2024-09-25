@@ -156,7 +156,9 @@ const Cell = {
     if (event.type === "dispatch_queue_evaluation") {
       this.handleDispatchQueueEvaluation(event.dispatch);
     } else if (event.type === "jump_to_line") {
-      this.handleJumpToLine(event.line);
+      if (this.isFocused) {
+        this.currentEditor().moveCursorToLine(event.line, event.offset || 0);
+      }
     }
   },
 
@@ -170,12 +172,6 @@ const Cell = {
     } else if (this.isFocused) {
       this.isFocused = false;
       this.el.removeAttribute("data-js-focused");
-    }
-  },
-
-  handleJumpToLine(line) {
-    if (this.isFocused) {
-      this.currentEditor().moveCursorToLine(line);
     }
   },
 
@@ -211,8 +207,16 @@ const Cell = {
         // gives it focus
         if (!this.isFocused || !this.insertMode) {
           this.currentEditor().blur();
+        } else {
+          this.sendCursorHistory();
         }
       }, 0);
+    });
+
+    liveEditor.onSelectionChange(() => {
+      if (this.isFocused) {
+        this.sendCursorHistory();
+      }
     });
 
     if (tag === "primary") {
@@ -368,6 +372,17 @@ const Cell = {
         behavior: "instant",
         block: "start",
       });
+    });
+  },
+
+  sendCursorHistory() {
+    const cursor = this.currentEditor().getCurrentCursorPosition();
+    if (cursor === null) return;
+
+    globalPubsub.broadcast("history", {
+      ...cursor,
+      type: "navigation",
+      cellId: this.props.cellId,
     });
   },
 };
