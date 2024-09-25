@@ -42,16 +42,19 @@ export default class CursorHistory {
     // We need to make sure the last entry from history
     // doesn't belong to the given cell id that we need
     // to remove from the entries list.
-    let currentEntryIndex = this.index;
-    let currentEntry = this.entries[currentEntryIndex];
+    let cellIdCount = 0;
 
-    while (currentEntry.cellId === cellId) {
-      currentEntryIndex--;
-      currentEntry = this.entries[currentEntryIndex];
+    for (let i = 0; i <= this.index; i++) {
+      const entry = this.get(i);
+      if (entry === null) continue;
+
+      if (entry.cellId === cellId) cellIdCount++;
     }
 
+    this.index = this.index - cellIdCount;
+    if (this.index < 0) this.index = 0;
+
     this.entries = this.entries.filter((entry) => entry.cellId !== cellId);
-    this.index = this.entries.lastIndexOf(currentEntry);
   }
 
   /**
@@ -95,8 +98,18 @@ export default class CursorHistory {
    * Otherwise, returns null;
    */
   getCurrent() {
+    return this.get(this.index);
+  }
+
+  /** @private **/
+  getEntries() {
+    return this.entries;
+  }
+
+  /** @private **/
+  get(index) {
     if (this.entries.length <= 0) return null;
-    return this.entries[this.index];
+    return this.entries[index];
   }
 
   /** @private **/
@@ -117,7 +130,7 @@ export default class CursorHistory {
 
   /** @private **/
   isSameCell(cellId) {
-    const lastEntry = this.entries[this.index];
-    return lastEntry !== undefined && cellId === lastEntry.cellId;
+    const lastEntry = this.get(this.index);
+    return lastEntry !== null && cellId === lastEntry.cellId;
   }
 }

@@ -100,12 +100,12 @@ export default class LiveEditor {
   onFocus = this._onFocus.event;
 
   /** @private */
-  _onViewUpdate = new Emitter();
+  _onSelectionChange = new Emitter();
 
   /**
-   * Registers a callback called whenever the editor updates the view.
+   * Registers a callback called whenever the editor changes selection.
    */
-  onViewUpdate = this._onViewUpdate.event;
+  onSelectionChange = this._onSelectionChange.event;
 
   constructor(
     container,
@@ -332,8 +332,8 @@ export default class LiveEditor {
       { key: "Alt-Enter", run: insertBlankLineAndCloseHints },
     ];
 
-    const selectionChangeListener = EditorView.updateListener.of((viewUpdate) =>
-      this.handleViewUpdate(viewUpdate),
+    const selectionChangeListener = EditorView.updateListener.of((update) =>
+      this.handleOnSelectionChange(update),
     );
 
     this.view = new EditorView({
@@ -379,13 +379,13 @@ export default class LiveEditor {
         }),
         this.intellisense
           ? [
-              autocompletion({ override: [this.completionSource.bind(this)] }),
-              hoverDetails(this.docsHoverTooltipSource.bind(this)),
-              signature(this.signatureSource.bind(this), {
-                activateOnTyping: settings.editor_auto_signature,
-              }),
-              formatter(this.formatterSource.bind(this)),
-            ]
+            autocompletion({ override: [this.completionSource.bind(this)] }),
+            hoverDetails(this.docsHoverTooltipSource.bind(this)),
+            signature(this.signatureSource.bind(this), {
+              activateOnTyping: settings.editor_auto_signature,
+            }),
+            formatter(this.formatterSource.bind(this)),
+          ]
           : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
@@ -444,8 +444,8 @@ export default class LiveEditor {
   }
 
   /** @private */
-  handleViewUpdate(viewUpdate) {
-    this._onViewUpdate.dispatch(viewUpdate);
+  handleOnSelectionChange(update) {
+    this._onSelectionChange.dispatch(update);
   }
 
   /** @private */

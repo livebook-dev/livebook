@@ -211,11 +211,11 @@ const Cell = {
       }, 0);
     });
 
-    liveEditor.onViewUpdate((viewUpdate) => {
+    liveEditor.onSelectionChange((update) => {
       // We defer the check to happen after all focus/click events have
       // been processed, in case the state changes as a result
       setTimeout(() => {
-        if (this.isFocused && viewUpdate.selectionSet) {
+        if (this.isFocused && !update.state.selection.eq(update.startState.selection)) {
           this.sendCursorHistory();
         }
       }, 0);

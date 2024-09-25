@@ -2,7 +2,7 @@ import CursorHistory from "../../../js/hooks/session/cursor_history";
 
 test("goBack returns when there's at least one cell", () => {
   const cursorHistory = new CursorHistory();
-  const entry = { cellId: Math.random().toString(36), line: 1, offset: 1 };
+  const entry = { cellId: "c1", line: 1, offset: 1 };
 
   expect(cursorHistory.canGoBack()).toBe(false);
   expect(cursorHistory.getCurrent()).toStrictEqual(null);
@@ -16,7 +16,7 @@ test("goBack returns when there's at least one cell", () => {
 describe("push", () => {
   test("does not add duplicated cells", () => {
     const cursorHistory = new CursorHistory();
-    const entry = { cellId: Math.random().toString(36), line: 1, offset: 1 };
+    const entry = { cellId: "c1", line: 1, offset: 1 };
 
     expect(cursorHistory.canGoBack()).toBe(false);
 
@@ -36,6 +36,7 @@ describe("push", () => {
       cursorHistory.push(`123${value}`, value, 1);
     }
 
+    const firstEntry = cursorHistory.get(0);
     cursorHistory.push("231", 1, 1);
 
     // Navigates to the bottom of the stack
@@ -43,34 +44,32 @@ describe("push", () => {
       cursorHistory.goBack();
     }
 
-    expect(cursorHistory.getCurrent()).toStrictEqual({
-      cellId: "1232",
-      offset: 1,
-      line: 2,
-    });
+    cursorHistory
+      .getEntries()
+      .forEach((entry) => expect(entry).not.toStrictEqual(firstEntry));
   });
 
   test("rewrites the subsequent cells if go back and saves a new cell", () => {
     const cursorHistory = new CursorHistory();
     expect(cursorHistory.canGoBack()).toBe(false);
 
-    cursorHistory.push(Math.random().toString(36), 1, 1);
-    cursorHistory.push(Math.random().toString(36), 1, 1);
-    cursorHistory.push(Math.random().toString(36), 2, 1);
+    cursorHistory.push("c1", 1, 1);
+    cursorHistory.push("c2", 1, 1);
+    cursorHistory.push("c3", 2, 1);
 
     expect(cursorHistory.canGoBack()).toBe(true);
 
-    // Go back to cell id 456
+    // Go back to cell id c2
     cursorHistory.goBack();
     expect(cursorHistory.canGoBack()).toBe(true);
 
-    // Go back to cell id 123
+    // Go back to cell id c1
     cursorHistory.goBack();
     expect(cursorHistory.canGoBack()).toBe(false);
 
     // Removes the subsequent cells from stack
     // and adds this cell to the stack
-    cursorHistory.push(Math.random().toString(36), 1, 1);
+    cursorHistory.push("c4", 1, 1);
     expect(cursorHistory.canGoForward()).toBe(false);
   });
 });
