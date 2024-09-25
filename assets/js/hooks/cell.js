@@ -207,18 +207,16 @@ const Cell = {
         // gives it focus
         if (!this.isFocused || !this.insertMode) {
           this.currentEditor().blur();
+        } else {
+          this.sendCursorHistory();
         }
       }, 0);
     });
 
-    liveEditor.onSelectionChange((update) => {
-      // We defer the check to happen after all focus/click events have
-      // been processed, in case the state changes as a result
-      setTimeout(() => {
-        if (this.isFocused && !update.state.selection.eq(update.startState.selection)) {
-          this.sendCursorHistory();
-        }
-      }, 0);
+    liveEditor.onSelectionChange(() => {
+      if (this.isFocused) {
+        this.sendCursorHistory();
+      }
     });
 
     if (tag === "primary") {

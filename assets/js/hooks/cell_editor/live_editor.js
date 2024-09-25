@@ -333,7 +333,7 @@ export default class LiveEditor {
     ];
 
     const selectionChangeListener = EditorView.updateListener.of((update) =>
-      this.handleOnSelectionChange(update),
+      this.handleViewUpdate(update),
     );
 
     this.view = new EditorView({
@@ -379,13 +379,13 @@ export default class LiveEditor {
         }),
         this.intellisense
           ? [
-            autocompletion({ override: [this.completionSource.bind(this)] }),
-            hoverDetails(this.docsHoverTooltipSource.bind(this)),
-            signature(this.signatureSource.bind(this), {
-              activateOnTyping: settings.editor_auto_signature,
-            }),
-            formatter(this.formatterSource.bind(this)),
-          ]
+              autocompletion({ override: [this.completionSource.bind(this)] }),
+              hoverDetails(this.docsHoverTooltipSource.bind(this)),
+              signature(this.signatureSource.bind(this), {
+                activateOnTyping: settings.editor_auto_signature,
+              }),
+              formatter(this.formatterSource.bind(this)),
+            ]
           : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
@@ -444,8 +444,10 @@ export default class LiveEditor {
   }
 
   /** @private */
-  handleOnSelectionChange(update) {
-    this._onSelectionChange.dispatch(update);
+  handleViewUpdate(update) {
+    if (!update.state.selection.eq(update.startState.selection)) {
+      this._onSelectionChange.dispatch();
+    }
   }
 
   /** @private */
