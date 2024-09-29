@@ -785,29 +785,10 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp make_snippet(code, location) do
-    start_line = 1
-    start_column = 1
-    line = :erl_anno.line(location)
-
-    case :erl_anno.column(location) do
-      :undefined ->
-        nil
-
-      column ->
-        lines = :string.split(code, "\n", :all)
-        snippet = :lists.nth(line - start_line + 1, lines)
-
-        offset =
-          if line == start_line do
-            column - start_column
-          else
-            column - 1
-          end
-
-        case :string.trim(code, :leading) do
-          [] -> nil
-          _ -> %{content: snippet, offset: offset}
-        end
+    if :erl_anno.column(location) != :undefined and :string.trim(code, :leading) != [] do
+      line = :erl_anno.line(location)
+      lines = :string.split(code, "\n", :all)
+      :lists.nth(line, lines)
     end
   end
 

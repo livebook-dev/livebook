@@ -1373,22 +1373,56 @@ defmodule Livebook.Runtime.EvaluatorTest do
       # Incomplete input
       Evaluator.evaluate_code(evaluator, :erlang, "X =", :code_1, [])
       assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()}
-      assert "\e[31m** (TokenMissingError)" <> _ = message
+
+      assert clean_message(message) === """
+             ** (TokenMissingError) token missing on nofile:1:4:
+                 error: syntax error before:
+                 │
+               1 │ X =
+                 │    ^
+                 │
+                 └─ nofile:1:4\
+             """
 
       # Parser error
       Evaluator.evaluate_code(evaluator, :erlang, "X ==/== a.", :code_2, [])
       assert_receive {:runtime_evaluation_response, :code_2, error(message), metadata()}
-      assert "\e[31m** (SyntaxError)" <> _ = message
+
+      assert clean_message(message) === """
+             ** (SyntaxError) invalid syntax found on nofile:1:5:
+                 error: syntax error before: /=
+                 │
+               1 │ X ==/== a.
+                 │     ^
+                 │
+                 └─ nofile:1:5\
+             """
 
       # Tokenizer error
       Evaluator.evaluate_code(evaluator, :erlang, "$a$", :code_3, [])
       assert_receive {:runtime_evaluation_response, :code_3, error(message), metadata()}
-      assert "\e[31m** (SyntaxError)" <> _ = message
+
+      assert clean_message(message) === """
+             ** (SyntaxError) invalid syntax found on nofile:1:3:
+                 error: unterminated character
+                 │
+               1 │ $a$
+                 │   ^
+                 │
+                 └─ nofile:1:3\
+             """
 
       # Erlang exception
       Evaluator.evaluate_code(evaluator, :erlang, "list_to_binary(1).", :code_4, [])
       assert_receive {:runtime_evaluation_response, :code_4, error(message), metadata()}
-      assert "\e[31mexception error: bad argument" <> _ = message
+
+      assert clean_message(message) === """
+             exception error: bad argument
+               in function  list_to_binary/1
+                  called as list_to_binary(1)
+                  *** argument 1: not an iolist term
+               in call from erl_eval:do_apply/7 (erl_eval.erl, line 900)\
+             """
     end
   end
 
