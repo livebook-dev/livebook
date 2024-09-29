@@ -210,6 +210,7 @@ const JSView = {
 
     this.iframe = document.createElement("iframe");
     this.iframe.className = "w-full h-0 absolute z-[1]";
+    this.iframe.setAttribute("data-el-js-view-iframe", this.props.ref);
 
     const notebookEl = document.querySelector(`[data-el-notebook]`);
     const notebookContentEl = notebookEl.querySelector(

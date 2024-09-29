@@ -136,6 +136,27 @@ solely client-side operations.
   left: calc(-45vw + 50%);
 }
 
+[data-el-cell]:fullscreen {
+  @apply bg-white m-0 px-4;
+
+  width: 90vw;
+  position: relative;
+}
+
+[data-el-outputs-container]:fullscreen {
+  @apply bg-white m-0 px-4;
+
+  width: 90vw;
+  position: relative;
+}
+
+[data-el-js-view-iframe]:fullscreen {
+  @apply bg-white m-0 px-4;
+
+  width: 90vw;
+  position: relative;
+}
+
 [data-el-cell][data-js-amplified] [data-el-amplify-outputs-button] > button {
   @apply bg-gray-100 text-gray-900;
 }

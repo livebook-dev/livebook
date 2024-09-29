@@ -105,6 +105,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
         <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
         <.amplify_output_button />
+        <.fullscreen_button cell_id={@cell_view.id} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
@@ -202,6 +203,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.toggle_source_button />
         <.convert_smart_cell_button cell_id={@cell_view.id} />
         <.amplify_output_button />
+        <.fullscreen_button cell_id={@cell_view.id} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
@@ -524,6 +526,30 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.remix_icon icon="zoom-in-line" />
       </.icon_button>
     </span>
+    """
+  end
+
+  def fullscreen_button(assigns) do
+    ~H"""
+    <div class="flex items-center space-x-1">
+      <.menu id={"cell-#{@cell_id}-fullscreen-menu"} position={:bottom_left} distant>
+        <:toggle>
+          <button class="tooltip top flex text-gray-600 hover:text-gray-800" data-tooltip="Fullscreen">
+            <.remix_icon icon="focus-mode" class="text-xl" />
+          </button>
+        </:toggle>
+        <.menu_item variant={:default}>
+          <button role="menuitem" data-el-fullscreen-button>
+            <span>Fullscreen</span>
+          </button>
+        </.menu_item>
+        <.menu_item variant={:default}>
+          <button role="menuitem" data-el-fullscreen-output-button>
+            <span>Fullscreen Output</span>
+          </button>
+        </.menu_item>
+      </.menu>
+    </div>
     """
   end
 

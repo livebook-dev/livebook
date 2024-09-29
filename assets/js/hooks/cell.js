@@ -50,6 +50,39 @@ const Cell = {
       });
     }
 
+    if (["code", "smart"].includes(this.props.type)) {
+      const fullscreen = (container, findIFrame) => {
+        if (findIFrame) {
+          const p_ref = container.querySelector(`[data-p-ref]`)
+          if (p_ref) {
+            const ref = p_ref.getAttribute("data-p-ref").replaceAll('"', '')
+            const iframe = document.querySelector(`[data-el-js-view-iframe="${ref}"]`)
+            if (iframe !== undefined) {
+              container = iframe
+            }
+          }
+        }
+        
+        container.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`)
+        })
+      }
+      const fullscreenButton = this.el.querySelector(
+        `[data-el-fullscreen-button]`,
+      );
+      fullscreenButton.addEventListener("click", (event) => {
+        fullscreen(this.el, false)
+      });
+
+      const fullscreenOutputButton = this.el.querySelector(
+        `[data-el-fullscreen-output-button]`,
+      );
+      fullscreenOutputButton.addEventListener("click", (event) => {
+        const cellOutputs = this.el.querySelector(`[data-el-outputs-container]`)
+        fullscreen(cellOutputs, true)
+      });
+    }
+
     if (this.props.type === "smart") {
       const toggleSourceButton = this.el.querySelector(
         `[data-el-toggle-source-button]`,
