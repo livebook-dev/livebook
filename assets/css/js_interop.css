@@ -141,6 +141,7 @@ solely client-side operations.
 
   width: 90vw;
   position: relative;
+  overflow: scroll;
 }
 
 [data-el-outputs-container]:fullscreen {
@@ -148,6 +149,7 @@ solely client-side operations.
 
   width: 90vw;
   position: relative;
+  overflow: scroll;
 }
 
 [data-el-js-view-iframe]:fullscreen {
@@ -155,6 +157,7 @@ solely client-side operations.
 
   width: 90vw;
   position: relative;
+  overflow: scroll;
 }
 
 [data-el-cell][data-js-amplified] [data-el-amplify-outputs-button] > button {
