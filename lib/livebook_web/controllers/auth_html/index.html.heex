@@ -14,7 +14,7 @@
       <div :if={@authentication_mode == :token} class="space-y-2">
         <%= if Livebook.Config.app?() do %>
           <p>
-            Please open Livebook menu in your taskbar and click "Copy URL".
+            Please open Livebook menu in your taskbar, click "Copy URL", and paste it in your browser's address bar.
           </p>
         <% else %>
           <p>
