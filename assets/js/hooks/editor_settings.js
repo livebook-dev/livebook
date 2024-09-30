@@ -17,6 +17,9 @@ const EditorSettings = {
     const editorAutoSignatureCheckbox = this.el.querySelector(
       `[name="editor_auto_signature"][value="true"]`,
     );
+    const editorCloseBracketsCheckbox = this.el.querySelector(
+      `[name="editor_close_brackets"][value="true"]`,
+    );
     const editorFontSizeCheckbox = this.el.querySelector(
       `[name="editor_font_size"][value="true"]`,
     );
@@ -33,6 +36,7 @@ const EditorSettings = {
 
     editorAutoCompletionCheckbox.checked = settings.editor_auto_completion;
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
+    editorCloseBracketsCheckbox.checked = settings.editor_close_brackets;
     editorFontSizeCheckbox.checked =
       settings.editor_font_size === EDITOR_FONT_SIZE.large ? true : false;
     editorLigaturesCheckbox.checked = settings.editor_ligatures;
@@ -47,6 +51,10 @@ const EditorSettings = {
 
     editorAutoSignatureCheckbox.addEventListener("change", (event) => {
       settingsStore.update({ editor_auto_signature: event.target.checked });
+    });
+
+    editorCloseBracketsCheckbox.addEventListener("change", (event) => {
+      settingsStore.update({ editor_close_brackets: event.target.checked });
     });
 
     editorFontSizeCheckbox.addEventListener("change", (event) => {
