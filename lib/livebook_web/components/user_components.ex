@@ -20,9 +20,14 @@ defmodule LivebookWeb.UserComponents do
       style={"background-color: #{@user.hex_color}"}
       aria-hidden="true"
     >
-      <div class={["text-gray-100 font-semibold", @text_class]}>
+      <div :if={!@user.email} class={["text-gray-100 font-semibold", @text_class]}>
         <%= avatar_text(@user.name) %>
       </div>
+      <img
+        :if={@user.email}
+        src={"https://gravatar.com/avatar/#{hash_email(@user.email)}"}
+        class="rounded-full"
+      />
     </div>
     """
   end
@@ -38,6 +43,13 @@ defmodule LivebookWeb.UserComponents do
       [initial] -> initial
       initials -> List.first(initials) <> List.last(initials)
     end
+  end
+
+  defp hash_email(email) do
+    email
+    |> String.downcase()
+    |> :erlang.md5()
+    |> Base.encode16(case: :lower)
   end
 
   @doc """
