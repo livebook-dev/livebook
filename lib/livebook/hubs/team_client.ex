@@ -127,6 +127,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns the deployment group id.
+  """
+  @spec get_deployment_group_id(String.t()) :: String.t() | nil
+  def get_deployment_group_id(id) do
+    GenServer.call(registry_name(id), :get_deployment_group_id)
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -246,6 +254,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:get_agents, _caller, state) do
     {:reply, state.agents, state}
+  end
+
+  def handle_call(:get_deployment_group_id, _caller, state) do
+    {:reply, state.deployment_group_id, state}
   end
 
   @impl true
