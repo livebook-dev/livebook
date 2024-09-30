@@ -7,18 +7,26 @@
       Authentication required
     </div>
 
-    <div class="mb-8 text-sm text-gray-200 space-y-2">
+    <div class="mb-8 text-sm text-gray-200">
       <p :if={@authentication_mode == :password}>
         Type password to access the Livebook.
       </p>
-      <p :if={@authentication_mode == :token}>
-        Please check out the console for authentication URL or type the token directly
-        here.
-      </p>
-      <p :if={@authentication_mode == :token}>
-        To use password authentication, set the <code>LIVEBOOK_PASSWORD</code>
-        environment variable.
-      </p>
+      <div :if={@authentication_mode == :token} class="space-y-2">
+        <%= if Livebook.Config.app?() do %>
+          <p>
+            Please open Livebook menu in your taskbar, click "Copy URL", and paste it in your browser's address bar.
+          </p>
+        <% else %>
+          <p>
+            Please check out the console for authentication URL or type the token directly
+            here.
+          </p>
+        <% end %>
+        <p>
+          To use password authentication, set the <code>LIVEBOOK_PASSWORD</code>
+          environment variable.
+        </p>
+      </div>
     </div>
 
     <div class="text-gray-50 w-full">
