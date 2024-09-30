@@ -36,6 +36,12 @@ defmodule Livebook.Config do
       module: Livebook.ZTA.GoogleIAP
     },
     %{
+      type: :google_workspace,
+      name: "Google Workspace",
+      value: "Google Workspace domain",
+      module: Livebook.ZTA.GoogleWorkspace
+    },
+    %{
       type: :tailscale,
       name: "Tailscale",
       value: "Tailscale CLI socket path",
