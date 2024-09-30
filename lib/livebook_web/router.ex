@@ -153,6 +153,13 @@ defmodule LivebookWeb.Router do
     end
   end
 
+  # The following routes are public, but should be used only for error pages
+  scope "/", LivebookWeb do
+    pipe_through :browser
+
+    get "/:error", ErrorController, :show
+  end
+
   scope "/" do
     pipe_through [:browser, :auth]
 
