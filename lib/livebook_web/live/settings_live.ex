@@ -155,6 +155,11 @@ defmodule LivebookWeb.SettingsLive do
                 label="Show function signature while typing"
                 value={false}
               />
+              <.switch_field
+                name="editor_auto_close_brackets"
+                label="Automatically close brackets"
+                value={false}
+              />
               <.switch_field name="editor_font_size" label="Increase font size" value={false} />
               <.switch_field name="editor_ligatures" label="Render ligatures" value={false} />
               <.switch_field name="editor_light_theme" label="Use light theme" value={false} />
