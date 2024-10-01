@@ -361,6 +361,7 @@ defmodule Livebook.Config do
   @doc """
   Returns the application cacertfile if any.
   """
+  # TODO: Remove env var once support is added either to Erlang/OTP 28 or Elixir v1.18
   @spec cacertfile() :: String.t() | nil
   def cacertfile() do
     Application.get_env(:livebook, :cacertfile)
