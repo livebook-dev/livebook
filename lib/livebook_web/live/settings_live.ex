@@ -156,7 +156,7 @@ defmodule LivebookWeb.SettingsLive do
                 value={false}
               />
               <.switch_field
-                name="editor_close_brackets"
+                name="editor_auto_close_brackets"
                 label="Automatically close brackets"
                 value={false}
               />

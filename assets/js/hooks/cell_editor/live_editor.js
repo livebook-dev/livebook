@@ -314,7 +314,7 @@ export default class LiveEditor {
       "&": { fontSize: `${settings.editor_font_size}px` },
     });
 
-    const closeBracketsEnabled = settings.editor_close_brackets;
+    const autoCloseBracketsEnabled = settings.editor_auto_close_brackets;
 
     const ligaturesTheme = EditorView.theme({
       "&": {
@@ -356,7 +356,7 @@ export default class LiveEditor {
         crosshairCursor(),
         EditorState.allowMultipleSelections.of(true),
         bracketMatching(),
-        closeBracketsEnabled ? closeBrackets() : [],
+        autoCloseBracketsEnabled ? closeBrackets() : [],
         indentOnInput(),
         history(),
         EditorState.readOnly.of(this.readOnly),

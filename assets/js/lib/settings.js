@@ -22,7 +22,7 @@ export const EDITOR_THEME = {
 const DEFAULTSETTINGS = {
   editor_auto_completion: true,
   editor_auto_signature: true,
-  editor_close_brackets: true,
+  editor_auto_close_brackets: true,
   editor_font_size: EDITOR_FONT_SIZE.normal,
   editor_theme: EDITOR_THEME.default,
   editor_ligatures: false,
