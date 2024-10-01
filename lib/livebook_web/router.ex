@@ -157,7 +157,7 @@ defmodule LivebookWeb.Router do
   scope "/", LivebookWeb do
     pipe_through :browser
 
-    get "/:error", ErrorController, :show
+    get "/unauthorized", ErrorController, :unauthorized
   end
 
   scope "/" do
