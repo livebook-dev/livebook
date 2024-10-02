@@ -525,14 +525,13 @@ defmodule LivebookWeb.SessionLive.Render do
           <ul :if={section_item.identifier_definitions != []} class="mt-2 ml-5 list-none items-center">
             <li :for={definition <- section_item.identifier_definitions}>
               <button
-                class="flex items-center max-w-full text-gray-600 hover:text-gray-900 text-sm gap-1"
+                class="flex items-baseline max-w-full text-gray-600 hover:text-gray-900 text-sm gap-1"
                 data-el-outline-definition-item
                 data-file={definition.file}
                 data-line={definition.line}
-                title={definition.label}
               >
                 <.remix_icon icon="braces-line" class="font-normal opacity-50" />
-                <span class="font-mono truncate">
+                <span class="font-mono break-all text-left">
                   <%= definition.label %>
                 </span>
               </button>
