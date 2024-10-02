@@ -115,7 +115,7 @@ defmodule Livebook.MixProject do
       {:aws_credentials, "~> 0.3.0", runtime: false},
       {:aws_signature, "~> 0.3.0"},
       {:mint_web_socket, "~> 1.0.0"},
-      {:protobuf, "~> 0.12.0"},
+      {:protobuf, "~> 0.13.0"},
       {:dns_cluster, "~> 0.1.2"},
       {:kubereq, "~> 0.2.0"},
       {:yaml_elixir, "~> 2.11"},
