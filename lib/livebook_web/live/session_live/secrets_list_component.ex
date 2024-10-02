@@ -4,6 +4,11 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   alias Livebook.Session
 
   @impl true
+  def mount(socket) do
+    {:ok, assign(socket, hub_secrets_counter: 1)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col grow" data-el-secrets-list>
@@ -52,7 +57,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
           </span>
         </div>
 
-        <div class="flex flex-col space-y-4 mt-6">
+        <div class="flex flex-col space-y-4 mt-6" id={"hub-secrets-#{@hub_secrets_counter}"}>
           <.hub_secret
             :for={secret <- Enum.sort_by(@hub_secrets, & &1.name)}
             id={"hub-#{secret.hub_id}-secret-#{secret.name}"}
@@ -156,7 +161,10 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               phx-change="toggle_secret"
               phx-target={@myself}
             >
-              <.switch_field field={f[:toggled]} />
+              <.switch_field
+                field={f[:toggled]}
+                value={Session.Data.secret_toggled?(@secret, @secrets)}
+              />
               <.hidden_field field={f[:name]} value={@secret.name} />
             </.form>
           </div>
@@ -213,12 +221,40 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   def handle_event("toggle_secret", %{"data" => data}, socket) do
     if data["toggled"] == "true" do
       secret = Enum.find(socket.assigns.hub_secrets, &(&1.name == data["name"]))
-      Session.set_secret(socket.assigns.session.pid, secret)
+
+      session_secrets =
+        Session.Data.session_secrets(socket.assigns.secrets, socket.assigns.hub.id)
+
+      overrides_session_secret? = Enum.any?(session_secrets, &(&1.name == secret.name))
+
+      if overrides_session_secret? do
+        session_pid = socket.assigns.session.pid
+
+        on_confirm = fn socket ->
+          Session.set_secret(session_pid, secret)
+          socket
+        end
+
+        {:noreply,
+         socket
+         # Before the action is confirmed, we want to render the secret
+         # back as "untoggled", so we force a patch to override the
+         # client state
+         |> update(:hub_secrets_counter, &(&1 + 1))
+         |> confirm(on_confirm,
+           title: "Override session secret",
+           description:
+             "There is a session secret named #{secret.name}, this action will erase it.",
+           confirm_text: "Override"
+         )}
+      else
+        Session.set_secret(socket.assigns.session.pid, secret)
+        {:noreply, socket}
+      end
     else
       Session.unset_secret(socket.assigns.session.pid, data["name"])
+      {:noreply, socket}
     end
-
-    {:noreply, socket}
   end
 
   def handle_event("update_outdated", %{"name" => name}, socket) do
@@ -236,8 +272,8 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
 
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Delete session secret - #{secret_name}",
-       description: "Are you sure you want to delete this session secret?",
+       title: "Delete session secret",
+       description: "Are you sure you want to delete #{secret_name} session secret?",
        confirm_text: "Delete",
        confirm_icon: "delete-bin-6-line"
      )}
