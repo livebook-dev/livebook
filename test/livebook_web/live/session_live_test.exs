@@ -2842,11 +2842,16 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.subscribe(session.id)
 
     {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
-    refute render(view) =~ "LivebookWeb.SessionLiveTest.MyBigModuleName"
+    refute render(view) =~ "LivebookWeb.SessionLiveTest.Module1"
+    refute render(view) =~ "LivebookWeb.SessionLiveTest.Module2"
 
     cell_id =
       insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
-      defmodule LivebookWeb.SessionLiveTest.MyBigModuleName do
+      defmodule LivebookWeb.SessionLiveTest.Module1 do
+        def bar, do: :baz
+      end
+
+      defmodule LivebookWeb.SessionLiveTest.Module2 do
         def bar, do: :baz
       end
       ''')
@@ -2856,44 +2861,15 @@ defmodule LivebookWeb.SessionLiveTest do
 
     assert has_element?(
              view,
-             "[data-el-outline-definition-item] span",
-             "LivebookWeb.SessionLiveTest.MyBigModuleName"
-           )
-
-    assert render(view) =~
-             ~s'data-file="#cell:#{cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.MyBigModuleName"'
-
-    second_cell_id =
-      insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
-      defmodule LivebookWeb.SessionLiveTest.AnotherModule do
-        def bar, do: :baz
-      end
-
-      defmodule LivebookWeb.SessionLiveTest.Foo do
-        def bar, do: :baz
-      end
-      ''')
-
-    Session.queue_cell_evaluation(session.pid, second_cell_id)
-    assert_receive {:operation, {:add_cell_evaluation_response, _, ^second_cell_id, _, _}}
-
-    assert has_element?(
-             view,
-             "[data-el-outline-definition-item] span",
-             "LivebookWeb.SessionLiveTest.AnotherModule"
+             ~s/[data-el-outline-definition-item][data-file="#cell:#{cell_id}"][data-line="1"]/,
+             "LivebookWeb.SessionLiveTest.Module1"
            )
 
     assert has_element?(
              view,
-             "[data-el-outline-definition-item] span",
-             "LivebookWeb.SessionLiveTest.Foo"
+             ~s/[data-el-outline-definition-item][data-file="#cell:#{cell_id}"][data-line="5"]/,
+             "LivebookWeb.SessionLiveTest.Module2"
            )
-
-    assert render(view) =~
-             ~s'data-file="#cell:#{second_cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.AnotherModule"'
-
-    assert render(view) =~
-             ~s'data-file="#cell:#{second_cell_id}" data-line="5" title="LivebookWeb.SessionLiveTest.Foo"'
   after
     Code.put_compiler_option(:debug_info, false)
   end
