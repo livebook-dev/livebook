@@ -247,6 +247,7 @@ defmodule Livebook.MixProject do
       {"README.md", title: "Welcome to Livebook"},
       "docs/use_cases.md",
       "docs/authentication.md",
+      "docs/stamping.md",
       "docs/deployment/docker.md",
       "docs/deployment/clustering.md",
       "docs/deployment/fips.md",

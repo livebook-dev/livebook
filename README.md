@@ -178,7 +178,7 @@ The following environment variables can be used to configure Livebook on boot:
     `LIVEBOOK_APPS_PATH_WARMUP`.
 
   * `LIVEBOOK_APPS_PATH_HUB_ID` - deploy only the notebooks in
-    `LIVEBOOK_APPS_PATH` that belong to the given Hub ID
+    `LIVEBOOK_APPS_PATH` that belong to the given workspace (known as HUB ID)
 
   * `LIVEBOOK_APPS_PATH_PASSWORD` - the password to use for all protected apps
     deployed from `LIVEBOOK_APPS_PATH`.
