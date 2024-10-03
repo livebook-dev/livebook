@@ -2,6 +2,23 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.14.3](https://github.com/livebook-dev/livebook/tree/v0.14.3) (2024-10-03)
+
+### Added
+
+* Support for go back and go forward in cell editors using keyboard shortcuts ([#2789](https://github.com/livebook-dev/livebook/pull/2789))
+* Setting to disable autoclosing brackets in the editor ([#2805](https://github.com/livebook-dev/livebook/pull/2805))
+
+### Changed
+
+* Module names in the outline to always be shown in full ([#2810](https://github.com/livebook-dev/livebook/pull/2810))
+
+### Fixed
+
+* Crashes under certain `exec` configuration when starting K8s runtime ([#2793](https://github.com/livebook-dev/livebook/pull/2793))
+* Handling of Erlang syntax errors ([#2800](https://github.com/livebook-dev/livebook/pull/2800))
+* Fixed missing code highlighting on certain function calls
+
 ## [v0.14.2](https://github.com/livebook-dev/livebook/tree/v0.14.2) (2024-09-20)
 
 ### Fixed
