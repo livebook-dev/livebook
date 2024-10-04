@@ -2,6 +2,18 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.14.4](https://github.com/livebook-dev/livebook/tree/v0.14.4) (2024-10-04)
+
+### Added
+
+* Documented stamping (#2815)
+
+### Fixed
+
+* Crashes under certain `exec` configuration when starting K8s runtime (#2817)
+* Fixed Teams app deployments with attachment files
+* App deployment continuing retries even once the app is deactivated
+
 ## [v0.14.3](https://github.com/livebook-dev/livebook/tree/v0.14.3) (2024-10-03)
 
 ### Added
