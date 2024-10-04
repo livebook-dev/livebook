@@ -6,11 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-* Documented stamping (#2815)
+* Documented stamping ([#2815](https://github.com/livebook-dev/livebook/pull/2815))
 
 ### Fixed
 
-* Crashes under certain `exec` configuration when starting K8s runtime (#2817)
+* Crashes under certain `exec` configuration when starting K8s runtime ([#2817](https://github.com/livebook-dev/livebook/pull/2817))
 * Fixed Teams app deployments with attachment files
 * App deployment continuing retries even once the app is deactivated
 
