@@ -1328,7 +1328,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         metadata()
       }
 
-      assert message =~ "compile.forms failed - syntax error"
+      assert message =~ "compilation failed"
     end
 
     test "evaluate erlang-module error - expression after module", %{evaluator: evaluator} do
@@ -1347,7 +1347,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         metadata()
       }
 
-      assert message =~ "compile.forms failed - syntax error"
+      assert message =~ "compilation failed"
     end
 
     test "evaluate erlang-module error - two modules", %{evaluator: evaluator} do
@@ -1366,7 +1366,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         metadata()
       }
 
-      assert message =~ "compile.forms failed - syntax error"
+      assert message =~ "compilation failed"
     end
 
     test "mixed erlang/elixir bindings", %{evaluator: evaluator} do
