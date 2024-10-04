@@ -633,12 +633,15 @@ defmodule Livebook.Hubs.TeamClientTest do
       notebook = %{
         Livebook.Notebook.new()
         | app_settings: %{Livebook.Notebook.AppSettings.new() | slug: slug},
+          file_entries: [%{type: :attachment, name: "image.jpg"}],
           name: title,
           hub_id: team.id,
           deployment_group_id: deployment_group_id
       }
 
       files_dir = Livebook.FileSystem.File.local(tmp_dir)
+      image_file = Livebook.FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = Livebook.FileSystem.File.write(image_file, "content")
 
       {:ok, %Livebook.Teams.AppDeployment{file: zip_content} = app_deployment} =
         Livebook.Teams.AppDeployment.new(notebook, files_dir)
