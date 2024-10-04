@@ -23,7 +23,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
       send_to: self(),
       object_tracker: object_tracker,
       client_tracker: client_tracker,
-      ebin_path: ebin_path
+      ebin_path: ebin_path,
+      tmp_dir: "/tmp"
     ]
 
     {:ok, _pid, evaluator} = start_supervised({Evaluator, opts})
@@ -1301,10 +1302,18 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
 
     test "evaluate erlang-module code", %{evaluator: evaluator} do
+      code = """
+      -module(tryme).
+
+      -export([go/0]).
+
+      go() ->{ok,went}.
+      """
+
       Evaluator.evaluate_code(
         evaluator,
         :erlang,
-        "-module(tryme). -export([go/0]). go() ->{ok,went}.",
+        code,
         :code_4,
         []
       )
@@ -1313,10 +1322,19 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
 
     test "evaluate erlang-module error function already defined", %{evaluator: evaluator} do
+      code = """
+      -module(tryme).
+
+      -export([go/0]).
+
+      go() ->{ok,went}.
+      go() ->{ok,went}.
+      """
+
       Evaluator.evaluate_code(
         evaluator,
         :erlang,
-        "-module(tryme). -export([go/0]). go() ->{ok,went}. go() ->{ok,went}.",
+        code,
         :code_4,
         []
       )
@@ -1328,14 +1346,23 @@ defmodule Livebook.Runtime.EvaluatorTest do
         metadata()
       }
 
-      assert message =~ "compilation failed"
+      assert message =~ "compile forms error"
     end
 
     test "evaluate erlang-module error - expression after module", %{evaluator: evaluator} do
+      code = """
+      -module(tryme).
+      -export([go/0]).
+
+      go() ->{ok,went}.
+      go() ->{ok,went}.
+      A = 1.
+      """
+
       Evaluator.evaluate_code(
         evaluator,
         :erlang,
-        "-module(tryme). -export([go/0]). go() ->{ok,went}. go() ->{ok,went}. A = 1.",
+        code,
         :code_4,
         []
       )
@@ -1347,14 +1374,24 @@ defmodule Livebook.Runtime.EvaluatorTest do
         metadata()
       }
 
-      assert message =~ "compilation failed"
+      assert message =~ "compile forms error"
     end
 
     test "evaluate erlang-module error - two modules", %{evaluator: evaluator} do
+      code = """
+      -module(one).
+      -export([go/0]).
+      go() ->{ok,one}.
+
+      -module(two).
+      -export([go/0]).
+      go() ->{ok,two}.
+      """
+
       Evaluator.evaluate_code(
         evaluator,
         :erlang,
-        "-module(one). -export([go/0]). go() ->{ok,one}. -module(two). -export([go/0]). go() ->{ok,two}.",
+        code,
         :code_4,
         []
       )
@@ -1366,7 +1403,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         metadata()
       }
 
-      assert message =~ "compilation failed"
+      assert message =~ "compile forms error"
     end
 
     test "mixed erlang/elixir bindings", %{evaluator: evaluator} do

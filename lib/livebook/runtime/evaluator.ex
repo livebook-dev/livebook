@@ -318,7 +318,8 @@ defmodule Livebook.Runtime.Evaluator do
       contexts: %{},
       initial_context: context,
       initial_context_version: nil,
-      ignored_pdict_keys: ignored_pdict_keys
+      ignored_pdict_keys: ignored_pdict_keys,
+      tmp_dir: tmp_dir
     }
 
     :proc_lib.init_ack(evaluator)
@@ -435,7 +436,8 @@ defmodule Livebook.Runtime.Evaluator do
 
     start_time = System.monotonic_time()
 
-    {eval_result, code_markers} = eval(language, code, context.binding, context.env)
+    tmp_dir = Map.get(state, :tmp_dir)
+    {eval_result, code_markers} = eval(language, code, context.binding, context.env, tmp_dir)
 
     evaluation_time_ms = time_diff_ms(start_time)
 
@@ -627,11 +629,24 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   # TODO: Make sure to change this into a folder which pertains the session.
-  defp tmp_filename() do
-    :lists.flatten(:io_lib.format("/tmp/erlang-eval-~p.tmp", [:erlang.phash2(make_ref())]))
+  #
+  # Better alternative would be to get proper OTP ram-file support.
+  # https://github.com/erlang/otp/issues/7239 - Request for ram-option.
+  #
+  # https://github.com/erlang/otp/blob/master/lib/kernel/src/ram_file.erl
+  # a ram-file exists but not all modules know how to deal with it.
+  #
+  # History is telling:
+  # https://erlang.org/pipermail/erlang-questions/2007-March/025623.html
+  # https://erlang.org/pipermail/erlang-questions/2002-August/005562.html
+  # https://github.com/ebengt/erlang_string_io
+  #
+  defp tmp_filename(tmp_dir) do
+    tmp_id = :erlang.phash2(make_ref())
+    Path.join(tmp_dir, "erlang-eval-#{tmp_id}.tmp")
   end
 
-  defp eval(:elixir, code, binding, env) do
+  defp eval(:elixir, code, binding, env, _tmp_dir) do
     {{result, extra_diagnostics}, diagnostics} =
       Code.with_diagnostics([log: true], fn ->
         try do
@@ -698,10 +713,38 @@ defmodule Livebook.Runtime.Evaluator do
   # Erlang code is either statements as currently supported, or modules.
   # In case we want to support modules - it makes sense to allow users to use
   # includes, defines and thus we use the epp-module first - try to find out
-  # if we have a module attribute, and if so deem it a module.
-  # If no module attribute was found the previous code is called.
-  defp eval(:erlang, code, binding, env) do
-    filename = tmp_filename()
+  #
+  # if in the tokens from erl_scan we find at least 1 module-token we assume
+  # that the user is defining a module, if not the previous code is called.
+
+  defp eval(:erlang, code, binding, env, tmp_dir) do
+    case :erl_scan.string(String.to_charlist(code), {1, 1}, [:text]) do
+      {:ok, tokens, _} ->
+        case :lists.keyfind(:module, 3, tokens) do
+          {:atom, _, _module} -> eval_erlang_module(code, binding, env, tmp_dir)
+          false -> eval_erlang_statements(code, tokens, binding, env)
+        end
+
+      {:error, {location, module, description}, _end_loc} ->
+        process_erlang_error(env, code, location, module, description)
+    end
+  end
+
+  # Explain to user: without tmp_dir to write files, they cannot compile erlang-modules
+  defp eval_erlang_module(_code, _binding, _env, nil) do
+    {{:error, :error, "erlang module compile needs tmp_dir", []}, []}
+  end
+
+  # Create module - tokens from string
+  # Based on: https://stackoverflow.com/questions/2160660/how-to-compile-erlang-code-loaded-into-a-string
+  # Step 1: Scan the code using the epp:parse_file erlang primitive
+  # - epp will do macro expansion, includes, defines etc.
+  # Step 2: Compile and load
+  # Step 3: If compile success - register module
+
+  defp eval_erlang_module(code, binding, env, tmp_dir) do
+    # It is an ugly hack for now - need to solve https://github.com/erlang/otp/issues/7239
+    filename = String.to_charlist(tmp_filename(tmp_dir))
     :file.write_file(filename, code)
 
     eval_result =
@@ -709,57 +752,35 @@ defmodule Livebook.Runtime.Evaluator do
         {:ok, forms} ->
           case :lists.keyfind(:module, 3, forms) do
             {:attribute, _lineno, :module, module} ->
-              eval_erlang_module(code, module, forms, binding, env)
+              case :compile.forms(forms) do
+                {:ok, _, binary_module} ->
+                  {:module, module} = :code.load_binary(module, ~c"#{module}.beam", binary_module)
+
+                  # Registration of module
+                  env = %{env | module: module, versioned_vars: %{}}
+
+                  Evaluator.Tracer.trace({:on_module, binary_module, %{}}, env)
+                  result = {:ok, module}
+                  {{:ok, result, binding, env}, []}
+
+                :error ->
+                  {{:error, :error, "compile forms error", []}, []}
+
+                {:error, _errors, _warnings} ->
+                  {{:error, :error, "compile forms error (warnings)", []}, []}
+              end
 
             false ->
-              case :erl_scan.string(String.to_charlist(code), {1, 1}, [:text]) do
-                {:ok, tokens, _} ->
-                  eval_erlang_statements(code, tokens, binding, env)
-
-                {:error, {location, module, description}, _end_loc} ->
-                  process_erlang_error(env, code, location, module, description)
-              end
+              {{:error, :error, "could not find module name", []}, []}
           end
 
-        {:error, epp_parse_errors} ->
-          {{:error, :error, epp_parse_errors, []}, []}
+        :error ->
+          {{:error, :error, "epp parsing failed", []}, []}
       end
 
     # Clean up after ourselves.
     :file.delete(filename)
     eval_result
-  end
-
-  # Create module - tokens from string
-  # Based on: https://stackoverflow.com/questions/2160660/how-to-compile-erlang-code-loaded-into-a-string
-  # Step 1: Scan the code using the epp:parse_file erlang primitive
-  # - epp will do macro expansion etc.
-  # Step 2: Convert to forms
-  # Step 3: Extract module name
-  # Step 4: Compile and load
-  # Step 5: If compile success - register module
-
-  defp eval_erlang_module(_code, module, forms, binding, env) do
-    try do
-      case :compile.forms(forms) do
-        {:ok, _, binary_module} ->
-          {:module, module} = :code.load_binary(module, ~c"#{module}.beam", binary_module)
-
-          # Registration of module
-          env = %{env | module: module, versioned_vars: %{}}
-          Evaluator.Tracer.trace({:on_module, binary_module, %{}}, env)
-          result = {:ok, module}
-          {{:ok, result, binding, env}, []}
-
-        :error ->
-          # TODO: Return errors and warnings and convert them to diagnostics
-          {{:error, :error, "compilation failed", []}, []}
-      end
-    catch
-      kind, error ->
-        stacktrace = prune_stacktrace(:erl_eval, __STACKTRACE__)
-        {{:error, kind, error, stacktrace}, []}
-    end
   end
 
   defp eval_erlang_statements(code, tokens, binding, env) do

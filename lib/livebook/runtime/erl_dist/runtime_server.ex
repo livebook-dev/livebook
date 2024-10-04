@@ -772,7 +772,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   defp evaluator_tmp_dir(state) do
     if tmp_dir = state.tmp_dir do
-      Path.join(tmp_dir, "tmp")
+      path = Path.join(tmp_dir, "tmp")
+      File.mkdir_p!(path)
+      path
     end
   end
 
