@@ -752,9 +752,8 @@ defmodule Livebook.Runtime.Evaluator do
           {{:ok, result, binding, env}, []}
 
         :error ->
-          error = "compile.forms failed - syntax error"
-          {{:error, :error, error, []}, []}
-          # process_erlang_error(env, code, {1,1}, :compile,"Compile forms failed")
+          # TODO: Return errors and warnings and convert them to diagnostics
+          {{:error, :error, "compilation failed", []}, []}
       end
     catch
       kind, error ->
