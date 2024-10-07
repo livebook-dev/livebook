@@ -436,8 +436,8 @@ defmodule Livebook.Runtime.Evaluator do
 
     start_time = System.monotonic_time()
 
-    tmp_dir = Map.get(state, :tmp_dir)
-    {eval_result, code_markers} = eval(language, code, context.binding, context.env, tmp_dir)
+    {eval_result, code_markers} =
+      eval(language, code, context.binding, context.env, state.tmp_dir)
 
     evaluation_time_ms = time_diff_ms(start_time)
 
