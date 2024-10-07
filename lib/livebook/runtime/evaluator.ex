@@ -628,24 +628,6 @@ defmodule Livebook.Runtime.Evaluator do
     |> Map.update!(:context_modules, &(&1 ++ prev_env.context_modules))
   end
 
-  # TODO: Make sure to change this into a folder which pertains the session.
-  #
-  # Better alternative would be to get proper OTP ram-file support.
-  # https://github.com/erlang/otp/issues/7239 - Request for ram-option.
-  #
-  # https://github.com/erlang/otp/blob/master/lib/kernel/src/ram_file.erl
-  # a ram-file exists but not all modules know how to deal with it.
-  #
-  # History is telling:
-  # https://erlang.org/pipermail/erlang-questions/2007-March/025623.html
-  # https://erlang.org/pipermail/erlang-questions/2002-August/005562.html
-  # https://github.com/ebengt/erlang_string_io
-  #
-  defp tmp_filename(tmp_dir) do
-    tmp_id = :erlang.phash2(make_ref())
-    Path.join(tmp_dir, "erlang-eval-#{tmp_id}.tmp")
-  end
-
   defp eval(:elixir, code, binding, env, _tmp_dir) do
     {{result, extra_diagnostics}, diagnostics} =
       Code.with_diagnostics([log: true], fn ->
@@ -732,7 +714,7 @@ defmodule Livebook.Runtime.Evaluator do
 
   # Explain to user: without tmp_dir to write files, they cannot compile erlang-modules
   defp eval_erlang_module(_code, _binding, _env, nil) do
-    {{:error, :error, "erlang module compile needs tmp_dir", []}, []}
+    {{:error, :error, "writing Erlang modules requires a writeable file system", []}, []}
   end
 
   # Create module - tokens from string
@@ -743,18 +725,27 @@ defmodule Livebook.Runtime.Evaluator do
   # Step 3: If compile success - register module
 
   defp eval_erlang_module(code, binding, env, tmp_dir) do
-    # It is an ugly hack for now - need to solve https://github.com/erlang/otp/issues/7239
-    filename = String.to_charlist(tmp_filename(tmp_dir))
-    :file.write_file(filename, code)
+    # Consider using in-memory file, once :ram file supports IO device API.
+    # See https://github.com/erlang/otp/issues/7239
+    filename = Path.join(tmp_dir, "epp#{random_long_id()}.tmp")
+    File.write!(filename, code)
 
     eval_result =
-      case :epp.parse_file(filename, [], []) do
+      case :epp.parse_file(~c"#{filename}", [], []) do
         {:ok, forms} ->
           case :lists.keyfind(:module, 3, forms) do
             {:attribute, _lineno, :module, module} ->
               case :compile.forms(forms) do
                 {:ok, _, binary_module} ->
-                  {:module, module} = :code.load_binary(module, ~c"#{module}.beam", binary_module)
+                  file =
+                    if ebin_path = ebin_path() do
+                      Path.join(ebin_path, "#{module}.beam")
+                    else
+                      "#{module}.beam"
+                    end
+
+                  {:module, module} =
+                    :code.load_binary(module, String.to_charlist(file), binary_module)
 
                   # Registration of module
                   env = %{env | module: module, versioned_vars: %{}}
@@ -763,11 +754,9 @@ defmodule Livebook.Runtime.Evaluator do
                   result = {:ok, module}
                   {{:ok, result, binding, env}, []}
 
+                # TODO added errors and warning
                 :error ->
                   {{:error, :error, "compile forms error", []}, []}
-
-                {:error, _errors, _warnings} ->
-                  {{:error, :error, "compile forms error (warnings)", []}, []}
               end
 
             false ->
@@ -779,7 +768,7 @@ defmodule Livebook.Runtime.Evaluator do
       end
 
     # Clean up after ourselves.
-    :file.delete(filename)
+    _ = File.rm(filename)
     eval_result
   end
 

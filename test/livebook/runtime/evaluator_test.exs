@@ -6,14 +6,15 @@ defmodule Livebook.Runtime.EvaluatorTest do
   alias Livebook.Runtime.Evaluator
 
   setup ctx do
-    ebin_path =
+    {tmp_path, ebin_path} =
       if ctx[:with_ebin_path] do
         hash = ctx.test |> to_string() |> :erlang.md5() |> Base.encode32(padding: false)
-        path = ["tmp", inspect(ctx.module), hash, "ebin"] |> Path.join() |> Path.expand()
-        File.rm_rf!(path)
-        File.mkdir_p!(path)
-        Code.append_path(path)
-        path
+        tmp_path = ["tmp", inspect(ctx.module), hash] |> Path.join() |> Path.expand()
+        ebin_path = Path.join(tmp_path, "ebin")
+        File.rm_rf!(ebin_path)
+        File.mkdir_p!(ebin_path)
+        Code.append_path(ebin_path)
+        {tmp_path, ebin_path}
       end
 
     {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
@@ -23,8 +24,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
       send_to: self(),
       object_tracker: object_tracker,
       client_tracker: client_tracker,
-      ebin_path: ebin_path,
-      tmp_dir: "/tmp"
+      tmp_dir: tmp_path,
+      ebin_path: ebin_path
     ]
 
     {:ok, _pid, evaluator} = start_supervised({Evaluator, opts})
@@ -33,6 +34,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       evaluator: evaluator,
       object_tracker: object_tracker,
       client_tracker: client_tracker,
+      tmp_dir: tmp_path,
       ebin_path: ebin_path
     }
   end
@@ -1301,6 +1303,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_1, terminal_text("6"), metadata()}
     end
 
+    @tag :with_ebin_path
     test "evaluate erlang-module code", %{evaluator: evaluator} do
       code = """
       -module(tryme).
@@ -1321,7 +1324,37 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_4, terminal_text(_), metadata()}
     end
 
-    test "evaluate erlang-module error function already defined", %{evaluator: evaluator} do
+    test "evaluate erlang-module code without filesystem", %{evaluator: evaluator} do
+      code = """
+      -module(tryme).
+
+      -export([go/0]).
+
+      go() ->{ok,went}.
+      """
+
+      Evaluator.evaluate_code(
+        evaluator,
+        :erlang,
+        code,
+        :code_4,
+        []
+      )
+
+      assert_receive {
+        :runtime_evaluation_response,
+        :code_4,
+        error(message),
+        metadata()
+      }
+
+      assert message =~ "writing Erlang modules requires a writeable file system"
+    end
+
+    @tag :with_ebin_path
+    test "evaluate erlang-module error function already defined", %{
+      evaluator: evaluator
+    } do
       code = """
       -module(tryme).
 
@@ -1349,7 +1382,10 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert message =~ "compile forms error"
     end
 
-    test "evaluate erlang-module error - expression after module", %{evaluator: evaluator} do
+    @tag :with_ebin_path
+    test "evaluate erlang-module error - expression after module", %{
+      evaluator: evaluator
+    } do
       code = """
       -module(tryme).
       -export([go/0]).
@@ -1377,6 +1413,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert message =~ "compile forms error"
     end
 
+    @tag :with_ebin_path
     test "evaluate erlang-module error - two modules", %{evaluator: evaluator} do
       code = """
       -module(one).
