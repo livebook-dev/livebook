@@ -468,8 +468,20 @@ defmodule Livebook.Runtime.Evaluator do
           identifiers_used = :unknown
           identifiers_defined = %{}
           identifier_definitions = []
-          # Empty context
-          new_context = initial_context()
+
+          # Mostly empty context, however we keep imports and process
+          # dictionary from the previous context, since these are not
+          # diffed
+          new_context = %{
+            id: random_long_id(),
+            binding: [],
+            env:
+              context.env
+              |> prune_env(%Evaluator.Tracer{})
+              |> Map.replace!(:versioned_vars, %{}),
+            pdict: context.pdict
+          }
+
           {new_context, result, identifiers_used, identifiers_defined, identifier_definitions}
       end
 

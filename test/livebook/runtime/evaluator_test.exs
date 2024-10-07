@@ -811,7 +811,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       ref = eval_idx
       parent_refs = Enum.to_list((eval_idx - 1)..0//-1)
       Evaluator.evaluate_code(evaluator, :elixir, code, ref, parent_refs)
-      assert_receive {:runtime_evaluation_response, ^ref, terminal_text(_), metadata}
+      assert_receive {:runtime_evaluation_response, ^ref, _output, metadata}
       %{used: metadata.identifiers_used, defined: metadata.identifiers_defined}
     end
 
@@ -1190,6 +1190,94 @@ defmodule Livebook.Runtime.EvaluatorTest do
              ]
 
       assert context.pdict == %{x: 1, y: 2}
+    end
+
+    test "context merging with errored evaluation", %{evaluator: evaluator} do
+      # This test is similar to the above, but the second evaluation
+      # fails with an error
+
+      """
+      x = 1
+      y = 1
+
+      alias Enum, as: E
+      alias Map, as: M
+
+      require Enum
+
+      import Integer, only: [is_odd: 1, is_even: 1, to_string: 2, to_charlist: 2]
+
+      Process.put(:x, 1)
+      Process.put(:y, 1)
+      Process.put(:z, 1)
+
+      defmodule Livebook.Runtime.EvaluatorTest.Identifiers.ErrorContextMergingOne do
+      end
+      """
+      |> eval(evaluator, 0)
+
+      """
+      y = 2
+
+      alias MapSet, as: M
+
+      require Map
+
+      import Integer, except: [is_even: 1, to_string: 2]
+
+      Process.put(:y, 2)
+      Process.delete(:z)
+
+      defmodule Livebook.Runtime.EvaluatorTest.Identifiers.ErrorContextMergingTwo do
+      end
+
+      raise "oops"
+      """
+      |> eval(evaluator, 1)
+
+      # Evaluation 1 context
+      #
+      # Should be empty, except for imports and process dictionary,
+      # which are not diffed and should be kept from evaluation 0.
+
+      context = Evaluator.get_evaluation_context(evaluator, [1])
+
+      assert Enum.sort(context.binding) == []
+
+      assert Enum.sort(context.env.aliases) == []
+
+      assert Map not in context.env.requires
+      assert Enum not in context.env.requires
+
+      assert [_, _ | _] = context.env.functions[Integer]
+      assert [_, _ | _] = context.env.macros[Integer]
+
+      assert context.env.versioned_vars == %{}
+
+      assert context.env.context_modules == []
+
+      assert context.pdict == %{x: 1, y: 1, z: 1}
+
+      # Merged context
+
+      context = Evaluator.get_evaluation_context(evaluator, [1, 0])
+
+      assert Enum.sort(context.binding) == [x: 1, y: 1]
+
+      assert Enum.sort(context.env.aliases) == [{E, Enum}, {M, Map}]
+
+      assert Enum in context.env.requires
+
+      assert [_, _ | _] = context.env.functions[Integer]
+      assert [_, _ | _] = context.env.macros[Integer]
+
+      assert context.env.versioned_vars == %{{:x, nil} => 0, {:y, nil} => 1}
+
+      assert context.env.context_modules == [
+               Livebook.Runtime.EvaluatorTest.Identifiers.ErrorContextMergingOne
+             ]
+
+      assert context.pdict == %{x: 1, y: 1, z: 1}
     end
   end
 
