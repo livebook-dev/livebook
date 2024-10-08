@@ -300,7 +300,7 @@ defmodule Livebook.HubHelpers do
   end
 
   defp hub_pid(hub) do
-    if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
+    if pid = Livebook.Hubs.TeamClient.get_pid(hub.id) do
       {:ok, pid}
     end
   end
