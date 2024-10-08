@@ -36,6 +36,11 @@ defmodule Livebook.Config do
       module: Livebook.ZTA.GoogleIAP
     },
     %{
+      type: :livebook_teams,
+      name: "Livebook Teams",
+      module: Livebook.ZTA.LivebookTeams
+    },
+    %{
       type: :tailscale,
       name: "Tailscale",
       value: "Tailscale CLI socket path",
@@ -758,6 +763,15 @@ defmodule Livebook.Config do
           {:custom, module, key}
         else
           abort!("module given as custom identity provider in #{env} could not be found")
+        end
+
+      "livebook_teams" ->
+        case identity_provider_type_to_module() do
+          %{"livebook_teams" => module} ->
+            {:zta, module, nil}
+
+          _ ->
+            abort!("invalid configuration for identity provider given in #{env}")
         end
 
       provider ->
