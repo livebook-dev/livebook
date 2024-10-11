@@ -63,7 +63,7 @@ kind: Service
 metadata:
   name: livebook-loadbalancer
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
     - port: 8080
       targetPort: 8080
@@ -77,7 +77,10 @@ kind: Deployment
 metadata:
   name: livebook
 spec:
-  replicas: 3
+  # When deploying Livebook for authoring notebooks to Kubernetes,
+  # the number of replicas must be 1, since Livebook considers you
+  # will assign one instance per user.
+  replicas: 1
   selector:
     matchLabels:
       app: livebook
@@ -133,6 +136,8 @@ data:
   LIVEBOOK_SECRET_KEY_BASE: <base64_encoded_password>
   LIVEBOOK_COOKIE: <base64_encoded_password>
 ```
+
+The setup above does not set up a data directory, which means once you restart the instance, any configuration will be lost. If you have a persistent volume, you can point the `LIVEBOOK_DATA_PATH` environment variable to it.
 
 ## Deploy notebooks as applications
 
