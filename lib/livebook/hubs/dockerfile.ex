@@ -100,7 +100,6 @@ defmodule Livebook.Hubs.Dockerfile do
     # Apps configuration
     ENV LIVEBOOK_APPS_PATH "/apps"
     ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
-    ENV LIVEBOOK_APPS_PATH_HUB_ID "#{hub.id}"
     """
 
     notebook =

@@ -25,7 +25,6 @@ defmodule Livebook.Hubs.DockerfileTest do
              # Apps configuration
              ENV LIVEBOOK_APPS_PATH "/apps"
              ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
-             ENV LIVEBOOK_APPS_PATH_HUB_ID "personal-hub"
 
              # Notebook
              COPY notebook.livemd /apps/
@@ -108,7 +107,6 @@ defmodule Livebook.Hubs.DockerfileTest do
              # Apps configuration
              ENV LIVEBOOK_APPS_PATH "/apps"
              ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
-             ENV LIVEBOOK_APPS_PATH_HUB_ID "team-org-name-387"
 
              # Notebook
              COPY notebook.livemd /apps/
