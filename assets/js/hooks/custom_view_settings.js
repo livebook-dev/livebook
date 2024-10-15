@@ -13,6 +13,9 @@ const CustomViewSettings = {
     const customMarkdownCheckbox = this.el.querySelector(
       `[name="show_markdown"][value="true"]`,
     );
+    const customCodeCheckbox = this.el.querySelector(
+      `[name="show_code"][value="true"]`,
+    );
     const customOutputCheckbox = this.el.querySelector(
       `[name="show_output"][value="true"]`,
     );
@@ -22,6 +25,7 @@ const CustomViewSettings = {
 
     customSectionCheckbox.checked = settings.custom_view_show_section;
     customMarkdownCheckbox.checked = settings.custom_view_show_markdown;
+    customCodeCheckbox.checked = settings.custom_view_show_code;
     customOutputCheckbox.checked = settings.custom_view_show_output;
     customSpotlightCheckbox.checked = settings.custom_view_spotlight;
 
@@ -30,6 +34,9 @@ const CustomViewSettings = {
     });
     customMarkdownCheckbox.addEventListener("change", (event) => {
       settingsStore.update({ custom_view_show_markdown: event.target.checked });
+    });
+    customCodeCheckbox.addEventListener("change", (event) => {
+      settingsStore.update({ custom_view_show_code: event.target.checked });
     });
     customOutputCheckbox.addEventListener("change", (event) => {
       settingsStore.update({ custom_view_show_output: event.target.checked });

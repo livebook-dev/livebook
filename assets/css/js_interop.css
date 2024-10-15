@@ -341,6 +341,10 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-js-hide-code] [data-type="code"] [data-p-language] {
+  @apply hidden;
+}
+
 [data-js-spotlight]
   :is(
     [data-el-section-headline]:not([data-js-focused]),
