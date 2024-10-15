@@ -231,16 +231,19 @@ defmodule Livebook.Application do
       teams_key && auth ->
         Application.put_env(:livebook, :teams_auth?, true)
 
-        case String.split(auth, ":") do
-          ["offline", name, public_key] ->
-            create_offline_hub(teams_key, name, public_key)
+        hub =
+          case String.split(auth, ":") do
+            ["offline", name, public_key] ->
+              create_offline_hub(teams_key, name, public_key)
 
-          ["online", name, org_id, org_key_id, agent_key] ->
-            create_online_hub(teams_key, name, org_id, org_key_id, agent_key)
+            ["online", name, org_id, org_key_id, agent_key] ->
+              create_online_hub(teams_key, name, org_id, org_key_id, agent_key)
 
-          _ ->
-            Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
-        end
+            _ ->
+              Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
+          end
+
+        Application.put_env(:livebook, :apps_path_hub_id, hub.id)
 
       teams_key || auth ->
         Livebook.Config.abort!(

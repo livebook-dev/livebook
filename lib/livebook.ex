@@ -182,8 +182,12 @@ defmodule Livebook do
       config :livebook, :apps_path, apps_path
     end
 
-    if apps_path_hub_id = System.get_env("LIVEBOOK_APPS_PATH_HUB_ID") do
-      config :livebook, :apps_path_hub_id, apps_path_hub_id
+    # TODO: remove in v1.0
+    if System.get_env("LIVEBOOK_APPS_PATH_HUB_ID") do
+      IO.warn(
+        ~s/Ignoring LIVEBOOK_APPS_PATH_HUB_ID, this environment variable is no longer used./,
+        []
+      )
     end
 
     if apps_path_password = Livebook.Config.password!("LIVEBOOK_APPS_PATH_PASSWORD") do
