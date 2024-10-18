@@ -156,7 +156,7 @@ defmodule LivebookWeb.AppComponents do
             :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
             field={@form[:zta_key]}
             type={Map.get(zta_metadata, :input, "text")}
-            label={zta_metadata.name}
+            label={zta_metadata.value}
             placeholder={Map.get(zta_metadata, :placeholder, "")}
             phx-debounce
             disabled={@disabled}
