@@ -315,18 +315,24 @@ defmodule Livebook.Application do
   end
 
   defp create_online_hub(teams_key, name, org_id, org_key_id, agent_key) do
-    Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
-      id: "team-#{name}",
-      hub_name: name,
-      hub_emoji: "💡",
-      user_id: nil,
-      org_id: org_id,
-      org_key_id: org_key_id,
-      session_token: agent_key,
-      teams_key: teams_key,
-      org_public_key: nil,
-      offline: nil
-    })
+    id = "team-#{name}"
+
+    hub =
+      Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
+        id: id,
+        hub_name: name,
+        hub_emoji: "💡",
+        user_id: nil,
+        org_id: org_id,
+        org_key_id: org_key_id,
+        session_token: agent_key,
+        teams_key: teams_key,
+        org_public_key: nil,
+        offline: nil
+      })
+
+    Livebook.Hubs.set_default_hub(id)
+    hub
   end
 
   # We set ELIXIR_ERL_OPTIONS to set our custom EPMD module when
