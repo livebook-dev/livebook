@@ -536,6 +536,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_async(:cluster_check, {:ok, results}, socket) do
     [access_review_result, namespaces_result] = results
+    context_namespace = socket.assigns.kubeconfig.current_namespace
 
     access_review_result =
       case access_review_result do
@@ -548,7 +549,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       case namespaces_result do
         {:ok, namespaces} ->
           namespace_options = Enum.map(namespaces, & &1.name)
-          {:ok, namespace_options, List.first(namespace_options)}
+          {:ok, namespace_options, context_namespace || List.first(namespace_options)}
 
         {:error, %{status: 403}} ->
           # No access to list namespaces, we will show an input instead
