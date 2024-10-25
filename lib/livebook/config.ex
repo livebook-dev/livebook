@@ -226,9 +226,9 @@ defmodule Livebook.Config do
   Returns if this instance is running with teams auth,
   i.e. if there an online or offline hub created on boot.
   """
-  @spec teams_auth?() :: boolean()
-  def teams_auth?() do
-    Application.fetch_env!(:livebook, :teams_auth?)
+  @spec teams_auth() :: :online | :offline | nil
+  def teams_auth() do
+    Application.fetch_env!(:livebook, :teams_auth)
   end
 
   @doc """
@@ -292,7 +292,10 @@ defmodule Livebook.Config do
   """
   @spec identity_provider() :: {atom(), module, binary}
   def identity_provider() do
-    Application.fetch_env!(:livebook, :identity_provider)
+    case Application.fetch_env(:livebook, :identity_provider) do
+      {:ok, result} -> result
+      :error -> {:session, Livebook.ZTA.PassThrough, :unused}
+    end
   end
 
   @doc """
@@ -748,7 +751,7 @@ defmodule Livebook.Config do
   def identity_provider!(env) do
     case System.get_env(env) do
       nil ->
-        {:session, Livebook.ZTA.PassThrough, :unused}
+        nil
 
       "custom:" <> module_key ->
         destructure [module, key], String.split(module_key, ":", parts: 2)

@@ -3,6 +3,7 @@ defmodule Livebook.Application do
 
   def start(_type, _args) do
     Livebook.ZTA.init()
+    create_teams_hub = parse_teams_hub()
     setup_optional_dependencies()
     ensure_directories!()
     set_local_file_system!()
@@ -51,7 +52,7 @@ defmodule Livebook.Application do
           # Start the supervisor dynamically managing connections
           {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
           # Run startup logic relying on the supervision tree
-          {Livebook.Utils.SupervisionStep, {:boot, &boot/0}},
+          {Livebook.Utils.SupervisionStep, {:boot, boot(create_teams_hub)}},
           # App manager supervision tree. We do it after boot, because
           # permanent apps are going to be started right away and this
           # depends on hubs being started
@@ -82,22 +83,24 @@ defmodule Livebook.Application do
     end
   end
 
-  def boot() do
-    load_lb_env_vars()
-    create_teams_hub()
-    clear_env_vars()
-    Livebook.Hubs.connect_hubs()
-
-    unless serverless?() do
-      load_apps_dir()
-    end
-  end
-
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do
     LivebookWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  defp boot(create_teams_hub) do
+    fn ->
+      load_lb_env_vars()
+      create_teams_hub.()
+      clear_env_vars()
+      Livebook.Hubs.connect_hubs()
+
+      unless serverless?() do
+        load_apps_dir()
+      end
+    end
   end
 
   defp setup_optional_dependencies() do
@@ -223,20 +226,20 @@ defmodule Livebook.Application do
     end
   end
 
-  defp create_teams_hub() do
+  defp parse_teams_hub() do
     teams_key = System.get_env("LIVEBOOK_TEAMS_KEY")
     auth = System.get_env("LIVEBOOK_TEAMS_AUTH")
 
     cond do
       teams_key && auth ->
-        Application.put_env(:livebook, :teams_auth?, true)
-
         case String.split(auth, ":") do
           ["offline", name, public_key] ->
-            create_offline_hub(teams_key, name, public_key)
+            Application.put_env(:livebook, :teams_auth, :offline)
+            fn -> create_offline_hub(teams_key, name, public_key) end
 
           ["online", name, org_id, org_key_id, agent_key] ->
-            create_online_hub(teams_key, name, org_id, org_key_id, agent_key)
+            Application.put_env(:livebook, :teams_auth, :online)
+            fn -> create_online_hub(teams_key, name, org_id, org_key_id, agent_key) end
 
           _ ->
             Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
@@ -248,7 +251,7 @@ defmodule Livebook.Application do
         )
 
       true ->
-        :ok
+        fn -> :ok end
     end
   end
 

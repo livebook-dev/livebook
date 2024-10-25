@@ -237,9 +237,9 @@ defmodule Livebook do
       config :livebook, :allowed_uri_schemes, allowed_uri_schemes
     end
 
-    config :livebook,
-           :identity_provider,
-           Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER")
+    if identity_provider = Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER") do
+      config :livebook, :identity_provider, identity_provider
+    end
 
     if dns_cluster_query = Livebook.Config.dns_cluster_query!("LIVEBOOK_CLUSTER") do
       config :livebook, :dns_cluster_query, dns_cluster_query
