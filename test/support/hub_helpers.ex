@@ -27,8 +27,8 @@ defmodule Livebook.HubHelpers do
     Livebook.Hubs.save_hub(hub)
   end
 
-  def create_agent_team_hub(node) do
-    {agent_key, org, deployment_group, hub} = build_agent_team_hub(node)
+  def create_agent_team_hub(node, opts \\ []) do
+    {agent_key, org, deployment_group, hub} = build_agent_team_hub(node, opts)
     erpc_call(node, :create_org_key_pair, [[org: org]])
     ^hub = Livebook.Hubs.save_hub(hub)
 
@@ -70,7 +70,7 @@ defmodule Livebook.HubHelpers do
     )
   end
 
-  def build_agent_team_hub(node) do
+  def build_agent_team_hub(node, opts \\ []) do
     teams_org = build(:org)
     teams_key = teams_org.teams_key
     key_hash = Livebook.Teams.Org.key_hash(teams_org)
@@ -78,14 +78,16 @@ defmodule Livebook.HubHelpers do
     org = erpc_call(node, :create_org, [])
     org_key = erpc_call(node, :create_org_key, [[org: org, key_hash: key_hash]])
 
-    deployment_group =
-      erpc_call(node, :create_deployment_group, [
-        [
-          name: "sleepy-cat-#{Ecto.UUID.generate()}",
-          mode: :online,
-          org: org
-        ]
-      ])
+    deployment_group_attrs =
+      opts
+      |> Keyword.get(:deployment_group, [])
+      |> Keyword.merge(
+        name: "sleepy-cat-#{Ecto.UUID.generate()}",
+        mode: :online,
+        org: org
+      )
+
+    deployment_group = erpc_call(node, :create_deployment_group, [deployment_group_attrs])
 
     agent_key = erpc_call(node, :create_agent_key, [[deployment_group: deployment_group]])
 

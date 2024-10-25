@@ -3,6 +3,7 @@ defmodule Livebook.Application do
 
   def start(_type, _args) do
     Livebook.ZTA.init()
+    create_teams_hub = parse_teams_hub()
     setup_optional_dependencies()
     ensure_directories!()
     set_local_file_system!()
@@ -51,7 +52,7 @@ defmodule Livebook.Application do
           # Start the supervisor dynamically managing connections
           {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
           # Run startup logic relying on the supervision tree
-          {Livebook.Utils.SupervisionStep, {:boot, &boot/0}},
+          {Livebook.Utils.SupervisionStep, {:boot, boot(create_teams_hub)}},
           # App manager supervision tree. We do it after boot, because
           # permanent apps are going to be started right away and this
           # depends on hubs being started
@@ -82,14 +83,16 @@ defmodule Livebook.Application do
     end
   end
 
-  def boot() do
-    load_lb_env_vars()
-    create_teams_hub()
-    clear_env_vars()
-    Livebook.Hubs.connect_hubs()
+  def boot(create_teams_hub) do
+    fn ->
+      load_lb_env_vars()
+      create_teams_hub.()
+      clear_env_vars()
+      Livebook.Hubs.connect_hubs()
 
-    unless serverless?() do
-      load_apps_dir()
+      unless serverless?() do
+        load_apps_dir()
+      end
     end
   end
 
@@ -223,27 +226,39 @@ defmodule Livebook.Application do
     end
   end
 
-  defp create_teams_hub() do
+  defp parse_teams_hub() do
     teams_key = System.get_env("LIVEBOOK_TEAMS_KEY")
     auth = System.get_env("LIVEBOOK_TEAMS_AUTH")
 
     cond do
       teams_key && auth ->
-        Application.put_env(:livebook, :teams_auth?, true)
-
-        hub =
+        fun =
           case String.split(auth, ":") do
             ["offline", name, public_key] ->
-              create_offline_hub(teams_key, name, public_key)
+              Application.put_env(:livebook, :teams_auth, :offline)
+              fn -> create_offline_hub(teams_key, name, public_key) end
 
             ["online", name, org_id, org_key_id, agent_key] ->
-              create_online_hub(teams_key, name, org_id, org_key_id, agent_key)
+              Application.put_env(:livebook, :teams_auth, :online)
+              fn -> create_online_hub(teams_key, name, org_id, org_key_id, agent_key) end
 
             _ ->
               Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
           end
 
-        Application.put_env(:livebook, :apps_path_hub_id, hub.id)
+        case Application.fetch_env(:livebook, :identity_provider) do
+          {:ok, _} ->
+            :ok
+
+          :error ->
+            Application.put_env(
+              :livebook,
+              :identity_provider,
+              {:zta, Livebook.ZTA.LivebookTeams, :unused}
+            )
+        end
+
+        fun
 
       teams_key || auth ->
         Livebook.Config.abort!(
@@ -251,7 +266,7 @@ defmodule Livebook.Application do
         )
 
       true ->
-        :ok
+        fn -> :ok end
     end
   end
 
@@ -261,16 +276,16 @@ defmodule Livebook.Application do
     secret_key = Livebook.Teams.derive_key(teams_key)
     id = "team-#{name}"
 
+    Application.put_env(:livebook, :teams_auth_hub_id, id)
+    Application.put_env(:livebook, :apps_path_hub_id, id)
+
     secrets =
       if encrypted_secrets do
         case Livebook.Teams.decrypt(encrypted_secrets, secret_key) do
           {:ok, json} ->
-            for {name, value} <- Jason.decode!(json),
-                do: %Livebook.Secrets.Secret{
-                  name: name,
-                  value: value,
-                  hub_id: id
-                }
+            for {name, value} <- Jason.decode!(json) do
+              %Livebook.Secrets.Secret{name: name, value: value, hub_id: id}
+            end
 
           :error ->
             Livebook.Config.abort!(
@@ -316,23 +331,21 @@ defmodule Livebook.Application do
 
   defp create_online_hub(teams_key, name, org_id, org_key_id, agent_key) do
     id = "team-#{name}"
+    Application.put_env(:livebook, :teams_auth_hub_id, id)
+    Application.put_env(:livebook, :apps_path_hub_id, id)
 
-    hub =
-      Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
-        id: id,
-        hub_name: name,
-        hub_emoji: "💡",
-        user_id: nil,
-        org_id: org_id,
-        org_key_id: org_key_id,
-        session_token: agent_key,
-        teams_key: teams_key,
-        org_public_key: nil,
-        offline: nil
-      })
-
-    Livebook.Hubs.set_default_hub(id)
-    hub
+    Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
+      id: id,
+      hub_name: name,
+      hub_emoji: "💡",
+      user_id: nil,
+      org_id: org_id,
+      org_key_id: org_key_id,
+      session_token: agent_key,
+      teams_key: teams_key,
+      org_public_key: nil,
+      offline: nil
+    })
   end
 
   # We set ELIXIR_ERL_OPTIONS to set our custom EPMD module when

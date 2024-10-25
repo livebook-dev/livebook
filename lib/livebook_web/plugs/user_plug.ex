@@ -16,8 +16,6 @@ defmodule LivebookWeb.UserPlug do
   import Plug.Conn
   import Phoenix.Controller
 
-  @zta_name LivebookWeb.ZTA
-
   @impl true
   def init(opts), do: opts
 
@@ -30,8 +28,8 @@ defmodule LivebookWeb.UserPlug do
   end
 
   defp ensure_user_identity(conn) do
-    module = identity_provider_module()
-    {conn, identity_data} = module.authenticate(@zta_name, conn, [])
+    {_type, module, _key} = Livebook.Config.identity_provider()
+    {conn, identity_data} = module.authenticate(LivebookWeb.ZTA, conn, [])
 
     cond do
       conn.halted ->
@@ -79,21 +77,5 @@ defmodule LivebookWeb.UserPlug do
   defp mirror_user_data_in_session(conn) do
     user_data = conn.cookies["lb_user_data"] |> Base.decode64!() |> Jason.decode!()
     put_session(conn, :user_data, user_data)
-  end
-
-  defp identity_provider_module() do
-    livebook_teams_zta? =
-      case Livebook.Hubs.get_default_hub() do
-        %{id: "team-" <> _ = id} -> Livebook.Hubs.TeamClient.livebook_teams_zta?(id)
-        _ -> false
-      end
-
-    if livebook_teams_zta? do
-      Livebook.ZTA.LivebookTeams.start_link(name: @zta_name)
-      Livebook.ZTA.LivebookTeams
-    else
-      {_type, module, _key} = Livebook.Config.identity_provider()
-      module
-    end
   end
 end

@@ -18,10 +18,13 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   def start_link(opts) do
     name = Keyword.fetch!(opts, :name)
-    %{id: "team-" <> _} = team = Livebook.Hubs.get_default_hub()
 
-    Livebook.ZTA.put(name, team)
-    :ignore
+    if id = Livebook.Config.teams_auth_hub_id() do
+      team = Livebook.Hubs.fetch_hub!(id)
+      Livebook.ZTA.put(name, team)
+
+      :ignore
+    end
   end
 
   @impl true
@@ -30,9 +33,18 @@ defmodule Livebook.ZTA.LivebookTeams do
   end
 
   @impl true
-  def authenticate(name, %{params: %{"auth" => "true", "code" => code}} = conn, _opts) do
+  def authenticate(name, conn, _opts) do
     team = Livebook.ZTA.get(name)
+    auth = Livebook.Config.teams_auth()
 
+    if Livebook.Hubs.TeamClient.livebook_teams_zta?(team.id) do
+      handle_request(conn, team, auth, conn.params)
+    else
+      {conn, nil}
+    end
+  end
+
+  defp handle_request(conn, team, :online, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, metadata} <- get_user_info(team, access_token) do
       {conn
@@ -40,17 +52,52 @@ defmodule Livebook.ZTA.LivebookTeams do
        |> redirect(to: conn.request_path)
        |> halt(), metadata}
     else
-      _ -> {conn, nil}
+      _ ->
+        {conn
+         |> redirect(to: conn.request_path)
+         |> put_session(:teams_error, true)
+         |> halt(), nil}
     end
   end
 
-  def authenticate(name, conn, _opts) do
-    team = Livebook.ZTA.get(name)
+  defp handle_request(conn, _team, :online, %{"teams_identity" => _, "failed_reason" => reason}) do
+    {conn
+     |> redirect(to: conn.request_path)
+     |> put_session(:teams_failed_reason, reason)
+     |> halt(), nil}
+  end
 
-    with %{payload: %{"access_token" => access_token}} <- get_session(conn, :identity_data),
-         {:ok, metadata} <- get_user_info(team, access_token) do
-      {conn, metadata}
-    else
+  defp handle_request(conn, team, :online, _params) do
+    case get_session(conn) do
+      %{"identity_data" => %{payload: %{"access_token" => access_token}}} ->
+        validate_access_token(conn, team, access_token)
+
+      # it means, we couldn't reach to Teams server
+      %{"teams_error" => true} ->
+        {conn
+         |> delete_session(:teams_error)
+         |> put_view(LivebookWeb.ErrorHTML)
+         |> render("400.html", %{status: 400})
+         |> halt(), nil}
+
+      %{"teams_failed_reason" => reason} ->
+        {conn
+         |> delete_session(:teams_failed_reason)
+         |> put_view(LivebookWeb.ErrorHTML)
+         |> render("error.html", %{
+           status: 403,
+           details: "Failed to authenticate with Livebook Teams: #{reason}"
+         })
+         |> halt(), nil}
+
+      _ ->
+        request_user_authentication(conn, team)
+    end
+  end
+
+  defp validate_access_token(conn, team, access_token) do
+    case get_user_info(team, access_token) do
+      {:ok, metadata} -> {conn, metadata}
       _ -> request_user_authentication(conn, team)
     end
   end
@@ -65,7 +112,7 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp request_user_authentication(conn, team) do
     case Teams.Requests.request_user_authentication(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
-        current_url = LivebookWeb.Endpoint.url() <> conn.request_path
+        current_url = LivebookWeb.Endpoint.url() <> conn.request_path <> "?teams_identity"
 
         url =
           URI.parse(authorize_uri)
@@ -76,7 +123,8 @@ defmodule Livebook.ZTA.LivebookTeams do
 
       _ ->
         {conn
-         |> put_status(400)
+         |> redirect(to: conn.request_path)
+         |> put_session(:teams_error, true)
          |> halt(), nil}
     end
   end
