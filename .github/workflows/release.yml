@@ -33,6 +33,7 @@ jobs:
               gh release create \
                 --repo ${{ github.repository }} \
                 --title $ref_name \
+                --notes "Automated nightly release." \
                 --latest=false \
                 $ref_name
             fi
