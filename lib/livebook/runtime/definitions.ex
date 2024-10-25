@@ -104,6 +104,13 @@ defmodule Livebook.Runtime.Definitions do
           ]
         },
         %{
+          name: "Clickhouse",
+          packages: [
+            kino_db,
+            %{name: "ch", dependency: %{dep: {:ch, "~> 0.2.0"}, config: []}}
+          ]
+        },
+        %{
           name: "DuckDB",
           packages: [
             kino_db,
