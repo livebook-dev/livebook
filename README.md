@@ -40,11 +40,11 @@ pick the one that best fits your use case.
 
   * [Download the installer for Mac and Windows from our homepage](https://livebook.dev/#install)
 
-  * Latest stable builds: [Mac (Universal)](https://livebook.dev/releases/latest/LivebookInstall-latest-macos-universal.dmg),
-    [Windows](https://livebook.dev/releases/latest/LivebookInstall-latest-windows-x86_64.exe)
+  * Latest stable builds: [Mac (Universal)](https://github.com/livebook-dev/livebook/releases/latest/download/LivebookInstall-macos-universal.dmg),
+    [Windows](https://github.com/livebook-dev/livebook/releases/latest/download/LivebookInstall-windows-x86_64.exe)
 
-  * Nightly builds: [Mac (Universal)](https://livebook.dev/releases/nightly/LivebookInstall-nightly-macos-universal.dmg),
-    [Windows](https://livebook.dev/releases/nightly/LivebookInstall-nightly-windows-x86_64.exe)
+  * Nightly builds: [Mac (Universal)](https://github.com/livebook-dev/livebook/releases/download/nightly/LivebookInstall-macos-universal.dmg),
+    [Windows](https://github.com/livebook-dev/livebook/releases/download/nightly/LivebookInstall-windows-x86_64.exe)
 
   * Builds for particular Livebook version are available on our
     [GitHub releases](https://github.com/livebook-dev/livebook/releases).
