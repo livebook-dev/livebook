@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.14.5](https://github.com/livebook-dev/livebook/tree/v0.14.5) (2024-10-25)
+
+### Fixed
+
+* Imports and process dictionary being erased after errored evaluation ([#2822](https://github.com/livebook-dev/livebook/pull/2822))
+* PVC deletion removing all PVCs in Kubernetes runtime settings
+
 ## [v0.14.4](https://github.com/livebook-dev/livebook/tree/v0.14.4) (2024-10-04)
 
 ### Added
