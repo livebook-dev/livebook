@@ -68,8 +68,8 @@ defmodule LivebookWeb.AppsDashboardLive do
           </span>
           <div class="flex items-center gap-2">
             <.app_group_tag app_spec={app.app_spec} />
-            <.remix_icon icon="arrow-drop-up-line" class="text-3xl text-gray-400 toggle" />
-            <.remix_icon icon="arrow-drop-down-line" class="text-3xl text-gray-400 hidden toggle" />
+            <.remix_icon icon="arrow-drop-down-line" class="text-3xl text-gray-400 toggle" />
+            <.remix_icon icon="arrow-drop-right-line" class="text-3xl text-gray-400 hidden toggle" />
           </div>
         </a>
         <div class="toggle">
