@@ -74,7 +74,7 @@ defmodule LivebookWeb.SessionLive.StandaloneRuntimeComponent do
             class="flex items-center gap-0.5 text-gray-700 font-medium cursor-pointer"
             phx-click={JS.toggle(to: "##{@id}-advanced [data-toggle]")}
           >
-            <span>Advanced</span>
+            <span>Advanced configuration</span>
             <.remix_icon icon="arrow-down-s-line" class="text-xl hidden" data-toggle />
             <.remix_icon icon="arrow-right-s-line" class="text-xl" data-toggle />
           </div>
