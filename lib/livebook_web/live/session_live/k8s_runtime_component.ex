@@ -536,7 +536,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_async(:cluster_check, {:ok, results}, socket) do
     [access_review_result, namespaces_result] = results
-    context_namespace = socket.assigns.kubeconfig.current_namespace
 
     access_review_result =
       case access_review_result do
@@ -549,7 +548,15 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       case namespaces_result do
         {:ok, namespaces} ->
           namespace_options = Enum.map(namespaces, & &1.name)
-          {:ok, namespace_options, context_namespace || List.first(namespace_options)}
+
+          default_namespace =
+            if socket.assigns.context == socket.assigns.config_defaults["context"] do
+              socket.assigns.config_defaults["namespace"]
+            end
+
+          context_namespace = socket.assigns.kubeconfig.current_namespace
+          namespace = default_namespace || context_namespace || List.first(namespace_options)
+          {:ok, namespace_options, namespace}
 
         {:error, %{status: 403}} ->
           # No access to list namespaces, we will show an input instead
@@ -768,9 +775,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       pvc_name: config_defaults["pvc_name"],
       docker_tag: config_defaults["docker_tag"]
     )
-    |> set_context(config_defaults["context"])
-    |> set_namespace(config_defaults["namespace"])
     |> set_pod_template(config_defaults["pod_template"])
+    |> set_context(config_defaults["context"])
   end
 
   defp build_config(socket) do

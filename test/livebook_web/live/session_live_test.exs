@@ -1350,6 +1350,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
 
+      # We load cluster information async, and then run namespace
+      # checks async, so we need to await async twice
+      _ = render_async(view)
       assert render_async(view) =~ "You can fully customize"
 
       assert view
@@ -1439,7 +1442,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # Set a different runtime, so there are no defaults
       Session.set_runtime(session.pid, Runtime.Standalone.new())
 
-      # Open new runtime configuratino
+      # Open new runtime configuration
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
 
       view
