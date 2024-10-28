@@ -1,5 +1,5 @@
 defmodule Livebook.Runtime.Standalone do
-  defstruct [:node, :server_pid]
+  defstruct [:erl_flags, :node, :server_pid]
 
   # A runtime backed by a standalone Elixir node managed by Livebook.
   #
@@ -31,16 +31,23 @@ defmodule Livebook.Runtime.Standalone do
   alias Livebook.Utils
 
   @type t :: %__MODULE__{
+          erl_flags: String.t() | nil,
           node: node() | nil,
           server_pid: pid() | nil
         }
 
   @doc """
   Returns a new runtime instance.
+
+  ## Options
+
+    * `:erl_flags` - erl flags to specify when starting the node
+
   """
-  @spec new() :: t()
-  def new() do
-    %__MODULE__{}
+  @spec new(keyword()) :: t()
+  def new(opts \\ []) do
+    opts = Keyword.validate!(opts, [:erl_flags])
+    %__MODULE__{erl_flags: opts[:erl_flags]}
   end
 
   def __connect__(runtime) do
@@ -66,7 +73,7 @@ defmodule Livebook.Runtime.Standalone do
       ]
 
       with {:ok, elixir_path} <- find_elixir_executable(),
-           port = start_elixir_node(elixir_path, child_node),
+           port = start_elixir_node(elixir_path, child_node, runtime.erl_flags),
            {:ok, server_pid} <- parent_init_sequence(child_node, port, init_opts) do
         runtime = %{runtime | node: child_node, server_pid: server_pid}
         send(caller, {:runtime_connect_done, self(), {:ok, runtime}})
@@ -84,7 +91,7 @@ defmodule Livebook.Runtime.Standalone do
     end
   end
 
-  defp start_elixir_node(elixir_path, node_name) do
+  defp start_elixir_node(elixir_path, node_name, erl_flags) do
     # Here we create a port to start the system process in a non-blocking way.
     Port.open({:spawn_executable, elixir_path}, [
       :binary,
@@ -93,7 +100,7 @@ defmodule Livebook.Runtime.Standalone do
       # to the terminal
       :nouse_stdio,
       :hide,
-      args: elixir_flags(node_name)
+      args: elixir_flags(node_name, erl_flags)
     ])
   end
 
@@ -167,7 +174,7 @@ defmodule Livebook.Runtime.Standalone do
     |> Base.encode64()
   end
 
-  defp elixir_flags(node_name) do
+  defp elixir_flags(node_name, erl_flags) do
     parent_name = node()
     parent_port = Livebook.EPMD.dist_port()
 
@@ -190,7 +197,8 @@ defmodule Livebook.Runtime.Standalone do
       #     startup
       #
       "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
-        "-epmd_module Elixir.Livebook.Runtime.EPMD",
+        "-epmd_module Elixir.Livebook.Runtime.EPMD " <>
+        (erl_flags || ""),
       # Add the location of Livebook.Runtime.EPMD
       "-pa",
       epmd_module_path!(),
@@ -247,8 +255,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Standalone do
     :ok = RuntimeServer.stop(runtime.server_pid)
   end
 
-  def duplicate(_runtime) do
-    Livebook.Runtime.Standalone.new()
+  def duplicate(runtime) do
+    Livebook.Runtime.Standalone.new(erl_flags: runtime.erl_flags)
   end
 
   def evaluate_code(runtime, language, code, locator, parent_locators, opts \\ []) do

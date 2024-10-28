@@ -907,8 +907,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       view
-      |> element("#runtime-settings-modal button", "Connect")
-      |> render_click()
+      |> element("#runtime-settings-modal form")
+      |> render_submit(%{data: %{}})
 
       assert_receive {:operation, {:set_runtime, _pid, %Runtime.Standalone{}}}
       assert_receive {:operation, {:runtime_connected, _pid, %Runtime.Standalone{} = runtime}}

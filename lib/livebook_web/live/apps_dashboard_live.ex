@@ -60,7 +60,7 @@ defmodule LivebookWeb.AppsDashboardLive do
     <div class="flex flex-col space-y-4">
       <div :for={app <- Enum.sort_by(@apps, & &1.slug)} data-app-slug={app.slug}>
         <a
-          phx-click={JS.toggle(to: "[data-app-slug=#{app.slug}] .toggle")}
+          phx-click={JS.toggle(to: "[data-app-slug=#{app.slug}] [data-toggle]")}
           class="flex items-center justify-between mb-2 hover:cursor-pointer"
         >
           <span class="text-gray-800 font-medium text-xl break-all">
@@ -68,11 +68,11 @@ defmodule LivebookWeb.AppsDashboardLive do
           </span>
           <div class="flex items-center gap-2">
             <.app_group_tag app_spec={app.app_spec} />
-            <.remix_icon icon="arrow-drop-down-line" class="text-3xl text-gray-400 toggle" />
-            <.remix_icon icon="arrow-drop-right-line" class="text-3xl text-gray-400 hidden toggle" />
+            <.remix_icon icon="arrow-down-s-line" class="text-xl text-gray-700" data-toggle />
+            <.remix_icon icon="arrow-right-s-line" class="text-xl text-gray-700 hidden" data-toggle />
           </div>
         </a>
-        <div class="toggle">
+        <div data-toggle>
           <div :if={app.warnings != []} class="my-3 flex flex-col gap-3">
             <.message_box :for={warning <- app.warnings} kind={:warning} message={warning} />
           </div>
