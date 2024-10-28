@@ -78,7 +78,7 @@ defmodule LivebookWeb.SessionLive.AttachedRuntimeComponent do
         autocomplete="off"
         spellcheck="false"
       >
-        <div class="flex flex-col space-y-4 mb-5">
+        <div class="flex flex-col space-y-4 mb-6">
           <.text_field field={f[:name]} label="Name" placeholder={test_node()} />
           <.text_field field={f[:cookie]} label="Cookie" placeholder="mycookie" />
         </div>

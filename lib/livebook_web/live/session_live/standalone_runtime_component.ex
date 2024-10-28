@@ -54,7 +54,7 @@ defmodule LivebookWeb.SessionLive.StandaloneRuntimeComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex-col space-y-5">
+    <div id={@id} class="flex-col space-y-5">
       <p class="text-gray-700">
         Start a new local Elixir node to evaluate code. Whenever you reconnect this runtime,
         a fresh node is started.
@@ -69,8 +69,18 @@ defmodule LivebookWeb.SessionLive.StandaloneRuntimeComponent do
         autocomplete="off"
         spellcheck="false"
       >
-        <div class="flex flex-col space-y-4 mb-5">
-          <.text_field field={f[:erl_flags]} label="Erl flags" />
+        <div id={"#{@id}-advanced"} class="mb-6">
+          <div
+            class="flex items-center gap-0.5 text-gray-700 font-medium cursor-pointer"
+            phx-click={JS.toggle(to: "##{@id}-advanced [data-toggle]")}
+          >
+            <span>Advanced</span>
+            <.remix_icon icon="arrow-down-s-line" class="text-xl hidden" data-toggle />
+            <.remix_icon icon="arrow-right-s-line" class="text-xl" data-toggle />
+          </div>
+          <div class="mt-2 flex flex-col space-y-4 hidden" data-toggle>
+            <.text_field field={f[:erl_flags]} label="Erl flags" />
+          </div>
         </div>
         <.button type="submit" disabled={@runtime_status == :connecting or not @changeset.valid?}>
           <%= label(@changeset, @runtime_status) %>
