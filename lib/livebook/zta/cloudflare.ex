@@ -6,7 +6,7 @@ defmodule Livebook.ZTA.Cloudflare do
   import Plug.Conn
 
   @assertion "cf-access-jwt-assertion"
-  @renew_afer 24 * 60 * 60 * 1000
+  @renew_after 24 * 60 * 60 * 1000
   @fields %{"user_uuid" => :id, "name" => :name, "email" => :email}
 
   defstruct [:req_options, :identity, :name]
@@ -39,7 +39,7 @@ defmodule Livebook.ZTA.Cloudflare do
   defp renew(state) do
     Logger.debug("[#{inspect(__MODULE__)}] requesting #{inspect(state.req_options)}")
     keys = Req.request!(state.req_options).body["keys"]
-    Process.send_after(self(), :renew, @renew_afer)
+    Process.send_after(self(), :renew, @renew_after)
     Livebook.ZTA.put(state.name, {state.identity, keys})
     state
   end
