@@ -212,18 +212,27 @@ defmodule Livebook.Teams.Requests do
     get("/api/v1/org/apps", params, team)
   end
 
-  @spec request_user_authentication(Team.t()) ::
+  @doc """
+  Send a request to Livebook Team API to create a new auth request.
+  """
+  @spec create_auth_request(Team.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def request_user_authentication(team) do
+  def create_auth_request(team) do
     post("/api/v1/org/identity", %{}, team)
   end
 
+  @doc """
+  Send a request to Livebook Team API to get the access token from given auth request code.
+  """
   @spec retrieve_access_token(Team.t(), String.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def retrieve_access_token(team, code) do
     post("/api/v1/org/identity/token", %{code: code}, team)
   end
 
+  @doc """
+  Send a request to Livebook Team API to get the user information from given access token.
+  """
   @spec get_user_info(Team.t(), String.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def get_user_info(team, access_token) do
