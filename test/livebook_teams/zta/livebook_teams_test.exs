@@ -22,6 +22,11 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
     assert_receive {:agent_joined,
                     %{hub_id: ^hub_id, org_id: ^org_id, deployment_group_id: ^deployment_group_id}}
 
+    on_exit(fn ->
+      Application.put_env(:livebook, :teams_auth, nil)
+      Application.put_env(:livebook, :teams_auth_hub_id, nil)
+    end)
+
     {:ok, deployment_group: deployment_group, team: team}
   end
 
