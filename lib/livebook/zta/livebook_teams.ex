@@ -107,7 +107,7 @@ defmodule Livebook.ZTA.LivebookTeams do
 
         url =
           URI.parse(authorize_uri)
-          |> URI.append_query("redirect_to=#{current_url}")
+          |> URI.append_query("redirect_to=#{URI.encode_www_form(current_url)}")
           |> URI.to_string()
 
         {conn |> redirect(external: url) |> halt(), nil}
