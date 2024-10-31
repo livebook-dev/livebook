@@ -3100,16 +3100,21 @@ defmodule Livebook.Session do
 
   # Traverse composite outputs
 
-  # defp normalize_runtime_output(output) when output.type in [:frame, :tabs, :grid] do
-  #   outputs = Enum.map(output.outputs, &normalize_runtime_output/1)
-  #   %{output | outputs: outputs}
-  # end
+  defp normalize_runtime_output(%{type: :grid} = grid) do
+    grid
+    |> Map.update!(:outputs, fn outputs -> Enum.map(outputs, &normalize_runtime_output/1) end)
+    |> Map.put_new(:max_height, nil)
+  end
 
-  # defp normalize_runtime_output(%{type: :frame_update} = output) do
-  #   {update_type, new_outputs} = output.update
-  #   new_outputs = Enum.map(new_outputs, &normalize_runtime_output/1)
-  #   %{output | update: {update_type, new_outputs}}
-  # end
+  defp normalize_runtime_output(%{type: type} = output) when type in [:frame, :tabs] do
+    Map.update!(output, :outputs, fn outputs -> Enum.map(outputs, &normalize_runtime_output/1) end)
+  end
+
+  defp normalize_runtime_output(%{type: :frame_update} = output) do
+    {update_type, new_outputs} = output.update
+    new_outputs = Enum.map(new_outputs, &normalize_runtime_output/1)
+    %{output | update: {update_type, new_outputs}}
+  end
 
   defp normalize_runtime_output(output) when is_map(output), do: output
 
@@ -3191,7 +3196,8 @@ defmodule Livebook.Session do
       outputs: Enum.map(outputs, &normalize_runtime_output/1),
       columns: Map.get(info, :columns, 1),
       gap: Map.get(info, :gap, 8),
-      boxed: Map.get(info, :boxed, false)
+      boxed: Map.get(info, :boxed, false),
+      max_height: Map.get(info, :max_height)
     }
     |> normalize_runtime_output()
   end
