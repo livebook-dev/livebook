@@ -265,6 +265,7 @@ defprotocol Livebook.Runtime do
           outputs: list(t()),
           columns: pos_integer() | tuple(),
           gap: non_neg_integer(),
+          max_height: pos_integer() | nil,
           boxed: boolean()
         }
 

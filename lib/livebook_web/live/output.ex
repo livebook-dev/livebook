@@ -174,6 +174,7 @@ defmodule LivebookWeb.Output do
       id: id,
       columns: grid.columns,
       gap: grid.gap,
+      max_height: grid.max_height,
       outputs: grid.outputs,
       session_id: session_id,
       session_pid: session_pid,
@@ -189,6 +190,7 @@ defmodule LivebookWeb.Output do
       outputs={@outputs}
       columns={@columns}
       gap={@gap}
+      max_height={@max_height}
       session_id={@session_id}
       session_pid={@session_pid}
       input_views={@input_views}

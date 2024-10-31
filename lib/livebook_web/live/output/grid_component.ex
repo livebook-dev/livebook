@@ -26,11 +26,16 @@ defmodule LivebookWeb.Output.GridComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id} class="overflow-auto tiny-scrollbar">
+    <div
+      id={@id}
+      phx-hook="ScrollOnUpdate"
+      class="overflow-auto tiny-scrollbar pr-1.5 -mr-1.5"
+      style={max_height_style(@max_height)}
+    >
       <div
         id={"#{@id}-grid"}
         class="grid grid-cols-2 w-full"
-        style={"grid-template-columns: #{make_template(@columns)}; gap: #{@gap}px"}
+        style={join_styles([columns_style(@columns), gap_style(@gap)])}
         phx-update="stream"
       >
         <div :for={{dom_id, output} <- @streams.outputs} id={dom_id}>
@@ -49,17 +54,36 @@ defmodule LivebookWeb.Output.GridComponent do
     """
   end
 
-  defp make_template(columns) when is_tuple(columns) do
+  defp columns_style(columns) when is_tuple(columns) do
     columns = Tuple.to_list(columns)
 
     if Enum.all?(columns, &is_integer/1) do
-      Enum.map_join(columns, " ", fn n -> "minmax(0, #{n}fr)" end)
-    else
-      ""
+      template = Enum.map_join(columns, " ", fn n -> "minmax(0, #{n}fr)" end)
+      "grid-template-columns: #{template}"
     end
   end
 
-  defp make_template(columns) when is_integer(columns), do: "repeat(#{columns}, minmax(0, 1fr))"
+  defp columns_style(columns) when is_integer(columns) do
+    "grid-template-columns: repeat(#{columns}, minmax(0, 1fr))"
+  end
 
-  defp make_template(_columns), do: ""
+  defp columns_style(_columns), do: nil
+
+  defp gap_style(gap) when is_integer(gap) do
+    "#{gap}px"
+  end
+
+  defp gap_style(_other), do: nil
+
+  defp max_height_style(max_height) when is_integer(max_height) do
+    "max-height: #{max_height}px"
+  end
+
+  defp max_height_style(_other), do: nil
+
+  defp join_styles(styles) do
+    styles
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join("; ")
+  end
 end
