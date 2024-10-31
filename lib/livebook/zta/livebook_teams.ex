@@ -1,5 +1,4 @@
 defmodule Livebook.ZTA.LivebookTeams do
-  use GenServer
   use LivebookWeb, :verified_routes
 
   require Logger
@@ -18,33 +17,25 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   def start_link(opts) do
     name = Keyword.fetch!(opts, :name)
+    identity_key = Keyword.fetch!(opts, :identity_key)
+    team = Livebook.Hubs.fetch_hub!(identity_key)
 
-    if id = Livebook.Config.teams_auth_hub_id() do
-      team = Livebook.Hubs.fetch_hub!(id)
-      Livebook.ZTA.put(name, team)
-
-      :ignore
-    end
-  end
-
-  @impl true
-  def init(arg) do
-    {:ok, arg}
+    Livebook.ZTA.put(name, team)
+    :ignore
   end
 
   @impl true
   def authenticate(name, conn, _opts) do
     team = Livebook.ZTA.get(name)
-    auth = Livebook.Config.teams_auth()
 
-    if Livebook.Hubs.TeamClient.livebook_teams_zta?(team.id) do
-      handle_request(conn, team, auth, conn.params)
+    if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
+      handle_request(conn, team, conn.params)
     else
       {conn, nil}
     end
   end
 
-  defp handle_request(conn, team, :online, %{"teams_identity" => _, "code" => code}) do
+  defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, metadata} <- get_user_info(team, access_token) do
       {conn
@@ -60,14 +51,14 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  defp handle_request(conn, _team, :online, %{"teams_identity" => _, "failed_reason" => reason}) do
+  defp handle_request(conn, _team, %{"teams_identity" => _, "failed_reason" => reason}) do
     {conn
      |> redirect(to: conn.request_path)
      |> put_session(:teams_failed_reason, reason)
      |> halt(), nil}
   end
 
-  defp handle_request(conn, team, :online, _params) do
+  defp handle_request(conn, team, _params) do
     case get_session(conn) do
       %{"identity_data" => %{payload: %{"access_token" => access_token}}} ->
         validate_access_token(conn, team, access_token)

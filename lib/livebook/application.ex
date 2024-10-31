@@ -232,32 +232,31 @@ defmodule Livebook.Application do
 
     cond do
       teams_key && auth ->
-        fun =
+        {hub_id, fun} =
           case String.split(auth, ":") do
             ["offline", name, public_key] ->
-              Application.put_env(:livebook, :teams_auth, :offline)
-              fn -> create_offline_hub(teams_key, name, public_key) end
+              hub_id = "teams-#{name}"
+              {hub_id, fn -> create_offline_hub(teams_key, hub_id, name, public_key) end}
 
             ["online", name, org_id, org_key_id, agent_key] ->
-              Application.put_env(:livebook, :teams_auth, :online)
-              fn -> create_online_hub(teams_key, name, org_id, org_key_id, agent_key) end
+              hub_id = "teams-" <> name
+
+              with :error <- Application.fetch_env(:livebook, :identity_provider) do
+                Application.put_env(
+                  :livebook,
+                  :identity_provider,
+                  {:zta, Livebook.ZTA.LivebookTeams, hub_id}
+                )
+              end
+
+              {hub_id,
+               fn -> create_online_hub(teams_key, hub_id, name, org_id, org_key_id, agent_key) end}
 
             _ ->
               Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
           end
 
-        case Application.fetch_env(:livebook, :identity_provider) do
-          {:ok, _} ->
-            :ok
-
-          :error ->
-            Application.put_env(
-              :livebook,
-              :identity_provider,
-              {:zta, Livebook.ZTA.LivebookTeams, :unused}
-            )
-        end
-
+        Application.put_env(:livebook, :apps_path_hub_id, hub_id)
         fun
 
       teams_key || auth ->
@@ -270,14 +269,10 @@ defmodule Livebook.Application do
     end
   end
 
-  defp create_offline_hub(teams_key, name, public_key) do
+  defp create_offline_hub(teams_key, id, name, public_key) do
     encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS")
     encrypted_file_systems = System.get_env("LIVEBOOK_TEAMS_FS")
     secret_key = Livebook.Teams.derive_key(teams_key)
-    id = "team-#{name}"
-
-    Application.put_env(:livebook, :teams_auth_hub_id, id)
-    Application.put_env(:livebook, :apps_path_hub_id, id)
 
     secrets =
       if encrypted_secrets do
@@ -313,7 +308,7 @@ defmodule Livebook.Application do
       end
 
     Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
-      id: "team-#{name}",
+      id: id,
       hub_name: name,
       hub_emoji: "⭐️",
       user_id: nil,
@@ -329,11 +324,7 @@ defmodule Livebook.Application do
     })
   end
 
-  defp create_online_hub(teams_key, name, org_id, org_key_id, agent_key) do
-    id = "team-#{name}"
-    Application.put_env(:livebook, :teams_auth_hub_id, id)
-    Application.put_env(:livebook, :apps_path_hub_id, id)
-
+  defp create_online_hub(teams_key, id, name, org_id, org_key_id, agent_key) do
     Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
       id: id,
       hub_name: name,

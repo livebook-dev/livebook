@@ -231,17 +231,9 @@ defmodule Livebook.Config do
   Returns if this instance is running with teams auth,
   i.e. if there an online or offline hub created on boot.
   """
-  @spec teams_auth() :: :online | :offline | nil
-  def teams_auth() do
-    Application.fetch_env!(:livebook, :teams_auth)
-  end
-
-  @doc """
-  Returns the hub configured for all authentications.
-  """
-  @spec teams_auth_hub_id() :: binary() | nil
-  def teams_auth_hub_id() do
-    Application.fetch_env!(:livebook, :teams_auth_hub_id)
+  @spec teams_auth?() :: boolean()
+  def teams_auth?() do
+    Application.fetch_env!(:livebook, :teams_auth?)
   end
 
   @doc """

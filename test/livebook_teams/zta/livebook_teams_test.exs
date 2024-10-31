@@ -5,14 +5,11 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
   alias Livebook.ZTA.LivebookTeams
 
-  setup %{node: node} do
+  setup %{test: test, node: node} do
     Livebook.Teams.Broadcasts.subscribe([:agents])
 
     {_agent_key, org, deployment_group, team} =
       create_agent_team_hub(node, deployment_group: [zta_provider: :livebook_teams])
-
-    Application.put_env(:livebook, :teams_auth, :online)
-    Application.put_env(:livebook, :teams_auth_hub_id, team.id)
 
     # we wait until the agent_connected is received by livebook
     hub_id = team.id
@@ -22,25 +19,22 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
     assert_receive {:agent_joined,
                     %{hub_id: ^hub_id, org_id: ^org_id, deployment_group_id: ^deployment_group_id}}
 
-    on_exit(fn ->
-      Application.put_env(:livebook, :teams_auth, nil)
-      Application.put_env(:livebook, :teams_auth_hub_id, nil)
-    end)
-
-    {:ok, deployment_group: deployment_group, team: team}
+    {:ok,
+     deployment_group: deployment_group, team: team, opts: [name: test, identity_key: team.id]}
   end
 
   describe "authenticate/3" do
-    test "redirects the user to Livebook Teams for authentication", %{conn: conn, test: test} do
-      start_supervised({LivebookTeams, name: test})
+    test "redirects the user to Livebook Teams for authentication",
+         %{conn: conn, test: test, opts: opts} do
+      start_supervised({LivebookTeams, opts})
       conn = Plug.Test.init_test_session(conn, %{})
 
       assert {%{status: 302, halted: true}, nil} = LivebookTeams.authenticate(test, conn, [])
     end
 
     test "gets the user information from Livebook Teams",
-         %{conn: conn, node: node, test: test} do
-      start_supervised({LivebookTeams, name: test})
+         %{conn: conn, node: node, test: test, opts: opts} do
+      start_supervised({LivebookTeams, opts})
       conn = Plug.Test.init_test_session(conn, %{})
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
@@ -67,7 +61,8 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
     end
 
-    test "redirects to Livebook Teams with invalid access token", %{conn: conn, test: test} do
+    test "redirects to Livebook Teams with invalid access token",
+         %{conn: conn, test: test, opts: opts} do
       identity_data = %{
         id: "11",
         name: "Ada Lovelace",
@@ -75,7 +70,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         email: "user95387220@example.com"
       }
 
-      start_supervised({LivebookTeams, name: test})
+      start_supervised({LivebookTeams, opts})
       conn = Plug.Test.init_test_session(conn, %{identity_data: identity_data})
 
       assert {%{status: 302}, nil} = LivebookTeams.authenticate(test, conn, [])

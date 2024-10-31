@@ -127,11 +127,11 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
-  Returns if the Team client uses Livebook Teams ZTA authentication.
+  Returns if the Team client uses Livebook Teams identity provider.
   """
-  @spec livebook_teams_zta?(String.t()) :: boolean()
-  def livebook_teams_zta?(id) do
-    GenServer.call(registry_name(id), :livebook_teams_zta?)
+  @spec identity_enabled?(String.t()) :: boolean()
+  def identity_enabled?(id) do
+    GenServer.call(registry_name(id), :identity_enabled?)
   end
 
   @doc """
@@ -256,11 +256,11 @@ defmodule Livebook.Hubs.TeamClient do
     {:reply, state.agents, state}
   end
 
-  def handle_call(:livebook_teams_zta?, _caller, %{deployment_group_id: nil} = state) do
+  def handle_call(:identity_enabled?, _caller, %{deployment_group_id: nil} = state) do
     {:reply, false, state}
   end
 
-  def handle_call(:livebook_teams_zta?, _caller, %{deployment_group_id: id} = state) do
+  def handle_call(:identity_enabled?, _caller, %{deployment_group_id: id} = state) do
     case fetch_deployment_group(id, state) do
       {:ok, %{zta_provider: :livebook_teams}} -> {:reply, true, state}
       _ -> {:reply, false, state}
