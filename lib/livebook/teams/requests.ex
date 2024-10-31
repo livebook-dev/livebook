@@ -213,6 +213,33 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
+  Send a request to Livebook Team API to create a new auth request.
+  """
+  @spec create_auth_request(Team.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def create_auth_request(team) do
+    post("/api/v1/org/identity", %{}, team)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to get the access token from given auth request code.
+  """
+  @spec retrieve_access_token(Team.t(), String.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def retrieve_access_token(team, code) do
+    post("/api/v1/org/identity/token", %{code: code}, team)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to get the user information from given access token.
+  """
+  @spec get_user_info(Team.t(), String.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def get_user_info(team, access_token) do
+    get("/api/v1/org/identity", %{access_token: access_token}, team)
+  end
+
+  @doc """
   Normalizes errors map into errors for the given schema.
   """
   @spec to_error_list(module(), %{String.t() => list(String.t())}) ::

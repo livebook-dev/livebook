@@ -36,6 +36,11 @@ defmodule Livebook.Config do
       module: Livebook.ZTA.GoogleIAP
     },
     %{
+      type: :livebook_teams,
+      name: "Livebook Teams",
+      module: Livebook.ZTA.LivebookTeams
+    },
+    %{
       type: :tailscale,
       name: "Tailscale",
       value: "Tailscale CLI socket path",
@@ -292,7 +297,10 @@ defmodule Livebook.Config do
   """
   @spec identity_provider() :: {atom(), module, binary}
   def identity_provider() do
-    Application.fetch_env!(:livebook, :identity_provider)
+    case Application.fetch_env(:livebook, :identity_provider) do
+      {:ok, result} -> result
+      :error -> {:session, Livebook.ZTA.PassThrough, :unused}
+    end
   end
 
   @doc """
@@ -748,7 +756,7 @@ defmodule Livebook.Config do
   def identity_provider!(env) do
     case System.get_env(env) do
       nil ->
-        {:session, Livebook.ZTA.PassThrough, :unused}
+        nil
 
       "custom:" <> module_key ->
         destructure [module, key], String.split(module_key, ":", parts: 2)

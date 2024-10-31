@@ -13,6 +13,12 @@ defmodule LivebookWeb.ErrorHTML do
     """
   end
 
+  def render("error.html", assigns) do
+    ~H"""
+    <.error_page status={@status} title="Something went wrong." details={@details} />
+    """
+  end
+
   def render(_template, assigns) do
     ~H"""
     <.error_page

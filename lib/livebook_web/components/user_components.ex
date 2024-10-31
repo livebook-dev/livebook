@@ -13,7 +13,7 @@ defmodule LivebookWeb.UserComponents do
   attr :class, :string, default: "w-full h-full"
   attr :text_class, :string, default: nil
 
-  def user_avatar(assigns) do
+  def user_avatar(%{user: %{avatar_url: nil}} = assigns) do
     ~H"""
     <div
       class={["rounded-full flex items-center justify-center", @class]}
@@ -24,6 +24,16 @@ defmodule LivebookWeb.UserComponents do
         <%= avatar_text(@user.name) %>
       </div>
     </div>
+    """
+  end
+
+  def user_avatar(assigns) do
+    ~H"""
+    <img
+      src={@user.avatar_url}
+      class={["rounded-full flex items-center justify-center", @class]}
+      aria-hidden="true"
+    />
     """
   end
 

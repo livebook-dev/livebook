@@ -32,6 +32,9 @@ defmodule LivebookWeb.UserPlug do
     {conn, identity_data} = module.authenticate(LivebookWeb.ZTA, conn, [])
 
     cond do
+      conn.halted ->
+        conn
+
       identity_data ->
         # Ensure we have a unique ID to identify this user/session.
         id =
@@ -39,9 +42,6 @@ defmodule LivebookWeb.UserPlug do
             Livebook.Utils.random_long_id()
 
         put_session(conn, :identity_data, Map.put(identity_data, :id, id))
-
-      conn.halted ->
-        conn
 
       true ->
         conn
