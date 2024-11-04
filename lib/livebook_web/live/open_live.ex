@@ -159,12 +159,13 @@ defmodule LivebookWeb.OpenLive do
   def handle_params(%{"url" => url}, _url, socket)
       when socket.assigns.live_action == :public_import do
     origin = Notebook.ContentLoader.url_to_location(url)
+    files_url = Livebook.Utils.expand_url(url, "files/")
 
     origin
     |> Notebook.ContentLoader.fetch_content_from_location()
     |> case do
       {:ok, content} ->
-        socket = import_source(socket, content, origin: origin)
+        socket = import_source(socket, content, origin: origin, files_source: {:url, files_url})
         {:noreply, socket}
 
       {:error, _message} ->
