@@ -95,22 +95,18 @@ jobs:
           # Render simple template from environment variables.
           envsubst < ./.github/uffizzi/docker-compose.uffizzi.yml > docker-compose.rendered.yml
           cat docker-compose.rendered.yml
-      - name: Upload Rendered Compose File as Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: preview-spec
-          path: docker-compose.rendered.yml
-          retention-days: 2
       - name: Serialize PR Event to File
         run: |
           cat << EOF > event.json
           ${{ toJSON(github.event) }}
           EOF
-      - name: Upload PR Event as Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload Rendered Compose File and PR Event as Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: preview-spec
-          path: event.json
+          path: |
+            docker-compose.rendered.yml
+            event.json
           retention-days: 2
 
   delete-preview:
@@ -125,7 +121,7 @@ jobs:
           ${{ toJSON(github.event) }}
           EOF
       - name: Upload PR Event as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: preview-spec
           path: event.json
