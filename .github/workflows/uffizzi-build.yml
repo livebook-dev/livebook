@@ -112,6 +112,7 @@ jobs:
           name: preview-spec
           path: event.json
           retention-days: 2
+          overwrite: true
 
   delete-preview:
     name: Mark preview for deletion
@@ -130,3 +131,4 @@ jobs:
           name: preview-spec
           path: event.json
           retention-days: 2
+          overwrite: true
