@@ -26,13 +26,6 @@ defmodule Livebook.Teams.WebSocket do
 
     opts = Keyword.merge(opts, protocols: [:http1])
 
-    opts =
-      if String.ends_with?(Livebook.Config.teams_url(), ".flycast") do
-        Livebook.Utils.keyword_deep_merge(opts, transport_opts: [inet6: true])
-      else
-        opts
-      end
-
     with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port, opts),
          {:ok, conn, ref} <- Mint.WebSocket.upgrade(ws_scheme, conn, @ws_path, headers) do
       receive_upgrade(conn, ref, state)
