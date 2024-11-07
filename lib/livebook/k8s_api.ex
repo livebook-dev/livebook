@@ -91,7 +91,7 @@ defmodule Livebook.K8sAPI do
   """
   @spec watch_pod_events(kubeconfig(), String.t(), String.t()) :: {:ok, Enumerable.t()} | error()
   def watch_pod_events(kubeconfig, namespace, name) do
-    req = Req.new() |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "Event")
+    req = build_req() |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "Event")
 
     Kubereq.watch(req, namespace,
       field_selectors: [
@@ -120,7 +120,7 @@ defmodule Livebook.K8sAPI do
         when data: list(%{name: String.t()})
   def list_namespaces(kubeconfig) do
     req =
-      Req.new() |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "Namespace")
+      build_req() |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "Namespace")
 
     case Kubereq.list(req, nil) do
       {:ok, %{status: 200, body: %{"items" => items}}} ->
@@ -198,7 +198,7 @@ defmodule Livebook.K8sAPI do
         when data: list(%{name: String.t()})
   def list_storage_classes(kubeconfig) do
     req =
-      Req.new()
+      build_req()
       |> Kubereq.attach(
         kubeconfig: kubeconfig,
         api_version: "storage.k8s.io/v1",
@@ -260,7 +260,7 @@ defmodule Livebook.K8sAPI do
     }
 
     req =
-      Req.new()
+      build_req()
       |> Kubereq.attach(
         kubeconfig: kubeconfig,
         api_version: "authorization.k8s.io/v1",
@@ -304,11 +304,15 @@ defmodule Livebook.K8sAPI do
   end
 
   defp pod_req(kubeconfig) do
-    Req.new() |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "Pod")
+    build_req() |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "Pod")
   end
 
   defp pvc_req(kubeconfig) do
-    Req.new()
+    build_req()
     |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "PersistentVolumeClaim")
+  end
+
+  defp build_req() do
+    Req.new() |> Livebook.Utils.req_attach_defaults()
   end
 end

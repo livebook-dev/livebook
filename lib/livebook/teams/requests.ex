@@ -297,6 +297,7 @@ defmodule Livebook.Teams.Requests do
       inet6: String.ends_with?(Livebook.Config.teams_url(), ".flycast"),
       headers: [{"x-lb-version", Livebook.Config.app_version()}]
     )
+    |> Livebook.Utils.req_attach_defaults()
   end
 
   defp add_team_auth(req, nil), do: req

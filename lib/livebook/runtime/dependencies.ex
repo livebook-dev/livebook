@@ -6,16 +6,8 @@ defmodule Livebook.Runtime.Dependencies do
           {:ok, String.t()} | {:error, String.t()}
   def add_dependencies(code, dependencies) do
     deps = Enum.map(dependencies, & &1.dep)
-    config = Enum.reduce(dependencies, [], &deep_merge(&2, &1.config))
+    config = Enum.reduce(dependencies, [], &Livebook.Utils.keyword_deep_merge(&2, &1.config))
     add_mix_deps(code, deps, config)
-  end
-
-  defp deep_merge(left, right) do
-    if Keyword.keyword?(left) and Keyword.keyword?(right) do
-      Keyword.merge(left, right, fn _key, left, right -> deep_merge(left, right) end)
-    else
-      right
-    end
   end
 
   @doc """

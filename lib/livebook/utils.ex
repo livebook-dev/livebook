@@ -205,6 +205,18 @@ defmodule Livebook.Utils do
   end
 
   @doc """
+  Recursively merges keyword lists.
+  """
+  @spec keyword_deep_merge(keyword(), keyword()) :: keyword()
+  def keyword_deep_merge(left, right) do
+    if Keyword.keyword?(left) and Keyword.keyword?(right) do
+      Keyword.merge(left, right, fn _key, left, right -> keyword_deep_merge(left, right) end)
+    else
+      right
+    end
+  end
+
+  @doc """
   Validates if the given URL is syntactically valid.
 
   ## Options
@@ -745,4 +757,68 @@ defmodule Livebook.Utils do
   def ip_to_host({0, 0, 0, 0}), do: "localhost"
   def ip_to_host({127, 0, 0, 1}), do: "localhost"
   def ip_to_host(ip), do: ip |> :inet.ntoa() |> List.to_string()
+
+  @doc """
+  Req plugin adding global Livebook-specific plugs.
+
+  The plugin covers cacerts and HTTP proxy configuration.
+  """
+  @spec req_attach_defaults(Req.Request.t()) :: Req.Request.t()
+  def req_attach_defaults(req) do
+    Req.Request.append_request_steps(req,
+      connect_options: fn request ->
+        uri = URI.parse(request.url)
+        connect_options = mint_connect_options_for_uri(uri)
+        Req.Request.merge_options(request, connect_options: connect_options)
+      end
+    )
+  end
+
+  @doc """
+  Returns options for `Mint.HTTP.connect/4` that should be used for
+  the given target URI.
+  """
+  @spec mint_connect_options_for_uri(URI.t()) :: keyword()
+  def mint_connect_options_for_uri(uri) do
+    http_proxy = System.get_env("HTTP_PROXY") || System.get_env("http_proxy")
+    https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy") || http_proxy
+
+    no_proxy =
+      if no_proxy = System.get_env("NO_PROXY") || System.get_env("no_proxy") do
+        String.split(no_proxy, ",")
+      else
+        []
+      end
+
+    proxy_opts =
+      cond do
+        uri.host in no_proxy -> []
+        uri.scheme == "http" && http_proxy -> proxy_options(http_proxy)
+        uri.scheme == "https" && https_proxy -> proxy_options(https_proxy)
+        true -> []
+      end
+
+    cert_opts =
+      if uri.scheme == "https" do
+        if cacertfile = Livebook.Config.cacertfile() do
+          [transport_opts: [cacertfile: cacertfile]]
+        else
+          [transport_opts: [cacerts: :public_key.cacerts_get()]]
+        end
+      else
+        []
+      end
+
+    proxy_opts ++ cert_opts
+  end
+
+  defp proxy_options(proxy) do
+    uri = URI.parse(proxy || "")
+
+    if uri.host && uri.port do
+      [proxy: {:http, uri.host, uri.port, []}]
+    else
+      []
+    end
+  end
 end
