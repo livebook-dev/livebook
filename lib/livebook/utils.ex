@@ -798,13 +798,11 @@ defmodule Livebook.Utils do
         true -> []
       end
 
+    cacertfile = Livebook.Config.cacertfile()
+
     cert_opts =
-      if uri.scheme == "https" do
-        if cacertfile = Livebook.Config.cacertfile() do
-          [transport_opts: [cacertfile: cacertfile]]
-        else
-          [transport_opts: [cacerts: :public_key.cacerts_get()]]
-        end
+      if uri.scheme == "https" && cacertfile do
+        [transport_opts: [cacertfile: cacertfile]]
       else
         []
       end
