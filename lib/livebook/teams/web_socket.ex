@@ -24,7 +24,7 @@ defmodule Livebook.Teams.WebSocket do
 
     opts = Livebook.Utils.mint_connect_options_for_uri(uri)
 
-    opts = Keyword.merge(opts, protocols: :http1)
+    opts = Keyword.merge(opts, protocols: [:http1])
 
     opts =
       if String.ends_with?(Livebook.Config.teams_url(), ".flycast") do
