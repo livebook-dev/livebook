@@ -50,10 +50,11 @@ defmodule Livebook.Teams.DeploymentGroup do
         end
       end)
 
-    case get_field(changeset, :zta_provider) do
-      :livebook_teams -> changeset
-      nil -> changeset
-      _ -> validate_required(changeset, [:zta_key])
+    if get_field(changeset, :zta_provider) in [nil, :livebook_teams] do
+      changeset
+    else
+      # A legacy :zta_provider value, which also requires :zta_key
+      validate_required(changeset, [:zta_key])
     end
   end
 
