@@ -212,4 +212,31 @@ defmodule Livebook.Utils.HTTP do
       ]
     ]
   end
+
+  @doc false
+  def set_proxy_options() do
+    http_proxy = System.get_env("HTTP_PROXY") || System.get_env("http_proxy")
+    https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy")
+
+    no_proxy =
+      if no_proxy = System.get_env("NO_PROXY") || System.get_env("no_proxy") do
+        no_proxy
+        |> String.split(",")
+        |> Enum.map(&String.to_charlist/1)
+      else
+        []
+      end
+
+    set_proxy_option(:proxy, http_proxy, no_proxy)
+    set_proxy_option(:https_proxy, https_proxy, no_proxy)
+  end
+
+  defp set_proxy_option(proxy_scheme, proxy, no_proxy) do
+    uri = URI.parse(proxy || "")
+
+    if uri.host && uri.port do
+      host = String.to_charlist(uri.host)
+      :httpc.set_options([{proxy_scheme, {{host, uri.port}, no_proxy}}])
+    end
+  end
 end

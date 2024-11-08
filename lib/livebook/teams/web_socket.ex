@@ -22,19 +22,9 @@ defmodule Livebook.Teams.WebSocket do
     {http_scheme, ws_scheme} = parse_scheme(uri)
     state = %{status: nil, headers: [], body: []}
 
-    transport_opts =
-      if http_scheme == :https do
-        [cacerts: :public_key.cacerts_get()]
-      else
-        []
-      end
+    opts = Livebook.Utils.mint_connect_options_for_uri(uri)
 
-    transport_opts =
-      if String.ends_with?(Livebook.Config.teams_url(), ".flycast"),
-        do: Keyword.put(transport_opts, :inet6, true),
-        else: transport_opts
-
-    opts = [protocols: [:http1], transport_opts: transport_opts]
+    opts = Keyword.merge(opts, protocols: [:http1])
 
     with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port, opts),
          {:ok, conn, ref} <- Mint.WebSocket.upgrade(ws_scheme, conn, @ws_path, headers) do

@@ -250,7 +250,9 @@ defmodule Livebook.FlyAPI do
       |> Keyword.merge(opts)
       |> Keyword.merge(test_options())
 
-    case Req.request(opts) do
+    req = opts |> Req.new() |> Livebook.Utils.req_attach_defaults()
+
+    case Req.request(req) do
       {:ok, %{status: status, body: body}} when status in 200..299 ->
         {:ok, body}
 
@@ -281,7 +283,9 @@ defmodule Livebook.FlyAPI do
       ]
       |> Keyword.merge(test_options())
 
-    case Req.request(opts) do
+    req = opts |> Req.new() |> Livebook.Utils.req_attach_defaults()
+
+    case Req.request(req) do
       {:ok, %{status: 200, body: body}} ->
         case body do
           %{"errors" => [%{"extensions" => %{"code" => "UNAUTHORIZED"}} | _]} ->
