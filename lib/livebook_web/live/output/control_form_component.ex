@@ -3,7 +3,7 @@ defmodule LivebookWeb.Output.ControlFormComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, data: %{})}
+    {:ok, assign(socket, data: nil)}
   end
 
   @impl true
@@ -17,7 +17,7 @@ defmodule LivebookWeb.Output.ControlFormComponent do
         {field, assigns.input_views[input.id].value}
       end)
 
-    if data != prev_data do
+    if prev_data != nil and data != prev_data do
       change_data =
         for {field, value} <- data,
             assigns.control.attrs.report_changes[field],
