@@ -108,11 +108,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
 
             <.hidden_field field={@form[:hub_id]} value={@hub.id} />
 
-            <LivebookWeb.AppComponents.deployment_group_form_content
-              hub={@hub}
-              form={@form}
-              show_auth={to_string(@form[:mode].value) == "online"}
-            />
+            <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={@form} />
 
             <div class="flex space-x-2">
               <.button type="submit" disabled={not @form.source.valid?}>
