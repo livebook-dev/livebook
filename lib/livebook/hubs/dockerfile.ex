@@ -9,7 +9,7 @@ defmodule Livebook.Hubs.Dockerfile do
           deploy_all: boolean(),
           docker_tag: String.t(),
           clustering: nil | :auto | :dns,
-          zta_provider: atom()
+          zta_provider: atom() | nil
         }
 
   @types %{
@@ -405,7 +405,7 @@ defmodule Livebook.Hubs.Dockerfile do
           [
             if app_settings.access_type == :public and config.zta_provider != :livebook_teams do
               "This app has no password configuration and anyone with access to the server will be able" <>
-                " to use it. You may either configure a password or enable Livebook Teams authentication."
+                " to use it. You may either configure a password or enable authentication with Livebook Teams."
             end
           ]
       end

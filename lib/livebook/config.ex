@@ -247,6 +247,17 @@ defmodule Livebook.Config do
     end
   end
 
+  @identity_provider_no_id [Livebook.ZTA.BasicAuth, Livebook.ZTA.PassThrough]
+
+  @doc """
+  Returns if the identity data is readonly.
+  """
+  @spec identity_provider_read_only?() :: boolean()
+  def identity_provider_read_only?() do
+    {_type, module, _key} = Livebook.Config.identity_provider()
+    module not in @identity_provider_no_id
+  end
+
   @doc """
   Returns whether the application is running inside an iframe.
   """

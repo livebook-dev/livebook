@@ -57,7 +57,4 @@ defmodule Livebook.ZTA do
   def put(name, value) do
     :ets.insert(__MODULE__, [{name, value}])
   end
-
-  def provider_name(:livebook_teams), do: "Livebook Teams"
-  def provider_name(_), do: "None"
 end

@@ -85,7 +85,6 @@ defmodule LivebookWeb.AppComponents do
   """
   attr :form, Phoenix.HTML.Form, required: true
   attr :hub, :map, required: true
-  attr :show_auth, :boolean, default: true
   attr :disabled, :boolean, default: false
 
   def deployment_group_form_content(assigns) do
@@ -132,7 +131,7 @@ defmodule LivebookWeb.AppComponents do
       </div>
     </div>
 
-    <%= if Livebook.Hubs.Provider.type(@hub) == "team" and @show_auth do %>
+    <%= if Livebook.Hubs.Provider.type(@hub) == "team" and to_string(@form[:mode].value) == "online" do %>
       <div class="flex flex-col gap-2">
         <.checkbox_field
           field={@form[:zta_provider]}
