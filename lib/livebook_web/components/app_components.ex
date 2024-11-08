@@ -85,6 +85,7 @@ defmodule LivebookWeb.AppComponents do
   """
   attr :form, Phoenix.HTML.Form, required: true
   attr :hub, :map, required: true
+  attr :show_auth, :boolean, default: true
   attr :disabled, :boolean, default: false
 
   def deployment_group_form_content(assigns) do
@@ -131,22 +132,24 @@ defmodule LivebookWeb.AppComponents do
       </div>
     </div>
 
-    <div class="flex flex-col gap-2">
-      <.checkbox_field
-        field={@form[:zta_provider]}
-        label="Enable Livebook Teams authentication"
-        help={
-          ~S'''
-          When enabled, apps deployed in
-          this deployment group will use
-          Livebook Teams for authentication.
-          '''
-        }
-        checked_value="livebook_teams"
-        unchecked_value=""
-        small
-      />
-    </div>
+    <%= if Livebook.Hubs.Provider.type(@hub) == "team" and @show_auth do %>
+      <div class="flex flex-col gap-2">
+        <.checkbox_field
+          field={@form[:zta_provider]}
+          label="Authenticate via Livebook Teams"
+          help={
+            ~S'''
+            When enabled, apps deployed in
+            this deployment group will use
+            Livebook Teams for authentication.
+            '''
+          }
+          checked_value="livebook_teams"
+          unchecked_value=""
+          small
+        />
+      </div>
+    <% end %>
     """
   end
 

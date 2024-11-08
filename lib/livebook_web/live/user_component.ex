@@ -35,12 +35,7 @@ defmodule LivebookWeb.UserComponent do
         phx-hook="UserForm"
       >
         <div class="flex flex-col space-y-5">
-          <.text_field
-            field={f[:name]}
-            label="Display name"
-            spellcheck="false"
-            disabled={Livebook.Config.identity_provider_read_only?()}
-          />
+          <.text_field field={f[:name]} label="Display name" spellcheck="false" />
           <%= if @user.email do %>
             <.text_field field={f[:email]} label="email" spellcheck="false" disabled="true" />
           <% end %>

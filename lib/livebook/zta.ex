@@ -58,9 +58,6 @@ defmodule Livebook.ZTA do
     :ets.insert(__MODULE__, [{name, value}])
   end
 
-  def provider_name(nil), do: "None"
-
-  def provider_name(provider_type) do
-    Livebook.Config.zta_metadata(provider_type).name
-  end
+  def provider_name(:livebook_teams), do: "Livebook Teams"
+  def provider_name(_), do: "None"
 end
