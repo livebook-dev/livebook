@@ -180,9 +180,6 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
 
       {:transport_error, message} ->
         {:noreply, assign(socket, error_message: message)}
-
-      {:error, message} ->
-        {:noreply, assign(socket, error_message: message)}
     end
   end
 

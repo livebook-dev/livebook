@@ -1,8 +1,6 @@
 defmodule LivebookWeb.AppComponents do
   use LivebookWeb, :html
 
-  alias Livebook.Hubs
-
   @doc """
   Renders page placeholder on unauthenticated dead render.
   """
@@ -133,60 +131,25 @@ defmodule LivebookWeb.AppComponents do
       </div>
     </div>
 
-    <%= if Hubs.Provider.type(@hub) == "team" do %>
-      <div class="flex flex-col">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <.select_field
-            label="Zero Trust Authentication provider"
-            field={@form[:zta_provider]}
-            help={
-              ~S'''
-              Enable this option to generate
-              Livebook Dockerfiles with proxy
-              authentication for deployed
-              notebooks
-              '''
-            }
-            prompt="None"
-            options={zta_options()}
-            disabled={@disabled}
-          />
-
-          <.text_field
-            :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
-            field={@form[:zta_key]}
-            type={Map.get(zta_metadata, :input, "text")}
-            label={zta_metadata.value}
-            placeholder={Map.get(zta_metadata, :placeholder, "")}
-            phx-debounce
-            disabled={@disabled}
-          />
-        </div>
-
-        <div :if={zta_metadata = zta_metadata(@form[:zta_provider].value)} class="text-sm mt-1">
-          See the
-          <a
-            class="text-blue-800 hover:text-blue-600"
-            href={"https://hexdocs.pm/livebook/#{zta_metadata.type}.html"}
-          >
-            Authentication with <%= zta_metadata.name %> docs
-          </a>
-          for more information.
-        </div>
+    <%= if Livebook.Hubs.Provider.type(@hub) == "team" and to_string(@form[:mode].value) == "online" do %>
+      <div class="flex flex-col gap-2">
+        <.checkbox_field
+          field={@form[:zta_provider]}
+          label="Authenticate via Livebook Teams"
+          help={
+            ~S'''
+            When enabled, apps deployed in
+            this deployment group will use
+            Livebook Teams for authentication.
+            '''
+          }
+          checked_value="livebook_teams"
+          unchecked_value=""
+          small
+        />
       </div>
     <% end %>
     """
-  end
-
-  @zta_options for provider <- Livebook.Config.identity_providers(),
-                   do: {provider.name, provider.type}
-
-  defp zta_options(), do: @zta_options
-
-  defp zta_metadata(nil), do: nil
-
-  defp zta_metadata(provider) do
-    Livebook.Config.zta_metadata(provider)
   end
 
   @doc """

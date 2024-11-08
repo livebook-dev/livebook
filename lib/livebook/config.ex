@@ -8,52 +8,6 @@ defmodule Livebook.Config do
           | %{mode: :token, secret: String.t()}
           | %{mode: :disabled}
 
-  # Those are the public identity providers.
-  #
-  # There are still a :session and :custom identity providers,
-  # but those are handled internally.
-  #
-  # IMPORTANT: this list must be in sync with Livebook Teams.
-  @identity_providers [
-    %{
-      type: :basic_auth,
-      name: "Basic Auth",
-      value: "Credentials (username:password)",
-      module: Livebook.ZTA.BasicAuth,
-      placeholder: "username:password",
-      input: "password"
-    },
-    %{
-      type: :cloudflare,
-      name: "Cloudflare",
-      value: "Team name (domain)",
-      module: Livebook.ZTA.Cloudflare
-    },
-    %{
-      type: :google_iap,
-      name: "Google IAP",
-      value: "Audience (aud)",
-      module: Livebook.ZTA.GoogleIAP
-    },
-    %{
-      type: :livebook_teams,
-      name: "Livebook Teams",
-      module: Livebook.ZTA.LivebookTeams
-    },
-    %{
-      type: :tailscale,
-      name: "Tailscale",
-      value: "Tailscale CLI socket path",
-      module: Livebook.ZTA.Tailscale
-    }
-  ]
-
-  @identity_provider_no_id [Livebook.ZTA.BasicAuth, Livebook.ZTA.PassThrough]
-
-  @identity_provider_type_to_module Map.new(@identity_providers, fn provider ->
-                                      {Atom.to_string(provider.type), provider.module}
-                                    end)
-
   @doc """
   Returns docker images to be used when generating sample Dockerfiles.
   """
@@ -283,16 +237,6 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns all identity providers.
-
-  Internal identity providers, such as session and custom,
-  are not included.
-  """
-  def identity_providers do
-    @identity_providers
-  end
-
-  @doc """
   Returns the identity provider.
   """
   @spec identity_provider() :: {atom(), module, binary}
@@ -303,6 +247,8 @@ defmodule Livebook.Config do
     end
   end
 
+  @identity_provider_no_id [Livebook.ZTA.BasicAuth, Livebook.ZTA.PassThrough]
+
   @doc """
   Returns if the identity data is readonly.
   """
@@ -310,14 +256,6 @@ defmodule Livebook.Config do
   def identity_provider_read_only?() do
     {_type, module, _key} = Livebook.Config.identity_provider()
     module not in @identity_provider_no_id
-  end
-
-  @doc """
-  Returns metadata of a ZTA provider
-  """
-  @spec zta_metadata(atom()) :: map()
-  def zta_metadata(zta_provider) do
-    Enum.find(Livebook.Config.identity_providers(), &(&1.type == zta_provider))
   end
 
   @doc """
@@ -750,6 +688,13 @@ defmodule Livebook.Config do
     end
   end
 
+  @identity_providers %{
+    "basic_auth" => Livebook.ZTA.BasicAuth,
+    "cloudflare" => Livebook.ZTA.Cloudflare,
+    "google_iap" => Livebook.ZTA.GoogleIAP,
+    "tailscale" => Livebook.ZTA.Tailscale
+  }
+
   @doc """
   Parses zero trust identity provider from env.
   """
@@ -770,13 +715,11 @@ defmodule Livebook.Config do
 
       provider ->
         with [type, key] <- String.split(provider, ":", parts: 2),
-             %{^type => module} <- identity_provider_type_to_module() do
+             %{^type => module} <- @identity_providers do
           {:zta, module, key}
         else
           _ -> abort!("invalid configuration for identity provider given in #{env}")
         end
     end
   end
-
-  defp identity_provider_type_to_module, do: @identity_provider_type_to_module
 end

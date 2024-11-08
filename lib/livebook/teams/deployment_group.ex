@@ -5,7 +5,26 @@ defmodule Livebook.Teams.DeploymentGroup do
   alias Livebook.Secrets.Secret
   alias Livebook.Teams.AgentKey
 
-  @zta_providers Enum.map(Livebook.Config.identity_providers(), & &1.type)
+  @type t :: %__MODULE__{
+          id: String.t() | nil,
+          name: String.t() | nil,
+          url: String.t() | nil,
+          mode: :online | :offline,
+          clustering: :auto | :dns | nil,
+          hub_id: String.t() | nil,
+          secrets: Ecto.Schema.has_many(Secret.t()),
+          agent_keys: Ecto.Schema.has_many(AgentKey.t()),
+          zta_provider:
+            :basic_auth
+            | :cloudflare
+            | :google_iap
+            | :livebook_teams
+            | :tailscale
+            | nil
+        }
+
+  # TODO: Update this list to be only `:livebook_teams` in the future.
+  @zta_providers [:basic_auth, :cloudflare, :google_iap, :livebook_teams, :tailscale]
 
   @primary_key {:id, :string, autogenerate: false}
   embedded_schema do
@@ -13,8 +32,7 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :mode, Ecto.Enum, values: [:online, :offline], default: :online
     field :hub_id, :string
     field :clustering, Ecto.Enum, values: [:auto, :dns]
-    field :zta_provider, Ecto.Enum, values: @zta_providers
-    field :zta_key, :string
+    field :zta_provider, Ecto.Enum, values: @zta_providers, default: :livebook_teams
     field :url, :string
 
     has_many :secrets, Secret
@@ -24,7 +42,7 @@ defmodule Livebook.Teams.DeploymentGroup do
   def changeset(deployment_group, attrs \\ %{}) do
     changeset =
       deployment_group
-      |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :zta_provider, :zta_key, :url])
+      |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :zta_provider, :url])
       |> validate_required([:name, :mode])
       |> update_change(:url, fn url ->
         if url do
@@ -50,8 +68,8 @@ defmodule Livebook.Teams.DeploymentGroup do
         end
       end)
 
-    if get_field(changeset, :zta_provider) do
-      validate_required(changeset, [:zta_key])
+    if get_field(changeset, :mode) == :offline do
+      delete_change(changeset, :zta_provider)
     else
       changeset
     end

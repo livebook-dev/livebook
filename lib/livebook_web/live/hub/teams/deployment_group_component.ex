@@ -84,7 +84,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           </.labeled_text>
           <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="Authentication">
             <span class="text-lg font-normal">
-              <%= Livebook.ZTA.provider_name(@deployment_group.zta_provider) %>
+              <%= provider_name(@deployment_group.zta_provider) %>
             </span>
           </.labeled_text>
         </div>
@@ -187,4 +187,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
     </div>
     """
   end
+
+  defp provider_name(:livebook_teams), do: "Livebook Teams"
+  defp provider_name(_), do: "None"
 end

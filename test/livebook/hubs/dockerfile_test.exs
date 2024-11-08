@@ -140,16 +140,6 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert dockerfile =~ "ENV LIVEBOOK_TEAMS_FS"
     end
 
-    test "deploying with ZTA in teams hub" do
-      config = dockerfile_config(%{zta_provider: :cloudflare, zta_key: "cloudflare_key"})
-      hub = team_hub()
-      file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
-
-      dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
-
-      assert dockerfile =~ ~S/ENV LIVEBOOK_IDENTITY_PROVIDER "cloudflare:cloudflare_key"/
-    end
-
     test "deploying a directory in teams hub" do
       config = dockerfile_config(%{deploy_all: true})
       hub = team_hub()
@@ -230,16 +220,6 @@ defmodule Livebook.Hubs.DockerfileTest do
                {"LIVEBOOK_TEAMS_AUTH",
                 "online:org-name-387:1:1:lb_ak_zj9tWM1rEVeweYR7DbH_2VK5_aKtWfptcL07dBncqg"}
              ]
-    end
-
-    test "deploying with zta" do
-      config = dockerfile_config(%{zta_provider: :cloudflare, zta_key: "cloudflare_key"})
-      hub = team_hub()
-      agent_key = Livebook.Factory.build(:agent_key)
-
-      %{env: env} = Dockerfile.online_docker_info(config, hub, agent_key)
-
-      assert {"LIVEBOOK_IDENTITY_PROVIDER", "cloudflare:cloudflare_key"} in env
     end
 
     test "deploying with different base image" do
@@ -372,15 +352,15 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
       assert warning =~ "This app has no password configuration"
 
-      config = %{config | zta_provider: :cloudflare, zta_key: "key"}
+      config = %{config | zta_provider: :livebook_teams}
 
       assert [] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
     end
 
     test "warns when no clustering is configured" do
-      config = dockerfile_config(%{})
+      config = dockerfile_config()
       hub = team_hub()
-      app_settings = Livebook.Notebook.AppSettings.new()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :private}
 
       assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
       assert warning =~ "Clustering has not been configured for this deployment"

@@ -61,7 +61,7 @@ message DeploymentGroup {
   repeated DeploymentGroupSecret secrets = 4;
   string clustering = 5;
   string zta_provider = 6;
-  string zta_key = 7;
+  string zta_key = 7 [deprecated = true];
   repeated AgentKey agent_keys = 8;
   string url = 9;
 }
@@ -72,7 +72,7 @@ message DeploymentGroupCreated {
   string mode = 3;
   string clustering = 5;
   string zta_provider = 6;
-  string zta_key = 7;
+  string zta_key = 7 [deprecated = true];
   repeated AgentKey agent_keys = 8;
   string url = 9;
 }
@@ -83,7 +83,7 @@ message DeploymentGroupUpdated {
   repeated DeploymentGroupSecret secrets = 3;
   string clustering = 4;
   string zta_provider = 5;
-  string zta_key = 6;
+  string zta_key = 6 [deprecated = true];
   repeated AgentKey agent_keys = 7;
   string url = 8;
 }

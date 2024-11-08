@@ -1,5 +1,5 @@
 defmodule LivebookProto.Event do
-  use Protobuf, syntax: :proto3, protoc_gen_elixir_version: "0.12.0"
+  use Protobuf, syntax: :proto3, protoc_gen_elixir_version: "0.13.0"
 
   oneof :type, 0
 

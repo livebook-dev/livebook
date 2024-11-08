@@ -169,7 +169,6 @@ defmodule Livebook.TeamsTest do
   describe "create_deployment_group/2" do
     test "creates a new deployment group when the data is valid", %{user: user, node: node} do
       team = connect_to_teams(user, node)
-
       attrs = params_for(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
       assert {:ok, deployment_group} = Teams.create_deployment_group(team, attrs)
@@ -181,6 +180,27 @@ defmodule Livebook.TeamsTest do
       # Guarantee uniqueness
       assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
       assert "has already been taken" in errors_on(changeset).name
+    end
+
+    test "creates a new deployment group with Livebook Teams authentication",
+         %{user: user, node: node} do
+      team = connect_to_teams(user, node)
+
+      attrs =
+        params_for(:deployment_group,
+          name: "DEPLOYMENT_GROUP_#{team.id}",
+          mode: :online,
+          zta_provider: :livebook_teams
+        )
+
+      assert {:ok, deployment_group} = Teams.create_deployment_group(team, attrs)
+
+      %{id: id, name: name, mode: mode, zta_provider: zta_provider} = deployment_group
+
+      assert zta_provider == :livebook_teams
+
+      assert_receive {:deployment_group_created,
+                      %{id: ^id, name: ^name, mode: ^mode, zta_provider: ^zta_provider}}
     end
 
     test "returns changeset errors when the name is invalid", %{user: user, node: node} do
