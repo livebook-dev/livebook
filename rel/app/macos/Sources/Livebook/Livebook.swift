@@ -128,7 +128,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func copyURL() {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setData(url!.data(using: .utf8), forType: NSPasteboard.PasteboardType.URL)
+        pasteboard.setString(url!, forType: .URL)
+        pasteboard.setString(url!, forType: .string)
     }
 
     @objc
