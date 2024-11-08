@@ -184,7 +184,6 @@ defmodule Livebook.MixProject do
   defp remove_cookie(release) do
     # We remove the COOKIE file when assembling the release, because we
     # don't want to share the same cookie across users.
-
     File.rm!(Path.join(release.path, "releases/COOKIE"))
     release
   end
@@ -237,7 +236,7 @@ defmodule Livebook.MixProject do
       groups_for_extras: [
         "Livebook Teams": Path.wildcard("docs/teams/*"),
         Deployment: Path.wildcard("docs/deployment/*"),
-        Authentication: Path.wildcard("docs/authentication/*")
+        "Airgapped Authentication": Path.wildcard("docs/authentication/*")
       ]
     ]
   end

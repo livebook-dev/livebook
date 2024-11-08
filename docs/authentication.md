@@ -2,7 +2,7 @@
 
 Livebook has three levels of authentication:
 
-  * Instance authentication: this authenticates the user on all routes of your Livebook instance, including deployed notebooks and the admin section. This is done via Zero Trust Authentication and typically used when deploying Livebook to production. See the "Authentication" section on the sidebar for more information.
+  * Instance authentication: this authenticates the user on all routes of your Livebook instance, including deployed notebooks and the admin section. If you are deploying your Livebook instances with [Livebook Teams](https://livebook.dev/teams), all instances include Livebook Teams authentication by default. You can also manually configure your Livebook instance to have their own authentication, see the "Airgapped Authentication" section.
 
   * Admin authentication: this authenticates access to Livebook admin interface, where users can create, write, and manage notebooks. Both password and token authentication are available. See the next section for more information.
 

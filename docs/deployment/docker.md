@@ -147,4 +147,4 @@ If you are using [Livebook Teams](https://livebook.dev/teams/), you can also dep
 
 The deployment steps will show you to deploy your notebooks within Docker, Fly.io, and Kubernetes. This is effectively done by setting the `LIVEBOOK_TEAMS_AUTH`, which configures Livebook to run as a read-only instance connected to Livebook Teams.
 
-Livebook Teams also support airgapped deployments, pre-configured Zero Trust Authentication, shared team secrets, file storages, and more.
+Livebook Teams also support airgapped deployments, pre-configured environment variables, shared team secrets, file storages, and more.
