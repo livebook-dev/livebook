@@ -184,6 +184,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
+          zta_provider: to_string(deployment_group.zta_provider),
           secrets: [],
           agent_keys: []
         }
@@ -470,6 +471,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
+          zta_provider: to_string(deployment_group.zta_provider),
           agent_keys: [livebook_proto_agent_key],
           secrets: []
         }
@@ -563,6 +565,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
+          zta_provider: to_string(deployment_group.zta_provider),
           secrets: [livebook_proto_deployment_group_secret]
         }
 
