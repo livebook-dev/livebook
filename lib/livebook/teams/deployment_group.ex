@@ -12,8 +12,8 @@ defmodule Livebook.Teams.DeploymentGroup do
           mode: :online | :offline,
           clustering: :auto | :dns | nil,
           hub_id: String.t() | nil,
-          secrets: list(Secret.t()),
-          agent_keys: list(AgentKey.t()),
+          secrets: Ecto.Schema.has_many(Secret.t()),
+          agent_keys: Ecto.Schema.has_many(AgentKey.t()),
           zta_provider:
             :basic_auth
             | :cloudflare
