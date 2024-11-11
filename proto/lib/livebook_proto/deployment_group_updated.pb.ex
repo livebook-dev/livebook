@@ -9,4 +9,9 @@ defmodule LivebookProto.DeploymentGroupUpdated do
   field :zta_key, 6, type: :string, json_name: "ztaKey", deprecated: true
   field :agent_keys, 7, repeated: true, type: LivebookProto.AgentKey, json_name: "agentKeys"
   field :url, 8, type: :string
+
+  field :environment_variables, 9,
+    repeated: true,
+    type: LivebookProto.EnvironmentVariable,
+    json_name: "environmentVariables"
 end

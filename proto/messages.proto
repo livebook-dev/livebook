@@ -64,6 +64,7 @@ message DeploymentGroup {
   string zta_key = 7 [deprecated = true];
   repeated AgentKey agent_keys = 8;
   string url = 9;
+  repeated EnvironmentVariable environment_variables = 10;
 }
 
 message DeploymentGroupCreated {
@@ -86,6 +87,7 @@ message DeploymentGroupUpdated {
   string zta_key = 6 [deprecated = true];
   repeated AgentKey agent_keys = 7;
   string url = 8;
+  repeated EnvironmentVariable environment_variables = 9;
 }
 
 message DeploymentGroupDeleted {
@@ -180,6 +182,11 @@ message AppDeploymentStatus {
 
 message AppDeploymentStatusReport {
   repeated AppDeploymentStatus app_deployment_statuses = 1;
+}
+
+message EnvironmentVariable {
+  string name = 1;
+  string value = 2;
 }
 
 message Event {
