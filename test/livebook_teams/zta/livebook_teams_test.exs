@@ -36,13 +36,14 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
          %{conn: conn, node: node, test: test, opts: opts} do
       start_supervised({LivebookTeams, opts})
       conn = Plug.Test.init_test_session(conn, %{})
+      conn = %{conn | host: "my-livebook.com"}
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
       [location] = get_resp_header(conn, "location")
       uri = URI.parse(location)
       assert uri.path == "/identity/authorize"
 
-      redirect_to = LivebookWeb.Endpoint.url() <> "/?teams_identity"
+      redirect_to =  "http://my-livebook.com/?teams_identity"
       assert %{"code" => code, "redirect_to" => ^redirect_to} = URI.decode_query(uri.query)
 
       erpc_call(node, :allow_auth_request, [code])

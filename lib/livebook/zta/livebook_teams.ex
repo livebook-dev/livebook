@@ -103,7 +103,12 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp request_user_authentication(conn, team) do
     case Teams.Requests.create_auth_request(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
-        current_url = LivebookWeb.Endpoint.url() <> conn.request_path <> "?teams_identity"
+        current_url =
+          conn
+          |> Plug.Conn.request_url()
+          |> URI.parse()
+          |> URI.append_query("teams_identity")
+          |> URI.to_string()
 
         url =
           URI.parse(authorize_uri)
