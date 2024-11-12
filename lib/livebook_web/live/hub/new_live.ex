@@ -87,20 +87,21 @@ defmodule LivebookWeb.Hub.NewLive do
         <!-- FORMS -->
         <div :if={@selected_option} class="flex flex-col space-y-4">
           <.form
+            :let={f}
+            for={@form}
             id={"#{@selected_option}-form"}
             class="flex flex-col space-y-4"
-            for={@form}
             phx-submit="save"
             phx-change="validate"
           >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <.text_field field={@form[:name]} label="Organization name" autofocus />
-              <.emoji_field field={@form[:emoji]} label="Emoji" />
+              <.text_field field={f[:name]} label="Organization name" autofocus />
+              <.emoji_field field={f[:emoji]} label="Emoji" />
             </div>
 
             <.password_field
               :if={@selected_option == "join-org"}
-              field={@form[:teams_key]}
+              field={f[:teams_key]}
               label="Livebook Teams key"
             />
 
