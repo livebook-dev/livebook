@@ -43,7 +43,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       uri = URI.parse(location)
       assert uri.path == "/identity/authorize"
 
-      redirect_to =  "http://my-livebook.com/?teams_identity"
+      redirect_to = "http://my-livebook.com/?teams_identity"
       assert %{"code" => code, "redirect_to" => ^redirect_to} = URI.decode_query(uri.query)
 
       erpc_call(node, :allow_auth_request, [code])
