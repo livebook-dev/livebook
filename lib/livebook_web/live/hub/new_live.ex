@@ -94,7 +94,7 @@ defmodule LivebookWeb.Hub.NewLive do
             phx-change="validate"
           >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <.text_field field={@form[:name]} label="Organization name" />
+              <.text_field field={@form[:name]} label="Organization name" autofocus />
               <.emoji_field field={@form[:emoji]} label="Emoji" />
             </div>
 
