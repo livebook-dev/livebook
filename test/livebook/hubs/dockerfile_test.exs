@@ -204,6 +204,27 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert dockerfile =~ ~s/ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"/
       assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "dns:QUERY"/
     end
+
+    test "deploying with deployment group environment variables" do
+      config = %{
+        dockerfile_config()
+        | environment_variables: %{
+            "LIVEBOOK_IDENTITY_PROVIDER" => "cloudflare:foobar",
+            "LIVEBOOK_TEAMS_URL" => "http://localhost:8000"
+          }
+      }
+
+      hub = team_hub()
+      file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
+
+      dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
+
+      assert dockerfile =~ """
+             # Deployment group environment variables
+             ENV LIVEBOOK_IDENTITY_PROVIDER "cloudflare:foobar"
+             ENV LIVEBOOK_TEAMS_URL "http://localhost:8000"\
+             """
+    end
   end
 
   describe "online_docker_info/3" do
@@ -251,6 +272,24 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       assert {"LIVEBOOK_NODE", "livebook_server@MACHINE_IP"} in env
       assert {"LIVEBOOK_CLUSTER", "dns:QUERY"} in env
+    end
+
+    test "deploying with deployment group environment variables" do
+      config = %{
+        dockerfile_config()
+        | environment_variables: %{
+            "LIVEBOOK_IDENTITY_PROVIDER" => "cloudflare:foobar",
+            "LIVEBOOK_TEAMS_URL" => "http://localhost:8000"
+          }
+      }
+
+      hub = team_hub()
+      agent_key = Livebook.Factory.build(:agent_key)
+
+      %{env: env} = Dockerfile.online_docker_info(config, hub, agent_key)
+
+      assert {"LIVEBOOK_IDENTITY_PROVIDER", "cloudflare:foobar"} in env
+      assert {"LIVEBOOK_TEAMS_URL", "http://localhost:8000"} in env
     end
   end
 
