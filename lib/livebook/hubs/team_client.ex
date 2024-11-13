@@ -135,6 +135,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns a list of cached environment variables.
+  """
+  @spec get_environment_variables(String.t()) :: list(Teams.Agent.t())
+  def get_environment_variables(id) do
+    GenServer.call(registry_name(id), :get_environment_variables)
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -254,6 +262,11 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:get_agents, _caller, state) do
     {:reply, state.agents, state}
+  end
+
+  def handle_call(:get_environment_variables, _caller, state) do
+    environment_variables = Enum.flat_map(state.deployment_groups, & &1.environment_variables)
+    {:reply, environment_variables, state}
   end
 
   def handle_call(:identity_enabled?, _caller, %{deployment_group_id: nil} = state) do
