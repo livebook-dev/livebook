@@ -29,7 +29,13 @@ Head out to [the Install section](https://livebook.dev/#install) of Livebook's w
 
 ![Screenshot](https://github.com/livebook-dev/livebook/raw/main/.github/imgs/welcome.png)
 
-For screencasts and news, check out [news.livebook.dev](https://news.livebook.dev/).
+There are more resources for those who are ready to dig deeper:
+
+  * [Our official documentation](https://hexdocs.pm/livebook/) with in-depth guides
+
+  * [Our Integrations page](https://hexdocs.pm/livebook/) covering the languages, data sources, and libraries that Livebook works with out-of-the-box
+
+  * [Our blog](https://news.livebook.dev/) with news, posts, and screencasts
 
 ## Installation
 
