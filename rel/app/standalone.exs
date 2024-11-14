@@ -9,7 +9,7 @@ defmodule Standalone do
     erts_source = Path.join(:code.root_dir(), "erts-#{release.erts_version}")
     otp_bin_dir = Path.join(:code.root_dir(), "bin")
     otp_lib_dir = :code.lib_dir()
-    vendor_otp_dir = Path.join([release.path, "vendor", "otp"])
+    vendor_otp_dir = vendor_dir(release, "otp")
     File.rm_rf!(vendor_otp_dir)
     File.mkdir_p!(vendor_otp_dir)
 
@@ -74,7 +74,7 @@ defmodule Standalone do
   """
   @spec copy_elixir(Mix.Release.t(), elixir_version :: String.t()) :: Mix.Release.t()
   def copy_elixir(release, elixir_version) do
-    standalone_destination = Path.join(release.path, "vendor/elixir")
+    standalone_destination = vendor_dir(release, "elixir")
     download_elixir_at_destination(standalone_destination, elixir_version)
 
     filenames =
@@ -108,7 +108,7 @@ defmodule Standalone do
   """
   @spec copy_hex(Mix.Release.t()) :: Mix.Release.t()
   def copy_hex(release) do
-    release_archives_dir = Path.join(release.path, "vendor/archives")
+    release_archives_dir = vendor_dir(release, "archives")
     File.mkdir_p!(release_archives_dir)
 
     hex_version = Keyword.fetch!(Application.spec(:hex), :vsn)
@@ -132,7 +132,7 @@ defmodule Standalone do
       File.write!(path, binary, [:binary])
     end
 
-    destination = Path.join(release.path, "vendor/rebar3")
+    destination = vendor_dir(release, "rebar3")
     File.cp!(path, destination)
     make_executable(destination)
 
@@ -155,5 +155,9 @@ defmodule Standalone do
 
   defp cp_r!(source, destination) do
     File.cp_r!(source, destination, fn _, _ -> false end)
+  end
+
+  defp vendor_dir(release, path) do
+    Path.join([release.path, "vendor", "livebook-#{release.version}", path])
   end
 end
