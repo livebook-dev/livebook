@@ -32,6 +32,27 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert {%{status: 302, halted: true}, nil} = LivebookTeams.authenticate(test, conn, [])
     end
 
+    test "uses proxy headers in the redirect_to URL when they're provided",
+         %{conn: conn, test: test, opts: opts} do
+      start_supervised({LivebookTeams, opts})
+
+      conn =
+        Plug.Test.init_test_session(conn, %{})
+        |> put_req_header("x-forwarded-proto", "https")
+        |> put_req_header("x-forwarded-port", "443")
+        |> then(&Map.put(&1, :host, "my-livebook.com"))
+
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+
+      [location] = get_resp_header(conn, "location")
+      uri = URI.parse(location)
+      %{"redirect_to" => redirect_to} = URI.decode_query(uri.query)
+      redirect_to_uri = URI.parse(redirect_to)
+      assert "https" = redirect_to_uri.scheme
+      assert 443 = redirect_to_uri.port
+      assert "my-livebook.com" = redirect_to_uri.host
+    end
+
     test "gets the user information from Livebook Teams",
          %{conn: conn, node: node, test: test, opts: opts} do
       start_supervised({LivebookTeams, opts})

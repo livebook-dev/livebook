@@ -103,16 +103,11 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp request_user_authentication(conn, team) do
     case Teams.Requests.create_auth_request(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
-        current_url =
-          conn
-          |> Plug.Conn.request_url()
-          |> URI.parse()
-          |> URI.append_query("teams_identity")
-          |> URI.to_string()
+        redirect_to_url = build_redirect_to_url(conn)
 
         url =
           URI.parse(authorize_uri)
-          |> URI.append_query("redirect_to=#{URI.encode_www_form(current_url)}")
+          |> URI.append_query("redirect_to=#{URI.encode_www_form(redirect_to_url)}")
           |> URI.to_string()
 
         {conn |> redirect(external: url) |> halt(), nil}
@@ -122,6 +117,30 @@ defmodule Livebook.ZTA.LivebookTeams do
          |> redirect(to: conn.request_path)
          |> put_session(:teams_error, true)
          |> halt(), nil}
+    end
+  end
+
+  defp build_redirect_to_url(conn) do
+    conn
+    |> Plug.Conn.request_url()
+    |> URI.parse()
+    |> URI.append_query("teams_identity")
+    |> rewrite_from_proxy_header("x-forwarded-port", conn)
+    |> rewrite_from_proxy_header("x-forwarded-proto", conn)
+    |> URI.to_string()
+  end
+
+  defp rewrite_from_proxy_header(uri, "x-forwarded-port", conn) do
+    case Plug.Conn.get_req_header(conn, "x-forwarded-port") do
+      [port] -> %URI{uri | port: String.to_integer(port)}
+      [] -> uri
+    end
+  end
+
+  defp rewrite_from_proxy_header(uri, "x-forwarded-proto", conn) do
+    case Plug.Conn.get_req_header(conn, "x-forwarded-proto") do
+      [proto] -> %URI{uri | scheme: proto}
+      [] -> uri
     end
   end
 
