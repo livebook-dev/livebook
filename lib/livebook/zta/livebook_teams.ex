@@ -103,59 +103,32 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp request_user_authentication(conn, team) do
     case Teams.Requests.create_auth_request(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
-        conn = html(conn, """
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <title>Redirecting...</title>
-            <script>
-              const url = new URL("#{authorize_uri}");
-              url.searchParams.set("redirect_to", window.location.href);
-              window.location.href = url.toString();
-            </script>
-          </head>
-        </html>
-        """)
+        conn =
+          html(conn, """
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <title>Redirecting...</title>
+              <script>
+                const redirectTo = new URL(window.location.href);
+                redirectTo.searchParams.append("teams_identity", "");
+
+                const url = new URL("#{authorize_uri}");
+                url.searchParams.set("redirect_to", redirectTo.toString());
+                window.location.href = url.toString();
+              </script>
+            </head>
+          </html>
+          """)
 
         {halt(conn), nil}
-
-        url =
-          URI.parse(authorize_uri)
-          |> URI.append_query("redirect_to=#{URI.encode_www_form(redirect_to_url)}")
-          |> URI.to_string()
-
-        {conn |> redirect(external: url) |> halt(), nil}
 
       _ ->
         {conn
          |> redirect(to: conn.request_path)
          |> put_session(:teams_error, true)
          |> halt(), nil}
-    end
-  end
-
-  defp build_redirect_to_url(conn) do
-    conn
-    |> Plug.Conn.request_url()
-    |> URI.parse()
-    |> URI.append_query("teams_identity")
-    |> rewrite_from_proxy_header("x-forwarded-port", conn)
-    |> rewrite_from_proxy_header("x-forwarded-proto", conn)
-    |> URI.to_string()
-  end
-
-  defp rewrite_from_proxy_header(uri, "x-forwarded-port", conn) do
-    case Plug.Conn.get_req_header(conn, "x-forwarded-port") do
-      [port] -> %URI{uri | port: String.to_integer(port)}
-      [] -> uri
-    end
-  end
-
-  defp rewrite_from_proxy_header(uri, "x-forwarded-proto", conn) do
-    case Plug.Conn.get_req_header(conn, "x-forwarded-proto") do
-      [proto] -> %URI{uri | scheme: proto}
-      [] -> uri
     end
   end
 
