@@ -103,7 +103,22 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp request_user_authentication(conn, team) do
     case Teams.Requests.create_auth_request(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
-        redirect_to_url = build_redirect_to_url(conn)
+        conn = html(conn, """
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <title>Redirecting...</title>
+            <script>
+              const url = new URL("#{authorize_uri}");
+              url.searchParams.set("redirect_to", window.location.href);
+              window.location.href = url.toString();
+            </script>
+          </head>
+        </html>
+        """)
+
+        {halt(conn), nil}
 
         url =
           URI.parse(authorize_uri)
