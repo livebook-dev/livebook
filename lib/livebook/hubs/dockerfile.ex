@@ -421,7 +421,7 @@ defmodule Livebook.Hubs.Dockerfile do
           [
             if app_settings.access_type == :public do
               "This app has no password configuration and anyone with access to the server will be able" <>
-                " to use it. You may either configure a password or enable authentication with Livebook Teams."
+                " to use it. You may either configure a password or configure an Identity Provider."
             end
           ]
       end
