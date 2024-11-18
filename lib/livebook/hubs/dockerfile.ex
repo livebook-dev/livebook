@@ -15,8 +15,7 @@ defmodule Livebook.Hubs.Dockerfile do
   @types %{
     deploy_all: :boolean,
     docker_tag: :string,
-    clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:auto, :dns]),
-    environment_variables: {:array, :tuple}
+    clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:auto, :dns])
   }
 
   @doc """
