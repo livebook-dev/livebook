@@ -174,7 +174,7 @@ defmodule Livebook.Hubs.Dockerfile do
       end
 
     environment_variables =
-      if match?([_ | _], config.environment_variables) do
+      if config.environment_variables != [] do
         envs = config.environment_variables |> Enum.sort() |> format_envs()
 
         """
