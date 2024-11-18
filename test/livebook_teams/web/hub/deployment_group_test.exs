@@ -284,4 +284,31 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
            |> Floki.text()
            |> String.trim() == "1"
   end
+
+  test "shows the environment variables count", %{conn: conn, node: node, hub: hub} do
+    %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
+    deployment_group = erpc_call(node, :get_deployment_group!, [id])
+    id = to_string(deployment_group.id)
+
+    assert_receive {:deployment_group_created, %{id: ^id, environment_variables: []}}
+
+    {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"environment variables\"]")
+           |> render()
+           |> Floki.parse_fragment!()
+           |> Floki.text()
+           |> String.trim() == "0"
+
+    erpc_call(node, :create_environment_variable, [[deployment_group: deployment_group]])
+    assert_receive {:deployment_group_updated, %{id: ^id, environment_variables: [_]}}
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"environment variables\"]")
+           |> render()
+           |> Floki.parse_fragment!()
+           |> Floki.text()
+           |> String.trim() == "1"
+  end
 end

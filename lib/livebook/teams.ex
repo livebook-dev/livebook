@@ -233,6 +233,14 @@ defmodule Livebook.Teams do
     TeamClient.get_agents(team.id)
   end
 
+  @doc """
+  Gets a list of environment variables for a given Hub.
+  """
+  @spec get_environment_variables(Team.t()) :: list(Agent.t())
+  def get_environment_variables(team) do
+    TeamClient.get_environment_variables(team.id)
+  end
+
   defp map_teams_field_to_livebook_field(map, teams_field, livebook_field) do
     if value = map[teams_field] do
       Map.put_new(map, livebook_field, value)

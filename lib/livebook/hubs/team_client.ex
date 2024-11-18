@@ -135,6 +135,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns a list of cached environment variables.
+  """
+  @spec get_environment_variables(String.t()) :: list(Teams.Agent.t())
+  def get_environment_variables(id) do
+    GenServer.call(registry_name(id), :get_environment_variables)
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -254,6 +262,11 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:get_agents, _caller, state) do
     {:reply, state.agents, state}
+  end
+
+  def handle_call(:get_environment_variables, _caller, state) do
+    environment_variables = Enum.flat_map(state.deployment_groups, & &1.environment_variables)
+    {:reply, environment_variables, state}
   end
 
   def handle_call(:identity_enabled?, _caller, %{deployment_group_id: nil} = state) do
@@ -426,6 +439,7 @@ defmodule Livebook.Hubs.TeamClient do
   defp build_deployment_group(state, %LivebookProto.DeploymentGroup{} = deployment_group) do
     secrets = Enum.map(deployment_group.secrets, &build_secret(state, &1))
     agent_keys = Enum.map(deployment_group.agent_keys, &build_agent_key/1)
+    environment_variables = build_environment_variables(state, deployment_group)
 
     %Teams.DeploymentGroup{
       id: deployment_group.id,
@@ -434,6 +448,7 @@ defmodule Livebook.Hubs.TeamClient do
       hub_id: state.hub.id,
       secrets: secrets,
       agent_keys: agent_keys,
+      environment_variables: environment_variables,
       clustering: nullify(deployment_group.clustering),
       zta_provider: atomize(deployment_group.zta_provider),
       url: nullify(deployment_group.url)
@@ -450,6 +465,7 @@ defmodule Livebook.Hubs.TeamClient do
       hub_id: state.hub.id,
       secrets: [],
       agent_keys: agent_keys,
+      environment_variables: [],
       clustering: nullify(deployment_group_created.clustering),
       zta_provider: atomize(deployment_group_created.zta_provider),
       url: nullify(deployment_group_created.url)
@@ -459,6 +475,8 @@ defmodule Livebook.Hubs.TeamClient do
   defp build_deployment_group(state, deployment_group_updated) do
     secrets = Enum.map(deployment_group_updated.secrets, &build_secret(state, &1))
     agent_keys = Enum.map(deployment_group_updated.agent_keys, &build_agent_key/1)
+    environment_variables = build_environment_variables(state, deployment_group_updated)
+
     {:ok, deployment_group} = fetch_deployment_group(deployment_group_updated.id, state)
 
     %{
@@ -466,6 +484,7 @@ defmodule Livebook.Hubs.TeamClient do
       | name: deployment_group_updated.name,
         secrets: secrets,
         agent_keys: agent_keys,
+        environment_variables: environment_variables,
         clustering: atomize(deployment_group_updated.clustering),
         zta_provider: atomize(deployment_group_updated.zta_provider),
         url: nullify(deployment_group_updated.url)
@@ -487,6 +506,17 @@ defmodule Livebook.Hubs.TeamClient do
       deployed_by: app_deployment.deployed_by,
       deployed_at: DateTime.from_gregorian_seconds(app_deployment.deployed_at)
     }
+  end
+
+  defp build_environment_variables(state, deployment_group_updated) do
+    for environment_variable <- deployment_group_updated.environment_variables do
+      %Teams.EnvironmentVariable{
+        name: environment_variable.name,
+        value: environment_variable.value,
+        hub_id: state.hub.id,
+        deployment_group_id: deployment_group_updated.id
+      }
+    end
   end
 
   defp put_agent(state, agent) do

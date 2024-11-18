@@ -61,7 +61,8 @@ defmodule Livebook.Factory do
       name: unique_value("FOO_"),
       mode: :offline,
       agent_keys: [],
-      secrets: []
+      secrets: [],
+      environment_variables: []
     }
   end
 
