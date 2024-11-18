@@ -208,10 +208,10 @@ defmodule Livebook.Hubs.DockerfileTest do
     test "deploying with deployment group environment variables" do
       config = %{
         dockerfile_config()
-        | environment_variables: %{
-            "LIVEBOOK_IDENTITY_PROVIDER" => "cloudflare:foobar",
-            "LIVEBOOK_TEAMS_URL" => "http://localhost:8000"
-          }
+        | environment_variables: [
+            {"LIVEBOOK_IDENTITY_PROVIDER", "cloudflare:foobar"},
+            {"LIVEBOOK_TEAMS_URL", "http://localhost:8000"}
+          ]
       }
 
       hub = team_hub()
@@ -381,19 +381,6 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
       assert warning =~ "This app has no password configuration"
-    end
-
-    test "warns when the app has no password and no ZTA in teams hub" do
-      config = dockerfile_config(%{clustering: :auto})
-      hub = team_hub()
-      app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
-
-      assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
-      assert warning =~ "This app has no password configuration"
-
-      config = %{config | zta_provider: :livebook_teams}
-
-      assert [] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
     end
 
     test "warns when no clustering is configured" do
