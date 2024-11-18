@@ -3,7 +3,7 @@ defmodule Livebook.Teams.DeploymentGroup do
   import Ecto.Changeset
 
   alias Livebook.Secrets.Secret
-  alias Livebook.Teams.AgentKey
+  alias Livebook.Teams.{AgentKey, EnvironmentVariable}
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
@@ -14,6 +14,7 @@ defmodule Livebook.Teams.DeploymentGroup do
           hub_id: String.t() | nil,
           secrets: Ecto.Schema.has_many(Secret.t()),
           agent_keys: Ecto.Schema.has_many(AgentKey.t()),
+          environment_variables: Ecto.Schema.has_many(EnvironmentVariable.t()),
           zta_provider:
             :basic_auth
             | :cloudflare
@@ -37,6 +38,7 @@ defmodule Livebook.Teams.DeploymentGroup do
 
     has_many :secrets, Secret
     has_many :agent_keys, AgentKey
+    has_many :environment_variables, EnvironmentVariable
   end
 
   def changeset(deployment_group, attrs \\ %{}) do

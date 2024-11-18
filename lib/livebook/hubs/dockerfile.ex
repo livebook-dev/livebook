@@ -9,14 +9,13 @@ defmodule Livebook.Hubs.Dockerfile do
           deploy_all: boolean(),
           docker_tag: String.t(),
           clustering: nil | :auto | :dns,
-          zta_provider: atom() | nil
+          environment_variables: list({String.t(), String.t()})
         }
 
   @types %{
     deploy_all: :boolean,
     docker_tag: :string,
-    clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:auto, :dns]),
-    zta_provider: :atom
+    clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:auto, :dns])
   }
 
   @doc """
@@ -30,7 +29,7 @@ defmodule Livebook.Hubs.Dockerfile do
       deploy_all: false,
       docker_tag: default_image.tag,
       clustering: nil,
-      zta_provider: nil
+      environment_variables: []
     }
   end
 
@@ -39,10 +38,14 @@ defmodule Livebook.Hubs.Dockerfile do
   """
   @spec from_deployment_group(Livebook.Teams.DeploymentGroup.t()) :: config()
   def from_deployment_group(deployment_group) do
+    environment_variables =
+      for environment_variable <- deployment_group.environment_variables,
+          do: {environment_variable.name, environment_variable.value}
+
     %{
       config_new()
       | clustering: deployment_group.clustering,
-        zta_provider: deployment_group.zta_provider
+        environment_variables: environment_variables
     }
   end
 
@@ -52,7 +55,7 @@ defmodule Livebook.Hubs.Dockerfile do
   @spec config_changeset(config(), map()) :: Ecto.Changeset.t()
   def config_changeset(config, attrs \\ %{}) do
     {config, @types}
-    |> cast(attrs, [:deploy_all, :docker_tag, :clustering, :zta_provider])
+    |> cast(attrs, [:deploy_all, :docker_tag, :clustering])
     |> validate_required([:deploy_all, :docker_tag])
   end
 
@@ -169,6 +172,16 @@ defmodule Livebook.Hubs.Dockerfile do
           nil
       end
 
+    environment_variables =
+      if config.environment_variables != [] do
+        envs = config.environment_variables |> Enum.sort() |> format_envs()
+
+        """
+        # Deployment group environment variables
+        #{envs}\
+        """
+      end
+
     [
       image,
       image_envs,
@@ -176,7 +189,8 @@ defmodule Livebook.Hubs.Dockerfile do
       apps_config,
       notebook,
       apps_warmup,
-      startup
+      startup,
+      environment_variables
     ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join("\n")
@@ -336,7 +350,9 @@ defmodule Livebook.Hubs.Dockerfile do
           []
       end
 
-    %{image: image, env: base_image.env ++ env ++ clustering_env}
+    deployment_group_env = Enum.sort(config.environment_variables)
+
+    %{image: image, env: base_image.env ++ env ++ clustering_env ++ deployment_group_env}
   end
 
   @doc """
@@ -402,9 +418,9 @@ defmodule Livebook.Hubs.Dockerfile do
 
         "team" ->
           [
-            if app_settings.access_type == :public and config.zta_provider != :livebook_teams do
+            if app_settings.access_type == :public do
               "This app has no password configuration and anyone with access to the server will be able" <>
-                " to use it. You may either configure a password or enable authentication with Livebook Teams."
+                " to use it. You may either configure a password or configure an Identity Provider."
             end
           ]
       end

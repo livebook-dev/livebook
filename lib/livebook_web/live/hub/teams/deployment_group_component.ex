@@ -51,7 +51,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             </.link>
           </div>
           <.link
-            href={Livebook.Config.teams_url() <> "/orgs/#{@hub.org_id}/deployments/groups/#{@deployment_group.id}"}
+            href={org_url(@hub, "/deployments/groups/#{@deployment_group.id}")}
             class="text-sm font-medium text-blue-600"
             target="_blank"
           >
@@ -82,10 +82,22 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
               + Add new
             </.link>
           </.labeled_text>
-          <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="Authentication">
-            <span class="text-lg font-normal">
-              <%= provider_name(@deployment_group.zta_provider) %>
+          <.labeled_text
+            class="grow mt-6 lg:border-l border-gray-200 lg:pl-4"
+            label="Environment variables"
+          >
+            <span class="text-lg font-normal" aria-label="environment variables">
+              <%= @environment_variables_count %>
             </span>
+            <.link
+              href={
+                org_url(@hub, "/deployments/groups/#{@deployment_group.id}/environment-variables")
+              }
+              target="_blank"
+              class="pl-2 text-blue-600 font-medium"
+            >
+              + Manage
+            </.link>
           </.labeled_text>
         </div>
         <!-- Additional Secrets -->
@@ -188,6 +200,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
     """
   end
 
-  defp provider_name(:livebook_teams), do: "Livebook Teams"
-  defp provider_name(_), do: "None"
+  defp org_url(hub, path) do
+    Livebook.Config.teams_url() <> "/orgs/#{hub.org_id}" <> path
+  end
 end
