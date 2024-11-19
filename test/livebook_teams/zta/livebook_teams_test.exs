@@ -1,7 +1,8 @@
 defmodule Livebook.ZTA.LivebookTeamsTest do
   # Not async, because we alter global config (teams auth)
   use Livebook.TeamsIntegrationCase, async: false
-  use Plug.Test
+
+  import Phoenix.ConnTest
 
   alias Livebook.ZTA.LivebookTeams
 
@@ -19,72 +20,51 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
     assert_receive {:agent_joined,
                     %{hub_id: ^hub_id, org_id: ^org_id, deployment_group_id: ^deployment_group_id}}
 
-    {:ok,
-     deployment_group: deployment_group, team: team, opts: [name: test, identity_key: team.id]}
+    start_supervised!({LivebookTeams, name: test, identity_key: team.id})
+    {:ok, deployment_group: deployment_group, team: team}
   end
 
   describe "authenticate/3" do
-    test "redirects the user to Livebook Teams for authentication",
-         %{conn: conn, test: test, opts: opts} do
-      start_supervised({LivebookTeams, opts})
-      conn = Plug.Test.init_test_session(conn, %{})
-
-      assert {%{status: 302, halted: true}, nil} = LivebookTeams.authenticate(test, conn, [])
-    end
-
-    test "uses proxy headers in the redirect_to URL when they're provided",
-         %{conn: conn, test: test, opts: opts} do
-      start_supervised({LivebookTeams, opts})
-
-      conn =
-        Plug.Test.init_test_session(conn, %{})
-        |> put_req_header("x-forwarded-proto", "https")
-        |> put_req_header("x-forwarded-port", "443")
-        |> then(&Map.put(&1, :host, "my-livebook.com"))
-
-      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
-
-      [location] = get_resp_header(conn, "location")
-      uri = URI.parse(location)
-      %{"redirect_to" => redirect_to} = URI.decode_query(uri.query)
-      redirect_to_uri = URI.parse(redirect_to)
-      assert "https" = redirect_to_uri.scheme
-      assert 443 = redirect_to_uri.port
-      assert "my-livebook.com" = redirect_to_uri.host
+    test "renders HTML with JavaScript redirect", %{conn: conn, test: test} do
+      conn = init_test_session(conn, %{})
+      assert {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert conn.halted
+      assert html_response(conn, 200) =~ "window.location.href = "
     end
 
     test "gets the user information from Livebook Teams",
-         %{conn: conn, node: node, test: test, opts: opts} do
-      start_supervised({LivebookTeams, opts})
-      conn = Plug.Test.init_test_session(conn, %{})
-      conn = %{conn | host: "my-livebook.com"}
+         %{conn: conn, node: node, test: test} do
+      # Step 1: Get redirected to Livebook Teams
+      conn = init_test_session(conn, %{})
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
-      [location] = get_resp_header(conn, "location")
+      [_, location] = Regex.run(~r/URL\("(.*?)"\)/, html_response(conn, 200))
       uri = URI.parse(location)
       assert uri.path == "/identity/authorize"
-
-      redirect_to = "http://my-livebook.com/?teams_identity"
-      assert %{"code" => code, "redirect_to" => ^redirect_to} = URI.decode_query(uri.query)
+      assert %{"code" => code} = URI.decode_query(uri.query)
 
       erpc_call(node, :allow_auth_request, [code])
 
+      # Step 2: Emulate the redirect back with the code for validation
       conn =
-        conn(:get, "/", %{teams_identity: "", code: code})
-        |> Plug.Test.init_test_session(%{})
+        build_conn(:get, "/", %{teams_identity: "", code: code})
+        |> init_test_session(%{})
 
       assert {conn, %{id: _id, name: _, email: _, payload: %{"access_token" => _}} = metadata} =
                LivebookTeams.authenticate(test, conn, [])
 
-      assert conn.status == 302
-      assert get_resp_header(conn, "location") == ["/"]
+      assert redirected_to(conn, 302) == "/"
 
-      conn = Plug.Test.init_test_session(conn(:get, "/"), %{identity_data: metadata})
+      # Step 3: Confirm the token/metadata is valid for future requests
+      conn =
+        build_conn(:get, "/")
+        |> init_test_session(%{identity_data: metadata})
+
       assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
     end
 
     test "redirects to Livebook Teams with invalid access token",
-         %{conn: conn, test: test, opts: opts} do
+         %{conn: conn, test: test} do
       identity_data = %{
         id: "11",
         name: "Ada Lovelace",
@@ -92,10 +72,10 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         email: "user95387220@example.com"
       }
 
-      start_supervised({LivebookTeams, opts})
-      conn = Plug.Test.init_test_session(conn, %{identity_data: identity_data})
-
-      assert {%{status: 302}, nil} = LivebookTeams.authenticate(test, conn, [])
+      conn = init_test_session(conn, %{identity_data: identity_data})
+      assert {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert conn.halted
+      assert html_response(conn, 200) =~ "window.location.href = "
     end
   end
 end
