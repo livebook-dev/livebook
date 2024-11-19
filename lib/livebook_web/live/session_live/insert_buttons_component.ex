@@ -25,7 +25,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       <div class={
         "w-full md:absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
       }>
-        <.menu id={"cell-#{@id}-insert"} position={:bottom_left} distant>
+        <.menu id={"cell-#{@id}-insert"} position="bottom-left" distant>
           <:toggle>
             <.insert_button>
               <div
@@ -69,7 +69,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
             </button>
           </.menu_item>
         </.menu>
-        <.menu id={"#{@id}-block-menu"} position={:bottom_left}>
+        <.menu id={"#{@id}-block-menu"} position="bottom-left">
           <:toggle>
             <.insert_button>+ Block</.insert_button>
           </:toggle>
@@ -161,7 +161,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <.insert_button disabled>+ Smart</.insert_button>
             </span>
           <% true -> %>
-            <.menu id={"#{@id}-smart-menu"} position={:bottom_left}>
+            <.menu id={"#{@id}-smart-menu"} position="bottom-left">
               <:toggle>
                 <.insert_button>+ Smart</.insert_button>
               </:toggle>

@@ -62,7 +62,7 @@ defmodule LivebookWeb.UserComponents do
 
   def current_user_modal(assigns) do
     ~H"""
-    <.modal id="user-modal" width={:small}>
+    <.modal id="user-modal" width="small">
       <.live_component
         module={LivebookWeb.UserComponent}
         id="user"

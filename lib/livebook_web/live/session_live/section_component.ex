@@ -57,7 +57,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <.branching_menu
             section_view={@section_view}
             scope="actions"
-            position={:bottom_right}
+            position="bottom-right"
             disabled={cannot_branch_out_reason(@section_view) != nil}
           >
             <span
@@ -126,7 +126,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             class="text-lg font-normal flip-horizontally leading-none"
           />
         </div>
-        <.branching_menu section_view={@section_view} scope="subheading" position={:bottom_left}>
+        <.branching_menu section_view={@section_view} scope="subheading" position="bottom-left">
           <div class="text-sm leading-none cursor-pointer">
             from ”<%= @section_view.parent.name %>”
           </div>
@@ -186,7 +186,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
 
   attr :section_view, :map, required: true
   attr :scope, :string, required: true
-  attr :position, :atom, required: true
+  attr :position, :string, required: true
   attr :disabled, :boolean, default: false
 
   slot :inner_block, required: true

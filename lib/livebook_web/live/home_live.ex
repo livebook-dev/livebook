@@ -144,7 +144,7 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </LayoutComponents.layout>
 
-    <.modal :if={@live_action == :import} id="import-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :import} id="import-modal" show width="big" patch={@self_path}>
       <.live_component
         module={LivebookWeb.HomeLive.ImportComponent}
         id="import"
@@ -197,7 +197,7 @@ defmodule LivebookWeb.HomeLive do
 
   defp memory_notification(assigns) do
     ~H"""
-    <LayoutComponents.topbar :if={@app_service_url && @memory.free < 30_000_000} variant={:error}>
+    <LayoutComponents.topbar :if={@app_service_url && @memory.free < 30_000_000} variant="error">
       <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
       Less than 30 MB of memory left, consider
       <a

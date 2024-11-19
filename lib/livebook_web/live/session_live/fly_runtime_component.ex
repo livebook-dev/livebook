@@ -98,7 +98,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           phx-target={@myself}
         >
           <.password_field name="token" value={@token} label="Token" />
-          <.message_box :if={@token == nil} kind={:info}>
+          <.message_box :if={@token == nil} kind="info">
             Go to <a
               class="text-blue-600 hover:text-blue-700"
               href="https://fly.io/dashboard"
@@ -113,7 +113,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           <.loader :if={@token_check.status == :inflight} />
           <.message_box
             :if={error = @token_check.error}
-            kind={:error}
+            kind="error"
             message={"Error: " <> error.message}
           />
         </form>
@@ -167,7 +167,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
               class="mt-4 scroll-mb-8"
               phx-mounted={JS.dispatch("lb:scroll_into_view", detail: %{behavior: "instant"})}
             >
-              <.message_box kind={:info}>
+              <.message_box kind="info">
                 <div class="flex items-center gap-2">
                   <.spinner />
                   <span>Step: <%= @runtime_connect_info %></span>
@@ -215,7 +215,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
       </div>
       <.message_box
         :if={@app_name == nil}
-        kind={:info}
+        kind="info"
         message="Specify the app where machines should be created."
       />
       <.loader :if={@app_check.status == :inflight} />
@@ -231,7 +231,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
 
   defp app_check_error(%{error: %{status: 404}} = assigns) do
     ~H"""
-    <.message_box kind={:info}>
+    <.message_box kind="info">
       <div class="flex items-center justify-between">
         <div>
           App <span class="font-semibold"><%= @app_name %></span> does not exist yet.
@@ -247,7 +247,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
   defp app_check_error(%{error: %{status: 403}} = assigns) do
     ~H"""
     <.message_box
-      kind={:error}
+      kind="error"
       message={
         "This app name is already taken, pick a different name." <>
           " If this is an app you own, enter a token for the corresponding organization."
@@ -258,7 +258,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
 
   defp app_check_error(assigns) do
     ~H"""
-    <.message_box kind={:error} message={"Error: " <> @error.message} />
+    <.message_box kind="error" message={"Error: " <> @error.message} />
     """
   end
 
@@ -433,7 +433,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           </.button>
         </.form>
         <div :if={@volume_action[:status] == :error}>
-          <.message_box kind={:error} message={"Error: " <> @volume_action.error.message} />
+          <.message_box kind="error" message={"Error: " <> @volume_action.error.message} />
         </div>
       </div>
     </div>

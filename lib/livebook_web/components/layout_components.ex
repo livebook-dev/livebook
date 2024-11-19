@@ -298,7 +298,7 @@ defmodule LivebookWeb.LayoutComponents do
   @doc """
   Topbar for showing pinned, page-specific messages.
   """
-  attr :variant, :atom, default: :info, values: [:warning, :info, :error]
+  attr :variant, :string, default: "info", values: ~w(warning info error)
   slot :inner_block, required: true
 
   def topbar(assigns) do
@@ -309,9 +309,9 @@ defmodule LivebookWeb.LayoutComponents do
     """
   end
 
-  defp topbar_class(:warning), do: "bg-yellow-200 text-gray-900"
-  defp topbar_class(:info), do: "bg-blue-200 text-gray-900"
-  defp topbar_class(:error), do: "bg-red-200 text-gray-900"
+  defp topbar_class("warning"), do: "bg-yellow-200 text-gray-900"
+  defp topbar_class("info"), do: "bg-blue-200 text-gray-900"
+  defp topbar_class("error"), do: "bg-red-200 text-gray-900"
 
   @doc """
   Returns an inline script to inject in dev mode.

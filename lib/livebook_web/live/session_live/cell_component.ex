@@ -342,13 +342,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <span class="text-sm font-medium">Evaluate</span>
         <% end %>
       </button>
-      <.menu id={"cell-#{@cell_id}-evaluation-menu"} position={:bottom_left} distant>
+      <.menu id={"cell-#{@cell_id}-evaluation-menu"} position="bottom-left" distant>
         <:toggle>
           <button class="flex text-gray-600 hover:text-gray-800">
             <.remix_icon icon="arrow-down-s-line" class="text-xl" />
           </button>
         </:toggle>
-        <.menu_item variant={if(not @reevaluate_automatically, do: :selected, else: :default)}>
+        <.menu_item variant={if(not @reevaluate_automatically, do: "selected", else: "default")}>
           <button
             role="menuitem"
             phx-click={
@@ -359,7 +359,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <span>Evaluate on demand</span>
           </button>
         </.menu_item>
-        <.menu_item variant={if(@reevaluate_automatically, do: :selected, else: :default)}>
+        <.menu_item variant={if(@reevaluate_automatically, do: "selected", else: "default")}>
           <button
             role="menuitem"
             phx-click={
@@ -407,7 +407,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <% end %>
       </button>
       <%= unless Livebook.Runtime.fixed_dependencies?(@runtime) do %>
-        <.menu id="setup-menu" position={:bottom_left} distant>
+        <.menu id="setup-menu" position="bottom-left" distant>
           <:toggle>
             <button class="flex text-gray-600 hover:text-gray-800">
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
@@ -703,15 +703,15 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ]
   end
 
-  defp cell_language(%{language: language}), do: language
-  defp cell_language(%{type: :smart}), do: :elixir
+  defp cell_language(%{language: language}), do: Atom.to_string(language)
+  defp cell_language(%{type: :smart}), do: "elixir"
 
   defp has_status?(%{eval: %{status: :ready, validity: :fresh}}), do: false
   defp has_status?(_cell_view), do: true
 
   defp cell_status(%{cell_view: %{eval: %{status: :evaluating}}} = assigns) do
     ~H"""
-    <.cell_status_indicator variant={:progressing} change_indicator={true}>
+    <.cell_status_indicator variant="progressing" change_indicator={true}>
       <span
         class="font-mono"
         id={"#{@id}-cell-timer"}
@@ -726,7 +726,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{eval: %{status: :queued}}} = assigns) do
     ~H"""
-    <.cell_status_indicator variant={:waiting}>
+    <.cell_status_indicator variant="waiting">
       Queued
     </.cell_status_indicator>
     """
@@ -735,7 +735,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{eval: %{validity: :evaluated}}} = assigns) do
     ~H"""
     <.cell_status_indicator
-      variant={if(@cell_view.eval.errored, do: :error, else: :success)}
+      variant={if(@cell_view.eval.errored, do: "error", else: "success")}
       change_indicator={true}
       tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
     >
@@ -747,7 +747,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{eval: %{validity: :stale}}} = assigns) do
     ~H"""
     <.cell_status_indicator
-      variant={:warning}
+      variant="warning"
       change_indicator={true}
       tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
     >
@@ -759,7 +759,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{eval: %{validity: :aborted}}} = assigns) do
     ~H"""
     <.cell_status_indicator
-      variant={:inactive}
+      variant="inactive"
       tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
     >
       Aborted
@@ -769,7 +769,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(assigns), do: ~H""
 
-  attr :variant, :atom, required: true
+  attr :variant, :string, required: true
   attr :tooltip, :string, default: nil
   attr :change_indicator, :boolean, default: false
 

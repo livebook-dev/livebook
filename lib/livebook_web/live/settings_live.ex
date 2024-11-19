@@ -194,7 +194,7 @@ defmodule LivebookWeb.SettingsLive do
       :if={@live_action in [:add_env_var, :edit_env_var]}
       id="env-var-modal"
       show
-      width={:medium}
+      width="medium"
       patch={~p"/settings"}
     >
       <.live_component
