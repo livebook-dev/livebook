@@ -103,6 +103,11 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp request_user_authentication(conn, team) do
     case Teams.Requests.create_auth_request(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
+        # We have the browser do the redirect because the browser
+        # knows the current page location. Unfortunately, it is quite
+        # complex to know the actual host on the server, because the
+        # user may be running inside a proxy. So in order to make the
+        # feature more accessible, we do the redirecting on the client.
         conn =
           html(conn, """
           <!DOCTYPE html>
