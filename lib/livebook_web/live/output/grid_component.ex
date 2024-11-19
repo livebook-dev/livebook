@@ -70,7 +70,7 @@ defmodule LivebookWeb.Output.GridComponent do
   defp columns_style(_columns), do: nil
 
   defp gap_style(gap) when is_integer(gap) do
-    "#{gap}px"
+    "gap: #{gap}px"
   end
 
   defp gap_style(_other), do: nil
