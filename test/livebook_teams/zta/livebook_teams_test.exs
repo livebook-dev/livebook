@@ -2,8 +2,6 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
   # Not async, because we alter global config (teams auth)
   use Livebook.TeamsIntegrationCase, async: false
 
-  import Phoenix.ConnTest
-
   alias Livebook.ZTA.LivebookTeams
 
   setup %{test: test, node: node} do
