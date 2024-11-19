@@ -103,14 +103,31 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp request_user_authentication(conn, team) do
     case Teams.Requests.create_auth_request(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
-        current_url = LivebookWeb.Endpoint.url() <> conn.request_path <> "?teams_identity"
+        # We have the browser do the redirect because the browser
+        # knows the current page location. Unfortunately, it is quite
+        # complex to know the actual host on the server, because the
+        # user may be running inside a proxy. So in order to make the
+        # feature more accessible, we do the redirecting on the client.
+        conn =
+          html(conn, """
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <title>Redirecting...</title>
+              <script>
+                const redirectTo = new URL(window.location.href);
+                redirectTo.searchParams.append("teams_identity", "");
 
-        url =
-          URI.parse(authorize_uri)
-          |> URI.append_query("redirect_to=#{URI.encode_www_form(current_url)}")
-          |> URI.to_string()
+                const url = new URL("#{authorize_uri}");
+                url.searchParams.set("redirect_to", redirectTo.toString());
+                window.location.href = url.toString();
+              </script>
+            </head>
+          </html>
+          """)
 
-        {conn |> redirect(external: url) |> halt(), nil}
+        {halt(conn), nil}
 
       _ ->
         {conn
