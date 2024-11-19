@@ -92,6 +92,47 @@ defmodule Livebook.Hubs.Dockerfile do
     used_secrets = used_hub_secrets(config, hub_secrets, secrets) |> Enum.sort_by(& &1.name)
     hub_config = format_hub_config(hub_type, config, hub, hub_file_systems, used_secrets)
 
+    environment_variables =
+      if config.environment_variables != [] do
+        envs = config.environment_variables |> Enum.sort() |> format_envs()
+
+        """
+        # Deployment group environment variables
+        #{envs}\
+        """
+      end
+
+    secret_key =
+      case hub_type do
+        "team" -> hub.teams_key
+        "personal" -> hub.secret_key
+      end
+
+    {secret_key_base, cookie} = deterministic_skb_and_cookie(secret_key)
+
+    clustering_config =
+      case to_string(config.clustering) do
+        "auto" ->
+          """
+          # Clustering configuration (note that we need the same Livebook secrets across all nodes)
+          ENV LIVEBOOK_CLUSTER "auto"
+          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
+          ENV LIVEBOOK_COOKIE "#{cookie}"
+          """
+
+        "dns" ->
+          """
+          # Clustering configuration (note that we need the same Livebook secrets across all nodes)
+          ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"
+          ENV LIVEBOOK_CLUSTER "dns:QUERY"
+          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
+          ENV LIVEBOOK_COOKIE "#{cookie}"
+          """
+
+        _ ->
+          nil
+      end
+
     apps_config = """
     # Apps configuration
     ENV LIVEBOOK_APPS_PATH "/apps"
@@ -137,60 +178,15 @@ defmodule Livebook.Hubs.Dockerfile do
     RUN /app/bin/warmup_apps
     """
 
-    secret_key =
-      case hub_type do
-        "team" -> hub.teams_key
-        "personal" -> hub.secret_key
-      end
-
-    {secret_key_base, cookie} = deterministic_skb_and_cookie(secret_key)
-
-    startup =
-      case to_string(config.clustering) do
-        "auto" ->
-          """
-          # --- Clustering ---
-
-          # Set the same Livebook secrets across all nodes
-          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
-          ENV LIVEBOOK_COOKIE "#{cookie}"
-          ENV LIVEBOOK_CLUSTER "auto"
-          """
-
-        "dns" ->
-          """
-          # --- Clustering ---
-
-          # Set the same Livebook secrets across all nodes
-          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
-          ENV LIVEBOOK_COOKIE "#{cookie}"
-          ENV LIVEBOOK_CLUSTER "dns:QUERY"
-          ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"
-          """
-
-        _ ->
-          nil
-      end
-
-    environment_variables =
-      if config.environment_variables != [] do
-        envs = config.environment_variables |> Enum.sort() |> format_envs()
-
-        """
-        # Deployment group environment variables
-        #{envs}\
-        """
-      end
-
     [
       image,
       image_envs,
       hub_config,
+      environment_variables,
+      clustering_config,
       apps_config,
       notebook,
-      apps_warmup,
-      startup,
-      environment_variables
+      apps_warmup
     ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join("\n")
@@ -352,7 +348,7 @@ defmodule Livebook.Hubs.Dockerfile do
 
     deployment_group_env = Enum.sort(config.environment_variables)
 
-    %{image: image, env: base_image.env ++ env ++ clustering_env ++ deployment_group_env}
+    %{image: image, env: base_image.env ++ env ++ deployment_group_env ++ clustering_env}
   end
 
   @doc """
