@@ -21,6 +21,12 @@ function buildEditorTheme(colors, { dark }) {
         borderRadius: "8px",
         fontSize: "14px",
         fontFamily: fonts.mono,
+
+        // A workaround for a strange contenteditable behaviour in
+        // Chrome and Safari, where clicking on the right side of the
+        // editor results in focus. See https://discuss.codemirror.net/t/editor-focus-happens-when-clicking-outside-the-editor/7544/3
+        display: "inline-flex !important",
+        width: "100%",
       },
 
       "&.cm-focused": {
