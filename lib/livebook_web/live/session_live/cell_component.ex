@@ -100,9 +100,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         />
       </:primary>
       <:secondary>
-        <div :if={@cell_view.language == :erlang} class="grayscale">
-          <.cell_icon cell_type={:code} language={:erlang} />
-        </div>
         <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
         <.amplify_output_button />
         <.cell_link_button cell_id={@cell_view.id} />
@@ -121,7 +118,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           intellisense
         />
         <div class="absolute bottom-2 right-2">
-          <.cell_status id={@cell_view.id} cell_view={@cell_view} />
+          <.cell_indicators id={@cell_view.id} variant="editor" cell_view={@cell_view} />
         </div>
       </div>
       <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
@@ -155,9 +152,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     </.cell_actions>
     <.cell_body>
       <div data-el-info-box>
-        <div class="p-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 font-medium rounded-lg">
-          <span>Notebook dependencies and setup</span>
-          <.cell_status id={"#{@cell_view.id}-1"} cell_view={@cell_view} />
+        <div class="p-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 rounded-lg">
+          <span class="font-medium">Notebook dependencies and setup</span>
+          <.cell_indicators id={"#{@cell_view.id}-1"} variant="default" cell_view={@cell_view} />
         </div>
       </div>
       <div data-el-editor-box>
@@ -170,7 +167,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             intellisense
           />
           <div class="absolute bottom-2 right-2">
-            <.cell_status id={"#{@cell_view.id}-2"} cell_view={@cell_view} />
+            <.cell_indicators id={"#{@cell_view.id}-2"} variant="editor" cell_view={@cell_view} />
           </div>
         </div>
         <.evaluation_outputs
@@ -258,9 +255,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
               <.content_skeleton empty={false} />
             </div>
         <% end %>
-        <div class="flex flex-col items-end space-y-2">
+        <div class="flex flex-col items-end space-y-2 text-gray-400">
           <div></div>
-          <.cell_status id={"#{@cell_view.id}-1"} cell_view={@cell_view} />
+          <.cell_indicators id={"#{@cell_view.id}-1"} variant="default" cell_view={@cell_view} />
         </div>
       </div>
       <div data-el-editor-box>
@@ -274,7 +271,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             read_only
           />
           <div class="absolute bottom-2 right-2">
-            <.cell_status id={"#{@cell_view.id}-2"} cell_view={@cell_view} />
+            <.cell_indicators id={"#{@cell_view.id}-2"} variant="editor" cell_view={@cell_view} />
           </div>
         </div>
       </div>
@@ -683,6 +680,35 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  defp cell_indicators(assigns) do
+    ~H"""
+    <div class="flex gap-1">
+      <div :if={has_status?(@cell_view)} class={cell_indicator_container_class(@variant)}>
+        <.cell_status id={@id} cell_view={@cell_view} />
+      </div>
+      <div class={cell_indicator_container_class(@variant)}>
+        <.language_icon language={cell_language(@cell_view)} class="w-3 h-3" />
+      </div>
+    </div>
+    """
+  end
+
+  defp cell_indicator_container_class(variant) do
+    [
+      "px-1.5 h-[22px] rounded-lg flex items-center",
+      case variant do
+        "default" -> "bg-gray-50 border border-gray-200 text-gray-500 px-1.5 h-[22px]"
+        "editor" -> "bg-editor-lighter border border-editor text-editor px-1.5 h-[22px]"
+      end
+    ]
+  end
+
+  defp cell_language(%{language: language}), do: language
+  defp cell_language(%{type: :smart}), do: :elixir
+
+  defp has_status?(%{eval: %{status: :ready, validity: :fresh}}), do: false
+  defp has_status?(_cell_view), do: true
+
   defp cell_status(%{cell_view: %{eval: %{status: :evaluating}}} = assigns) do
     ~H"""
     <.cell_status_indicator variant={:progressing} change_indicator={true}>
@@ -753,7 +779,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class={[@tooltip && "tooltip", "bottom distant-medium"]} data-tooltip={@tooltip}>
       <div class="flex items-center space-x-1">
-        <div class="flex text-xs text-gray-400" data-el-cell-status>
+        <div class="flex text-[11px]" data-el-cell-status>
           <%= render_slot(@inner_block) %>
           <span :if={@change_indicator} data-el-change-indicator>*</span>
         </div>
