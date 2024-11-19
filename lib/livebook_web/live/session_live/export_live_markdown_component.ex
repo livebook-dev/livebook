@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
       </div>
       <.message_box
         :if={@include_outputs and @any_stale_cell?}
-        kind={:warning}
+        kind="warning"
         message="There are stale cells, some outputs may be inaccurate. You may want to reevaluate the notebook to make sure the outputs are up to date."
       />
       <div class="flex flex-col space-y-1">

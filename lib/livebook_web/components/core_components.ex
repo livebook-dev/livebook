@@ -28,13 +28,13 @@ defmodule LivebookWeb.CoreComponents do
 
   ## Examples
 
-      <.flash kind={:info} flash={@flash} />
+      <.flash kind="info" flash={@flash} />
 
   """
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
 
-  attr :kind, :atom,
-    values: [:info, :success, :warning, :error],
+  attr :kind, :string,
+    values: ~w(info success warning error),
     doc: "used for styling and flash lookup"
 
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
@@ -54,14 +54,14 @@ defmodule LivebookWeb.CoreComponents do
       >
         <.remix_icon icon="close-line" />
       </div>
-      <.remix_icon :if={@kind == :info} icon="information-fill" class="text-xl text-blue-500" />
+      <.remix_icon :if={@kind == "info"} icon="information-fill" class="text-xl text-blue-500" />
       <.remix_icon
-        :if={@kind == :success}
+        :if={@kind == "success"}
         icon="checkbox-circle-fill"
         class="text-xl text-green-bright-400"
       />
-      <.remix_icon :if={@kind == :warning} icon="alert-fill" class="text-xl text-yellow-500" />
-      <.remix_icon :if={@kind == :error} icon="error-warning-fill" class="text-xl text-red-500" />
+      <.remix_icon :if={@kind == "warning"} icon="alert-fill" class="text-xl text-yellow-500" />
+      <.remix_icon :if={@kind == "error"} icon="error-warning-fill" class="text-xl text-red-500" />
       <span class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format><%= message %></span>
     </div>
     """
@@ -80,10 +80,10 @@ defmodule LivebookWeb.CoreComponents do
   def flash_group(assigns) do
     ~H"""
     <div class="fixed right-8 top-5 z-[1000] flex flex-col space-y-3">
-      <.flash kind={:info} flash={@flash} />
-      <.flash kind={:success} flash={@flash} />
-      <.flash kind={:warning} flash={@flash} />
-      <.flash kind={:error} flash={@flash} />
+      <.flash kind="info" flash={@flash} />
+      <.flash kind="success" flash={@flash} />
+      <.flash kind="warning" flash={@flash} />
+      <.flash kind="error" flash={@flash} />
     </div>
     """
   end
@@ -95,16 +95,16 @@ defmodule LivebookWeb.CoreComponents do
 
   ## Examples
 
-      <.message_box kind={:info} message="🦊 in a 📦" />
+      <.message_box kind="info" message="🦊 in a 📦" />
 
-      <.message_box kind={:info}>
+      <.message_box kind="info">
         <span>🦊</span> in a <span>📦</span>
       </.message_box>
 
   """
 
   attr :message, :string, default: nil
-  attr :kind, :atom, values: [:info, :success, :warning, :error]
+  attr :kind, :string, values: ~w(info success warning error)
 
   slot :inner_block
 
@@ -116,10 +116,10 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div class={[
       "shadow text-sm rounded-lg px-4 py-2 border-l-4 rounded-l-none bg-white text-gray-700",
-      @kind == :info && "border-blue-500",
-      @kind == :success && "border-green-bright-400",
-      @kind == :warning && "border-yellow-300",
-      @kind == :error && "border-red-500"
+      @kind == "info" && "border-blue-500",
+      @kind == "success" && "border-green-bright-400",
+      @kind == "warning" && "border-yellow-300",
+      @kind == "error" && "border-red-500"
     ]}>
       <div
         :if={@message}
@@ -170,7 +170,7 @@ defmodule LivebookWeb.CoreComponents do
   attr :patch, :string, default: nil
   attr :navigate, :string, default: nil
   attr :class, :string, default: nil
-  attr :width, :atom, values: [:small, :medium, :big, :large], required: true
+  attr :width, :string, values: ~w(small medium big large), required: true
   attr :rest, :global
 
   slot :inner_block, required: true
@@ -220,10 +220,10 @@ defmodule LivebookWeb.CoreComponents do
     """
   end
 
-  defp modal_width_class(:small), do: "max-w-sm"
-  defp modal_width_class(:medium), do: "max-w-xl"
-  defp modal_width_class(:big), do: "max-w-4xl"
-  defp modal_width_class(:large), do: "max-w-6xl"
+  defp modal_width_class("small"), do: "max-w-sm"
+  defp modal_width_class("medium"), do: "max-w-xl"
+  defp modal_width_class("big"), do: "max-w-4xl"
+  defp modal_width_class("large"), do: "max-w-6xl"
 
   defp modal_on_cancel(nil, nil), do: JS.exec("phx-remove")
   defp modal_on_cancel(nil, navigate), do: JS.patch(navigate)
@@ -275,17 +275,17 @@ defmodule LivebookWeb.CoreComponents do
   attr :id, :string, required: true
   attr :disabled, :boolean, default: false, doc: "whether the menu is active"
 
-  attr :position, :atom,
-    default: :bottom_right,
-    values: [:top_left, :top_right, :bottom_left, :bottom_right]
+  attr :position, :string,
+    default: "bottom-right",
+    values: ~w(top-left top-right bottom-left bottom-right)
 
-  attr :sm_position, :atom,
+  attr :sm_position, :string,
     default: nil,
-    values: [nil, :top_left, :top_right, :bottom_left, :bottom_right]
+    values: [nil, "top-left", "top-right", "bottom-left", "bottom-right"]
 
-  attr :md_position, :atom,
+  attr :md_position, :string,
     default: nil,
-    values: [nil, :top_left, :top_right, :bottom_left, :bottom_right]
+    values: [nil, "top-left", "top-right", "bottom-left", "bottom-right"]
 
   attr :distant, :boolean,
     default: false,
@@ -370,45 +370,47 @@ defmodule LivebookWeb.CoreComponents do
     |> JS.remove_class("animate-shake", to: "##{id}-content-inner")
   end
 
-  defp menu_position_class(:top_left), do: "top-0 left-0 transform -translate-y-full -mt-1"
-  defp menu_position_class(:top_right), do: "top-0 right-0 transform -translate-y-full -mt-1"
-  defp menu_position_class(:bottom_left), do: "bottom-0 left-0 transform translate-y-full -mb-1"
-  defp menu_position_class(:bottom_right), do: "bottom-0 right-0 transform translate-y-full -mb-1"
+  defp menu_position_class("top-left"), do: "top-0 left-0 transform -translate-y-full -mt-1"
+  defp menu_position_class("top-right"), do: "top-0 right-0 transform -translate-y-full -mt-1"
+  defp menu_position_class("bottom-left"), do: "bottom-0 left-0 transform translate-y-full -mb-1"
 
-  defp menu_md_position_class(:top_left) do
+  defp menu_position_class("bottom-right"),
+    do: "bottom-0 right-0 transform translate-y-full -mb-1"
+
+  defp menu_md_position_class("top-left") do
     "md:top-0 md:left-0 md:bottom-auto md:right-auto md:transform md:-translate-y-full md:-mt-1 md:mb-0"
   end
 
-  defp menu_md_position_class(:top_right) do
+  defp menu_md_position_class("top-right") do
     "md:top-0 md:right-0 md:bottom-auto md:left-auto md:transform md:-translate-y-full md:-mt-1 md:mb-0"
   end
 
-  defp menu_md_position_class(:bottom_left) do
+  defp menu_md_position_class("bottom-left") do
     "md:bottom-0 md:left-0 md:top-auto md:right-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
   end
 
-  defp menu_md_position_class(:bottom_right) do
+  defp menu_md_position_class("bottom-right") do
     "md:bottom-0 md:right-0 md:top-auto md:left-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
   end
 
-  defp menu_sm_position_class(:top_left) do
+  defp menu_sm_position_class("top-left") do
     "sm:top-0 sm:left-0 sm:bottom-auto sm:right-auto sm:transform sm:-translate-y-full sm:-mt-1 sm:mb-0"
   end
 
-  defp menu_sm_position_class(:top_right) do
+  defp menu_sm_position_class("top-right") do
     "sm:top-0 sm:right-0 sm:bottom-auto sm:left-auto sm:transform sm:-translate-y-full sm:-mt-1 sm:mb-0"
   end
 
-  defp menu_sm_position_class(:bottom_left) do
+  defp menu_sm_position_class("bottom-left") do
     "sm:bottom-0 sm:left-0 sm:top-auto sm:right-auto sm:transform sm:translate-y-full sm:-mb-1 sm:mt-0"
   end
 
-  defp menu_sm_position_class(:bottom_right) do
+  defp menu_sm_position_class("bottom-right") do
     "sm:bottom-0 sm:right-0 sm:top-auto sm:left-auto sm:transform sm:translate-y-full sm:-mb-1 sm:mt-0"
   end
 
-  defp menu_distant_class(position) when position in [:top_left, :top_right], do: "-mt-2"
-  defp menu_distant_class(position) when position in [:bottom_left, :bottom_right], do: "-mb-2"
+  defp menu_distant_class(position) when position in ["top-left", "top-right"], do: "-mt-2"
+  defp menu_distant_class(position) when position in ["bottom-left", "bottom-right"], do: "-mb-2"
 
   @doc """
   Wraps a menu item that shows a submenu on hover.
@@ -447,7 +449,7 @@ defmodule LivebookWeb.CoreComponents do
   Renders a menu item used in `menu/1` and `submenu/1`.
   """
   attr :disabled, :boolean, default: false
-  attr :variant, :atom, default: :default, values: [:default, :selected, :danger]
+  attr :variant, :string, default: "default", values: ~w(default selected danger)
 
   slot :inner_block, required: true
 
@@ -464,9 +466,9 @@ defmodule LivebookWeb.CoreComponents do
     """
   end
 
-  defp menu_item_class(:default), do: "text-gray-500"
-  defp menu_item_class(:selected), do: "text-gray-900"
-  defp menu_item_class(:danger), do: "text-red-600"
+  defp menu_item_class("default"), do: "text-gray-500"
+  defp menu_item_class("selected"), do: "text-gray-900"
+  defp menu_item_class("danger"), do: "text-red-600"
 
   @doc """
   Renders a text content skeleton.
@@ -635,9 +637,9 @@ defmodule LivebookWeb.CoreComponents do
   @doc """
   Renders an status indicator circle.
   """
-  attr :variant, :atom,
+  attr :variant, :string,
     required: true,
-    values: [:success, :warning, :error, :inactive, :waiting, :progressing]
+    values: ~w(success warning error inactive waiting progressing)
 
   def status_indicator(assigns) do
     ~H"""
@@ -663,15 +665,15 @@ defmodule LivebookWeb.CoreComponents do
   """
   def status_circle_class(variant)
 
-  def status_circle_class(:success), do: "bg-green-bright-400"
-  def status_circle_class(:warning), do: "bg-yellow-bright-200"
-  def status_circle_class(:error), do: "bg-red-400"
-  def status_circle_class(:inactive), do: "bg-gray-500"
-  def status_circle_class(:waiting), do: "bg-gray-400"
-  def status_circle_class(:progressing), do: "bg-blue-500"
+  def status_circle_class("success"), do: "bg-green-bright-400"
+  def status_circle_class("warning"), do: "bg-yellow-bright-200"
+  def status_circle_class("error"), do: "bg-red-400"
+  def status_circle_class("inactive"), do: "bg-gray-500"
+  def status_circle_class("waiting"), do: "bg-gray-400"
+  def status_circle_class("progressing"), do: "bg-blue-500"
 
-  defp animated_status_circle_class(:waiting), do: "bg-gray-300"
-  defp animated_status_circle_class(:progressing), do: "bg-blue-400"
+  defp animated_status_circle_class("waiting"), do: "bg-gray-300"
+  defp animated_status_circle_class("progressing"), do: "bg-blue-400"
   defp animated_status_circle_class(_other), do: nil
 
   @doc """

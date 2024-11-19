@@ -36,7 +36,7 @@ defmodule LivebookWeb.Hub.NewLive do
   def render(assigns) do
     ~H"""
     <LayoutComponents.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
-      <LayoutComponents.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant={:warning}>
+      <LayoutComponents.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant="warning">
         <strong>Beware!</strong>
         You are running Livebook in development but this page communicates with production servers.
       </LayoutComponents.topbar>

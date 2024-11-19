@@ -20,37 +20,37 @@ defmodule LivebookWeb.AppComponents do
 
   def app_status(%{status: %{lifecycle: :shutting_down}} = assigns) do
     ~H"""
-    <.app_status_indicator text={@show_label && "Shutting down"} variant={:inactive} />
+    <.app_status_indicator text={@show_label && "Shutting down"} variant="inactive" />
     """
   end
 
   def app_status(%{status: %{lifecycle: :deactivated}} = assigns) do
     ~H"""
-    <.app_status_indicator text={@show_label && "Deactivated"} variant={:inactive} />
+    <.app_status_indicator text={@show_label && "Deactivated"} variant="inactive" />
     """
   end
 
   def app_status(%{status: %{execution: :executing}} = assigns) do
     ~H"""
-    <.app_status_indicator text={@show_label && "Executing"} variant={:progressing} />
+    <.app_status_indicator text={@show_label && "Executing"} variant="progressing" />
     """
   end
 
   def app_status(%{status: %{execution: :executed}} = assigns) do
     ~H"""
-    <.app_status_indicator text={@show_label && "Executed"} variant={:success} />
+    <.app_status_indicator text={@show_label && "Executed"} variant="success" />
     """
   end
 
   def app_status(%{status: %{execution: :error}} = assigns) do
     ~H"""
-    <.app_status_indicator text={@show_label && "Error"} variant={:error} />
+    <.app_status_indicator text={@show_label && "Error"} variant="error" />
     """
   end
 
   def app_status(%{status: %{execution: :interrupted}} = assigns) do
     ~H"""
-    <.app_status_indicator text={@show_label && "Interrupted"} variant={:waiting} />
+    <.app_status_indicator text={@show_label && "Interrupted"} variant="waiting" />
     """
   end
 

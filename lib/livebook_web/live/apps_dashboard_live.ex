@@ -74,7 +74,7 @@ defmodule LivebookWeb.AppsDashboardLive do
         </a>
         <div data-toggle>
           <div :if={app.warnings != []} class="my-3 flex flex-col gap-3">
-            <.message_box :for={warning <- app.warnings} kind={:warning} message={warning} />
+            <.message_box :for={warning <- app.warnings} kind="warning" message={warning} />
           </div>
           <div class="flex-col mb-8">
             <div class="p-4 border-x border-t border-gray-200 rounded-t-lg ">

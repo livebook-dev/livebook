@@ -59,7 +59,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <LayoutComponents.topbar :if={Provider.connection_status(@hub)} variant={:warning}>
+      <LayoutComponents.topbar :if={Provider.connection_status(@hub)} variant="warning">
         <%= Provider.connection_status(@hub) %>
       </LayoutComponents.topbar>
 
@@ -268,7 +268,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         </div>
       </div>
 
-      <.modal :if={@show_key} id="key-modal" show width={:medium} patch={~p"/hub/#{@hub.id}"}>
+      <.modal :if={@show_key} id="key-modal" show width="medium" patch={~p"/hub/#{@hub.id}"}>
         <.teams_key_modal
           teams_key={@hub.teams_key}
           confirm_url={if @show_key == "confirm", do: ~p"/hub/#{@hub.id}"}
@@ -279,7 +279,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         :if={@live_action in [:new_secret, :edit_secret]}
         id="secrets-modal"
         show
-        width={:medium}
+        width="medium"
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component
@@ -296,7 +296,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         :if={@live_action in [:new_file_system, :edit_file_system]}
         id="file-systems-modal"
         show
-        width={:medium}
+        width="medium"
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component
@@ -313,7 +313,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         :if={@live_action == :new_deployment_group}
         id="deployment-group-modal"
         show
-        width={:big}
+        width="big"
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component

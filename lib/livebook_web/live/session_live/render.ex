@@ -52,7 +52,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :runtime_settings}
       id="runtime-settings-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.live_component
@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :file_settings}
       id="persistence-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.live_component
@@ -91,7 +91,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :app_settings}
       id="app-settings-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -108,7 +108,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :app_docker}
       id="app-docker-modal"
       show
-      width={:large}
+      width="large"
       patch={@self_path}
     >
       <.live_component
@@ -125,7 +125,7 @@ defmodule LivebookWeb.SessionLive.Render do
       />
     </.modal>
 
-    <.modal :if={@live_action == :app_teams} id="app-teams-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :app_teams} id="app-teams-modal" show width="big" patch={@self_path}>
       <%= live_render(@socket, LivebookWeb.SessionLive.AppTeamsLive,
         id: "app-teams",
         session: %{
@@ -138,7 +138,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :app_teams_hub_info}
       id="app-teams-hub-info-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.app_teams_hub_info_content
@@ -151,7 +151,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :add_file_entry}
       id="add-file-entry-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.add_file_entry_content
@@ -166,7 +166,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :rename_file_entry}
       id="rename-file-entry-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.live_component
@@ -181,7 +181,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :shortcuts}
       id="shortcuts-modal"
       show
-      width={:large}
+      width="large"
       patch={@self_path}
     >
       <.live_component
@@ -195,7 +195,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :cell_settings}
       id="cell-settings-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -211,7 +211,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :insert_image}
       id="insert-image-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -227,7 +227,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :insert_file}
       id="insert-file-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -239,7 +239,7 @@ defmodule LivebookWeb.SessionLive.Render do
       />
     </.modal>
 
-    <.modal :if={@live_action == :bin} id="bin-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :bin} id="bin-modal" show width="big" patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.BinComponent}
         id="bin"
@@ -249,7 +249,7 @@ defmodule LivebookWeb.SessionLive.Render do
       />
     </.modal>
 
-    <.modal :if={@live_action == :export} id="export-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :export} id="export-modal" show width="big" patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.ExportComponent}
         id="export"
@@ -263,7 +263,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :package_search}
       id="package-search-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <%= live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
@@ -279,7 +279,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :secrets}
       id="secrets-modal"
       show
-      width={if(@action_assigns.select_secret_metadata, do: :large, else: :medium)}
+      width={if(@action_assigns.select_secret_metadata, do: "large", else: "medium")}
       patch={@self_path}
     >
       <.live_component
@@ -299,7 +299,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :custom_view_settings}
       id="custom-view-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -687,7 +687,7 @@ defmodule LivebookWeb.SessionLive.Render do
         </div>
 
         <div :if={@data_view.runtime_connect_info} class="mt-4">
-          <.message_box kind={:info}>
+          <.message_box kind="info">
             <div class="flex items-center gap-2">
               <.spinner />
               <span>Step: <%= @data_view.runtime_connect_info %></span>
@@ -829,7 +829,7 @@ defmodule LivebookWeb.SessionLive.Render do
   defp section_status(%{status: :evaluating} = assigns) do
     ~H"""
     <button data-el-focus-cell-button data-target={@cell_id}>
-      <.status_indicator variant={:progressing} />
+      <.status_indicator variant="progressing" />
     </button>
     """
   end
@@ -837,7 +837,7 @@ defmodule LivebookWeb.SessionLive.Render do
   defp section_status(%{status: :stale} = assigns) do
     ~H"""
     <button data-el-focus-cell-button data-target={@cell_id}>
-      <.status_indicator variant={:warning} />
+      <.status_indicator variant="warning" />
     </button>
     """
   end
@@ -880,7 +880,7 @@ defmodule LivebookWeb.SessionLive.Render do
           <span>See on Dashboard</span>
         </a>
       </.menu_item>
-      <.menu_item variant={:danger}>
+      <.menu_item variant="danger">
         <button role="menuitem" phx-click="close_session">
           <.remix_icon icon="close-circle-line" />
           <span>Close</span>
@@ -898,7 +898,7 @@ defmodule LivebookWeb.SessionLive.Render do
       </h3>
 
       <%= if @any_team_hub? do %>
-        <.message_box kind={:info}>
+        <.message_box kind="info">
           In order to deploy your app using Livebook Teams, you need to select a Livebook Teams
           workspace. To change the workspace, use the dropdown right below the notebook title.
           <.link
@@ -911,7 +911,7 @@ defmodule LivebookWeb.SessionLive.Render do
           </.link>
         </.message_box>
       <% else %>
-        <.message_box kind={:info}>
+        <.message_box kind="info">
           In order to deploy your app using Livebook Teams, you need to create an organization.
           <.link class="text-blue-600 font-medium" patch={~p"/hub"}>
             <span>Add organization</span>
@@ -1050,7 +1050,7 @@ defmodule LivebookWeb.SessionLive.Render do
   defp view_indicator(assigns) do
     ~H"""
     <div class="tooltip left" data-tooltip="Choose views to activate" data-el-views>
-      <.menu id="views-menu" position={:bottom_right} sm_position={:top_right}>
+      <.menu id="views-menu" position="bottom-right" sm_position="top-right">
         <:toggle>
           <button
             class={status_button_classes(:gray)}
@@ -1315,7 +1315,7 @@ defmodule LivebookWeb.SessionLive.Render do
           <.session_menu session={@session} />
         </div>
         <div class="flex flex-nowrap place-content-between items-center gap-2">
-          <.menu position={:bottom_left} id="notebook-hub-menu">
+          <.menu position="bottom-left" id="notebook-hub-menu">
             <:toggle>
               <div
                 class="inline-flex items-center cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"

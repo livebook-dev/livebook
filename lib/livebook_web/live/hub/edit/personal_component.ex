@@ -186,7 +186,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
         :if={@live_action in [:new_secret, :edit_secret]}
         id="secrets-modal"
         show
-        width={:medium}
+        width="medium"
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component
@@ -203,7 +203,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
         :if={@live_action in [:new_file_system, :edit_file_system]}
         id="file-systems-modal"
         show
-        width={:medium}
+        width="medium"
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component

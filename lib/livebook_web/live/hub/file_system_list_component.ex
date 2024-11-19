@@ -38,7 +38,7 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
                   <span>Edit</span>
                 </.link>
               </.menu_item>
-              <.menu_item variant={:danger}>
+              <.menu_item variant="danger">
                 <button
                   id={"hub-file-system-#{file_system.id}-detach"}
                   type="button"

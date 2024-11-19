@@ -124,7 +124,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
         <%= if file_entry.name in @transferring_file_entry_names do %>
           <.spinner class="mr-[3px]" />
         <% else %>
-          <.menu id={"file-entry-#{file_entry.type}-#{idx}-menu"} position={:bottom_right}>
+          <.menu id={"file-entry-#{file_entry.type}-#{idx}-menu"} position="bottom-right">
             <:toggle>
               <.icon_button small aria-label="menu">
                 <.remix_icon icon="more-2-line" />
@@ -188,7 +188,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
                 <span>Rename</span>
               </.link>
             </.menu_item>
-            <.menu_item variant={:danger}>
+            <.menu_item variant="danger">
               <button
                 role="menuitem"
                 phx-click={

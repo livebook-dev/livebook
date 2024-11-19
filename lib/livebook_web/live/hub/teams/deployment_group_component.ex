@@ -146,7 +146,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           :if={@live_action in [:new_deployment_group_secret, :edit_deployment_group_secret]}
           id="deployment-group-secrets-modal"
           show
-          width={:medium}
+          width="medium"
           patch={~p"/hub/#{@hub.id}"}
         >
           <.live_component
@@ -164,7 +164,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           :if={@live_action == :new_deployment_group_agent}
           id="deployment-group-agent-modal"
           show
-          width={:big}
+          width="big"
           patch={~p"/hub/#{@hub.id}"}
         >
           <.live_component
@@ -180,7 +180,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           :if={@live_action == :new_deployment_group_app}
           id="deployment-group-app-modal"
           show
-          width={:medium}
+          width="medium"
           patch={~p"/hub/#{@hub.id}"}
         >
           <div class="flex flex-col space-y-3">

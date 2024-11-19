@@ -31,7 +31,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        pvc_action: nil,
        pvc_name: nil,
        docker_tag: hd(Livebook.Config.docker_images()).tag,
-       pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil},
+       pod_template: %{template: Pod.default_pod_template(), error_message: nil},
        save_config_payload: nil
      )}
   end
@@ -88,7 +88,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     ~H"""
     <div>
       <div :if={warning = kubectl_warning()} class="mb-2">
-        <.message_box kind={:warning} message={warning} />
+        <.message_box kind="warning" message={warning} />
       </div>
 
       <p class="text-gray-700">
@@ -107,7 +107,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       />
 
       <div :if={@save_config_payload == nil}>
-        <.message_box :if={@kubeconfig.current_cluster == nil} kind={:error}>
+        <.message_box :if={@kubeconfig.current_cluster == nil} kind="error">
           In order to use the Kubernetes context, you need to set the <code>KUBECONFIG</code>
           environment variable to a path pointing to a <a
             class="text-blue-600 hover:text-blue-700"
@@ -150,7 +150,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           </div>
         </form>
 
-        <.message_box :if={@rbac.status == :errors} kind={:error}>
+        <.message_box :if={@rbac.status == :errors} kind="error">
           <%= for error <- @rbac.errors do %>
             <.rbac_error error={error} />
           <% end %>
@@ -194,11 +194,11 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               phx-hook="TextareaAutosize"
             />
 
-            <.message_box :if={@pod_template.status != :valid} kind={@pod_template.status}>
-              <div class="flex items-center gap-2">
-                <span><%= @pod_template.message %></span>
-              </div>
-            </.message_box>
+            <.message_box
+              :if={@pod_template.error_message}
+              kind="error"
+              message={@pod_template.error_message}
+            />
           </form>
         </div>
 
@@ -231,7 +231,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             class="mt-4 scroll-mb-8"
             phx-mounted={JS.dispatch("lb:scroll_into_view", detail: %{behavior: "instant"})}
           >
-            <.message_box kind={:info}>
+            <.message_box kind="info">
               <div class="flex items-center gap-2">
                 <.spinner />
                 <span>Step: <%= @runtime_connect_info %></span>
@@ -373,7 +373,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         </.form>
         <.message_box
           :if={@pvc_action[:status] == :error}
-          kind={:error}
+          kind="error"
           message={"Error: " <> @pvc_action.error.message}
         />
       </div>
@@ -392,13 +392,13 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   defp cluster_check_error(%{error: %{status: 401}} = assigns) do
     ~H"""
-    <.message_box kind={:error} message="Authentication with cluster failed." />
+    <.message_box kind="error" message="Authentication with cluster failed." />
     """
   end
 
   defp cluster_check_error(assigns) do
     ~H"""
-    <.message_box kind={:error} message={"Connection to cluster failed, reason: " <> @error.message} />
+    <.message_box kind="error" message={"Connection to cluster failed, reason: " <> @error.message} />
     """
   end
 
@@ -720,20 +720,18 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     with {:parse, {:ok, pod_template}} <-
            {:parse, YamlElixir.read_from_string(pod_template_yaml)},
          {:validate, :ok} <- {:validate, Pod.validate_pod_template(pod_template, namespace)} do
-      assign(socket, :pod_template, %{template: pod_template_yaml, status: :valid, message: nil})
+      assign(socket, :pod_template, %{template: pod_template_yaml, error_message: nil})
     else
       {:parse, {:error, error}} ->
         assign(socket, :pod_template, %{
           template: pod_template_yaml,
-          status: :error,
-          message: Exception.message(error)
+          error_message: Exception.message(error)
         })
 
       {:validate, {:error, message}} ->
         assign(socket, :pod_template, %{
           template: pod_template_yaml,
-          status: :error,
-          message: message
+          error_message: message
         })
     end
   end
