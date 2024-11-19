@@ -107,7 +107,7 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
         Store the config in a secret in the <.workspace hub={@hub} /> workspace to reuse it later.
       </div>
       <div :if={error = @save_config.error} class="mt-4">
-        <.message_box kind={:error} message={error} />
+        <.message_box kind="error" message={error} />
       </div>
       <div class="mt-4 grid grid-cols-3">
         <.text_field field={f[:name]} label="Secret name" class="uppercase" autofocus />

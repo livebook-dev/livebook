@@ -120,7 +120,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <.menu
           id={"#{@id}-new-item-menu"}
           disabled={@file_system_select_disabled}
-          position={:bottom_right}
+          position="bottom-right"
         >
           <:toggle>
             <.icon_button tabindex="-1" aria-label="add">
@@ -292,7 +292,7 @@ defmodule LivebookWeb.FileSelectComponent do
 
   defp file_system_menu_button(assigns) do
     ~H"""
-    <.menu id={@id} disabled={@file_system_select_disabled} position={:bottom_left}>
+    <.menu id={@id} disabled={@file_system_select_disabled} position="bottom-left">
       <:toggle>
         <.button
           color="gray"
@@ -309,7 +309,7 @@ defmodule LivebookWeb.FileSelectComponent do
       </:toggle>
       <%= for file_system <- @file_systems do %>
         <%= if file_system.id == @file.file_system_id do %>
-          <.menu_item variant={:selected}>
+          <.menu_item variant="selected">
             <button id={"#{@id}-file-system-#{file_system.id}"} role="menuitem">
               <.file_system_icon file_system={file_system} />
               <span><%= file_system_label(file_system) %></span>
@@ -428,7 +428,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <span>Rename</span>
         </button>
       </.menu_item>
-      <.menu_item :if={@file_info.editable} variant={:danger}>
+      <.menu_item :if={@file_info.editable} variant="danger">
         <button
           type="button"
           role="menuitem"

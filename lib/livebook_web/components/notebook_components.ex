@@ -47,7 +47,7 @@ defmodule LivebookWeb.NotebookComponents do
   def cell_icon(%{cell_type: :code, language: :elixir} = assigns) do
     ~H"""
     <div class="w-6 h-6 p-1 rounded flex items-center justify-center bg-purple-100">
-      <.language_icon language={:elixir} class="w-full h-full text-[#663299]" />
+      <.language_icon language="elixir" class="w-full h-full text-[#663299]" />
     </div>
     """
   end
@@ -55,7 +55,7 @@ defmodule LivebookWeb.NotebookComponents do
   def cell_icon(%{cell_type: :code, language: :erlang} = assigns) do
     ~H"""
     <div class="w-6 h-6 p-1 rounded flex items-center justify-center bg-red-100">
-      <.language_icon language={:erlang} class="w-full h-full text-[#a90533]" />
+      <.language_icon language="erlang" class="w-full h-full text-[#a90533]" />
     </div>
     """
   end
@@ -63,7 +63,7 @@ defmodule LivebookWeb.NotebookComponents do
   def cell_icon(%{cell_type: :markdown} = assigns) do
     ~H"""
     <div class="w-6 h-6 p-1 rounded flex items-center justify-center bg-blue-100">
-      <.language_icon language={:markdown} class="w-full h-full text-[#3e64ff]" />
+      <.language_icon language="markdown" class="w-full h-full text-[#3e64ff]" />
     </div>
     """
   end
@@ -79,10 +79,10 @@ defmodule LivebookWeb.NotebookComponents do
   @doc """
   Renders an icon for the given language.
   """
-  attr :language, :atom, required: true
+  attr :language, :string, required: true
   attr :class, :string, default: nil
 
-  def language_icon(%{language: :elixir} = assigns) do
+  def language_icon(%{language: "elixir"} = assigns) do
     ~H"""
     <svg class={@class} viewBox="0 0 11 15" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -96,7 +96,7 @@ defmodule LivebookWeb.NotebookComponents do
     """
   end
 
-  def language_icon(%{language: :erlang} = assigns) do
+  def language_icon(%{language: "erlang"} = assigns) do
     ~H"""
     <svg class={@class} viewBox="0 0 15 10" xmlns="http://www.w3.org/2000/svg">
       <g fill="currentColor">
@@ -107,7 +107,7 @@ defmodule LivebookWeb.NotebookComponents do
     """
   end
 
-  def language_icon(%{language: :markdown} = assigns) do
+  def language_icon(%{language: "markdown"} = assigns) do
     ~H"""
     <svg class={@class} viewBox="0 0 16 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path

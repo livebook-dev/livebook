@@ -194,7 +194,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <span>Disconnect runtime</span>
             </button>
           </.menu_item>
-          <.menu_item variant={:danger}>
+          <.menu_item variant="danger">
             <button
               type="button"
               role="menuitem"

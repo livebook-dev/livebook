@@ -16,7 +16,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
       <%= if @session.mode == :app do %>
         <div class="mt-5 flex flex-col">
           <.message_box
-            kind={:info}
+            kind="info"
             message="This session is a running app. To deploy a modified version, you can fork it."
           />
           <div class="mt-6">
@@ -30,7 +30,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         <div class="flex flex-col gap-3 mt-2">
           <.message_box
             :if={@any_session_secrets?}
-            kind={:warning}
+            kind="warning"
             message="The notebook uses session secrets, but those are not available to deployed apps. Convert them to Workspace secrets instead."
           />
 

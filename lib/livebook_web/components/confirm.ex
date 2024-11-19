@@ -81,7 +81,7 @@ defmodule LivebookWeb.Confirm do
 
   defp confirm_modal(assigns) do
     ~H"""
-    <.modal id={@id} width={:medium} show={true}>
+    <.modal id={@id} width="medium" show={true}>
       <form
         id={"#{@id}-confirm-content"}
         class="flex flex-col"

@@ -186,7 +186,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
   defp update_instructions(socket) do
     config = Ecto.Changeset.apply_changes(socket.assigns.changeset)
     warnings = Hubs.Dockerfile.online_warnings(config)
-    messages = Enum.map(warnings, &{:warning, &1})
+    messages = Enum.map(warnings, &{"warning", &1})
     assign(socket, instructions: instructions(socket), messages: messages)
   end
 
