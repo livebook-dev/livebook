@@ -1,3 +1,4 @@
+const defaultTheme = require("tailwindcss/defaultTheme");
 const plugin = require("tailwindcss/plugin");
 
 module.exports = {
@@ -10,8 +11,8 @@ module.exports = {
   ],
   theme: {
     fontFamily: {
-      sans: ["Inter"],
-      mono: ["JetBrains Mono", "monospace"],
+      sans: ["Inter", ...defaultTheme.fontFamily.sans],
+      mono: ["JetBrains Mono", ...defaultTheme.fontFamily.mono],
       logo: ["Red Hat Text"],
     },
     extend: {
