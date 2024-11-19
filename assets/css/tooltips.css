@@ -23,7 +23,7 @@ Example usage:
 }
 
 .tooltip.distant-medium {
-  --distance: 10px;
+  --distance: 14px;
 }
 
 /* Tooltip text */

@@ -641,7 +641,7 @@ defmodule LivebookWeb.CoreComponents do
 
   def status_indicator(assigns) do
     ~H"""
-    <span class="relative flex h-3 w-3">
+    <span class="relative flex h-2.5 w-2.5">
       <span
         :if={animated_status_circle_class(@variant)}
         class={[
@@ -650,7 +650,7 @@ defmodule LivebookWeb.CoreComponents do
         ]}
       >
       </span>
-      <span class={[status_circle_class(@variant), "relative inline-flex rounded-full h-3 w-3"]}>
+      <span class={[status_circle_class(@variant), "relative inline-flex rounded-full h-2.5 w-2.5"]}>
       </span>
     </span>
     """
