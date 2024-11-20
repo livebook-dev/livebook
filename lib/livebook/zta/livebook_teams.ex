@@ -53,8 +53,8 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   defp handle_request(conn, _team, %{"teams_identity" => _, "failed_reason" => reason}) do
     {conn
-     |> redirect(to: conn.request_path)
      |> put_session(:teams_failed_reason, reason)
+     |> redirect(to: conn.request_path)
      |> halt(), nil}
   end
 
