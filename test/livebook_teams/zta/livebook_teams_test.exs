@@ -75,5 +75,31 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert conn.halted
       assert html_response(conn, 200) =~ "window.location.href = "
     end
+
+    test "shows an error when the user does not belong to the org", %{conn: conn, test: test} do
+      # Step 1: Emulate a request coming from Teams saying the user does belong to the org
+      conn = init_test_session(conn, %{})
+
+      params_from_teams = %{
+        "teams_identity" => "",
+        "failed_reason" => "you do not belong to this org"
+      }
+
+      conn = %Plug.Conn{conn | params: params_from_teams}
+
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      session = Plug.Conn.get_session(conn)
+
+      assert conn.status == 302
+
+      # Step 2: follow the redirect keeping the session set in previous request
+      conn = build_conn(:get, redirected_to(conn))
+      conn = init_test_session(conn, session)
+
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+
+      assert html_response(conn, 200) =~
+               "Failed to authenticate with Livebook Teams: you do not belong to this org"
+    end
   end
 end
