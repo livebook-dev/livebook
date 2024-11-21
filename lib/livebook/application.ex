@@ -201,23 +201,16 @@ defmodule Livebook.Application do
 
   @doc false
   def endpoint_start({mod, fun, args}) do
-    case apply(mod, fun, args) do
-      {:ok, pid} ->
-        {:ok, pid}
-
-      {:error,
-       {:shutdown,
-        {:failed_to_start_child, {LivebookWeb.Endpoint, :http},
-         {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}}}
-      when @app? == true ->
-        config = Application.get_env(:livebook, LivebookWeb.Endpoint)
-        config = put_in(config[:http][:port], 0)
-        Application.put_env(:livebook, LivebookWeb.Endpoint, config, persistent: true)
-        Logger.warning("Starting server using a random port")
-        endpoint_start({mod, fun, args})
-
-      {:error, error} ->
-        {:error, error}
+    with {:error,
+          {:shutdown,
+           {:failed_to_start_child, {LivebookWeb.Endpoint, :http},
+            {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}}}
+         when @app? == true <- apply(mod, fun, args) do
+      config = Application.get_env(:livebook, LivebookWeb.Endpoint)
+      config = put_in(config[:http][:port], 0)
+      Application.put_env(:livebook, LivebookWeb.Endpoint, config, persistent: true)
+      Logger.warning("Starting server using a random port")
+      endpoint_start({mod, fun, args})
     end
   end
 
@@ -249,20 +242,13 @@ defmodule Livebook.Application do
 
   @doc false
   def iframe_endpoint_start({mod, fun, args}) do
-    case apply(mod, fun, args) do
-      {:ok, pid} ->
-        {:ok, pid}
-
-      {:error, {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}
-      when @app? == true ->
-        Application.put_env(:livebook, :iframe_port, 0, persistent: true)
-        [opts] = args
-        args = [Keyword.replace(opts, :port, 0)]
-        Logger.warning("Starting iframe server using a random port")
-        iframe_endpoint_start({mod, fun, args})
-
-      {:error, error} ->
-        {:error, error}
+    with {:error, {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}
+         when @app? == true <- apply(mod, fun, args) do
+      Application.put_env(:livebook, :iframe_port, 0, persistent: true)
+      [opts] = args
+      args = [Keyword.replace(opts, :port, 0)]
+      Logger.warning("Starting iframe server using a random port")
+      iframe_endpoint_start({mod, fun, args})
     end
   end
 
