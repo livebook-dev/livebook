@@ -194,9 +194,13 @@ defmodule Livebook.Application do
   # in case the endpoint or iframe port is taken, we automatically
   # fallback to a random port.
 
-  defp endpoint_childspec(opts) do
-    %{start: start} = childspec = LivebookWeb.Endpoint.child_spec(opts)
-    %{childspec | start: {__MODULE__, :endpoint_start, [start]}}
+  if @app? do
+    defp endpoint_childspec(opts) do
+      %{start: start} = childspec = LivebookWeb.Endpoint.child_spec(opts)
+      %{childspec | start: {__MODULE__, :endpoint_start, [start]}}
+    end
+  else
+    defp endpoint_childspec(opts), do: LivebookWeb.Endpoint.child_spec(opts)
   end
 
   @doc false
@@ -204,8 +208,8 @@ defmodule Livebook.Application do
     with {:error,
           {:shutdown,
            {:failed_to_start_child, {LivebookWeb.Endpoint, :http},
-            {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}}}
-         when @app? == true <- apply(mod, fun, args) do
+            {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}}} <-
+           apply(mod, fun, args) do
       config = Application.get_env(:livebook, LivebookWeb.Endpoint)
       config = put_in(config[:http][:port], 0)
       Application.put_env(:livebook, LivebookWeb.Endpoint, config, persistent: true)
@@ -235,15 +239,19 @@ defmodule Livebook.Application do
     end
   end
 
-  defp iframe_endpoint_childspec(opts) do
-    %{start: start} = childspec = Bandit.child_spec(opts)
-    %{childspec | start: {__MODULE__, :iframe_endpoint_start, [start]}}
+  if @app? do
+    defp iframe_endpoint_childspec(opts) do
+      %{start: start} = childspec = Bandit.child_spec(opts)
+      %{childspec | start: {__MODULE__, :iframe_endpoint_start, [start]}}
+    end
+  else
+    defp iframe_endpoint_childspec(opts), do: Bandit.child_spec(opts)
   end
 
   @doc false
   def iframe_endpoint_start({mod, fun, args}) do
-    with {:error, {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}
-         when @app? == true <- apply(mod, fun, args) do
+    with {:error, {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}} <-
+           apply(mod, fun, args) do
       Application.put_env(:livebook, :iframe_port, 0, persistent: true)
       [opts] = args
       args = [Keyword.replace(opts, :port, 0)]
