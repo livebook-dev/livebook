@@ -33,3 +33,7 @@ npm-debug.log
 
 # The built Escript
 /livebook
+
+# We generate priv when building release or escript
+/priv/static
+/priv/iframe_static

@@ -41,8 +41,8 @@ defmodule LivebookWeb.ErrorHTML do
         <meta charset="utf-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" type="image/svg+xml" href={~p"/favicon.svg"} />
-        <link rel="alternate icon" type="image/png" href={~p"/favicon.png"} />
+        <link rel="icon" type="image/svg+xml" href={~p"/favicons/favicon.svg"} />
+        <link rel="alternate icon" type="image/png" href={~p"/favicons/favicon.png"} />
         <title><%= @status %> - Livebook</title>
         <link rel="stylesheet" href={~p"/assets/app.css"} />
       </head>

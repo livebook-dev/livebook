@@ -59,7 +59,7 @@ defmodule Livebook.MixProject do
         "GitHub" => "https://github.com/livebook-dev/livebook"
       },
       files:
-        ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe proto/lib)
+        ~w(lib static priv/.gitkeep config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe proto/lib)
     ]
   end
 
@@ -68,7 +68,10 @@ defmodule Livebook.MixProject do
       setup: ["deps.get", "cmd --cd assets npm install"],
       "assets.deploy": ["cmd npm run deploy --prefix assets"],
       "format.all": ["format", "cmd --cd assets npm run format"],
-      "protobuf.generate": ["cmd --cd proto mix protobuf.generate"]
+      "protobuf.generate": ["cmd --cd proto mix protobuf.generate"],
+      "phx.server": ["livebook.gen_priv", "phx.server"],
+      "escript.build": ["livebook.gen_priv", "escript.build"],
+      release: ["livebook.gen_priv", "release"]
     ]
   end
 
@@ -76,7 +79,8 @@ defmodule Livebook.MixProject do
     [
       main_module: LivebookCLI,
       app: nil,
-      emu_args: "-epmd_module Elixir.Livebook.EPMD"
+      emu_args: "-epmd_module Elixir.Livebook.EPMD",
+      include_priv_for: [:livebook]
     ]
   end
 
