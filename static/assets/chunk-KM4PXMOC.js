@@ -1,1 +1,0 @@
-import{Z as m,h as c,ha as e}from"./chunk-ZOEWSKT6.js";var v=c(t=>{var n,s;let{securityLevel:l}=m(),o=e("body");if(l==="sandbox"){let r=(s=(n=e(`#i${t}`).node())==null?void 0:n.contentDocument)!=null?s:document;o=e(r.body)}return o.select(`#${t}`)},"selectSvgElement");export{v as a};
