@@ -4,6 +4,7 @@ defmodule LivebookWeb.IframeEndpoint do
   plug Plug.Static,
     at: "/iframe",
     from: {__MODULE__, :static_from, []},
+    gzip: true,
     # Iframes are versioned, so we cache them for long
     cache_control_for_etags: "public, max-age=31536000",
     headers: [
@@ -13,7 +14,7 @@ defmodule LivebookWeb.IframeEndpoint do
     ]
 
   @doc false
-  def static_from(), do: Path.join(Livebook.Config.priv_path(), "static_iframe")
+  def static_from(), do: Path.join(Livebook.Config.priv_path(), "iframe_static")
 
   plug :not_found
 
