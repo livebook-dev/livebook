@@ -253,7 +253,7 @@ defmodule Livebook.Application do
     with {:error, {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}} <-
            apply(mod, fun, [opts]) do
       Application.put_env(:livebook, :iframe_port, 0, persistent: true)
-      opts = Keyword.replace(opts, :port, 0)
+      opts = Keyword.replace!(opts, :port, 0)
       Logger.warning("Starting iframe server using a random port")
       iframe_endpoint_start({mod, fun, [opts]})
     end
