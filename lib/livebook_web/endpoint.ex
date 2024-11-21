@@ -38,7 +38,7 @@ defmodule LivebookWeb.Endpoint do
   # files in priv/, since we want to serve them gzipped, and we don't
   # include the non-gzipped ones to minimize app size. Note that we
   # still have a separate static/ directory with the CI-precompiled
-  # assets, which we keep it in Git so that people can install escript
+  # assets, which we keep in Git so that people can install escript
   # from GitHub or run MIX_ENV=prod phx.server, without Node and NPM.
   # Storing minified assets is already not ideal, but we definitely
   # want to avoid storing the gzipped variants in Git. That's why we
