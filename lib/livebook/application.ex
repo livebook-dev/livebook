@@ -1,6 +1,8 @@
 defmodule Livebook.Application do
   use Application
 
+  require Logger
+
   def start(_type, _args) do
     Livebook.Utils.HTTP.set_proxy_options()
 
@@ -69,7 +71,7 @@ defmodule Livebook.Application do
             [
               {module, name: LivebookWeb.ZTA, identity_key: key},
               # We skip the access url as we do our own logging below
-              {LivebookWeb.Endpoint, log_access_url: false}
+              endpoint_childspec(log_access_url: false)
             ] ++ app_specs()
         end
 
@@ -180,10 +182,43 @@ defmodule Livebook.Application do
     end
   end
 
-  if Mix.target() == :app do
+  @app? Mix.target() == :app
+
+  if @app? do
     defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
+  end
+
+  # In order to provide good first experience with the desktop app,
+  # in case the endpoint or iframe port is taken, we automatically
+  # fallback to a random port.
+
+  defp endpoint_childspec(opts) do
+    %{start: start} = childspec = LivebookWeb.Endpoint.child_spec(opts)
+    %{childspec | start: {__MODULE__, :endpoint_start, [start]}}
+  end
+
+  @doc false
+  def endpoint_start({mod, fun, args}) do
+    case apply(mod, fun, args) do
+      {:ok, pid} ->
+        {:ok, pid}
+
+      {:error,
+       {:shutdown,
+        {:failed_to_start_child, {LivebookWeb.Endpoint, :http},
+         {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}}}
+      when @app? == true ->
+        config = Application.get_env(:livebook, LivebookWeb.Endpoint)
+        config = put_in(config[:http][:port], 0)
+        Application.put_env(:livebook, LivebookWeb.Endpoint, config, persistent: true)
+        Logger.warning("Starting server using a random port")
+        endpoint_start({mod, fun, args})
+
+      {:error, error} ->
+        {:error, error}
+    end
   end
 
   defp iframe_server_specs() do
@@ -193,7 +228,7 @@ defmodule Livebook.Application do
     if server? do
       http = Application.fetch_env!(:livebook, LivebookWeb.Endpoint)[:http]
 
-      iframe_opts =
+      opts =
         [
           scheme: :http,
           plug: LivebookWeb.IframeEndpoint,
@@ -201,9 +236,33 @@ defmodule Livebook.Application do
           thousand_island_options: [supervisor_options: [name: LivebookWeb.IframeEndpoint]]
         ] ++ Keyword.take(http, [:ip])
 
-      [{Bandit, iframe_opts}]
+      [iframe_endpoint_childspec(opts)]
     else
       []
+    end
+  end
+
+  defp iframe_endpoint_childspec(opts) do
+    %{start: start} = childspec = Bandit.child_spec(opts)
+    %{childspec | start: {__MODULE__, :iframe_endpoint_start, [start]}}
+  end
+
+  @doc false
+  def iframe_endpoint_start({mod, fun, args}) do
+    case apply(mod, fun, args) do
+      {:ok, pid} ->
+        {:ok, pid}
+
+      {:error, {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}
+      when @app? == true ->
+        Application.put_env(:livebook, :iframe_port, 0, persistent: true)
+        [opts] = args
+        args = [Keyword.replace(opts, :port, 0)]
+        Logger.warning("Starting iframe server using a random port")
+        iframe_endpoint_start({mod, fun, args})
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
