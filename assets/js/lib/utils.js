@@ -226,7 +226,7 @@ export function setFavicon(name) {
     document.head.appendChild(link);
   }
 
-  link.href = `/${name}.svg`;
+  link.href = `/favicons/${name}.svg`;
 }
 
 export function findChildOrThrow(element, selector) {

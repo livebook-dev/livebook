@@ -9,6 +9,18 @@ defmodule Livebook.Config do
           | %{mode: :disabled}
 
   @doc """
+  Returns path to Livebook priv directory.
+
+  This returns the usual priv directory, however in case of Escript,
+  the priv files are extracted into a temporary directory and that is
+  the path returned.
+  """
+  @spec priv_path() :: String.t()
+  def priv_path() do
+    Application.get_env(:livebook, :priv_dir) || Application.app_dir(:livebook, "priv")
+  end
+
+  @doc """
   Returns docker images to be used when generating sample Dockerfiles.
   """
   @spec docker_images() ::

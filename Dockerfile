@@ -57,6 +57,7 @@ COPY config config
 RUN mix do deps.get, deps.compile
 
 # Compile and build the release
+COPY priv/.gitkeep priv/.gitkeep
 COPY rel rel
 COPY static static
 COPY iframe/priv/static/iframe iframe/priv/static/iframe
