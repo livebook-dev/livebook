@@ -40,6 +40,16 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
           <%= message %>
         </div>
       </div>
+      <div class="mb-6">
+        <.message_box kind="info">
+          This will upload the file as an attachment in the notebook files/ directory.
+          If you want to upload it to a file storage instead, choose <.link
+            class="text-blue-600 "
+            patch={~p"/sessions/#{@session.id}/add-file/storage"}
+          >"From storage"</.link>,
+          then drag and drop the file to the desired storage and directory.
+        </.message_box>
+      </div>
       <.form
         :let={f}
         for={@changeset}
