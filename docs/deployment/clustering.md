@@ -10,6 +10,10 @@ You may set `LIVEBOOK_CLUSTER` to one of the following values.
 
 ### `auto`
 
+> #### Attention {: .warning}
+>
+> "auto" is only a valid value if you're running Livebook on Fly.io or Kubernetes.
+
 Detects the hosting platform and automatically sets up a cluster using DNS configuration. Currently the supported platforms are Fly.io and Kubernetes.
 
 ### `dns:QUERY`
