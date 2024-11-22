@@ -43,6 +43,20 @@ defmodule Livebook.ConfigTest do
     end
   end
 
+  describe "dns_cluster_query!/1" do
+    test "parses DNS query" do
+      with_env([TEST_LIVEBOOK_CLUSTER: "dns:myapp.internal"], fn ->
+        assert Config.dns_cluster_query!("TEST_LIVEBOOK_CLUSTER") == "myapp.internal"
+      end)
+    end
+
+    test "parses auto mode" do
+      with_env([TEST_LIVEBOOK_CLUSTER: "auto"], fn ->
+        assert Config.dns_cluster_query!("TEST_LIVEBOOK_CLUSTER") == "auto"
+      end)
+    end
+  end
+
   defp with_env(env_vars, fun) do
     existing =
       Enum.map(env_vars, fn {env, _value} ->

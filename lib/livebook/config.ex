@@ -694,8 +694,11 @@ defmodule Livebook.Config do
         "dns:" <> query ->
           query
 
+        "auto" ->
+          "auto"
+
         other ->
-          abort!(~s{expected #{env} to be "dns:query", got: #{inspect(other)}})
+          abort!(~s{expected #{env} to be either "dns:query" or "auto", got: #{inspect(other)}})
       end
     end
   end
