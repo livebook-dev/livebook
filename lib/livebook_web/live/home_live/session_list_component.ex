@@ -191,7 +191,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               phx-value-id={session.id}
             >
               <.remix_icon icon="shut-down-line" />
-              <span>Disconnect runtime</span>
+              <span>Disconnect</span>
             </button>
           </.menu_item>
           <.menu_item variant="danger">
@@ -294,7 +294,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             phx-click={set_action("disconnect")}
           >
             <.remix_icon icon="shut-down-line" />
-            <span>Disconnect runtime</span>
+            <span>Disconnect</span>
           </button>
         </.menu_item>
         <.menu_item>
@@ -306,7 +306,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             phx-click={set_action("close_all")}
           >
             <.remix_icon icon="close-circle-line" />
-            <span>Close sessions</span>
+            <span>Close</span>
           </button>
           <input id="bulk-action-input" class="hidden" type="text" name="action" />
         </.menu_item>
@@ -367,10 +367,10 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Disconnect runtime",
+       title: "Disconnect",
        description:
          "Are you sure you want to disconnect #{pluralize(length(selected_sessions), "session", "sessions")}?",
-       confirm_text: "Disconnect runtime",
+       confirm_text: "Disconnect",
        confirm_icon: "shut-down-line"
      )}
   end
@@ -403,9 +403,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Close sessions",
+       title: "Close",
        description: description,
-       confirm_text: "Close sessions",
+       confirm_text: "Close",
        confirm_icon: "close-circle-line"
      )}
   end
