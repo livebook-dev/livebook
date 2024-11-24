@@ -38,7 +38,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     <form id="bulk-action-form" phx-submit="bulk_action" phx-target={@myself}>
       <div class="mb-4 flex items-center md:items-end justify-between">
         <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
-          Running sessions (<%= length(@sessions) %>)
+          Running notebooks (<%= length(@sessions) %>)
         </h2>
         <div class="flex items-center gap-4">
           <div class="flex gap-2 w-48 justify-end">
@@ -93,7 +93,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp session_list(%{sessions: []} = assigns) do
     ~H"""
     <.no_entries>
-      You do not have any running sessions.
+      You do not have any running notebooks.
       <%= if @show_autosave_note? do %>
         <br />
         Looking for unsaved notebooks? <.link
@@ -108,7 +108,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp session_list(assigns) do
     ~H"""
-    <div class="flex flex-col" role="group" aria-label="running sessions list">
+    <div class="flex flex-col" role="group" aria-label="running notebooks list">
       <div
         :for={session <- @sessions}
         class="py-4 flex items-center border-b last:border-b-0 border-gray-300"

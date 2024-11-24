@@ -132,7 +132,7 @@ defmodule LivebookWeb.HomeLive do
           <% end %>
         </div>
 
-        <div id="running-sessions" class="py-20 mb-32" role="region" aria-label="running sessions">
+        <div id="running-sessions" class="py-20 mb-32" role="region" aria-label="running notebooks">
           <.live_component
             module={LivebookWeb.HomeLive.SessionListComponent}
             id="session-list"
@@ -212,7 +212,7 @@ defmodule LivebookWeb.HomeLive do
         class="font-medium border-b border-gray-900 hover:border-transparent"
         href="#running-sessions"
       >
-        running sessions
+        running notebooks
       </a>
     </LayoutComponents.topbar>
     """

@@ -9,8 +9,8 @@ defmodule LivebookWeb.HomeLiveTest do
 
   test "disconnected and connected render", %{conn: conn} do
     {:ok, view, disconnected_html} = live(conn, ~p"/")
-    assert disconnected_html =~ "Running sessions"
-    assert render(view) =~ "Running sessions"
+    assert disconnected_html =~ "Running notebooks"
+    assert render(view) =~ "Running notebooks"
   end
 
   test "redirects to session upon creation", %{conn: conn} do
