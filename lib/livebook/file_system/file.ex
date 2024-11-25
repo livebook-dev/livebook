@@ -418,44 +418,46 @@ defmodule Livebook.FileSystem.File do
 end
 
 defimpl Collectable, for: Livebook.FileSystem.File do
-  def into(%Livebook.FileSystem.File{path: path} = file) do
-    file_system =
-      file
-      |> Livebook.FileSystem.File.fetch_file_system()
-      |> unwrap!()
+  alias Livebook.FileSystem
 
-    file
-    |> Livebook.FileSystem.File.maybe_ensure_local()
-    |> unwrap!()
+  def into(%FileSystem.File{path: path} = file) do
+    with :ok <- FileSystem.File.maybe_ensure_local(file),
+         {:ok, file_system} <- FileSystem.File.fetch_file_system(file),
+         {:ok, state} <- FileSystem.write_stream_init(file_system, path, []) do
+      collector = fn
+        state, {:cont, chunk} when is_binary(chunk) ->
+          case FileSystem.write_stream_chunk(file_system, state, chunk) do
+            {:ok, state} ->
+              state
 
-    state =
-      file_system
-      |> Livebook.FileSystem.write_stream_init(path, [])
-      |> unwrap!()
+            {:error, error} ->
+              cancel(file_system, state)
+              raise error
+          end
 
-    collector = fn
-      state, {:cont, chunk} when is_binary(chunk) ->
-        file_system
-        |> Livebook.FileSystem.write_stream_chunk(state, chunk)
-        |> unwrap!()
+        state, :done ->
+          case FileSystem.write_stream_finish(file_system, state) do
+            :ok ->
+              file
 
-      state, :done ->
-        file_system
-        |> Livebook.FileSystem.write_stream_finish(state)
-        |> unwrap!()
+            {:error, error} ->
+              cancel(file_system, state)
+              raise error
+          end
 
-        file
+        state, :halt ->
+          cancel(file_system, state)
+          :ok
+      end
 
-      state, :halt ->
-        file_system
-        |> Livebook.FileSystem.write_stream_halt(state)
-        |> unwrap!()
+      {state, collector}
+    else
+      {:error, error} -> raise error
     end
-
-    {state, collector}
   end
 
-  defp unwrap!(:ok), do: :ok
-  defp unwrap!({:ok, result}), do: result
-  defp unwrap!({:error, error}), do: raise(error)
+  defp cancel(file_system, state) do
+    # Try to cleanup
+    _ = FileSystem.write_stream_halt(file_system, state)
+  end
 end

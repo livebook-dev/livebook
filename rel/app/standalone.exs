@@ -142,12 +142,16 @@ defmodule Standalone do
   defp fetch_body!(url) do
     Logger.debug("Downloading #{url}")
 
-    case Livebook.Utils.HTTP.request(:get, url, timeout: :infinity) do
+    Application.ensure_all_started(:req)
+
+    req = Req.new() |> Livebook.Utils.req_attach_defaults()
+
+    case Req.get(req, url: url, receive_timeout: :infinity, decode_body: false) do
       {:ok, %{status: 200, body: body}} ->
         body
 
-      {:error, error} ->
-        raise "couldn't fetch #{url}: #{inspect(error)}"
+      {:error, exception} ->
+        raise "couldn't fetch #{url}: #{Exception.message(exception)}}"
     end
   end
 

@@ -11,7 +11,7 @@ defmodule Livebook.FileSystem.S3.Client do
     delimiter = opts[:delimiter]
     query = %{"list-type" => "2", "prefix" => prefix, "delimiter" => delimiter}
 
-    case get(file_system, "/", query: query) do
+    case request(file_system, "/", query: query) do
       {:ok, %{status: 200, body: %{"ListBucketResult" => result}}} ->
         file_keys = xml_get_list(result, "Contents", "Key")
         prefix_keys = xml_get_list(result, "CommonPrefixes", "Prefix")
@@ -36,7 +36,7 @@ defmodule Livebook.FileSystem.S3.Client do
     # name, but the listing endpoint does, so we just list keys
     # with an upper limit of 0 and retrieve the bucket name.
 
-    case get(file_system, "/", query: %{"list-type" => "2", "max-keys" => "0"}) do
+    case request(file_system, "/", query: %{"list-type" => "2", "max-keys" => "0"}) do
       {:ok, %{status: 200, body: %{"ListBucketResult" => result}}} -> {:ok, result["Name"]}
       other -> request_response_to_error(other)
     end
@@ -47,7 +47,7 @@ defmodule Livebook.FileSystem.S3.Client do
   """
   @spec get_object(S3.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
   def get_object(file_system, key) do
-    case get(file_system, "/" <> encode_key(key), long: true, decode: false) do
+    case request(file_system, "/" <> encode_key(key), long: true, decode: false) do
       {:ok, %{status: 200, body: body}} -> {:ok, body}
       {:ok, %{status: 404}} -> FileSystem.Utils.posix_error(:enoent)
       other -> request_response_to_error(other)
@@ -72,7 +72,7 @@ defmodule Livebook.FileSystem.S3.Client do
   """
   @spec put_object(S3.t(), String.t(), String.t() | nil) :: :ok | {:error, String.t()}
   def put_object(file_system, key, content) do
-    case put(file_system, "/" <> encode_key(key), body: content, long: true) do
+    case request(file_system, "/" <> encode_key(key), method: :put, body: content, long: true) do
       {:ok, %{status: 200}} -> :ok
       other -> request_response_to_error(other)
     end
@@ -83,7 +83,8 @@ defmodule Livebook.FileSystem.S3.Client do
   """
   @spec head_object(S3.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
   def head_object(file_system, key) do
-    with {:ok, %{status: 200, headers: headers}} <- head(file_system, "/" <> encode_key(key)),
+    with {:ok, %{status: 200, headers: headers}} <-
+           request(file_system, "/" <> encode_key(key), method: :head),
          {:ok, [etag]} <- Map.fetch(headers, "etag") do
       {:ok, %{etag: etag}}
     else
@@ -100,7 +101,7 @@ defmodule Livebook.FileSystem.S3.Client do
     copy_source = bucket <> "/" <> encode_key(source_key)
     headers = [{"x-amz-copy-source", copy_source}]
 
-    case put(file_system, "/" <> encode_key(destination_key), headers: headers) do
+    case request(file_system, "/" <> encode_key(destination_key), method: :put, headers: headers) do
       {:ok, %{status: 200}} -> :ok
       {:ok, %{status: 404}} -> FileSystem.Utils.posix_error(:enoent)
       other -> request_response_to_error(other)
@@ -112,7 +113,7 @@ defmodule Livebook.FileSystem.S3.Client do
   """
   @spec delete_object(S3.t(), String.t()) :: :ok | {:error, String.t()}
   def delete_object(file_system, key) do
-    case delete(file_system, "/" <> encode_key(key)) do
+    case request(file_system, "/" <> encode_key(key), method: :delete) do
       {:ok, %{status: 204}} -> :ok
       {:ok, %{status: 404}} -> :ok
       other -> request_response_to_error(other)
@@ -133,8 +134,9 @@ defmodule Livebook.FileSystem.S3.Client do
 
     body_md5 = :crypto.hash(:md5, body)
     headers = [{"Content-MD5", Base.encode64(body_md5)}]
+    query = %{"delete" => ""}
 
-    case post(file_system, "/", query: %{"delete" => ""}, headers: headers, body: body) do
+    case request(file_system, "/", query: query, method: :post, headers: headers, body: body) do
       {:ok, %{status: 200, body: %{"Error" => _}}} = result -> request_response_to_error(result)
       {:ok, %{status: 200}} -> :ok
       other -> request_response_to_error(other)
@@ -167,7 +169,7 @@ defmodule Livebook.FileSystem.S3.Client do
   def create_multipart_upload(file_system, key) do
     query = %{"uploads" => ""}
 
-    case post(file_system, "/" <> encode_key(key), query: query, body: "") do
+    case request(file_system, "/" <> encode_key(key), method: :post, query: query, body: "") do
       {:ok, %{status: 200, body: %{"InitiateMultipartUploadResult" => result}}} ->
         {:ok, result["UploadId"]}
 
@@ -183,10 +185,10 @@ defmodule Livebook.FileSystem.S3.Client do
           {:ok, map()} | {:error, String.t()}
   def upload_part(file_system, key, upload_id, part_number, content) do
     query = %{"uploadId" => upload_id, "partNumber" => part_number}
-    opts = [query: query, body: content, long: true]
+    opts = [method: :put, query: query, body: content, long: true]
 
     with {:ok, %{status: 200, headers: headers}} <-
-           put(file_system, "/" <> encode_key(key), opts),
+           request(file_system, "/" <> encode_key(key), opts),
          {:ok, [etag]} <- Map.fetch(headers, "etag") do
       {:ok, %{etag: etag}}
     else
@@ -208,7 +210,7 @@ defmodule Livebook.FileSystem.S3.Client do
       |> S3.XML.encode_to_iodata!()
       |> IO.iodata_to_binary()
 
-    case post(file_system, "/" <> encode_key(key), query: query, body: body) do
+    case request(file_system, "/" <> encode_key(key), method: :post, query: query, body: body) do
       {:ok, %{status: 200}} -> :ok
       other -> request_response_to_error(other)
     end
@@ -221,19 +223,11 @@ defmodule Livebook.FileSystem.S3.Client do
   def abort_multipart_upload(file_system, key, upload_id) do
     query = %{"uploadId" => upload_id}
 
-    case delete(file_system, "/" <> encode_key(key), query: query) do
+    case request(file_system, "/" <> encode_key(key), method: :delete, query: query) do
       {:ok, %{status: 204}} -> :ok
       other -> request_response_to_error(other)
     end
   end
-
-  # Convenient API
-
-  defp get(file_system, path, opts), do: request(file_system, :get, path, opts)
-  defp post(file_system, path, opts), do: request(file_system, :post, path, opts)
-  defp put(file_system, path, opts), do: request(file_system, :put, path, opts)
-  defp head(file_system, path), do: request(file_system, :head, path, [])
-  defp delete(file_system, path, opts \\ []), do: request(file_system, :delete, path, opts)
 
   defp download(file_system, path, collectable, opts \\ []) do
     query = opts[:query] || %{}
@@ -241,10 +235,19 @@ defmodule Livebook.FileSystem.S3.Client do
     url = build_url(file_system, path, query)
     headers = sign_headers(file_system, :get, url, headers)
 
-    Livebook.Utils.HTTP.download(url, collectable, headers: headers)
-  end
+    req = Req.new() |> Livebook.Utils.req_attach_defaults()
 
-  # Private
+    case Req.get(req, url: url, headers: headers, into: collectable) do
+      {:ok, %{status: 200, body: collected}} ->
+        {:ok, collected}
+
+      {:ok, %{status: status}} ->
+        {:error, "download failed, HTTP status #{status}", status}
+
+      {:error, exception} ->
+        {:error, "download failed, reason: #{Exception.message(exception)}}", nil}
+    end
+  end
 
   defp encode_key(key) do
     key
@@ -284,10 +287,11 @@ defmodule Livebook.FileSystem.S3.Client do
     )
   end
 
-  defp request(file_system, method, path, opts) do
+  defp request(file_system, path, opts) do
     long = Keyword.get(opts, :long, false)
     decode? = Keyword.get(opts, :decode, true)
 
+    method = opts[:method] || :get
     query = opts[:query] || %{}
     headers = opts[:headers] || []
     body = opts[:body]
@@ -295,10 +299,17 @@ defmodule Livebook.FileSystem.S3.Client do
 
     url = build_url(file_system, path, query)
     headers = sign_headers(file_system, method, url, headers, body)
-    body = body && {"application/octet-stream", body}
+
+    req = Req.new() |> Livebook.Utils.req_attach_defaults()
 
     result =
-      Livebook.Utils.HTTP.request(method, url, headers: headers, body: body, timeout: timeout)
+      Req.request(req,
+        method: method,
+        url: url,
+        headers: headers,
+        body: body,
+        receive_timeout: timeout
+      )
 
     if decode?, do: decode(result), else: result
   end
@@ -316,7 +327,7 @@ defmodule Livebook.FileSystem.S3.Client do
   defp xml?(response) do
     guess_xml? = String.starts_with?(response.body, "<?xml")
 
-    case Livebook.Utils.HTTP.fetch_content_type(response.headers) do
+    case Livebook.Utils.fetch_content_type(response) do
       {:ok, content_type} when content_type in ["text/xml", "application/xml"] -> true
       # Apparently some requests return XML without content-type
       :error when guess_xml? -> true

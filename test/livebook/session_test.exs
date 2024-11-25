@@ -1603,7 +1603,7 @@ defmodule Livebook.SessionTest do
       file_entry = %{type: :url, name: "image.jpg", url: url}
 
       assert Session.to_attachment_file_entry(session, file_entry) ==
-               {:error, "download failed, got HTTP status: 404"}
+               {:error, "download failed, HTTP status 404"}
     end
   end
 

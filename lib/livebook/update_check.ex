@@ -130,19 +130,19 @@ defmodule Livebook.UpdateCheck do
   defp fetch_latest_version() do
     repo = Livebook.Config.github_release_info().repo
     url = "https://api.github.com/repos/#{repo}/releases/latest"
-    headers = [{"accept", "application/vnd.github.v3+json"}]
+    headers = %{accept: "application/vnd.github.v3+json"}
 
-    case Livebook.Utils.HTTP.request(:get, url, headers: headers) do
-      {:ok, %{status: status, body: body}} ->
-        with 200 <- status,
-             {:ok, release} <- Jason.decode(body) do
-          {:ok, release}
-        else
-          _ -> {:error, "unexpected response"}
-        end
+    req = Req.new() |> Livebook.Utils.req_attach_defaults()
 
-      {:error, reason} ->
-        {:error, "failed to make a request, reason: #{inspect(reason)}"}
+    case Req.get(req, url: url, headers: headers) do
+      {:ok, %{status: 200, body: release}} ->
+        {:ok, release}
+
+      {:ok, %{status: status}} ->
+        {:error, "unexpected response, HTTP status #{status}"}
+
+      {:error, exception} ->
+        {:error, "failed to make a request, reason: #{Exception.message(exception)}}"}
     end
   end
 
