@@ -211,8 +211,8 @@ defmodule Livebook.Session do
 
   The client process is automatically unregistered when it terminates.
 
-  Returns the current session data, which the client can than
-  keep in sync with the server by subscribing to the `sessions:id`
+  Returns the current session data, which the client can then keep
+  in sync with the session server by subscribing to the `sessions:id`
   topic and receiving operations to apply.
 
   Also returns a unique client identifier representing the registered
@@ -334,7 +334,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends notebook attributes update to the server.
+  Requests notebook attributes to be updated.
   """
   @spec set_notebook_attributes(pid(), map()) :: :ok
   def set_notebook_attributes(pid, attrs) do
@@ -342,7 +342,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section insertion request to the server.
+  Requests a new section to be inserted at the given index.
   """
   @spec insert_section(pid(), non_neg_integer()) :: :ok
   def insert_section(pid, index) do
@@ -350,7 +350,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section insertion request to the server.
+  Requests a new section to be inserted, relative to an existing one.
   """
   @spec insert_section_into(pid(), Section.id(), non_neg_integer()) :: :ok
   def insert_section_into(pid, section_id, index) do
@@ -358,7 +358,8 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends branching section insertion request to the server.
+  Requests a new branching section to be inserted, relative to an
+  existing one.
   """
   @spec insert_branching_section_into(pid(), Section.id(), non_neg_integer()) :: :ok
   def insert_branching_section_into(pid, section_id, index) do
@@ -366,7 +367,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends parent update request to the server.
+  Requests section parent to be set.
+
+  This changes a regular section into a branching section, unless it
+  already is one.
   """
   @spec set_section_parent(pid(), Section.id(), Section.id()) :: :ok
   def set_section_parent(pid, section_id, parent_id) do
@@ -374,7 +378,9 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends parent update request to the server.
+  Requests section parent to be unset.
+
+  This changes a branching section back to a regular section.
   """
   @spec unset_section_parent(pid(), Section.id()) :: :ok
   def unset_section_parent(pid, section_id) do
@@ -382,7 +388,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell insertion request to the server.
+  Requests a new cell to be inserted.
   """
   @spec insert_cell(pid(), Section.id(), non_neg_integer(), Cell.type(), map()) :: :ok
   def insert_cell(pid, section_id, index, type, attrs \\ %{}) do
@@ -390,7 +396,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section deletion request to the server.
+  Requests a section to be deleted.
   """
   @spec delete_section(pid(), Section.id(), boolean()) :: :ok
   def delete_section(pid, section_id, delete_cells) do
@@ -398,7 +404,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell deletion request to the server.
+  Requests a cell to be deleted.
   """
   @spec delete_cell(pid(), Cell.id()) :: :ok
   def delete_cell(pid, cell_id) do
@@ -406,7 +412,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell restoration request to the server.
+  Requests a cell to be restored from bin to its previous location.
   """
   @spec restore_cell(pid(), Cell.id()) :: :ok
   def restore_cell(pid, cell_id) do
@@ -414,7 +420,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell move request to the server.
+  Requests a cell to be moved with respect to other cells.
   """
   @spec move_cell(pid(), Cell.id(), integer()) :: :ok
   def move_cell(pid, cell_id, offset) do
@@ -422,7 +428,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section move request to the server.
+  Requests a section to be moved with respect to other sections.
   """
   @spec move_section(pid(), Section.id(), integer()) :: :ok
   def move_section(pid, section_id, offset) do
@@ -430,7 +436,9 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell recover request to the server.
+  Requests a smart cell to be recovered.
+
+  This can be used to restart a smart cell that crashed unexpectedly.
   """
   @spec recover_smart_cell(pid(), Cell.id()) :: :ok
   def recover_smart_cell(pid, cell_id) do
@@ -438,7 +446,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell conversion request to the server.
+  Requests a smart cell to be converted into code cell(s).
   """
   @spec convert_smart_cell(pid(), Cell.id()) :: :ok
   def convert_smart_cell(pid, cell_id) do
@@ -446,7 +454,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends dependencies addition request to the server.
+  Requests a dependency to be added to the notebook.
   """
   @spec add_dependencies(pid(), list(Runtime.dependency())) :: :ok
   def add_dependencies(pid, dependencies) do
@@ -454,7 +462,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell evaluation request to the server.
+  Requests a cell to be evaluated.
+
+  Depending on the evaluation state, the cell may start evaluation or
+  be put in a queue, waiting for other cells to finish evaluation.
   """
   @spec queue_cell_evaluation(pid(), Cell.id(), keyword()) :: :ok
   def queue_cell_evaluation(pid, cell_id, evaluation_opts \\ []) do
@@ -462,7 +473,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section evaluation request to the server.
+  Requests all cells in the given section to be evaluated.
   """
   @spec queue_section_evaluation(pid(), Section.id()) :: :ok
   def queue_section_evaluation(pid, section_id) do
@@ -470,7 +481,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends input bound cells evaluation request to the server.
+  Requests all cells bound to the given input to be evaluated.
+
+  A cell is bound to an input if it read it value during its last
+  evaluation.
   """
   @spec queue_bound_cells_evaluation(pid(), Data.input_id()) :: :ok
   def queue_bound_cells_evaluation(pid, input_id) do
@@ -478,10 +492,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends full evaluation request to the server.
+  Requests full notebook evaluation.
 
-  All outdated (new/stale/changed) cells, as well as cells given
-  as `forced_cell_ids` are scheduled for evaluation.
+  All outdated (new/stale/changed) cells, as well as cells specified
+  by `forced_cell_ids` are queued for evaluation.
   """
   @spec queue_full_evaluation(pid(), list(Cell.id())) :: :ok
   def queue_full_evaluation(pid, forced_cell_ids) do
@@ -489,10 +503,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends reevaluation request to the server.
+  Requests cells reevaluation.
 
-  Schedules evaluation of all cells that have been evaluated
-  previously, until the first fresh cell.
+  Queues evaluation of all cells that have been evaluated previously,
+  until the first fresh cell.
   """
   @spec queue_cells_reevaluation(pid()) :: :ok
   def queue_cells_reevaluation(pid) do
@@ -500,7 +514,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell evaluation cancellation request to the server.
+  Requests cell evaluation to be canceled.
+
+  Depending on the evaluation state, this may simply remove the cell
+  from evaluation queue, or stop the current evaluation altogether.
   """
   @spec cancel_cell_evaluation(pid(), Cell.id()) :: :ok
   def cancel_cell_evaluation(pid, cell_id) do
@@ -508,7 +525,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends erase outputs request to the server.
+  Requests all notebook outputs to be removed.
   """
   @spec erase_outputs(pid()) :: :ok
   def erase_outputs(pid) do
@@ -516,7 +533,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends notebook name update request to the server.
+  Requests the notebook name to be changed.
   """
   @spec set_notebook_name(pid(), String.t()) :: :ok
   def set_notebook_name(pid, name) do
@@ -524,7 +541,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section name update request to the server.
+  Requests a section name to be changed.
   """
   @spec set_section_name(pid(), Section.id(), String.t()) :: :ok
   def set_section_name(pid, section_id, name) do
@@ -532,7 +549,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a cell delta to apply to the server.
+  Requests a cell content diff to be applied.
+
+  The diff comes from a specific client and conflicts are resolved
+  using Operational Transformation.
   """
   @spec apply_cell_delta(
           pid(),
@@ -562,7 +582,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a cell attributes update to the server.
+  Requests cell attributes to be updated.
   """
   @spec set_cell_attributes(pid(), Cell.id(), map()) :: :ok
   def set_cell_attributes(pid, cell_id, attrs) do
@@ -570,7 +590,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a input value update to the server.
+  Requests an input value to be changed.
   """
   @spec set_input_value(pid(), Data.input_id(), term()) :: :ok
   def set_input_value(pid, input_id, value) do
@@ -578,7 +598,9 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends runtime update to the server.
+  Requests a new runtime to be set.
+
+  If the current runtime is connected, it will get disconnected first.
   """
   @spec set_runtime(pid(), Runtime.t()) :: :ok
   def set_runtime(pid, runtime) do
@@ -586,9 +608,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends request to connect to the configured runtime.
-
-  Once the runtime is connected, the session takes the ownership.
+  Requests the session to connect the current runtime.
   """
   @spec connect_runtime(pid()) :: :ok
   def connect_runtime(pid) do
@@ -596,7 +616,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends file location update request to the server.
+  Requests a new file location to be used for persisting the notebook.
   """
   @spec set_file(pid(), FileSystem.File.t() | nil) :: :ok
   def set_file(pid, file) do
@@ -604,7 +624,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a secret addition request to the server.
+  Requests the given secret to be set.
   """
   @spec set_secret(pid(), Livebook.Secrets.Secret.t()) :: :ok
   def set_secret(pid, secret) do
@@ -612,7 +632,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a secret deletion request to the server.
+  Requests secret with the given name to be unset.
   """
   @spec unset_secret(pid(), String.t()) :: :ok
   def unset_secret(pid, secret_name) do
@@ -620,7 +640,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a hub selection request to the server.
+  Requests the notebook hub to be changed.
   """
   @spec set_notebook_hub(pid(), String.t()) :: :ok
   def set_notebook_hub(pid, id) do
@@ -628,7 +648,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a deployment group selection request to the server.
+  Requests the notebook deployment group to be changed.
   """
   @spec set_notebook_deployment_group(pid(), String.t()) :: :ok
   def set_notebook_deployment_group(pid, id) do
@@ -645,7 +665,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a file entries addition request to the server.
+  Requests a new file entry to be added to the notebook.
 
   Note that if file entries with any of the given names already exist
   they are replaced.
@@ -656,7 +676,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a file entry rename request to the server.
+  Requests a notebook file entry to be renamed.
   """
   @spec rename_file_entry(pid(), String.t(), String.t()) :: :ok
   def rename_file_entry(pid, name, new_name) do
@@ -664,7 +684,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a file entry deletion request to the server.
+  Requests a notebook file entry to be deleted.
   """
   @spec delete_file_entry(pid(), String.t()) :: :ok
   def delete_file_entry(pid, name) do
@@ -672,7 +692,11 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a file entry unquarantine request to the server.
+  Requests a notebook file entry to be removed from quarantine.
+
+  File entries may end up in quarantine when a notebook is open and
+  its stamp cannot be verified. Once this happens, the user needs to
+  explicitly allow each file entry to be accessible.
   """
   @spec allow_file_entry(pid(), String.t()) :: :ok
   def allow_file_entry(pid, name) do
@@ -707,7 +731,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends save request to the server.
+  Requests the session to save the current version of the notebook.
 
   If there's a file set and the notebook changed since the last save,
   it will be persisted to said file.
@@ -772,8 +796,8 @@ defmodule Livebook.Session do
   @doc """
   Closes one or more sessions.
 
-  This results in saving the file and broadcasting
-  a :closed message to the session topic.
+  This results in saving the file and broadcasting a :closed message
+  to the session topic.
   """
   @spec close(pid() | [pid()]) :: :ok
   def close(pid) do
@@ -783,7 +807,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Disconnects one or more sessions from the current runtime.
+  Requests one or more sessions to disconnect the current runtime.
 
   Note that this results in clearing the evaluation state.
   """
@@ -801,7 +825,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a app settings update request to the server.
+  Requests the notebook app settings to be changed.
   """
   @spec set_app_settings(pid(), Notebook.AppSettings.t()) :: :ok
   def set_app_settings(pid, app_settings) do
@@ -809,7 +833,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a app deployment request to the server.
+  Requests the session to deploy the notebook as an app.
   """
   @spec deploy_app(pid()) :: :ok
   def deploy_app(pid) do
@@ -817,7 +841,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends an app deactivation request to the server.
+  Requests an app session to deactivate.
 
   When an app is deactivated, the session is still running, but the
   app is no longer accessible (and connected clients should be
@@ -829,7 +853,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends an app shutdown request to the server.
+  Requests an app session to shut down.
 
   The shutdown is graceful, the app is no longer accessible, but
   connected clients should not be impacted. Once all clients
