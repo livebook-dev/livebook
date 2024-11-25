@@ -306,7 +306,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             phx-click={set_action("close_all")}
           >
             <.remix_icon icon="close-circle-line" />
-            <span>Close sessions</span>
+            <span>Close</span>
           </button>
           <input id="bulk-action-input" class="hidden" type="text" name="action" />
         </.menu_item>
