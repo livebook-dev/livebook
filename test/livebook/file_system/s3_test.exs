@@ -40,7 +40,7 @@ defmodule Livebook.FileSystem.S3Test do
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("application/xml")
-        |> Plug.Conn.resp(500, """
+        |> Plug.Conn.resp(404, """
         <Error>
           <Message>Error message</Message>
         </Error>

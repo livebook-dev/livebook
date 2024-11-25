@@ -125,21 +125,20 @@ defmodule LivebookCLI.Server do
   end
 
   defp check_endpoint_availability(base_url) do
-    Application.ensure_all_started(:inets)
+    Application.ensure_all_started(:req)
 
     health_url = set_path(base_url, "/public/health")
 
-    case Livebook.Utils.HTTP.request(:get, health_url) do
-      {:ok, %{status: status, body: body}} ->
-        with 200 <- status,
-             {:ok, body} <- Jason.decode(body),
-             %{"application" => "livebook"} <- body do
-          :livebook_running
-        else
-          _ -> :taken
-        end
+    req = Req.new() |> Livebook.Utils.req_attach_defaults()
 
-      {:error, _error} ->
+    case Req.get(req, url: health_url, retry: false) do
+      {:ok, %{status: 200, body: %{"application" => "livebook"}}} ->
+        :livebook_running
+
+      {:ok, _other} ->
+        :taken
+
+      {:error, _exception} ->
         :available
     end
   end

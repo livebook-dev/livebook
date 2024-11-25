@@ -3075,12 +3075,19 @@ defmodule Livebook.Session do
   end
 
   defp download_content(url, file) do
-    case Livebook.Utils.HTTP.download(url, file) do
-      {:ok, _file} ->
+    # Given the URL has arbitrary user-specified host, we specify
+    # :pool_max_idle_time, so the Finch pool terminates eventually
+    req = Req.new(pool_max_idle_time: 60_000) |> Livebook.Utils.req_attach_defaults()
+
+    case Req.get(req, url: url, into: file) do
+      {:ok, %{status: 200}} ->
         :ok
 
-      {:error, message, status} ->
-        {:error, "download failed, " <> message, status}
+      {:ok, %{status: status}} ->
+        {:error, "download failed, HTTP status #{status}", status}
+
+      {:error, exception} ->
+        {:error, "download failed, reason: #{Exception.message(exception)}}", nil}
     end
   end
 

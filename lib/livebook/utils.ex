@@ -759,6 +759,20 @@ defmodule Livebook.Utils do
   def ip_to_host(ip), do: ip |> :inet.ntoa() |> List.to_string()
 
   @doc """
+  Retrieves content type from response headers.
+  """
+  @spec fetch_content_type(Req.Response.t()) :: {:ok, String.t()} | :error
+  def fetch_content_type(%Req.Response{} = res) do
+    case res.headers["content-type"] do
+      [value] ->
+        {:ok, value |> String.split(";") |> hd()}
+
+      _other ->
+        :error
+    end
+  end
+
+  @doc """
   Req plugin adding global Livebook-specific plugs.
 
   The plugin covers cacerts and HTTP proxy configuration.

@@ -285,7 +285,7 @@ defmodule LivebookWeb.OpenLiveTest do
       bypass = Bypass.open()
 
       Bypass.expect(bypass, "GET", "/notebook", fn conn ->
-        Plug.Conn.resp(conn, 500, "Error")
+        Plug.Conn.resp(conn, 404, "Not found")
       end)
 
       notebook_url = "http://localhost:#{bypass.port}/notebook"

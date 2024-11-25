@@ -454,12 +454,13 @@ defmodule Livebook.Runtime.DependenciesTest do
 
     test "returns an error on unsuccessful API response", %{bypass: bypass} do
       Bypass.expect_once(bypass, "GET", "/api/packages", fn conn ->
-        Plug.Conn.resp(conn, 500, "Error")
+        Plug.Conn.resp(conn, 404, "Error")
       end)
 
       api_url = api_url(bypass.port)
 
-      assert Dependencies.search_hex("ecto", api_url: api_url) == {:error, "unexpected response"}
+      assert Dependencies.search_hex("ecto", api_url: api_url) ==
+               {:error, "unexpected response, HTTP status 404"}
     end
 
     test "returns an empty list for an empty search", %{bypass: bypass} do

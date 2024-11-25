@@ -272,24 +272,24 @@ defmodule Livebook.Runtime.Dependencies do
   def search_hex(search, opts) do
     api_url = opts[:api_url] || "https://hex.pm/api"
 
-    params = %{"search" => "name:#{search}*", "sort" => "recent_downloads"}
-    url = api_url <> "/packages?" <> URI.encode_query(params)
+    req = Req.new(base_url: api_url) |> Livebook.Utils.req_attach_defaults()
 
-    case Livebook.Utils.HTTP.request(:get, url) do
-      {:ok, %{status: status, body: body}} ->
-        with 200 <- status, {:ok, packages} <- Jason.decode(body) do
-          packages =
-            packages
-            |> Enum.map(&parse_package/1)
-            |> reorder_packages(search)
+    params = [search: "name:#{search}*", sort: "recent_downloads"]
 
-          {:ok, packages}
-        else
-          _ -> {:error, "unexpected response"}
-        end
+    case Req.get(req, url: "/packages", params: params) do
+      {:ok, %{status: 200} = resp} ->
+        packages =
+          resp.body
+          |> Enum.map(&parse_package/1)
+          |> reorder_packages(search)
 
-      {:error, reason} ->
-        {:error, "failed to make a request, reason: #{inspect(reason)}"}
+        {:ok, packages}
+
+      {:ok, %{status: status}} ->
+        {:error, "unexpected response, HTTP status #{status}"}
+
+      {:error, exception} ->
+        {:error, "failed to make a request, reason: #{Exception.message(exception)}}"}
     end
   end
 

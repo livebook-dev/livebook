@@ -1908,7 +1908,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       # Multi-level path is not available
       Bypass.expect_once(bypass, "GET", "/nested/path/to/notebook.livemd", fn conn ->
-        Plug.Conn.resp(conn, 500, "Error")
+        Plug.Conn.resp(conn, 404, "Error")
       end)
 
       # A flat path is available
@@ -1935,7 +1935,7 @@ defmodule LivebookWeb.SessionLiveTest do
       bypass = Bypass.open()
 
       Bypass.expect_once(bypass, "GET", "/notebook.livemd", fn conn ->
-        Plug.Conn.resp(conn, 500, "Error")
+        Plug.Conn.resp(conn, 404, "Error")
       end)
 
       index_url = bypass_url(bypass.port) <> "/index.livemd"

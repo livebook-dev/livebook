@@ -4,8 +4,6 @@ defmodule Livebook.Application do
   require Logger
 
   def start(_type, _args) do
-    Livebook.Utils.HTTP.set_proxy_options()
-
     Livebook.ZTA.init()
     create_teams_hub = parse_teams_hub()
     setup_optional_dependencies()
