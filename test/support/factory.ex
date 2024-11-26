@@ -42,8 +42,8 @@ defmodule Livebook.Factory do
 
   def build(:env_var) do
     %Livebook.Settings.EnvVar{
-      name: "BAR",
-      value: "foo"
+      name: unique_value("BAR_"),
+      value: Livebook.Utils.random_short_id()
     }
   end
 
@@ -142,7 +142,7 @@ defmodule Livebook.Factory do
     factory_name |> build() |> struct!(attrs)
   end
 
-  def params_for(factory_name, attrs) do
+  def params_for(factory_name, attrs \\ []) do
     factory_name |> build() |> struct!(attrs) |> Map.from_struct()
   end
 

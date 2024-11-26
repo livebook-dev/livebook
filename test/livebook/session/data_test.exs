@@ -4106,21 +4106,21 @@ defmodule Livebook.Session.DataTest do
     test "adds secret and updates hub secret names" do
       data = Data.new()
 
-      secret = Livebook.Factory.insert_secret(name: "SET_SECRET_SECRET", value: "value")
+      %{name: secret_name} = secret = Livebook.Factory.insert_secret()
 
       operation = {:set_secret, @cid, secret}
 
       assert {:ok,
               %{
-                secrets: %{"SET_SECRET_SECRET" => ^secret},
-                notebook: %{hub_secret_names: ["SET_SECRET_SECRET"]}
+                secrets: %{^secret_name => ^secret},
+                notebook: %{hub_secret_names: [^secret_name]}
               }, []} = Data.apply_operation(data, operation)
     end
   end
 
   describe "apply_operation/2 given :unset_secret" do
     test "removes secret and updates hub secret names" do
-      secret = Livebook.Factory.insert_secret(name: "SET_SECRET_SECRET", value: "value")
+      secret = Livebook.Factory.insert_secret()
 
       data =
         data_after_operations!([

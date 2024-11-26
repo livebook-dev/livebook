@@ -2019,7 +2019,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "adds a secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
-      secret = build(:secret, name: "FOO", value: "123", hub_id: nil)
+      secret = build(:secret, hub_id: nil)
 
       view
       |> element(~s{form[phx-submit="save"]})
@@ -2032,7 +2032,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "adds a livebook secret from form", %{conn: conn, session: session, hub: hub} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
-      secret = build(:secret, name: "BAR", value: "456")
+      secret = build(:secret)
 
       view
       |> element(~s{form[phx-submit="save"]})
@@ -2044,8 +2044,8 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "syncs secrets", %{conn: conn, session: session, hub: hub} do
-      session_secret = insert_secret(name: "FOO", value: "123")
-      secret = build(:secret, name: "FOO", value: "456")
+      session_secret = insert_secret(value: "123")
+      secret = build(:secret, name: session_secret.name, value: "456")
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
 
@@ -2061,7 +2061,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       Session.set_secret(session.pid, session_secret)
 
-      secret = build(:secret, name: "FOO", value: "789")
+      secret = build(:secret, name: session_secret.name, value: "789")
 
       view
       |> element(~s{form[phx-submit="save"]})
@@ -2075,8 +2075,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "never syncs secrets when updating from session",
          %{conn: conn, session: session, hub: hub} do
-      hub_secret = insert_secret(name: "FOO", value: "123")
-      secret = build(:secret, name: "FOO", value: "456", hub_id: nil)
+      hub_secret = insert_secret(value: "123")
+      secret = build(:secret, name: hub_secret.name, value: "456", hub_id: nil)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       Session.set_secret(session.pid, hub_secret)
@@ -2093,7 +2093,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "shows the 'Add secret' button for missing secrets", %{conn: conn, session: session} do
-      secret = build(:secret, name: "ANOTHER_GREAT_SECRET", value: "123456", hub_id: nil)
+      secret = build(:secret, hub_id: nil)
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
       code = ~s{System.fetch_env!("LB_#{secret.name}")}
@@ -2111,7 +2111,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "adding a missing secret using 'Add secret' button",
          %{conn: conn, session: session, hub: hub} do
-      secret = build(:secret, name: "MYUNAVAILABLESECRET", value: "123456", hub_id: nil)
+      secret = build(:secret, hub_id: nil)
 
       # Subscribe and executes the code to trigger
       # the `System.EnvError` exception and outputs the 'Add secret' button
@@ -2153,7 +2153,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "granting access for unavailable secret using 'Add secret' button",
          %{conn: conn, session: session, hub: hub} do
-      secret = insert_secret(name: "UNAVAILABLESECRET", value: "123456")
+      secret = insert_secret()
 
       # Subscribe and executes the code to trigger
       # the `System.EnvError` exception and outputs the 'Add secret' button
@@ -2198,7 +2198,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "reloading outdated secret value", %{conn: conn, session: session} do
-      hub_secret = insert_secret(name: "FOO", value: "123")
+      hub_secret = insert_secret(value: "123")
       Session.set_secret(session.pid, hub_secret)
 
       {:ok, updated_hub_secret} = Livebook.Secrets.update_secret(hub_secret, %{value: "456"})
@@ -2221,9 +2221,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.subscribe(session.id)
 
       # creates a secret
-      secret_name = "SECRET_TO_BE_UPDATED_OR_DELETED"
-      secret_value = "123"
-      insert_secret(name: secret_name, value: secret_value)
+      %{name: secret_name, value: secret_value} = insert_secret()
 
       # receives the operation event
       assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
@@ -2272,10 +2270,12 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.subscribe(session.id)
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
+      name = "MY_ENV_#{System.unique_integer([:positive])}"
+
       section_id = insert_section(session.pid)
 
       cell_id =
-        insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("MY_AWESOME_ENV")})
+        insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("#{name}")})
 
       view
       |> element(~s{[data-el-session]})
@@ -2285,7 +2285,7 @@ defmodule LivebookWeb.SessionLiveTest do
                       {:add_cell_evaluation_response, _, ^cell_id,
                        terminal_text("\e[35mnil\e[0m"), _}}
 
-      attrs = params_for(:env_var, name: "MY_AWESOME_ENV", value: "MyEnvVarValue")
+      attrs = params_for(:env_var, name: name, value: "MyEnvVarValue")
       Settings.set_env_var(attrs)
 
       view
@@ -2306,7 +2306,7 @@ defmodule LivebookWeb.SessionLiveTest do
                       {:add_cell_evaluation_response, _, ^cell_id,
                        terminal_text("\e[32m\"OTHER_VALUE\"\e[0m"), _}}
 
-      Settings.unset_env_var("MY_AWESOME_ENV")
+      Settings.unset_env_var(name)
 
       view
       |> element(~s{[data-el-session]})
@@ -2786,7 +2786,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "shows a warning when any session secrets are defined", %{conn: conn, session: session} do
-      secret = build(:secret, name: "FOO", value: "456", hub_id: nil)
+      secret = build(:secret, hub_id: nil)
       Session.set_secret(session.pid, secret)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
