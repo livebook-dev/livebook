@@ -291,10 +291,21 @@ defmodule Livebook.Teams.Requests do
   end
 
   defp build_req() do
-    Req.new(
-      base_url: Livebook.Config.teams_url(),
-      headers: [{"x-lb-version", Livebook.Config.app_version()}]
-    )
+    base_url = URI.new!(Livebook.Config.teams_url())
+
+    options =
+      if userinfo = base_url.userinfo do
+        [
+          base_url: %{base_url | userinfo: nil},
+          auth: {:basic, userinfo}
+        ]
+      else
+        [
+          base_url: base_url
+        ]
+      end
+
+    Req.new([headers: [{"x-lb-version", Livebook.Config.app_version()}]] ++ options)
     |> Livebook.Utils.req_attach_defaults()
   end
 
