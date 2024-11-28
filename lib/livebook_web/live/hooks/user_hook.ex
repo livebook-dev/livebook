@@ -4,15 +4,15 @@ defmodule LivebookWeb.UserHook do
 
   alias Livebook.Users.User
 
-  def on_mount(:default, _params, %{"identity_data" => identity_data} = session, socket) do
-    if connected?(socket) do
-      Livebook.Users.subscribe(identity_data.id)
-    end
-
+  def on_mount(:default, _params, session, socket) do
     socket =
       socket
       |> assign_new(:current_user, fn -> build_current_user(session, socket) end)
       |> attach_hook(:current_user_subscription, :handle_info, &info/2)
+
+    if connected?(socket) do
+      Livebook.Users.subscribe(socket.assigns.current_user.id)
+    end
 
     {:cont, socket}
   end
@@ -43,7 +43,7 @@ defmodule LivebookWeb.UserHook do
         attrs -> attrs
       end
 
-    user = User.new(attrs["id"])
+    user = User.new(session["user_id"])
 
     case Livebook.Users.update_user(user, attrs) do
       {:ok, user} -> user
