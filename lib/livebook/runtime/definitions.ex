@@ -65,6 +65,11 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:flame_k8s_backend, "~> 0.5"}, config: []}
   }
 
+  explorer = %{
+    name: "explorer",
+    dependency: %{dep: {:explorer, "~> 0.10.0"}, config: []}
+  }
+
   jason = %{
     name: "jason",
     dependency: %{dep: {:jason, "~> 1.4"}, config: []}
@@ -100,14 +105,19 @@ defmodule Livebook.Runtime.Definitions do
             %{
               name: "req_athena",
               dependency: %{dep: {:req_athena, ">= 0.0.0"}, config: []}
-            }
+            },
+            explorer
           ]
         },
         %{
           name: "Clickhouse",
           packages: [
             kino_db,
-            %{name: "ch", dependency: %{dep: {:ch, "~> 0.2.0"}, config: []}}
+            %{
+              name: "req_ch",
+              dependency: %{dep: {:req_ch, ">= 0.0.0"}, config: []}
+            },
+            explorer
           ]
         },
         %{
