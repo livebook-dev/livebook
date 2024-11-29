@@ -263,7 +263,8 @@ The following environment variables can be used to configure Livebook on boot:
 
   * `LIVEBOOK_LOG_METADATA` - a comma-separated list of metadata keys that should
     be included in the log messages. Currently the only Livebook-spcecific key is
-    users (attached to evaluation logs). By default includes only request_id.
+    users (attached to evaluation and request logs). By default includes only
+    request_id.
 
   * `LIVEBOOK_NODE` - sets the node name for running Livebook in a cluster.
     Note that Livebook always runs using long names distribution, so the
