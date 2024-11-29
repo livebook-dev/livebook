@@ -245,7 +245,8 @@ defmodule Livebook.AppTest do
       files_tmp_path: Livebook.Apps.generate_files_tmp_path(app_spec.slug),
       app_spec: app_spec,
       permanent: false,
-      warnings: []
+      warnings: [],
+      deployed_by: nil
     }
   end
 

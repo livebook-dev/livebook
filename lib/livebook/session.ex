@@ -131,7 +131,8 @@ defmodule Livebook.Session do
           app_pid: pid() | nil,
           auto_shutdown_ms: non_neg_integer() | nil,
           auto_shutdown_timer_ref: reference() | nil,
-          started_by: Livebook.Users.User.t() | nil
+          started_by: Livebook.Users.User.t() | nil,
+          deployed_by: Livebook.Users.User.t() | nil
         }
 
   @type memory_usage ::
@@ -193,6 +194,9 @@ defmodule Livebook.Session do
     * `:started_by` - the user that started the session. This is relevant
       for app sessions using the Teams hub, in which case this information
       is accessible from runtime
+
+    * `:deployed_by` - the user that deployed the app, to which this
+      session belongs to. This is only relevant for app sessions
 
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
@@ -933,7 +937,8 @@ defmodule Livebook.Session do
         app_pid: opts[:app_pid],
         auto_shutdown_ms: opts[:auto_shutdown_ms],
         auto_shutdown_timer_ref: nil,
-        started_by: opts[:started_by]
+        started_by: opts[:started_by],
+        deployed_by: opts[:deployed_by]
       }
 
       {:ok, state}
@@ -1424,7 +1429,14 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:deploy_app, _client_pid}, state) do
+  def handle_cast({:deploy_app, client_pid}, state) do
+    client_id = client_id(state, client_pid)
+
+    deployed_by =
+      if user_id = state.data.clients_map[client_id] do
+        state.data.users_map[user_id]
+      end
+
     # In the initial state app settings are empty, hence not valid,
     # so we double-check that we can actually deploy
     if Notebook.AppSettings.valid?(state.data.notebook.app_settings) and
@@ -1435,7 +1447,9 @@ defmodule Livebook.Session do
       }
 
       deployer_pid = Livebook.Apps.Deployer.local_deployer()
-      deployment_ref = Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
+
+      deployment_ref =
+        Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec, deployed_by: deployed_by)
 
       {:noreply, %{state | deployment_ref: deployment_ref}}
     else
@@ -2551,13 +2565,19 @@ defmodule Livebook.Session do
   defp handle_action(state, _action), do: state
 
   defp start_evaluation(state, cell, section, evaluation_opts) do
+    evaluation_users =
+      case state.data.mode do
+        :default -> Map.values(state.data.users_map)
+        :app -> if(state.deployed_by, do: [state.deployed_by], else: [])
+      end
+
     Logger.info(
       """
       Evaluating code
         Session mode: #{state.data.mode}
         Code: #{inspect(cell.source)}\
       """,
-      user: Livebook.Utils.logger_user_meta(Map.values(state.data.users_map))
+      Livebook.Utils.logger_users_metadata(evaluation_users)
     )
 
     path =

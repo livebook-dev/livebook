@@ -45,13 +45,20 @@ defmodule Livebook.Apps.Deployer do
     * `:permanent` - whether the app is deployed as permanent. Defaults
       to `false`
 
+    * `:deployed_by` - the user performing the deployment
+
   """
   @spec deploy_monitor(pid(), Apps.AppSpec.t(), keyword()) :: reference()
   def deploy_monitor(pid, app_spec, opts \\ []) do
-    opts = Keyword.validate!(opts, start_only: false, permanent: false)
+    opts = Keyword.validate!(opts, start_only: false, permanent: false, deployed_by: nil)
 
     ref = Process.monitor(pid)
-    GenServer.cast(pid, {:deploy, app_spec, opts[:start_only], opts[:permanent], self(), ref})
+
+    GenServer.cast(
+      pid,
+      {:deploy, app_spec, opts[:start_only], opts[:permanent], opts[:deployed_by], self(), ref}
+    )
+
     ref
   end
 
@@ -79,7 +86,7 @@ defmodule Livebook.Apps.Deployer do
   end
 
   @impl true
-  def handle_cast({:deploy, app_spec, start_only, permanent, from, ref}, state) do
+  def handle_cast({:deploy, app_spec, start_only, permanent, deployed_by, from, ref}, state) do
     Logger.info("[app=#{app_spec.slug}] Deploying app")
 
     files_tmp_path = Apps.generate_files_tmp_path(app_spec.slug)
@@ -98,7 +105,8 @@ defmodule Livebook.Apps.Deployer do
           files_tmp_path: files_tmp_path,
           app_spec: app_spec,
           permanent: permanent,
-          warnings: warnings
+          warnings: warnings,
+          deployed_by: deployed_by
         }
 
         name = Apps.global_name(app_spec.slug)

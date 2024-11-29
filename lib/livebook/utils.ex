@@ -835,12 +835,10 @@ defmodule Livebook.Utils do
   end
 
   @doc """
-  Returns logger metadata from user or identity data.
-
-  Expects a list corresponding to one or more users.
+  Returns logger metadata for a list of users or their identity data.
   """
-  @spec logger_user_meta(list(Livebook.Users.User.t() | map())) :: String.t()
-  def logger_user_meta(datas) when is_list(datas) do
+  @spec logger_users_metadata(list(Livebook.Users.User.t() | map())) :: String.t()
+  def logger_users_metadata(datas) when is_list(datas) do
     list =
       for data <- datas do
         for key <- [:id, :name, :email],
@@ -849,6 +847,6 @@ defmodule Livebook.Utils do
             into: %{}
       end
 
-    inspect(list)
+    [users: inspect(list)]
   end
 end
