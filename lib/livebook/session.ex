@@ -83,6 +83,8 @@ defmodule Livebook.Session do
 
   use GenServer, restart: :temporary
 
+  require Logger
+
   alias Livebook.NotebookManager
   alias Livebook.Session.{Data, FileGuard}
   alias Livebook.{Utils, Notebook, Text, Runtime, LiveMarkdown, FileSystem}
@@ -2549,6 +2551,15 @@ defmodule Livebook.Session do
   defp handle_action(state, _action), do: state
 
   defp start_evaluation(state, cell, section, evaluation_opts) do
+    Logger.info(
+      """
+      Evaluating code
+        Session mode: #{state.data.mode}
+        Code: #{inspect(cell.source)}\
+      """,
+      user: Livebook.Utils.logger_user_meta(Map.values(state.data.users_map))
+    )
+
     path =
       case state.data.file || default_notebook_file(state) do
         nil -> ""
