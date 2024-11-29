@@ -128,8 +128,7 @@ defmodule Livebook.MixProject do
       {:bypass, "~> 2.1", only: :test},
       # ZTA deps
       {:jose, "~> 1.11.5"},
-      # {:req, "~> 0.5.2"},
-      {:req, github: "wojtekmach/req", override: true},
+      {:req, "~> 0.5.8"},
       # Docs
       {:ex_doc, "~> 0.30", only: :dev, runtime: false}
     ]
