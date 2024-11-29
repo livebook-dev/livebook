@@ -833,4 +833,20 @@ defmodule Livebook.Utils do
       []
     end
   end
+
+  @doc """
+  Returns logger metadata for a list of users.
+  """
+  @spec logger_users_metadata(list(Livebook.Users.User.t())) :: keyword()
+  def logger_users_metadata(users) when is_list(users) do
+    list =
+      for user <- users do
+        for key <- [:id, :name, :email],
+            value = Map.get(user, key),
+            do: {key, value},
+            into: %{}
+      end
+
+    [users: inspect(list)]
+  end
 end

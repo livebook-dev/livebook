@@ -86,7 +86,8 @@ defmodule Livebook.App do
           files_tmp_path: String.t(),
           app_spec: Livebook.Apps.AppSpec.t(),
           permanent: boolean(),
-          warnings: list(String.t())
+          warnings: list(String.t()),
+          deployed_by: Livebook.Users.User.t() | nil
         }
 
   @doc """
@@ -361,7 +362,8 @@ defmodule Livebook.App do
       mode: :app,
       app_pid: self(),
       auto_shutdown_ms: state.deployment_bundle.notebook.app_settings.auto_shutdown_ms,
-      started_by: user
+      started_by: user,
+      deployed_by: state.deployment_bundle.deployed_by
     ]
 
     case Livebook.Sessions.create_session(opts) do

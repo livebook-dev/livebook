@@ -97,8 +97,12 @@ defmodule Livebook do
         Livebook.Config.secret!("LIVEBOOK_SECRET_KEY_BASE") ||
           Livebook.Utils.random_secret_key_base()
 
-    if Livebook.Config.debug!("LIVEBOOK_DEBUG") do
-      config :logger, level: :debug
+    if level = Livebook.Config.log_level!("LIVEBOOK_LOG_LEVEL") do
+      config :logger, level: level
+    end
+
+    if metadata = Livebook.Config.log_metadata!("LIVEBOOK_LOG_METADATA") do
+      config :logger, :console, metadata: metadata
     end
 
     if port = Livebook.Config.port!("LIVEBOOK_PORT") do

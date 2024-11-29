@@ -25,6 +25,7 @@ defmodule LivebookWeb.UserPlug do
     |> ensure_user_identity()
     |> ensure_user_data()
     |> mirror_user_data_in_session()
+    |> set_logger_metadata()
   end
 
   defp ensure_user_identity(conn) do
@@ -77,5 +78,36 @@ defmodule LivebookWeb.UserPlug do
   defp mirror_user_data_in_session(conn) do
     user_data = conn.cookies["lb_user_data"] |> Base.decode64!() |> Jason.decode!()
     put_session(conn, :user_data, user_data)
+  end
+
+  defp set_logger_metadata(conn) do
+    current_user = build_current_user(get_session(conn))
+    Logger.metadata(Livebook.Utils.logger_users_metadata([current_user]))
+    conn
+  end
+
+  @doc """
+  Builds `Livebook.Users.User` using information from the session.
+
+  Merges the `user_data` with `identity_data`. Optionally an override
+  for `user_data` can be specified, which we use in `UserHook`, where
+  we get possibly updated `user_data` from `connect_params`.
+  """
+  def build_current_user(session, user_data_override \\ nil) do
+    identity_data = Map.new(session["identity_data"], fn {k, v} -> {Atom.to_string(k), v} end)
+    attrs = user_data_override || session["user_data"] || %{}
+
+    attrs =
+      case Map.merge(attrs, identity_data) do
+        %{"name" => nil, "email" => email} = attrs -> %{attrs | "name" => email}
+        attrs -> attrs
+      end
+
+    user = Livebook.Users.User.new(session["user_id"])
+
+    case Livebook.Users.update_user(user, attrs) do
+      {:ok, user} -> user
+      {:error, _changeset} -> user
+    end
   end
 end

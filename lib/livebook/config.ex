@@ -444,15 +444,28 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Parses and validates debug mode from env.
+  Parses and validates log level from env.
   """
-  def debug!(env) do
-    if debug = System.get_env(env) do
-      cond do
-        debug in ["1", "true"] -> true
-        debug in ["0", "false"] -> false
-        true -> abort!("expected #{env} to be a boolean, got: #{inspect(debug)}")
+  def log_level!(env) do
+    levels = ~w(error warning notice info debug)
+
+    if level = System.get_env(env) do
+      if level in levels do
+        String.to_atom(level)
+      else
+        abort!("expected #{env} to be one of #{Enum.join(levels, ", ")}, got: #{inspect(levels)}")
       end
+    end
+  end
+
+  @doc """
+  Parses and validates log metadata keys from env.
+  """
+  def log_metadata!(env) do
+    if metadata = System.get_env(env) do
+      for item <- String.split(metadata, ","),
+          key = String.trim(item),
+          do: String.to_atom(key)
     end
   end
 
