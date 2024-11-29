@@ -63,6 +63,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         {Provider.connection_status(@hub)}
       </LayoutComponents.topbar>
 
+      <LayoutComponents.topbar :if={!@hub.active} variant="warning">
+        <h2>
+          Workspace disabled: your organization doesn't have an active subscription. Please contact your <.link
+            href={org_url(@hub, "/users")}
+            class="underline"
+          >org's admin</.link>.
+        </h2>
+      </LayoutComponents.topbar>
+
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
         <div id={"#{@id}-component"}>
           <div class="mb-8 flex flex-col space-y-2">
@@ -176,10 +185,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 secrets={@secrets}
                 edit_path={"hub/#{@hub.id}/secrets/edit"}
                 return_to={~p"/hub/#{@hub.id}"}
+                disabled={not @hub.active}
               />
 
               <div>
-                <.button patch={~p"/hub/#{@hub.id}/secrets/new"} id="add-secret">
+                <.button
+                  patch={~p"/hub/#{@hub.id}/secrets/new"}
+                  id="add-secret"
+                  disabled={not @hub.active}
+                >
                   Add secret
                 </.button>
               </div>
@@ -200,6 +214,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 hub_id={@hub.id}
                 file_systems={@file_systems}
                 target={@myself}
+                disabled={not @hub.active}
               />
             </div>
 
@@ -233,7 +248,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </div>
 
               <div>
-                <.button patch={~p"/hub/#{@hub.id}/groups/new"} id="add-deployment-group">
+                <.button
+                  patch={~p"/hub/#{@hub.id}/groups/new"}
+                  id="add-deployment-group"
+                  disabled={not @hub.active}
+                >
                   Add deployment group
                 </.button>
               </div>
@@ -289,6 +308,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           secret_name={@secret_name}
           secret_value={@secret_value}
           return_to={~p"/hub/#{@hub.id}"}
+          disabled={not @hub.active}
         />
       </.modal>
 

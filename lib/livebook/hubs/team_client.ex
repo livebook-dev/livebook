@@ -641,6 +641,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:user_connected, user_connected, state) do
     state
+    |> update_hub(user_connected)
     |> dispatch_secrets(user_connected)
     |> dispatch_file_systems(user_connected)
     |> dispatch_deployment_groups(user_connected)
@@ -728,6 +729,10 @@ defmodule Livebook.Hubs.TeamClient do
     state
   end
 
+  defp handle_event(:org_updated, org_updated, state) do
+    update_hub(state, org_updated)
+  end
+
   defp dispatch_secrets(state, %{secrets: secrets}) do
     decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
 
@@ -796,7 +801,27 @@ defmodule Livebook.Hubs.TeamClient do
     state
   end
 
-  defp update_hub(state, %{public_key: org_public_key}) do
+  defp update_hub(state, %LivebookProto.UserConnected{org_active: active}) do
+    hub = %{state.hub | active: active}
+
+    if Livebook.Hubs.hub_exists?(hub.id) do
+      Hubs.save_hub(hub)
+    end
+
+    %{state | hub: hub}
+  end
+
+  defp update_hub(state, %LivebookProto.OrgUpdated{active: active}) do
+    hub = %{state.hub | active: active}
+
+    if Livebook.Hubs.hub_exists?(hub.id) do
+      Hubs.save_hub(hub)
+    end
+
+    %{state | hub: hub}
+  end
+
+  defp update_hub(state, %LivebookProto.AgentConnected{public_key: org_public_key}) do
     hub = %{state.hub | org_public_key: org_public_key}
 
     if Livebook.Hubs.hub_exists?(hub.id) do
