@@ -2572,13 +2572,14 @@ defmodule Livebook.Session do
       end
 
     Logger.info(
-      ["""
-      Evaluating code
-        Session mode: #{state.data.mode}
-        Code: \
-      """,
-      inspect(cell.source, printable_limit: :infinity)
-      ]
+      [
+        """
+        Evaluating code
+          Session mode: #{state.data.mode}
+          Code: \
+        """,
+        inspect(cell.source, printable_limit: :infinity)
+      ],
       Livebook.Utils.logger_users_metadata(evaluation_users)
     )
 
