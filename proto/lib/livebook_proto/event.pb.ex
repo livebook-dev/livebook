@@ -71,4 +71,6 @@ defmodule LivebookProto.Event do
     type: LivebookProto.AppDeploymentStopped,
     json_name: "appDeploymentStopped",
     oneof: 0
+
+  field :org_updated, 17, type: LivebookProto.OrgUpdated, json_name: "orgUpdated", oneof: 0
 end

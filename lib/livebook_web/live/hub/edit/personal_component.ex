@@ -123,6 +123,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               id="hub-file-systems-list"
               hub_id={@hub.id}
               file_systems={@file_systems}
+              disabled={false}
             />
           </div>
 
@@ -195,6 +196,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
           hub={@hub}
           secret_name={@secret_name}
           secret_value={@secret_value}
+          disabled={false}
           return_to={~p"/hub/#{@hub.id}"}
         />
       </.modal>
