@@ -37,11 +37,11 @@ defmodule LivebookWeb.UserPlug do
 
       identity_data ->
         # Ensure we have a unique ID to identify this user/session.
-        id =
-          identity_data[:id] || get_session(conn, :identity_data)[:id] ||
-            Livebook.Utils.random_long_id()
+        id = identity_data[:id] || get_session(conn, :user_id) || Livebook.Utils.random_long_id()
 
-        put_session(conn, :identity_data, Map.put(identity_data, :id, id))
+        conn
+        |> put_session(:identity_data, identity_data)
+        |> put_session(:user_id, id)
 
       true ->
         conn
