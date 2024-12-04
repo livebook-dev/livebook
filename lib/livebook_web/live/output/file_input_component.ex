@@ -50,7 +50,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
       >
         <div class="flex justify-center text-gray-500">
           <%= if @value do %>
-            <%= @value.client_name %>
+            {@value.client_name}
           <% else %>
             Click to select a file or drag a local file here
           <% end %>
@@ -64,7 +64,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
         :for={msg <- LivebookWeb.HTMLHelpers.upload_error_messages(@uploads.file)}
         class="mt-0.5 text-red-600 text-sm"
       >
-        <%= msg %>
+        {msg}
       </p>
     </form>
     """

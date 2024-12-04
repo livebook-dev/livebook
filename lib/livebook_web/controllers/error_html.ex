@@ -43,7 +43,7 @@ defmodule LivebookWeb.ErrorHTML do
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" type="image/svg+xml" href={~p"/favicons/favicon.svg"} />
         <link rel="alternate icon" type="image/png" href={~p"/favicons/favicon.png"} />
-        <title><%= @status %> - Livebook</title>
+        <title>{@status} - Livebook</title>
         <link rel="stylesheet" href={~p"/assets/app.css"} />
       </head>
       <body>
@@ -53,10 +53,10 @@ defmodule LivebookWeb.ErrorHTML do
               <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
             </a>
             <div class="text-2xl text-gray-50">
-              <%= @title %>
+              {@title}
             </div>
             <div :if={@details} class="text-lg text-gray-50">
-              <%= @details %>
+              {@details}
             </div>
           </div>
         </div>

@@ -42,7 +42,7 @@ defmodule LivebookWeb.AppsLive do
                 navigate={~p"/apps/#{app.slug}"}
                 class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex items-center justify-between"
               >
-                <span class="font-semibold"><%= app.notebook_name %></span>
+                <span class="font-semibold">{app.notebook_name}</span>
                 <.remix_icon :if={not app.public?} icon="lock-password-line" />
               </.link>
             </div>
@@ -69,7 +69,7 @@ defmodule LivebookWeb.AppsLive do
               </li>
               <li>
                 Save the notebook to the
-                <span class="font-medium"><%= Livebook.Config.apps_path() %></span>
+                <span class="font-medium">{Livebook.Config.apps_path()}</span>
                 folder
               </li>
               <li>

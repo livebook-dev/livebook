@@ -30,7 +30,7 @@ defmodule LivebookWeb.SessionLive.EmbeddedRuntimeComponent do
         may interfere with code from another notebook.
       </p>
       <.button phx-click="init" phx-target={@myself} disabled={@runtime_status == :connecting}>
-        <%= label(@runtime, @runtime_status) %>
+        {label(@runtime, @runtime_status)}
       </.button>
     </div>
     """

@@ -226,10 +226,10 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     ~H"""
     <div class="flex flex-col space-y-3">
       <h3 class="text-lg font-medium text-gray-900">
-        <%= @title %>
+        {@title}
       </h3>
       <div :if={@description} class="text-gray-700">
-        <%= @description %>
+        {@description}
       </div>
       <div class="flex flex-col lg:flex-row lg:space-x-4">
         <div class="lg:grow">
@@ -252,7 +252,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
             <.shortcut shortcut={shortcut} platform={@platform} />
           </td>
           <td class="lg:whitespace-nowrap">
-            <%= shortcut.desc %>
+            {shortcut.desc}
           </td>
         </tr>
       </tbody>
@@ -279,7 +279,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         <%= if element == :joiner do %>
           <.remix_icon icon="add-line" class="text-lg text-gray-600" />
         <% else %>
-          <kbd><%= element %></kbd>
+          <kbd>{element}</kbd>
         <% end %>
       <% end %>
     </div>

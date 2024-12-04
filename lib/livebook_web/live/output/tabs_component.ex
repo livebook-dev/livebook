@@ -50,7 +50,7 @@ defmodule LivebookWeb.Output.TabsComponent do
             |> JS.remove_class("hidden", to: ~s/##{@id} [data-tab-content="#{output_idx}"]/)
           }
         >
-          <%= label %>
+          {label}
         </button>
       </div>
       <div id={"#{@id}-tab-contents"} phx-update="stream">

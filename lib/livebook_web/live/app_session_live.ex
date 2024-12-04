@@ -145,7 +145,7 @@ defmodule LivebookWeb.AppSessionLive do
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
-            <%= @data_view.notebook_name %>
+            {@data_view.notebook_name}
           </h1>
         </div>
         <div class="pt-4 flex flex-col gap-6">

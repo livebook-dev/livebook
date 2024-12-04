@@ -17,14 +17,14 @@ defmodule LivebookWeb.Output do
   def output(assigns) do
     ~H"""
     <div id={@id} class="max-w-full" data-el-output data-border={border?(@output)}>
-      <%= render_output(@output, %{
+      {render_output(@output, %{
         id: "#{@id}-output",
         session_id: @session_id,
         session_pid: @session_pid,
         input_views: @input_views,
         client_id: @client_id,
         cell_id: @cell_id
-      }) %>
+      })}
     </div>
     """
   end
@@ -266,14 +266,14 @@ defmodule LivebookWeb.Output do
       <div class="flex items-center justify-between gap-2" style="color: var(--ansi-color-red);">
         <div class="flex space-x-2 font-editor">
           <.remix_icon icon="close-circle-line" />
-          <span>Missing secret <%= inspect(@secret_name) %></span>
+          <span>Missing secret {inspect(@secret_name)}</span>
         </div>
         <.button color="gray" patch={~p"/sessions/#{@session_id}/secrets?secret_name=#{@secret_name}"}>
           Add secret
         </.button>
       </div>
       <div class="border-t border-gray-200 -mx-4" />
-      <%= render_formatted_error_message(@id, @message) %>
+      {render_formatted_error_message(@id, @message)}
     </div>
     """
   end
@@ -294,7 +294,7 @@ defmodule LivebookWeb.Output do
       <div class="flex items-center justify-between gap-2" style="color: var(--ansi-color-red);">
         <div class="flex space-x-2 font-editor">
           <.remix_icon icon="close-circle-line" />
-          <span>Forbidden access to file <%= inspect(@file_entry_name) %></span>
+          <span>Forbidden access to file {inspect(@file_entry_name)}</span>
         </div>
         <.button
           color="gray"
@@ -304,7 +304,7 @@ defmodule LivebookWeb.Output do
         </.button>
       </div>
       <div class="border-t border-gray-200 -mx-4" />
-      <%= render_formatted_error_message(@id, @message) %>
+      {render_formatted_error_message(@id, @message)}
     </div>
     """
   end
@@ -324,7 +324,7 @@ defmodule LivebookWeb.Output do
       end
     ]}>
       <div>
-        <%= @message %>
+        {@message}
       </div>
       <button
         class={[
@@ -369,7 +369,7 @@ defmodule LivebookWeb.Output do
           </.button>
         </div>
         <div class="border-t border-gray-200 -mx-4" />
-        <%= render_formatted_error_message(@id, @message) %>
+        {render_formatted_error_message(@id, @message)}
       </div>
       """
     else

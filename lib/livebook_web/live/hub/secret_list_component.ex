@@ -15,7 +15,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
         </.no_entries>
         <div :if={@secrets != []}>
           <.table rows={@secrets} id={@id}>
-            <:col :let={secret} label="Name"><%= secret.name %></:col>
+            <:col :let={secret} label="Name">{secret.name}</:col>
             <:action :let={secret}>
               <span class="tooltip left" data-tooltip="Edit">
                 <.icon_button

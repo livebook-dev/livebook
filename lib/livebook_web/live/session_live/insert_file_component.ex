@@ -18,7 +18,7 @@ defmodule LivebookWeb.SessionLive.InsertFileComponent do
           phx-click={JS.push("insert_file_action", value: %{idx: idx})}
         >
           <span>
-            <%= handler.definition.description %>
+            {handler.definition.description}
           </span>
         </div>
       </div>

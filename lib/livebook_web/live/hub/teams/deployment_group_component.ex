@@ -30,7 +30,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
         <div class="flex justify-between items-start">
           <div>
             <div class="flex gap-2 items-center text-gray-700">
-              <h3 class="font-semibold"><%= @deployment_group.name %></h3>
+              <h3 class="font-semibold">{@deployment_group.name}</h3>
               <%= if @deployment_group.mode == :online do %>
                 <div class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
                   Online
@@ -47,7 +47,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
               class="text-xs font-medium text-blue-600 mt-1"
               target="_blank"
             >
-              <%= DeploymentGroup.url_without_scheme(@deployment_group) %>
+              {DeploymentGroup.url_without_scheme(@deployment_group)}
             </.link>
           </div>
           <.link
@@ -62,7 +62,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
         <div :if={@deployment_group.mode == :online} class="flex flex-col lg:flex-row justify-center">
           <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="App servers">
             <span class="text-lg font-normal" aria-label="app servers">
-              <%= @agents_count %>
+              {@agents_count}
             </span>
             <.link
               patch={~p"/hub/#{@hub.id}/groups/#{@deployment_group.id}/agents/new"}
@@ -73,7 +73,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           </.labeled_text>
           <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="Apps deployed">
             <span class="text-lg font-normal" aria-label="apps deployed">
-              <%= @app_deployments_count %>
+              {@app_deployments_count}
             </span>
             <.link
               patch={~p"/hub/#{@hub.id}/groups/#{@deployment_group.id}/apps/new"}
@@ -87,7 +87,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             label="Environment variables"
           >
             <span class="text-lg font-normal" aria-label="environment variables">
-              <%= @environment_variables_count %>
+              {@environment_variables_count}
             </span>
             <.link
               href={

@@ -744,12 +744,12 @@ defmodule LivebookWeb.SessionLive do
 
       description = ~H"""
       <div>
-        File <span class="font-semibold">“<%= @name %>“</span>
+        File <span class="font-semibold">“{@name}“</span>
         points to an absolute path, do you want the notebook to access it?
       </div>
       <div class="mt-4 flex flex-col gap-2 border border-gray-200 rounded-lg p-4">
-        <.labeled_text label="Path"><%= @file.path %></.labeled_text>
-        <.labeled_text label="File system"><%= @file_system_label %></.labeled_text>
+        <.labeled_text label="Path">{@file.path}</.labeled_text>
+        <.labeled_text label="File system">{@file_system_label}</.labeled_text>
       </div>
       """
 
@@ -1625,9 +1625,9 @@ defmodule LivebookWeb.SessionLive do
     assigns = %{packages: packages, target_name: target_name, target_type: target_type}
 
     description = ~H"""
-    The <span class="font-semibold">“<%= @target_name %>“</span> <%= @target_type %> requires the
+    The <span class="font-semibold">“{@target_name}“</span> {@target_type} requires the
     <.listing items={@packages}>
-      <:item :let={package}><code><%= package.name %></code></:item>
+      <:item :let={package}><code>{package.name}</code></:item>
       <:singular_suffix>package. Do you want to add it as a dependency and restart?</:singular_suffix>
       <:plural_suffix>packages. Do you want to add them as dependencies and restart?</:plural_suffix>
     </.listing>

@@ -39,7 +39,7 @@ defmodule LivebookWeb.LayoutComponents do
 
           <div>
             <%= if @topbar_action do %>
-              <%= render_slot(@topbar_action) %>
+              {render_slot(@topbar_action)}
             <% else %>
               <div class="text-gray-400 hover:text-gray-600 focus:text-gray-600">
                 <.link navigate={~p"/"} class="flex items-center" aria-label="go to home">
@@ -50,7 +50,7 @@ defmodule LivebookWeb.LayoutComponents do
             <% end %>
           </div>
         </div>
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </div>
     </div>
 
@@ -94,7 +94,7 @@ defmodule LivebookWeb.LayoutComponents do
                 </span>
               </.link>
               <span class="text-gray-300 text-xs font-normal font-sans mx-2.5 pt-3 cursor-default">
-                v<%= Livebook.Config.app_version() %>
+                v{Livebook.Config.app_version()}
               </span>
             </div>
             <.sidebar_link title="Home" icon="home-6-line" to={~p"/"} current={@current_page} />
@@ -139,7 +139,7 @@ defmodule LivebookWeb.LayoutComponents do
               />
             </div>
             <span class="text-sm text-gray-400 font-medium group-hover:text-white">
-              <%= @current_user.name %>
+              {@current_user.name}
             </span>
           </button>
         </div>
@@ -160,7 +160,7 @@ defmodule LivebookWeb.LayoutComponents do
     >
       <.remix_icon icon={@icon} class="text-lg leading-6 w-[56px] flex justify-center" />
       <span class="text-sm font-medium">
-        <%= @title %>
+        {@title}
       </span>
     </.link>
     """
@@ -179,11 +179,11 @@ defmodule LivebookWeb.LayoutComponents do
     >
       <div class="text-lg leading-6 w-[56px] flex justify-center">
         <span class="relative">
-          <%= @hub.emoji %>
+          {@hub.emoji}
         </span>
       </div>
       <span class="text-sm font-medium">
-        <%= @hub.name %>
+        {@hub.name}
       </span>
     </.link>
     """
@@ -194,7 +194,7 @@ defmodule LivebookWeb.LayoutComponents do
     <.link {hub_connection_link_opts(@hub, @to, @current)}>
       <div class="text-lg leading-6 w-[56px] flex justify-center">
         <span class="relative">
-          <%= @hub.emoji %>
+          {@hub.emoji}
 
           <div class={[
             "absolute w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0",
@@ -203,7 +203,7 @@ defmodule LivebookWeb.LayoutComponents do
         </span>
       </div>
       <span class="text-sm font-medium">
-        <%= @hub.name %>
+        {@hub.name}
       </span>
     </.link>
     """
@@ -286,9 +286,9 @@ defmodule LivebookWeb.LayoutComponents do
       </div>
       <h1 class="text-2xl text-gray-800 font-medium">
         <%= if @inner_block != [] do %>
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         <% else %>
-          <%= @text %>
+          {@text}
         <% end %>
       </h1>
     </div>
@@ -304,7 +304,7 @@ defmodule LivebookWeb.LayoutComponents do
   def topbar(assigns) do
     ~H"""
     <div class={["px-2 py-2 text-sm text-center", topbar_class(@variant)]}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </div>
     """
   end

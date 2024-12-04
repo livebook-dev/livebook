@@ -89,7 +89,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
           class="error-box scroll-mt-4"
           phx-mounted={JS.dispatch("lb:scroll_into_view", detail: %{behavior: "instant"})}
         >
-          <%= @error_message %>
+          {@error_message}
         </div>
         <div>
           <.live_component

@@ -38,7 +38,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     <form id="bulk-action-form" phx-submit="bulk_action" phx-target={@myself}>
       <div class="mb-4 flex items-center md:items-end justify-between">
         <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
-          Running sessions (<%= length(@sessions) %>)
+          Running sessions ({length(@sessions)})
         </h2>
         <div class="flex items-center gap-4">
           <div class="flex gap-2 w-48 justify-end">
@@ -54,7 +54,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                   type="button"
                   aria-label={"order by - currently ordered by #{order_by_label(@order_by)}"}
                 >
-                  <span><%= order_by_label(@order_by) %></span>
+                  <span>{order_by_label(@order_by)}</span>
                   <.remix_icon icon="arrow-down-s-line" class="text-base leading-none" />
                 </.button>
               </:toggle>
@@ -71,7 +71,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                   }
                 >
                   <.remix_icon icon={order_by_icon(order_by)} />
-                  <span><%= order_by_label(order_by) %></span>
+                  <span>{order_by_label(order_by)}</span>
                 </button>
               </.menu_item>
             </.menu>
@@ -132,20 +132,20 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             navigate={~p"/sessions/#{session.id}"}
             class="font-semibold text-gray-800 hover:text-gray-900"
           >
-            <%= session.notebook_name %>
+            {session.notebook_name}
           </.link>
           <div class="text-gray-600 text-sm">
-            <%= if session.file, do: session.file.path, else: "No file" %>
+            {if session.file, do: session.file.path, else: "No file"}
           </div>
           <div class="mt-2 text-gray-600 text-sm flex flex-row items-center">
             <%= if uses_memory?(session.memory_usage) do %>
               <div class="h-3 w-3 mr-1 rounded-full bg-green-500"></div>
-              <span class="pr-4"><%= format_bytes(session.memory_usage.runtime.total) %></span>
+              <span class="pr-4">{format_bytes(session.memory_usage.runtime.total)}</span>
             <% else %>
               <div class="h-3 w-3 mr-1 rounded-full bg-gray-300"></div>
               <span class="pr-4">0 MB</span>
             <% end %>
-            Created <%= format_creation_date(session.created_at) %>
+            Created {format_creation_date(session.created_at)}
           </div>
         </div>
         <.menu id={"session-#{session.id}-menu"}>
@@ -242,8 +242,8 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </svg>
         <div class="hidden sm:flex md:hidden lg:flex">
           <span class="px-2 py-1 text-sm text-gray-500 font-medium">
-            <%= format_bytes(@used) %> / <%= format_bytes(@total) %>
-            <span class="sr-only"><%= @percentage %> percent used</span>
+            {format_bytes(@used)} / {format_bytes(@total)}
+            <span class="sr-only">{@percentage} percent used</span>
           </span>
         </div>
       </span>
@@ -389,15 +389,15 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     }
 
     description = ~H"""
-    Are you sure you want to close <%= pluralize(@session_count, "session", "sessions") %>?
+    Are you sure you want to close {pluralize(@session_count, "session", "sessions")}?
     <%= if @non_persisted_count > 0 do %>
       <br />
       <span class="font-medium">Important:</span>
-      <%= pluralize(
+      {pluralize(
         @non_persisted_count,
         "notebook is not persisted and its content may be lost.",
         "notebooks are not persisted and their content may be lost."
-      ) %>
+      )}
     <% end %>
     """
 

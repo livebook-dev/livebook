@@ -52,7 +52,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
 
       <div :if={@messages != []} class="flex flex-col gap-2">
         <.message_box :for={{kind, message} <- @messages} kind={kind}>
-          <%= raw(message) %>
+          {raw(message)}
         </.message_box>
       </div>
 

@@ -16,7 +16,7 @@ defmodule LivebookWeb.SettingsLive.EnvVarsComponent do
         </.no_entries>
         <div :if={@env_vars != []}>
           <.table id="env-var-table" rows={@env_vars}>
-            <:col :let={env_var} label="Name"><%= env_var.name %></:col>
+            <:col :let={env_var} label="Name">{env_var.name}</:col>
             <:action :let={env_var}>
               <span class="tooltip left" data-tooltip="Edit">
                 <.icon_button

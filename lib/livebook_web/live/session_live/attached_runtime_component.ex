@@ -59,7 +59,7 @@ defmodule LivebookWeb.SessionLive.AttachedRuntimeComponent do
       <p class="text-gray-700">
         Connect the session to an already running node
         and evaluate code in the context of that node.
-        The node must run Elixir <%= Livebook.Runtime.Attached.elixir_version_requirement() %>.
+        The node must run Elixir {Livebook.Runtime.Attached.elixir_version_requirement()}.
         Make sure to give the node a name and a cookie, for example:
       </p>
       <div class="text-gray-700 markdown">
@@ -83,7 +83,7 @@ defmodule LivebookWeb.SessionLive.AttachedRuntimeComponent do
           <.text_field field={f[:cookie]} label="Cookie" placeholder="mycookie" />
         </div>
         <.button type="submit" disabled={@runtime_status == :connecting or not @changeset.valid?}>
-          <%= label(@changeset, @runtime_status) %>
+          {label(@changeset, @runtime_status)}
         </.button>
       </.form>
     </div>

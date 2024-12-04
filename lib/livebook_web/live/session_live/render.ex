@@ -126,12 +126,12 @@ defmodule LivebookWeb.SessionLive.Render do
     </.modal>
 
     <.modal :if={@live_action == :app_teams} id="app-teams-modal" show width="big" patch={@self_path}>
-      <%= live_render(@socket, LivebookWeb.SessionLive.AppTeamsLive,
+      {live_render(@socket, LivebookWeb.SessionLive.AppTeamsLive,
         id: "app-teams",
         session: %{
           "session_pid" => @session.pid
         }
-      ) %>
+      )}
     </.modal>
 
     <.modal
@@ -266,13 +266,13 @@ defmodule LivebookWeb.SessionLive.Render do
       width="medium"
       patch={@self_path}
     >
-      <%= live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
+      {live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
         id: "package-search",
         session: %{
           "session_pid" => @session.pid,
           "runtime" => @data_view.runtime
         }
-      ) %>
+      )}
     </.modal>
 
     <.modal
@@ -500,7 +500,7 @@ defmodule LivebookWeb.SessionLive.Render do
               data-section-id={section_item.id}
             >
               <.remix_icon icon="h-2" class="text-lg font-normal leading-none opacity-50" />
-              <span><%= section_item.name %></span>
+              <span>{section_item.name}</span>
               <%!--
                 Note: the container has overflow-y auto, so we cannot set overflow-x visible,
                 consequently we show the tooltip wrapped to a fixed number of characters
@@ -532,7 +532,7 @@ defmodule LivebookWeb.SessionLive.Render do
               >
                 <.remix_icon icon="braces-line" class="font-normal opacity-50" />
                 <span class="font-mono break-all text-left">
-                  <%= definition.label %>
+                  {definition.label}
                 </span>
               </button>
             </li>
@@ -576,7 +576,7 @@ defmodule LivebookWeb.SessionLive.Render do
         </h3>
         <span class="flex items-center px-2 py-1 space-x-2 text-sm bg-gray-200 rounded-lg">
           <span class="inline-flex w-3 h-3 bg-green-600 rounded-full"></span>
-          <span><%= length(@data_view.clients) %> connected</span>
+          <span>{length(@data_view.clients)} connected</span>
         </span>
       </div>
       <div class="flex flex-col mt-5 space-y-4">
@@ -594,8 +594,8 @@ defmodule LivebookWeb.SessionLive.Render do
           >
             <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
             <span class="text-left">
-              <%= user.name || "Anonymous" %>
-              <%= if(client_id == @client_id, do: "(you)") %>
+              {user.name || "Anonymous"}
+              {if(client_id == @client_id, do: "(you)")}
             </span>
           </button>
           <%= if client_id == @client_id do %>
@@ -654,7 +654,7 @@ defmodule LivebookWeb.SessionLive.Render do
       <div class="flex flex-col mt-2">
         <div class="flex flex-col space-y-3">
           <.labeled_text :for={{label, value} <- @data_view.runtime_metadata} label={label} one_line>
-            <%= value %>
+            {value}
           </.labeled_text>
         </div>
         <div class="mt-4 grid grid-cols-2 gap-2">
@@ -690,7 +690,7 @@ defmodule LivebookWeb.SessionLive.Render do
           <.message_box kind="info">
             <div class="flex items-center gap-2">
               <.spinner />
-              <span>Step: <%= @data_view.runtime_connect_info %></span>
+              <span>Step: {@data_view.runtime_connect_info}</span>
             </div>
           </.message_box>
         </div>
@@ -728,9 +728,9 @@ defmodule LivebookWeb.SessionLive.Render do
         <.runtime_memory_info memory_usage={@memory_usage} />
       <% else %>
         <p class="text-sm text-gray-800">
-          <%= format_bytes(@memory_usage.system.free) %> available out of <%= format_bytes(
+          {format_bytes(@memory_usage.system.free)} available out of {format_bytes(
             @memory_usage.system.total
-          ) %>
+          )}
         </p>
       <% end %>
     </div>
@@ -757,12 +757,12 @@ defmodule LivebookWeb.SessionLive.Render do
       <div class="flex flex-col">
         <div :for={{type, memory} <- @runtime_memory} class="flex flex-row items-center">
           <span class={["w-4 h-4 mr-2 rounded", memory_color(type)]}></span>
-          <span class="capitalize text-gray-700"><%= type %></span>
-          <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
+          <span class="capitalize text-gray-700">{type}</span>
+          <span class="text-gray-500 ml-auto">{memory.unit}</span>
         </div>
       </div>
       <div class="flex rounded justify-center py-0.5 text-sm text-gray-800 bg-gray-200">
-        Total: <%= format_bytes(@memory_usage.runtime.total) %>
+        Total: {format_bytes(@memory_usage.runtime.total)}
       </div>
     </div>
     """
@@ -794,7 +794,7 @@ defmodule LivebookWeb.SessionLive.Render do
       <span class="text-sm text-gray-500 font-semibold uppercase">
         Connected nodes
         <%= if @runtime_connected_nodes != [] do %>
-          (<%= length(@runtime_connected_nodes) %>)
+          ({length(@runtime_connected_nodes)})
         <% end %>
       </span>
       <%= if @runtime_connected_nodes == [] do %>
@@ -812,7 +812,7 @@ defmodule LivebookWeb.SessionLive.Render do
               "flex-grow text-sm text-gray-700 text-medium whitespace-nowrap text-ellipsis overflow-hidden",
               "group-hover:overflow-visible group-hover:whitespace-normal group-hover:break-all"
             ]}>
-              <%= node %>
+              {node}
             </div>
             <span class="tooltip left" data-tooltip="Disconnect">
               <.icon_button phx-click="runtime_disconnect_node" phx-value-node={node} small>
@@ -1322,8 +1322,8 @@ defmodule LivebookWeb.SessionLive.Render do
                 aria-label={@data_view.hub.hub_name}
               >
                 <span>Using</span>
-                <span class="pl-1"><%= @data_view.hub.hub_emoji %></span>
-                <span><%= @data_view.hub.hub_name %></span>
+                <span class="pl-1">{@data_view.hub.hub_emoji}</span>
+                <span>{@data_view.hub.hub_name}</span>
                 <.remix_icon icon="arrow-down-s-line" class="-ml-1" />
                 <span>workspace</span>
               </div>
@@ -1335,8 +1335,8 @@ defmodule LivebookWeb.SessionLive.Render do
                 aria-label={hub.name}
                 role="menuitem"
               >
-                <%= hub.emoji %>
-                <span class="ml-2"><%= hub.name %></span>
+                {hub.emoji}
+                <span class="ml-2">{hub.name}</span>
               </button>
             </.menu_item>
             <.menu_item>

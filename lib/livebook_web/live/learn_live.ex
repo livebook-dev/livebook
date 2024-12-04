@@ -44,10 +44,10 @@ defmodule LivebookWeb.LearnLive do
           <img src={learn_img_src(@lead_notebook_info.details.cover)} width="100" alt="livebook" />
           <div>
             <h3 class="text-xl text-gray-50 font-semibold">
-              <%= @lead_notebook_info.title %>
+              {@lead_notebook_info.title}
             </h3>
             <p class="mt-2 text-sm text-gray-300">
-              <%= @lead_notebook_info.details.description %>
+              {@lead_notebook_info.details.description}
             </p>
             <div class="mt-4">
               <.button patch={~p"/learn/notebooks/#{@lead_notebook_info.slug}"}>
@@ -76,13 +76,13 @@ defmodule LivebookWeb.LearnLive do
         <img src={learn_img_src(@group_info.cover)} width="100" />
         <div>
           <div class="inline-flex px-2 py-0.5 bg-gray-200 rounded-3xl text-gray-700 text-xs font-medium">
-            <%= length(@group_info.notebook_infos) %> notebooks
+            {length(@group_info.notebook_infos)} notebooks
           </div>
           <h3 class="mt-1 text-xl text-gray-800 font-semibold">
-            <%= @group_info.title %>
+            {@group_info.title}
           </h3>
           <p class="mt-2 text-gray-700">
-            <%= @group_info.description %>
+            {@group_info.description}
           </p>
         </div>
       </div>
@@ -93,10 +93,10 @@ defmodule LivebookWeb.LearnLive do
             class="py-3 flex flex-row items-center space-x-5 border-b border-gray-200 last:border-b-0"
           >
             <div class="text-lg text-gray-400 font-semibold">
-              <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
+              {number |> Integer.to_string() |> String.pad_leading(2, "0")}
             </div>
             <div class="grow text-gray-800 font-semibold">
-              <%= notebook_info.title %>
+              {notebook_info.title}
             </div>
             <.button color="gray" outlined navigate={~p"/learn/notebooks/#{notebook_info.slug}"}>
               <.remix_icon icon="play-circle-line" /> Open

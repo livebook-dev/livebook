@@ -37,7 +37,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
     <div>
       <div :if={upload_error_messages(@uploads.file) != []} class="mb-6 flex flex-col gap-2">
         <div :for={message <- upload_error_messages(@uploads.file)} class="error-box">
-          <%= message %>
+          {message}
         </div>
       </div>
       <div class="mb-6">

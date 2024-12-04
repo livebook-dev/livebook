@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
             role="menuitem"
             phx-click={JS.push("load_config", value: %{name: name}, target: @myself)}
           >
-            <%= name %>
+            {name}
           </button>
         </.menu_item>
       </.menu>
@@ -114,7 +114,7 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
       </div>
       <div class="mt-6 flex gap-2">
         <.button type="submit" disabled={not @save_config.changeset.valid? or @save_config.inflight}>
-          <%= if(@save_config.inflight, do: "Saving...", else: "Save") %>
+          {if(@save_config.inflight, do: "Saving...", else: "Save")}
         </.button>
         <.button
           color="gray"
@@ -133,8 +133,8 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
   defp workspace(assigns) do
     ~H"""
     <span class="font-medium">
-      <span class="text-lg"><%= @hub.hub_emoji %></span>
-      <span><%= @hub.hub_name %></span>
+      <span class="text-lg">{@hub.hub_emoji}</span>
+      <span>{@hub.hub_name}</span>
     </span>
     """
   end

@@ -93,16 +93,16 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                     <.cell_icon cell_type={Cell.type(cell)} language={Map.get(cell, :language)} />
                     <p class="ml-1 text-sm text-gray-700 self-center">
                       <span class="font-semibold">
-                        <%= Cell.type(cell) |> Atom.to_string() |> String.capitalize() %>
+                        {Cell.type(cell) |> Atom.to_string() |> String.capitalize()}
                       </span>
                       cell
-                      deleted from <span class="font-semibold">“<%= entry.section_name %>”</span>
+                      deleted from <span class="font-semibold">“{entry.section_name}”</span>
                       section
                     </p>
                   </div>
                   <div class="flex justify-end space-x-2">
                     <span class="text-sm text-gray-500">
-                      <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(entry.deleted_at) %> ago
+                      {LivebookWeb.HTMLHelpers.format_datetime_relatively(entry.deleted_at)} ago
                     </span>
                   </div>
                 </div>

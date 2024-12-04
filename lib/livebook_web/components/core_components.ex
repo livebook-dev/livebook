@@ -127,7 +127,7 @@ defmodule LivebookWeb.CoreComponents do
         phx-no-format
       ><%= @message %></div>
       <%= if @inner_block != [] do %>
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       <% end %>
     </div>
     """
@@ -213,7 +213,7 @@ defmodule LivebookWeb.CoreComponents do
             <span class="text-sm">(esc)</span>
             <.remix_icon icon="close-line" class="text-2xl" />
           </button>
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </.focus_wrap>
       </div>
     </div>
@@ -308,7 +308,7 @@ defmodule LivebookWeb.CoreComponents do
         phx-window-keydown={hide_menu(@id)}
         phx-key="escape"
       >
-        <%= render_slot(@toggle) %>
+        {render_slot(@toggle)}
       </div>
       <div id={"#{@id}-overlay"} class="fixed z-[90] inset-0 hidden" phx-click-away={hide_menu(@id)}>
       </div>
@@ -328,7 +328,7 @@ defmodule LivebookWeb.CoreComponents do
           id={"#{@id}-content-inner"}
           class="rounded-lg bg-white flex flex-col py-2 shadow-[0_15px_99px_-0px_rgba(12,24,41,0.15)]"
         >
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </div>
       </menu>
     </div>
@@ -435,10 +435,10 @@ defmodule LivebookWeb.CoreComponents do
   def submenu(assigns) do
     ~H"""
     <div class="group relative">
-      <%= render_slot(@primary) %>
+      {render_slot(@primary)}
       <div class="absolute -top-2 right-0 translate-x-full pl-2 hidden group-hover:flex group-focus-within:flex">
         <menu class="relative mt-0 z-[100] rounded-lg bg-white flex flex-col py-2 shadow-[0_15px_99px_-0px_rgba(12,24,41,0.15)]">
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </menu>
       </div>
     </div>
@@ -461,7 +461,7 @@ defmodule LivebookWeb.CoreComponents do
       menu_item_class(@variant),
       @disabled && "pointer-events-none opacity-50"
     ]}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </li>
     """
   end
@@ -542,7 +542,7 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div>
       <div class="flex justify-between items-center">
-        <span class="text-sm text-gray-700 font-semibold"><%= @title %></span>
+        <span class="text-sm text-gray-700 font-semibold">{@title}</span>
         <div class="flex justify-end space-x-2">
           <span class="tooltip left" data-tooltip="Copy source">
             <.icon_button
@@ -584,14 +584,14 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div class={["flex flex-col space-y-1", @class]}>
       <span class="text-sm text-gray-500">
-        <%= @label %>
+        {@label}
       </span>
       <span class={[
         "text-gray-800 text-sm font-semibold",
         @one_line &&
           "whitespace-nowrap overflow-hidden text-ellipsis hover:text-clip hover:overflow-auto hover:tiny-scrollbar"
       ]}>
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </span>
     </div>
     """
@@ -629,7 +629,7 @@ defmodule LivebookWeb.CoreComponents do
       disabled={@disabled}
       {@rest}
     >
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
@@ -691,9 +691,9 @@ defmodule LivebookWeb.CoreComponents do
       </div>
       <div class="grow flex items-center justify-between">
         <div class="text-gray-600">
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </div>
-        <%= render_slot(@actions) %>
+        {render_slot(@actions)}
       </div>
     </div>
     """
@@ -749,8 +749,8 @@ defmodule LivebookWeb.CoreComponents do
 
   def listing(%{items: [_]} = assigns) do
     ~H"""
-    <%= render_slot(@item, hd(@items)) %>
-    <%= render_slot(@singular_suffix) %>
+    {render_slot(@item, hd(@items))}
+    {render_slot(@singular_suffix)}
     """
   end
 
@@ -761,10 +761,10 @@ defmodule LivebookWeb.CoreComponents do
 
     ~H"""
     <%= for item <- @leading do %>
-      <%= render_slot(@item, item) %>,
+      {render_slot(@item, item)},
     <% end %>
-    <%= render_slot(@item, @second_to_last) %> and <%= render_slot(@item, @last) %>
-    <%= render_slot(@plural_suffix) %>
+    {render_slot(@item, @second_to_last)} and {render_slot(@item, @last)}
+    {render_slot(@plural_suffix)}
     """
   end
 
@@ -805,7 +805,7 @@ defmodule LivebookWeb.CoreComponents do
       <thead class="text-sm text-left font-semibold leading-6 text-gray-900">
         <tr>
           <th :for={col <- @col} class="py-3.5 pl-4 pr-3 sm:pl-6">
-            <%= col[:label] %>
+            {col[:label]}
           </th>
           <th :if={@action != []} class="py-3.5 pl-3 pr-5 text-right sm:pr-7">
             <span>Actions</span>
@@ -824,13 +824,13 @@ defmodule LivebookWeb.CoreComponents do
             class={["relative p-0", @row_click && "hover:cursor-pointer"]}
           >
             <div class="relative block p-4 sm:px-6">
-              <%= render_slot(col, @row_item.(row)) %>
+              {render_slot(col, @row_item.(row))}
             </div>
           </td>
           <td :if={@action != []} class="relative p-0">
             <div class="relative whitespace-nowrap py-4 pl-3 pr-4 sm:pr-6 flex justify-end items-center">
               <span :for={action <- @action} class="ml-4">
-                <%= render_slot(action, @row_item.(row)) %>
+                {render_slot(action, @row_item.(row))}
               </span>
             </div>
           </td>
@@ -867,7 +867,7 @@ defmodule LivebookWeb.CoreComponents do
              is_map_key(assigns.rest, :navigate) do
     ~H"""
     <.link class={[button_classes(@small, @disabled, @color, @outlined), @class]} {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </.link>
     """
   end
@@ -879,7 +879,7 @@ defmodule LivebookWeb.CoreComponents do
       disabled={@disabled}
       {@rest}
     >
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
@@ -941,7 +941,7 @@ defmodule LivebookWeb.CoreComponents do
              is_map_key(assigns.rest, :navigate) do
     ~H"""
     <.link class={[icon_button_classes(@small, @disabled), @class]} {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </.link>
     """
   end
@@ -949,7 +949,7 @@ defmodule LivebookWeb.CoreComponents do
   def icon_button(assigns) do
     ~H"""
     <button class={[icon_button_classes(@small, @disabled), @class]} disabled={@disabled} {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
@@ -1007,13 +1007,13 @@ defmodule LivebookWeb.CoreComponents do
           }
         >
           <span class="font-medium">
-            <%= tab.label %>
+            {tab.label}
           </span>
         </button>
       </div>
 
       <div :for={tab <- @tab} data-tab={tab.id} class={@default == tab.id || "hidden"}>
-        <%= render_slot(tab) %>
+        {render_slot(tab)}
       </div>
     </div>
     """

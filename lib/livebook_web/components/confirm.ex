@@ -89,10 +89,10 @@ defmodule LivebookWeb.Confirm do
         data-el-confirm-form
       >
         <h3 class="text-2xl font-semibold text-gray-800">
-          <%= @title %>
+          {@title}
         </h3>
         <p class="mt-8 text-gray-700">
-          <%= @description %>
+          {@description}
         </p>
         <div :if={@options != []} class="mt-8">
           <h3 class="mb-2 text-lg font-semibold text-gray-800">
@@ -125,7 +125,7 @@ defmodule LivebookWeb.Confirm do
             </.button>
             <.button color={if(@danger, do: "red", else: "blue")} type="submit">
               <.remix_icon :if={@confirm_icon} icon={@confirm_icon} />
-              <span><%= @confirm_text %></span>
+              <span>{@confirm_text}</span>
             </.button>
           </div>
         </div>

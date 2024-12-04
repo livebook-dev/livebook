@@ -104,9 +104,9 @@ defmodule Livebook.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7.8"},
-      {:phoenix_live_view, "~> 1.0.0-rc.0"},
+      {:phoenix_live_view, "~> 1.0.0"},
       {:phoenix_html, "~> 4.0"},
-      {:phoenix_live_dashboard, "~> 0.8.4-rc.0"},
+      {:phoenix_live_dashboard, "~> 0.8.4"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
