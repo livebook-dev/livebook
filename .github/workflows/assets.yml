@@ -6,8 +6,6 @@ on:
       - "v*.*"
 jobs:
   build:
-    outputs:
-      sha: ${{ steps.push_assets.outputs.commit_hash }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +48,6 @@ jobs:
       - name: Build assets
         run: npm run deploy --prefix assets
       - name: Push updated assets
-        id: push_assets
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Update assets
