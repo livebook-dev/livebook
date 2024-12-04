@@ -998,6 +998,52 @@ Vl.new()
 ])
 ```
 
+### Single point
+
+Highlighting a single point by clicking on it.
+
+```elixir
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/cars.json")
+|> Vl.param("pts", select: :point)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "Horsepower", type: :quantitative)
+|> Vl.encode_field(:y, "Miles_per_Gallon", type: :quantitative)
+|> Vl.encode(:color,
+  condition: [
+    param: "pts",
+    field: "Cylinders",
+    type: :ordinal,
+    scale: [scheme: "yelloworangebrown"]
+  ],
+  value: :gray
+)
+|> Vl.encode(:size, condition: [param: "pts", empty: false, value: 200], value: 50)
+```
+
+### Multiple points
+
+Highlighting a group of matching points by clicking on one of them.
+
+```elixir
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/cars.json")
+|> Vl.param("pts", select: [type: :point, fields: ["Cylinders"]])
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "Horsepower", type: :quantitative)
+|> Vl.encode_field(:y, "Miles_per_Gallon", type: :quantitative)
+|> Vl.encode(:color,
+  condition: [
+    param: "pts",
+    field: "Cylinders",
+    type: :ordinal,
+    scale: [scheme: "yelloworangebrown"]
+  ],
+  value: :gray
+)
+|> Vl.encode(:size, condition: [param: "pts", empty: false, value: 200], value: 50)
+```
+
 ### Map connections
 
 An interactive visualization of connections between locations on a map.
