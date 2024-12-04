@@ -752,7 +752,10 @@ defmodule Livebook.Runtime.Evaluator do
             :code.load_binary(module, String.to_charlist(file), binary)
 
           # Registration of module
-          Evaluator.Tracer.trace({:on_module, binary, %{}}, %{env | module: module, versioned_vars: %{}})
+          Evaluator.Tracer.trace(
+            {:on_module, binary, %{}},
+            %{env | module: module, versioned_vars: %{}}
+          )
 
           {{:ok, {:ok, module}, binding, env}, []}
 
