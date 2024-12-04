@@ -1023,7 +1023,7 @@ Vl.new(width: 400, height: 300)
 
 ### Multiple points
 
-Highlighting multiple points by clicking on one of them.
+Highlighting a group of matching points by clicking on one of them.
 
 ```elixir
 Vl.new(width: 400, height: 300)
@@ -1041,7 +1041,7 @@ Vl.new(width: 400, height: 300)
   ],
   value: :gray
 )
-|> Vl.encode(:size, condition: [param: "pts", value: 200], value: 50)
+|> Vl.encode(:size, condition: [param: "pts", empty: false, value: 200], value: 50)
 ```
 
 ### Map connections
