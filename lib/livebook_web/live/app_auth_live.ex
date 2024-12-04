@@ -50,7 +50,7 @@ defmodule LivebookWeb.AppAuthLive do
                 autofocus
               />
               <span :for={error <- @errors} class="mt-1 text-red-600 text-sm">
-                <%= translate_error(error) %>
+                {translate_error(error)}
               </span>
             </div>
             <.button type="submit">

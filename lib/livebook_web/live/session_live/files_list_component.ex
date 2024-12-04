@@ -105,7 +105,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
             phx-click={JS.push("review_file_entry_access", value: %{name: file_entry.name})}
           >
             <.remix_icon icon="alert-line" class="text-lg align-middle mr-2" />
-            <span class="break-all"><%= file_entry.name %></span>
+            <span class="break-all">{file_entry.name}</span>
           </button>
         <% else %>
           <div
@@ -118,7 +118,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
               icon={file_entry_icon(file_entry, @session)}
               class="text-lg align-middle mr-2"
             />
-            <span class="break-all"><%= file_entry.name %></span>
+            <span class="break-all">{file_entry.name}</span>
           </div>
         <% end %>
         <%= if file_entry.name in @transferring_file_entry_names do %>

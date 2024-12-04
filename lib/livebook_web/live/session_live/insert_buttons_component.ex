@@ -35,7 +35,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
                 phx-value-section_id={@section_id}
                 phx-value-cell_id={@cell_id}
               >
-                + <%= @default_language |> Atom.to_string() |> String.capitalize() %>
+                + {@default_language |> Atom.to_string() |> String.capitalize()}
               </div>
               <div class="-mr-1 pl-1 flex items-center border-l border-gray-200 group-hover:border-gray-300 group-focus:border-gray-300">
                 <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
@@ -197,7 +197,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
         end
       ]}
     >
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
@@ -208,7 +208,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       <:primary>
         <button role="menuitem">
           <.remix_icon icon={@definition.icon} />
-          <span><%= @definition.name %></span>
+          <span>{@definition.name}</span>
         </button>
       </:primary>
       <.menu_item :for={{variant, idx} <- Enum.with_index(@definition.variants)}>
@@ -216,7 +216,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           role="menuitem"
           phx-click={on_example_snippet_click(@definition, idx, @section_id, @cell_id)}
         >
-          <span><%= variant.name %></span>
+          <span>{variant.name}</span>
         </button>
       </.menu_item>
     </.submenu>
@@ -230,7 +230,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       phx-click={on_example_snippet_click(@definition, 0, @section_id, @cell_id)}
     >
       <.remix_icon icon={@definition.icon} />
-      <span><%= @definition.name %></span>
+      <span>{@definition.name}</span>
     </button>
     """
   end
@@ -240,7 +240,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
     <.submenu>
       <:primary>
         <button role="menuitem">
-          <span><%= @definition.name %></span>
+          <span>{@definition.name}</span>
         </button>
       </:primary>
       <.menu_item :for={{preset, idx} <- Enum.with_index(@definition.requirement_presets)}>
@@ -248,7 +248,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           role="menuitem"
           phx-click={on_smart_cell_click(@definition, idx, @section_id, @cell_id)}
         >
-          <span><%= preset.name %></span>
+          <span>{preset.name}</span>
         </button>
       </.menu_item>
     </.submenu>
@@ -258,7 +258,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
   defp smart_cell_insert_button(assigns) do
     ~H"""
     <button role="menuitem" phx-click={on_smart_cell_click(@definition, @section_id, @cell_id)}>
-      <span><%= @definition.name %></span>
+      <span>{@definition.name}</span>
     </button>
     """
   end

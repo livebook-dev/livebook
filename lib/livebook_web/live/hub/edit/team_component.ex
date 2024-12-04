@@ -60,7 +60,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     ~H"""
     <div>
       <LayoutComponents.topbar :if={Provider.connection_status(@hub)} variant="warning">
-        <%= Provider.connection_status(@hub) %>
+        {Provider.connection_status(@hub)}
       </LayoutComponents.topbar>
 
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
@@ -70,14 +70,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               <div class="flex gap-2 items-center">
                 <div class="flex justify-center">
                   <span class="relative">
-                    <%= @hub.hub_emoji %>
+                    {@hub.hub_emoji}
                     <div class={[
                       "absolute w-[10px] h-[10px] border-white border-2 rounded-full right-0 bottom-1",
                       if(@hub_metadata.connected?, do: "bg-green-400", else: "bg-red-400")
                     ]} />
                   </span>
                 </div>
-                <%= @hub.hub_name %>
+                {@hub.hub_name}
                 <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
                   Livebook Teams
                 </span>

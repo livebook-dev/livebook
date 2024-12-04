@@ -214,7 +214,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         <div :if={@rbac.status == :ok} class="mt-8">
           <div class="flex gap-2">
             <.button phx-click="init" phx-target={@myself} disabled={@runtime_status == :connecting}>
-              <%= label(@namespace, @runtime, @runtime_status) %>
+              {label(@namespace, @runtime, @runtime_status)}
             </.button>
             <.button
               :if={@runtime_status == :connecting}
@@ -234,7 +234,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             <.message_box kind="info">
               <div class="flex items-center gap-2">
                 <.spinner />
-                <span>Step: <%= @runtime_connect_info %></span>
+                <span>Step: {@runtime_connect_info}</span>
               </div>
             </.message_box>
           </div>
@@ -317,7 +317,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               disabled={@pvc_action.status == :inflight}
             >
               <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" />
-              <%= if @pvc_action[:type] == :delete, do: "Delete", else: "Deleting..." %>
+              {if @pvc_action[:type] == :delete, do: "Delete", else: "Deleting..."}
             </button>
             <button
               class="text-gray-600 font-medium text-sm"
@@ -358,7 +358,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             type="submit"
             disabled={not @pvc_action.changeset.valid? or @pvc_action.status == :inflight}
           >
-            <%= if(@pvc_action.status == :inflight, do: "Creating...", else: "Create") %>
+            {if(@pvc_action.status == :inflight, do: "Creating...", else: "Create")}
           </.button>
           <.button
             type="button"
@@ -417,8 +417,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     ~H"""
     <div class="flex items-center justify-between">
       <div>
-        Authenticated user has no permission to <span class="font-semibold"><%= @verb %></span>
-        <code><%= @path %></code>
+        Authenticated user has no permission to <span class="font-semibold">{@verb}</span>
+        <code>{@path}</code>
         <span :if={@namespace}> in namespace <code><%= @namespace %></code> (or the namespace doesn't exist)</span>.
       </div>
     </div>
@@ -429,7 +429,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     assigns = assign(assigns, :message, message)
 
     ~H"""
-    <div><%= @message %></div>
+    <div>{@message}</div>
     """
   end
 

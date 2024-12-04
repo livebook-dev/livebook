@@ -33,13 +33,13 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
     ~H"""
     <div class="flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        <%= @title %>
+        {@title}
       </h3>
       <p class="text-gray-700">
         A notebook can read the secret value as a LB_ prefixed environment variable.
       </p>
       <div :if={@error_message} class="error-box">
-        <%= @error_message %>
+        {@error_message}
       </div>
       <div class="flex flex-columns gap-4">
         <.form
@@ -77,7 +77,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
             <div class="flex space-x-2">
               <.button type="submit" disabled={not @changeset.valid?}>
                 <.remix_icon icon={@button.icon} />
-                <span class="font-normal"><%= @button.label %></span>
+                <span class="font-normal">{@button.label}</span>
               </.button>
               <.button color="gray" outlined patch={@return_to}>
                 Cancel

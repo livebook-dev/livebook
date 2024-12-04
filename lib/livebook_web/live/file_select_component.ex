@@ -150,12 +150,12 @@ defmodule LivebookWeb.FileSelectComponent do
           </.menu_item>
         </.menu>
         <div :if={@inner_block}>
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </div>
       </div>
       <div class="flex flex-col space-y-2">
         <div :if={@error_message} class="error-box flex justify-between items-center">
-          <span><%= @error_message %></span>
+          <span>{@error_message}</span>
           <button phx-click="clear_error" phx-target={@myself}>
             <.remix_icon icon="delete-bin-6-line" class="text-lg align-middle" />
           </button>
@@ -218,7 +218,7 @@ defmodule LivebookWeb.FileSelectComponent do
           >
             <div :for={file <- @uploads.folder.entries} class="p-2 flex gap-2 items-center">
               <.spinner />
-              <span class="font-medium text-gray-500"><%= file.client_name %></span>
+              <span class="font-medium text-gray-500">{file.client_name}</span>
               <div class="grow" />
               <.icon_button type="button" phx-click="clear-file" phx-target={@myself} tabindex="-1">
                 <.remix_icon icon="close-line" />
@@ -301,7 +301,7 @@ defmodule LivebookWeb.FileSelectComponent do
           aria-label="switch file storage"
           disabled={@file_system_select_disabled}
         >
-          <span><%= file_system_name(@file.file_system_module) %></span>
+          <span>{file_system_name(@file.file_system_module)}</span>
           <div class="pl-0.5 flex items-center">
             <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
           </div>
@@ -312,7 +312,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <.menu_item variant="selected">
             <button id={"#{@id}-file-system-#{file_system.id}"} role="menuitem">
               <.file_system_icon file_system={file_system} />
-              <span><%= file_system_label(file_system) %></span>
+              <span>{file_system_label(file_system)}</span>
             </button>
           </.menu_item>
         <% else %>
@@ -325,7 +325,7 @@ defmodule LivebookWeb.FileSelectComponent do
               phx-value-id={file_system.id}
             >
               <.file_system_icon file_system={file_system} />
-              <span><%= file_system_label(file_system) %></span>
+              <span>{file_system_label(file_system)}</span>
             </button>
           </.menu_item>
         <% end %>
@@ -407,10 +407,10 @@ defmodule LivebookWeb.FileSelectComponent do
                 if(@file_info.is_running, do: "text-green-400", else: "text-gray-900")
               ]}
             >
-              <%= @file_info.highlighted %>
+              {@file_info.highlighted}
             </span>
             <span class="overflow-hidden text-ellipsis">
-              <%= @file_info.unhighlighted %>
+              {@file_info.unhighlighted}
             </span>
           </span>
         </button>
@@ -452,7 +452,7 @@ defmodule LivebookWeb.FileSelectComponent do
       class="col-span-full text-sm text-medium text-gray-500 flex flex-col items-center gap-1"
     >
       <.remix_icon icon="more-line" class="text-lg" />
-      <%= @length - visible_files_limit() %> more files (search to see)
+      {@length - visible_files_limit()} more files (search to see)
     </div>
     """
   end

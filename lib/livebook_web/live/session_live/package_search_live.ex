@@ -46,7 +46,7 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
         <%= cond do %>
           <% @error_message -> %>
             <div class="error-box">
-              <%= @error_message %>
+              {@error_message}
             </div>
           <% @packages == [] -> %>
             <div class="flex h-full items-center justify-center text-gray-600">
@@ -67,14 +67,14 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
       <div class="flex-grow p-2 flex flex-col text-sm">
         <div class="flex text-gray-700">
           <%= if @package[:url] do %>
-            <a class="font-semibold" href={@package[:url]} target="_blank"><%= @package.name %></a>
+            <a class="font-semibold" href={@package[:url]} target="_blank">{@package.name}</a>
           <% else %>
-            <span class="font-semibold"><%= @package.name %></span>
+            <span class="font-semibold">{@package.name}</span>
           <% end %>
-          <span class="ml-1"><%= @package.version %></span>
+          <span class="ml-1">{@package.version}</span>
         </div>
         <div class="text-gray-600">
-          <%= @package.description %>
+          {@package.description}
         </div>
       </div>
       <div class="ml-2">

@@ -20,9 +20,9 @@ defmodule LivebookWeb.NotebookComponents do
         />
       </div>
       <div class="px-6 py-4 bg-gray-100 rounded-b-2xl grow">
-        <span class="text-gray-800 font-semibold"><%= @notebook_info.title %></span>
+        <span class="text-gray-800 font-semibold">{@notebook_info.title}</span>
         <p class="mt-2 text-sm text-gray-600">
-          <%= @notebook_info.details.description %>
+          {@notebook_info.details.description}
         </p>
       </div>
     </.link>

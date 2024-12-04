@@ -83,7 +83,7 @@ defmodule LivebookWeb.SessionLive.StandaloneRuntimeComponent do
           </div>
         </div>
         <.button type="submit" disabled={@runtime_status == :connecting or not @changeset.valid?}>
-          <%= label(@changeset, @runtime_status) %>
+          {label(@changeset, @runtime_status)}
         </.button>
       </.form>
     </div>

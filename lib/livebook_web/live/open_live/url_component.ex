@@ -37,7 +37,7 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
     ~H"""
     <div class="flex-col space-y-5">
       <div :if={@error_message} class="error-box">
-        <%= @error_message %>
+        {@error_message}
       </div>
       <p class="text-gray-700" id="import-from-url">
         Paste the URL to a .livemd file, to a GitHub file, or to a Gist.

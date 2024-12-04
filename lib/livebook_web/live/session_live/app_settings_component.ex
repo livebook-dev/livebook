@@ -134,7 +134,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
         </div>
         <div class="mt-8 flex space-x-2">
           <.button disabled={not @changeset.valid?}>
-            <%= if @context == "preview", do: "Launch", else: "Save" %>
+            {if @context == "preview", do: "Launch", else: "Save"}
           </.button>
 
           <.button color="gray" outlined type="reset" name="reset">

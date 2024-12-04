@@ -27,7 +27,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
     ~H"""
     <div>
       <div :if={@error_message} class="mb-6 error-box">
-        <%= @error_message %>
+        {@error_message}
       </div>
       <.form
         :let={f}

@@ -26,10 +26,10 @@ defmodule LivebookWeb.SettingsLive.EnvVarComponent do
     ~H"""
     <div class="flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        <%= if @operation == :new, do: "Add environment variable", else: "Edit environment variable" %>
+        {if @operation == :new, do: "Add environment variable", else: "Edit environment variable"}
       </h3>
       <p class="text-gray-700">
-        <%= @headline %>
+        {@headline}
       </p>
       <.form
         :let={f}

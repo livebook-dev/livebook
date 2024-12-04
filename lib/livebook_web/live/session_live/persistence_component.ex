@@ -83,7 +83,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
         <div>
           <.label>File</.label>
           <div class="whitespace-nowrap text-gray-700 leading-4">
-            <%= normalize_file(@draft_file).path %>
+            {normalize_file(@draft_file).path}
           </div>
         </div>
         <form

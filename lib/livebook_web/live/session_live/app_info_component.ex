@@ -36,11 +36,11 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
 
           <div class="flex flex-col space-y-3">
             <.labeled_text label="Slug" one_line>
-              <%= @settings.slug || "?" %>
+              {@settings.slug || "?"}
             </.labeled_text>
 
             <.labeled_text label="Session type" one_line>
-              <%= if @settings.multi_session, do: "Multi", else: "Single" %>
+              {if @settings.multi_session, do: "Multi", else: "Single"}
             </.labeled_text>
 
             <.labeled_text label="Access" one_line>
@@ -101,12 +101,12 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           <div :if={@app} class="flex flex-col space-y-3">
             <.labeled_text label="URL" one_line>
               <a href={~p"/apps/#{@app.slug}"}>
-                <%= ~p"/apps/#{@app.slug}" %>
+                {~p"/apps/#{@app.slug}"}
               </a>
             </.labeled_text>
 
             <.labeled_text :if={@app.multi_session} label="Latest version" one_line>
-              v<%= @app.version %>
+              v{@app.version}
             </.labeled_text>
 
             <div :if={@app.sessions != []}>
@@ -162,7 +162,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           </a>
         </.labeled_text>
         <.labeled_text label="Version" class="grow">
-          v<%= app_session.version %>
+          v{app_session.version}
         </.labeled_text>
       </div>
       <div class="border-t border-gray-200 px-3 py-1 flex space-x-2">

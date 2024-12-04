@@ -21,7 +21,7 @@ defmodule LivebookWeb.UserComponents do
       aria-hidden="true"
     >
       <div class={["text-gray-100 font-semibold", @text_class]}>
-        <%= avatar_text(@user.name) %>
+        {avatar_text(@user.name)}
       </div>
     </div>
     """

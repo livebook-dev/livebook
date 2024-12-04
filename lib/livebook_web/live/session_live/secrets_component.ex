@@ -39,7 +39,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     ~H"""
     <div class="flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        <%= @title %>
+        {@title}
       </h3>
       <p class="text-gray-700">
         The notebook can read the secret value as a LB_ prefixed environment variable.
@@ -161,7 +161,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       phx-value-hub={@hub?}
       phx-target={@target}
     >
-      <%= @secret_name %>
+      {@secret_name}
       <span class={[
         "inline-flex items-center font-sans rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100",
         if @active do
@@ -178,7 +178,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         >
           <circle cx="4" cy="4" r="3" />
         </svg>
-        <%= @stored %>
+        {@stored}
       </span>
     </div>
     """
@@ -196,9 +196,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
               />
               <span class="ml-2 text-sm font-normal text-gray-100">
-                There is a secret named
-                <span class="font-semibold text-white"><%= @secret.name %></span>
-                in the <%= hub_label(@hub) %> workspace. Allow this notebook to access it?
+                There is a secret named <span class="font-semibold text-white">{@secret.name}</span>
+                in the {hub_label(@hub)} workspace. Allow this notebook to access it?
               </span>
             </div>
             <.button

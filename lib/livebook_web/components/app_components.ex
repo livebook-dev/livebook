@@ -58,7 +58,7 @@ defmodule LivebookWeb.AppComponents do
     ~H"""
     <span class="flex items-center space-x-2">
       <.status_indicator variant={@variant} />
-      <span :if={@text}><%= @text %></span>
+      <span :if={@text}>{@text}</span>
     </span>
     """
   end

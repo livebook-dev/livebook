@@ -150,7 +150,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
                     volume_errors(@volume_id, @volumes, @region) != []
                 }
               >
-                <%= label(@app_name, @runtime, @runtime_status) %>
+                {label(@app_name, @runtime, @runtime_status)}
               </.button>
               <.button
                 :if={@runtime_status == :connecting}
@@ -170,7 +170,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
               <.message_box kind="info">
                 <div class="flex items-center gap-2">
                   <.spinner />
-                  <span>Step: <%= @runtime_connect_info %></span>
+                  <span>Step: {@runtime_connect_info}</span>
                 </div>
               </.message_box>
             </div>
@@ -234,7 +234,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
     <.message_box kind="info">
       <div class="flex items-center justify-between">
         <div>
-          App <span class="font-semibold"><%= @app_name %></span> does not exist yet.
+          App <span class="font-semibold">{@app_name}</span> does not exist yet.
         </div>
         <.button phx-click="create_app" phx-target={@myself}>
           Create
@@ -419,7 +419,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
             type="submit"
             disabled={not @volume_action.changeset.valid? or @volume_action.status == :inflight}
           >
-            <%= if(@volume_action.status == :inflight, do: "Creating...", else: "Create") %>
+            {if(@volume_action.status == :inflight, do: "Creating...", else: "Create")}
           </.button>
           <.button
             type="button"

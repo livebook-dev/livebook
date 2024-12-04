@@ -107,14 +107,14 @@ defmodule LivebookWeb.Hub.NewLive do
 
             <div>
               <.button :if={!@requested_code} phx-disable-with="Loading...">
-                <%= @button_label %>
+                {@button_label}
               </.button>
             </div>
             <div class="invisible"></div>
             <div :if={@requested_code} class="flex flex-col rounded-xl bg-gray-50 px-10 py-6 mt-10">
               <div class="flex flex-col items-center rounded-xl bg-gray-50">
                 <span class="text-base font-semibold text-center text-gray-900">
-                  <%= @request_code_info %>
+                  {@request_code_info}
                 </span>
                 <div class="text-center mt-4 text-gray-700">
                   <span class="text-sm">
@@ -195,7 +195,7 @@ defmodule LivebookWeb.Hub.NewLive do
             ]}
           />
           <span class="truncate text-sm font-medium">
-            <%= @title %>
+            {@title}
           </span>
         </div>
       </button>

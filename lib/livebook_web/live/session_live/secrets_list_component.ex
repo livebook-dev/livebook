@@ -46,7 +46,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
 
         <div class="mt-16">
           <h3 class="uppercase text-sm font-semibold text-gray-500">
-            <%= @hub.hub_emoji %> <%= @hub.hub_name %> secrets
+            {@hub.hub_emoji} {@hub.hub_name} secrets
           </h3>
           <span class="text-sm text-gray-500">
             <%= if @hub_secrets == [] do %>
@@ -82,7 +82,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
           |> JS.toggle_class("bg-gray-100", to: "#session-secret-#{@secret.name}")
         }
       >
-        <%= @secret.name %>
+        {@secret.name}
       </span>
       <div
         class="flex justify-between items-center my-1 hidden"
@@ -132,7 +132,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
                 |> JS.toggle_class("bg-gray-100", to: "##{@id}")
               }
             >
-              <%= @secret.name %>
+              {@secret.name}
             </span>
             <span
               class="mr-2 tooltip bottom-left"

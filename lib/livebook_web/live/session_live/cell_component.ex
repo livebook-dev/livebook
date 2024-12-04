@@ -49,7 +49,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-p-smart-cell-js-view-ref={hook_prop(smart_cell_js_view_ref(@cell_view))}
       data-p-allowed-uri-schemes={hook_prop(@allowed_uri_schemes)}
     >
-      <%= render_cell(assigns) %>
+      {render_cell(assigns)}
     </div>
     """
   end
@@ -295,7 +295,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-el-actions data-primary>
-        <%= render_slot(@primary) %>
+        {render_slot(@primary)}
       </div>
       <div
         class="relative z-20 flex items-center justify-end md:space-x-2"
@@ -303,7 +303,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         aria-label="cell actions"
         data-el-actions
       >
-        <%= render_slot(@secondary) %>
+        {render_slot(@secondary)}
       </div>
     </div>
     """
@@ -316,7 +316,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="flex relative focus-visible:outline-none" data-el-cell-body tabindex="0">
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator></div>
       <div class="w-full">
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </div>
     </div>
     """
@@ -645,7 +645,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div :if={@doctest_summary.failures_count > 0} class="pt-2" id={"doctest-summary-#{@cell_id}"}>
       <div class="error-box py-3">
-        <%= doctest_summary_message(@doctest_summary) %>
+        {doctest_summary_message(@doctest_summary)}
       </div>
     </div>
     """
@@ -780,7 +780,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class={[@tooltip && "tooltip", "bottom distant-medium"]} data-tooltip={@tooltip}>
       <div class="flex items-center space-x-1">
         <div class="flex text-[11px]" data-el-cell-status>
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
           <span :if={@change_indicator} data-el-change-indicator>*</span>
         </div>
         <.status_indicator variant={@variant} />

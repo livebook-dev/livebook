@@ -161,7 +161,7 @@ defmodule LivebookWeb.HomeLive do
     ~H"""
     <LayoutComponents.topbar>
       <span>
-        Livebook v<%= @version %> available!
+        Livebook v{@version} available!
         <%= if @instructions_url do %>
           Check out the news on
           <a

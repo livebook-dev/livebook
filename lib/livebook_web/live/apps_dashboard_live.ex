@@ -64,7 +64,7 @@ defmodule LivebookWeb.AppsDashboardLive do
           class="flex items-center justify-between mb-2 hover:cursor-pointer"
         >
           <span class="text-gray-800 font-medium text-xl break-all">
-            <%= "/" <> app.slug %>
+            {"/" <> app.slug}
           </span>
           <div class="flex items-center gap-2">
             <.app_group_tag app_spec={app.app_spec} />
@@ -81,7 +81,7 @@ defmodule LivebookWeb.AppsDashboardLive do
               <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4">
                 <div class="break-words">
                   <.labeled_text label="Name">
-                    <%= app.notebook_name %>
+                    {app.notebook_name}
                     <span
                       :if={not app.public?}
                       class="!inline tooltip top"
@@ -94,18 +94,18 @@ defmodule LivebookWeb.AppsDashboardLive do
                 <div class="break-all">
                   <.labeled_text label="URL">
                     <a href={~p"/apps/#{app.slug}"}>
-                      <%= ~p"/apps/#{app.slug}" %>
+                      {~p"/apps/#{app.slug}"}
                     </a>
                   </.labeled_text>
                 </div>
                 <div>
                   <.labeled_text label="Latest version" one_line>
-                    v<%= app.version %>
+                    v{app.version}
                   </.labeled_text>
                 </div>
                 <div>
                   <.labeled_text label="Session type" one_line>
-                    <%= if(app.multi_session, do: "Multi", else: "Single") %>
+                    {if(app.multi_session, do: "Multi", else: "Single")}
                   </.labeled_text>
                 </div>
                 <div class="flex flex-col md:flex-row md:items-center justify-start lg:justify-end">
@@ -144,13 +144,13 @@ defmodule LivebookWeb.AppsDashboardLive do
                     </a>
                   </:col>
                   <:col :let={app_session} label="Uptime">
-                    <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(app_session.created_at) %>
+                    {LivebookWeb.HTMLHelpers.format_datetime_relatively(app_session.created_at)}
                   </:col>
                   <:col :let={app_session} label="Version">
-                    v<%= app_session.version %>
+                    v{app_session.version}
                   </:col>
                   <:col :let={app_session} label="Clients">
-                    <%= app_session.client_count %>
+                    {app_session.client_count}
                   </:col>
                   <:actions :let={app_session}>
                     <span class="tooltip left" data-tooltip="Open">
@@ -277,7 +277,7 @@ defmodule LivebookWeb.AppsDashboardLive do
               align_to_class(col[:align])
             ]}
           >
-            <%= col[:label] %>
+            {col[:label]}
           </div>
         </div>
         <div :for={row <- @rows} class="whitespace-nowrap px-2 hover:bg-gray-50 hover:rounded-md">
@@ -289,10 +289,10 @@ defmodule LivebookWeb.AppsDashboardLive do
                 align_to_class(col[:align])
               ]}
             >
-              <%= render_slot(col, row) %>
+              {render_slot(col, row)}
             </div>
             <div class="py-2 flex flex-row items-center justify-end gap-2">
-              <%= render_slot(@actions, row) %>
+              {render_slot(@actions, row)}
             </div>
           </div>
         </div>
