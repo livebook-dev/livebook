@@ -91,10 +91,7 @@ defmodule Livebook.Runtime.Evaluator do
   """
   @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
   def start_link(opts \\ []) do
-    case :proc_lib.start_link(__MODULE__, :init, [opts]) do
-      {:error, error} -> {:error, error}
-      evaluator -> {:ok, evaluator.pid, evaluator}
-    end
+    :proc_lib.start_link(__MODULE__, :init, [opts])
   end
 
   @doc """
@@ -322,7 +319,7 @@ defmodule Livebook.Runtime.Evaluator do
       tmp_dir: tmp_dir
     }
 
-    :proc_lib.init_ack(evaluator)
+    :proc_lib.init_ack({:ok, evaluator.pid, evaluator})
 
     loop(state)
   end

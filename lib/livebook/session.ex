@@ -199,9 +199,13 @@ defmodule Livebook.Session do
       session belongs to. This is only relevant for app sessions
 
   """
-  @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
+  @spec start_link(keyword()) :: {:ok, pid, t()} | {:error, any()}
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts)
+    with {:ok, pid} <- GenServer.start_link(__MODULE__, {self(), opts}) do
+      receive do
+        {:started, ^pid, session} -> {:ok, pid, session}
+      end
+    end
   end
 
   @doc """
@@ -873,7 +877,7 @@ defmodule Livebook.Session do
   ## Callbacks
 
   @impl true
-  def init(opts) do
+  def init({caller_pid, opts}) do
     Livebook.Settings.subscribe()
     Livebook.Hubs.Broadcasts.subscribe([:crud, :secrets])
 
@@ -901,6 +905,8 @@ defmodule Livebook.Session do
       session = self_from_state(state)
 
       with :ok <- Livebook.Tracker.track_session(session) do
+        send(caller_pid, {:started, self(), session})
+
         if state.data.mode == :app do
           {:ok, state, {:continue, :app_init}}
         else

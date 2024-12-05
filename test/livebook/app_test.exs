@@ -221,7 +221,7 @@ defmodule Livebook.AppTest do
         Notebook.AppSettings.new()
         | slug: slug,
           multi_session: true,
-          auto_shutdown_ms: 10
+          auto_shutdown_ms: 1
       }
 
       notebook = %{Notebook.new() | app_settings: app_settings}
