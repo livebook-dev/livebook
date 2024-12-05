@@ -3,8 +3,8 @@
   "scripts": {
     "deploy": "node build.js --deploy",
     "watch": "node build.js --watch",
-    "format": "prettier --write '{js,test,css}/**/*.{js,json,css,md}' '*.js' --no-error-on-unmatched-pattern",
-    "format-check": "prettier --check '{js,test,css}/**/*.{js,json,css,md}' '*.js' --no-error-on-unmatched-pattern",
+    "format": "prettier --write '{js,test,css}/**/*.{js,json,css,md}' '*.js' --no-error-on-unmatched-pattern --log-level warn",
+    "format-check": "prettier --check '{js,test,css}/**/*.{js,json,css,md}' '*.js' --no-error-on-unmatched-pattern --log-level warn",
     "test": "jest",
     "test:watch": "jest --watch"
   },
