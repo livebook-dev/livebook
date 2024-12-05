@@ -208,7 +208,8 @@ defmodule LivebookWeb.SessionHelpers do
       title: "Close session",
       description: description,
       confirm_text: "Close session",
-      confirm_icon: "close-circle-line"
+      confirm_icon: "close-circle-line",
+      danger: !assigns.file
     )
   end
 
