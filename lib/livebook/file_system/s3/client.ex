@@ -9,9 +9,9 @@ defmodule Livebook.FileSystem.S3.Client do
   def list_objects(file_system, opts) do
     prefix = opts[:prefix]
     delimiter = opts[:delimiter]
-    query = %{"list-type" => "2", "prefix" => prefix, "delimiter" => delimiter}
+    params = %{"list-type" => "2", "prefix" => prefix, "delimiter" => delimiter}
 
-    case request(file_system, "/", query: query) do
+    case request(file_system, "/", params: params) do
       {:ok, %{status: 200, body: %{"ListBucketResult" => result}}} ->
         file_keys = xml_get_list(result, "Contents", "Key")
         prefix_keys = xml_get_list(result, "CommonPrefixes", "Prefix")
@@ -36,7 +36,7 @@ defmodule Livebook.FileSystem.S3.Client do
     # name, but the listing endpoint does, so we just list keys
     # with an upper limit of 0 and retrieve the bucket name.
 
-    case request(file_system, "/", query: %{"list-type" => "2", "max-keys" => "0"}) do
+    case request(file_system, "/", params: %{"list-type" => "2", "max-keys" => "0"}) do
       {:ok, %{status: 200, body: %{"ListBucketResult" => result}}} -> {:ok, result["Name"]}
       other -> request_response_to_error(other)
     end
@@ -134,9 +134,9 @@ defmodule Livebook.FileSystem.S3.Client do
 
     body_md5 = :crypto.hash(:md5, body)
     headers = [{"Content-MD5", Base.encode64(body_md5)}]
-    query = %{"delete" => ""}
+    params = %{"delete" => ""}
 
-    case request(file_system, "/", query: query, method: :post, headers: headers, body: body) do
+    case request(file_system, "/", params: params, method: :post, headers: headers, body: body) do
       {:ok, %{status: 200, body: %{"Error" => _}}} = result -> request_response_to_error(result)
       {:ok, %{status: 200}} -> :ok
       other -> request_response_to_error(other)
@@ -167,9 +167,9 @@ defmodule Livebook.FileSystem.S3.Client do
   """
   @spec create_multipart_upload(S3.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def create_multipart_upload(file_system, key) do
-    query = %{"uploads" => ""}
+    params = %{"uploads" => ""}
 
-    case request(file_system, "/" <> encode_key(key), method: :post, query: query, body: "") do
+    case request(file_system, "/" <> encode_key(key), method: :post, params: params, body: "") do
       {:ok, %{status: 200, body: %{"InitiateMultipartUploadResult" => result}}} ->
         {:ok, result["UploadId"]}
 
@@ -184,8 +184,8 @@ defmodule Livebook.FileSystem.S3.Client do
   @spec upload_part(S3.t(), String.t(), String.t(), pos_integer(), String.t()) ::
           {:ok, map()} | {:error, String.t()}
   def upload_part(file_system, key, upload_id, part_number, content) do
-    query = %{"uploadId" => upload_id, "partNumber" => part_number}
-    opts = [method: :put, query: query, body: content, long: true]
+    params = %{"uploadId" => upload_id, "partNumber" => part_number}
+    opts = [method: :put, params: params, body: content, long: true]
 
     with {:ok, %{status: 200, headers: headers}} <-
            request(file_system, "/" <> encode_key(key), opts),
@@ -202,7 +202,7 @@ defmodule Livebook.FileSystem.S3.Client do
   @spec complete_multipart_upload(S3.t(), String.t(), String.t(), list(String.t())) ::
           :ok | {:error, String.t()}
   def complete_multipart_upload(file_system, key, upload_id, etags) do
-    query = %{"uploadId" => upload_id}
+    params = %{"uploadId" => upload_id}
     parts = for {etag, n} <- Enum.with_index(etags, 1), do: %{"PartNumber" => n, "ETag" => etag}
 
     body =
@@ -210,7 +210,7 @@ defmodule Livebook.FileSystem.S3.Client do
       |> S3.XML.encode_to_iodata!()
       |> IO.iodata_to_binary()
 
-    case request(file_system, "/" <> encode_key(key), method: :post, query: query, body: body) do
+    case request(file_system, "/" <> encode_key(key), method: :post, params: params, body: body) do
       {:ok, %{status: 200}} -> :ok
       other -> request_response_to_error(other)
     end
@@ -221,23 +221,21 @@ defmodule Livebook.FileSystem.S3.Client do
   """
   @spec abort_multipart_upload(S3.t(), String.t(), String.t()) :: :ok | {:error, String.t()}
   def abort_multipart_upload(file_system, key, upload_id) do
-    query = %{"uploadId" => upload_id}
+    params = %{"uploadId" => upload_id}
 
-    case request(file_system, "/" <> encode_key(key), method: :delete, query: query) do
+    case request(file_system, "/" <> encode_key(key), method: :delete, params: params) do
       {:ok, %{status: 204}} -> :ok
       other -> request_response_to_error(other)
     end
   end
 
-  defp download(file_system, path, collectable, opts \\ []) do
-    query = opts[:query] || %{}
-    headers = opts[:headers] || []
-    url = build_url(file_system, path, query)
-    headers = sign_headers(file_system, :get, url, headers)
+  defp download(file_system, path, collectable) do
+    req =
+      Req.new(base_url: file_system.bucket_url)
+      |> Livebook.Utils.req_attach_defaults()
+      |> with_aws_sigv4(file_system)
 
-    req = Req.new() |> Livebook.Utils.req_attach_defaults()
-
-    case Req.get(req, url: url, headers: headers, into: collectable) do
+    case Req.get(req, url: path, into: collectable) do
       {:ok, %{status: 200, body: collected}} ->
         {:ok, collected}
 
@@ -249,67 +247,39 @@ defmodule Livebook.FileSystem.S3.Client do
     end
   end
 
+  defp with_aws_sigv4(req, file_system) do
+    credentials = S3.credentials(file_system)
+
+    Req.merge(req,
+      aws_sigv4: [
+        access_key_id: credentials.access_key_id,
+        secret_access_key: credentials.secret_access_key,
+        token: credentials.token,
+        region: file_system.region,
+        service: :s3
+      ]
+    )
+  end
+
   defp encode_key(key) do
     key
     |> String.split("/")
     |> Enum.map_join("/", fn segment -> URI.encode(segment, &URI.char_unreserved?/1) end)
   end
 
-  defp build_url(file_system, path, query) do
-    query_string = URI.encode_query(query, :rfc3986)
-    query_string = if query_string != "", do: "?#{query_string}", else: ""
-
-    file_system.bucket_url <> path <> query_string
-  end
-
-  defp sign_headers(file_system, method, url, headers, body \\ nil) do
-    credentials = S3.credentials(file_system)
-    now = NaiveDateTime.utc_now() |> NaiveDateTime.to_erl()
-    %{host: host} = URI.parse(file_system.bucket_url)
-    headers = [{"Host", host} | headers]
-
-    headers =
-      if credentials.token,
-        do: [{"X-Amz-Security-Token", credentials.token} | headers],
-        else: headers
-
-    :aws_signature.sign_v4(
-      credentials.access_key_id,
-      credentials.secret_access_key,
-      file_system.region,
-      "s3",
-      now,
-      Atom.to_string(method),
-      url,
-      headers,
-      body || "",
-      uri_encode_path: false
-    )
-  end
-
   defp request(file_system, path, opts) do
-    long = Keyword.get(opts, :long, false)
-    decode? = Keyword.get(opts, :decode, true)
+    {long, opts} = Keyword.pop(opts, :long, false)
+    {decode?, opts} = Keyword.pop(opts, :decode, true)
 
-    method = opts[:method] || :get
-    query = opts[:query] || %{}
-    headers = opts[:headers] || []
-    body = opts[:body]
     timeout = if long, do: 60_000, else: 30_000
 
-    url = build_url(file_system, path, query)
-    headers = sign_headers(file_system, method, url, headers, body)
+    req =
+      Req.new(base_url: file_system.bucket_url)
+      |> Req.merge(opts)
+      |> Livebook.Utils.req_attach_defaults()
+      |> with_aws_sigv4(file_system)
 
-    req = Req.new() |> Livebook.Utils.req_attach_defaults()
-
-    result =
-      Req.request(req,
-        method: method,
-        url: url,
-        headers: headers,
-        body: body,
-        receive_timeout: timeout
-      )
+    result = Req.request(req, url: path, receive_timeout: timeout)
 
     if decode?, do: decode(result), else: result
   end
