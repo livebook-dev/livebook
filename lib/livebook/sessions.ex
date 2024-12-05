@@ -18,8 +18,8 @@ defmodule Livebook.Sessions do
     opts = Keyword.put(opts, :id, id)
 
     case DynamicSupervisor.start_child(Livebook.SessionSupervisor, {Session, opts}) do
-      {:ok, pid} ->
-        {:ok, Session.get_by_pid(pid)}
+      {:ok, _pid, session} ->
+        {:ok, session}
 
       {:error, reason} ->
         {:error, reason}
