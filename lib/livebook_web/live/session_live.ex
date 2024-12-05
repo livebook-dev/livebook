@@ -445,7 +445,7 @@ defmodule LivebookWeb.SessionLive do
           assigns = %{section_name: section.name}
 
           description = ~H"""
-          Are you sure you want to delete this section - <span class="font-semibold">“<%= @section_name %>”</span>?
+          Are you sure you want to delete this section - <span class="font-semibold">“{@section_name}”</span>?
           """
 
           confirm(socket, on_confirm,

@@ -42,7 +42,7 @@ defmodule LivebookWeb.Output.PlainTextComponent do
       phx-update="stream"
       phx-no-format
     ><span
-      :for={{dom_id, chunk}<- @streams.chunks} id={dom_id}><%= chunk.text %></span></div>
+      :for={{dom_id, chunk}<- @streams.chunks} id={dom_id}>{chunk.text}</span></div>
     """
   end
 end

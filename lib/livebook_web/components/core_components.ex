@@ -62,7 +62,7 @@ defmodule LivebookWeb.CoreComponents do
       />
       <.remix_icon :if={@kind == "warning"} icon="alert-fill" class="text-xl text-yellow-500" />
       <.remix_icon :if={@kind == "error"} icon="error-warning-fill" class="text-xl text-red-500" />
-      <span class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format><%= message %></span>
+      <span class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format>{message}</span>
     </div>
     """
   end
@@ -125,7 +125,7 @@ defmodule LivebookWeb.CoreComponents do
         :if={@message}
         class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar"
         phx-no-format
-      ><%= @message %></div>
+      >{@message}</div>
       <%= if @inner_block != [] do %>
         {render_slot(@inner_block)}
       <% end %>
@@ -516,7 +516,7 @@ defmodule LivebookWeb.CoreComponents do
       id={"#{@source_id}-highlight"}
       phx-hook="Highlight"
       data-p-language={hook_prop(@language)}
-    ><div id={@source_id} data-source><%= @source %></div><div data-target></div></code></pre>
+    ><div id={@source_id} data-source>{@source}</div><div data-target></div></code></pre>
     </div>
     """
   end
@@ -734,7 +734,7 @@ defmodule LivebookWeb.CoreComponents do
   ## Examples
 
     <.listing items={@packages}>
-      <:item :let={package}><code><%= package.name %></code></:item>
+      <:item :let={package}><code>{package.name}</code></:item>
       <:singular_suffix>package</:singular_suffix>
       <:plural_suffix>packages</:plural_suffix>
     </.listing>
@@ -774,8 +774,8 @@ defmodule LivebookWeb.CoreComponents do
   ## Examples
 
       <.table id="users" rows={@users}>
-        <:col :let={user} label="id"><%= user.id %></:col>
-        <:col :let={user} label="username"><%= user.username %></:col>
+        <:col :let={user} label="id">{user.id}</:col>
+        <:col :let={user} label="username">{user.username}</:col>
       </.table>
 
   """

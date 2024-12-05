@@ -75,10 +75,10 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
       <div data-template class="hidden" id={"#{@id}-template"} phx-no-format><div
         id={"#{@id}-template-append"}
         phx-update="stream"
-      ><div :for={{dom_id, html_line} <- @streams.html_lines} id={dom_id} data-line><%= [
+      ><div :for={{dom_id, html_line} <- @streams.html_lines} id={dom_id} data-line>{[
         html_line.html,
         "\n"
-      ] %></div></div><div data-line><%= @last_html_line %></div></div>
+      ]}</div></div><div data-line>{@last_html_line}</div></div>
       <div
         data-content
         class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"

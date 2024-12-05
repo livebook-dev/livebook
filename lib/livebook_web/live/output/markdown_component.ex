@@ -48,7 +48,7 @@ defmodule LivebookWeb.Output.MarkdownComponent do
         class="text-gray-700 whitespace-pre-wrap hidden"
         phx-update="stream"
         phx-no-format
-      ><span :for={{dom_id, chunk}<- @streams.chunks} id={dom_id}><%= chunk.text %></span></div>
+      ><span :for={{dom_id, chunk}<- @streams.chunks} id={dom_id}>{chunk.text}</span></div>
       <div data-content class="markdown" id={"#{@id}-content"} phx-update="ignore"></div>
     </div>
     """

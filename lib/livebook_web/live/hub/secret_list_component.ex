@@ -78,7 +78,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
     assigns = %{name: attrs["name"]}
 
     description = ~H"""
-    Are you sure you want to delete this secret - <span class="font-semibold"><%= @name %></span>?
+    Are you sure you want to delete this secret - <span class="font-semibold">{@name}</span>?
     """
 
     {:noreply,

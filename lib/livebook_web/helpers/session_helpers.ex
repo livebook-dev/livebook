@@ -195,7 +195,7 @@ defmodule LivebookWeb.SessionHelpers do
     assigns = %{notebook_name: session.notebook_name, file: session.file}
 
     description = ~H"""
-    Are you sure you want to close this session - <span class="font-semibold">“<%= @notebook_name %>”</span>?
+    Are you sure you want to close this session - <span class="font-semibold">“{@notebook_name}”</span>?
     <br />
     <%= if @file do %>
       This won't delete any persisted files.

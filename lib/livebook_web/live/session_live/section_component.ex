@@ -47,7 +47,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           data-el-heading
           spellcheck="false"
           phx-no-format
-        ><%= @section_view.name %></h2>
+        >{@section_view.name}</h2>
         <div
           class="ml-4 flex space-x-2 items-center"
           data-el-section-actions

@@ -291,7 +291,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
       assigns = %{name: file_entry.name}
 
       description = ~H"""
-      Are you sure you want to delete this file - <span class="font-semibold">“<%= @name %>”</span>?
+      Are you sure you want to delete this file - <span class="font-semibold">“{@name}”</span>?
       """
 
       {:noreply,

@@ -307,7 +307,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           class="px-4 py-3 mt-4 flex space-x-4 items-center border border-gray-200 rounded-lg"
         >
           <p class="grow text-gray-700 text-sm">
-            Are you sure you want to irreversibly delete Persistent Volume Claim <span class="font-semibold"><%= @pvc_name %></span>?
+            Are you sure you want to irreversibly delete Persistent Volume Claim <span class="font-semibold">{@pvc_name}</span>?
           </p>
           <div class="flex space-x-4">
             <button
@@ -419,7 +419,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       <div>
         Authenticated user has no permission to <span class="font-semibold">{@verb}</span>
         <code>{@path}</code>
-        <span :if={@namespace}> in namespace <code><%= @namespace %></code> (or the namespace doesn't exist)</span>.
+        <span :if={@namespace}> in namespace <code>{@namespace}</code> (or the namespace doesn't exist)</span>.
       </div>
     </div>
     """

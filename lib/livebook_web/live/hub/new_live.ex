@@ -157,7 +157,7 @@ defmodule LivebookWeb.Hub.NewLive do
         class="mr-4 text-brand-pink font-semibold text-xl leading-none"
         id="clipboard-code"
         phx-no-format
-      ><%= @content %></div>
+      >{@content}</div>
 
       <.icon_button phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")} type="button">
         <.remix_icon icon="clipboard-line" />

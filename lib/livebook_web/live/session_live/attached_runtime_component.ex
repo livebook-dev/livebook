@@ -63,7 +63,7 @@ defmodule LivebookWeb.SessionLive.AttachedRuntimeComponent do
         Make sure to give the node a name and a cookie, for example:
       </p>
       <div class="text-gray-700 markdown">
-        <pre><code>iex --name <%= test_node() %> --cookie mycookie -S mix</code></pre>
+        <pre><code>iex --name {test_node()} --cookie mycookie -S mix</code></pre>
       </div>
       <p class="text-gray-700">
         Then enter the connection information below:

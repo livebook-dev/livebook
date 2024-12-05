@@ -80,7 +80,7 @@ defmodule LivebookWeb.FormComponents do
           @class
         ]}
         {@rest}
-      ><%= Phoenix.HTML.Form.normalize_value("textarea", @value) %></textarea>
+      >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
     </.field_wrapper>
     """
   end

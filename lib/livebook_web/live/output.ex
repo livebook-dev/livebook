@@ -400,7 +400,7 @@ defmodule LivebookWeb.Output do
       role="complementary"
       aria-label="error message"
       phx-no-format
-    ><%= @message %></div>
+    >{@message}</div>
     """
   end
 
@@ -415,7 +415,7 @@ defmodule LivebookWeb.Output do
         role="complementary"
         aria-label="error"
         phx-no-format
-      ><%= LivebookWeb.ANSIHelpers.ansi_string_to_html(@message) %></div>
+      >{LivebookWeb.ANSIHelpers.ansi_string_to_html(@message)}</div>
       <div class="absolute right-2 top-0 z-10 invisible group-hover/error:visible">
         <.icon_button phx-click={JS.dispatch("lb:clipcopy", to: "##{@id}-message")}>
           <.remix_icon icon="clipboard-line" />

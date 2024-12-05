@@ -1310,7 +1310,7 @@ defmodule LivebookWeb.SessionLive.Render do
               data-el-heading
               spellcheck="false"
               phx-no-format
-            ><%= @data_view.notebook_name %></h1>
+            >{@data_view.notebook_name}</h1>
           </div>
           <.session_menu session={@session} />
         </div>

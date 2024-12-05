@@ -165,7 +165,7 @@ defmodule LivebookWeb.FileSelectComponent do
           class="mb-4 px-4 py-3 flex space-x-4 items-center border border-gray-200 rounded-lg"
         >
           <p class="grow text-gray-700 text-sm">
-            Are you sure you want to irreversibly delete <span class="font-semibold"><%= @deleting_file.path %></span>?
+            Are you sure you want to irreversibly delete <span class="font-semibold">{@deleting_file.path}</span>?
           </p>
           <div class="flex space-x-4">
             <button
