@@ -14,6 +14,7 @@ import { yaml } from "@codemirror/lang-yaml";
 import { javascript } from "@codemirror/lang-javascript";
 import { erlang } from "@codemirror/legacy-modes/mode/erlang";
 import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
+import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { elixir } from "codemirror-lang-elixir";
 
 export const elixirDesc = LanguageDescription.of({
@@ -71,6 +72,11 @@ const dockerfileDesc = LanguageDescription.of({
   support: new LanguageSupport(StreamLanguage.define(dockerFile)),
 });
 
+const shellDesc = LanguageDescription.of({
+  name: "Shell",
+  support: new LanguageSupport(StreamLanguage.define(shell)),
+});
+
 const markdownDesc = LanguageDescription.of({
   name: "Markdown",
   support: markdown({
@@ -87,6 +93,7 @@ const markdownDesc = LanguageDescription.of({
       htmlDesc,
       javascriptDesc,
       dockerfileDesc,
+      shellDesc,
     ],
   }),
 });
@@ -103,5 +110,6 @@ export const languages = [
   htmlDesc,
   javascriptDesc,
   dockerfileDesc,
+  shellDesc,
   markdownDesc,
 ];
