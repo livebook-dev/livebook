@@ -117,7 +117,6 @@ defmodule Livebook.MixProject do
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
       {:aws_credentials, "~> 0.3.0", runtime: false},
-      {:aws_signature, "~> 0.3.0"},
       {:mint_web_socket, "~> 1.0.0"},
       {:protobuf, "~> 0.13.0"},
       {:dns_cluster, "~> 0.1.2"},
