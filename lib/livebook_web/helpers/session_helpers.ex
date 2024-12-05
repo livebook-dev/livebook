@@ -209,7 +209,7 @@ defmodule LivebookWeb.SessionHelpers do
       description: description,
       confirm_text: "Close session",
       confirm_icon: "close-circle-line",
-      danger: assigns.file == nil
+      danger: session.file == nil
     )
   end
 
