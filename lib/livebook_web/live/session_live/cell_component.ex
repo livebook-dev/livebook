@@ -301,6 +301,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         role="toolbar"
         aria-label="cell actions"
         data-el-actions
+        data-secondary
       >
         {render_slot(@secondary)}
       </div>

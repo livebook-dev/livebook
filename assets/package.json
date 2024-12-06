@@ -69,6 +69,7 @@
     "esbuild-style-plugin": "^1.6.2",
     "postcss": "^8.2.3",
     "postcss-import": "^16.0.0",
+    "postcss-nesting": "^13.0.1",
     "prettier": "^3.0.3"
   }
 }

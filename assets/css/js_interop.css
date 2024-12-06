@@ -1,450 +1,338 @@
 /*
 Conditional elements display.
 
-Verious hooks and callbacks dynamically set attributes
-based on which we hide/show certain elements.
-This way we don't have to engage the server in
-solely client-side operations.
+Verious hooks and callbacks dynamically set attributes based on which
+we hide/show certain elements. This way we don't have to engage the
+server in solely client-side operations.
 */
 
-/* === Global === */
-
-[phx-hook="Highlight"][data-highlighted] > [data-source] {
-  @apply hidden;
-}
+/* Hooks */
 
 [phx-hook="Dropzone"][data-js-dragging] {
   @apply bg-blue-100 border-blue-300;
 }
 
-/* === Session === */
+/* Session */
 
-[data-el-session]:not([data-js-insert-mode]) [data-el-insert-mode-indicator] {
-  @apply invisible;
-}
+[data-el-session] {
+  /* Sections */
 
-[data-el-session]:not([data-js-insert-mode])
-  [data-el-cell][data-type="markdown"]
-  [data-el-editor-box],
-[data-el-session][data-js-insert-mode]
-  [data-el-cell][data-type="markdown"]:not([data-js-focused])
-  [data-el-editor-box] {
-  @apply hidden;
-}
+  [data-el-notebook-headline],
+  [data-el-section-headline] {
+    &:hover [data-el-heading] {
+      @apply border-blue-200;
+    }
 
-[data-el-session][data-js-insert-mode]
-  [data-el-cell][data-js-focused]
-  [data-el-enable-insert-mode-button] {
-  @apply hidden;
-}
+    &[data-js-focused] [data-el-heading] {
+      @apply border-blue-300 outline-none;
+    }
+  }
 
-[data-el-session]:not([data-js-insert-mode])
-  [data-el-cell][data-type="markdown"][data-js-focused]
-  [data-el-insert-image-button] {
-  @apply hidden;
-}
+  [data-el-section-headline]:not(:hover, [data-js-focused])
+    [data-el-section-actions] {
+    @apply hidden;
+  }
 
-[data-el-notebook-headline]:hover [data-el-heading],
-[data-el-section-headline]:hover [data-el-heading] {
-  @apply border-blue-200;
-}
+  [data-el-section][data-js-collapsed] [data-el-section-collapse-button],
+  &:not([data-js-hide-section])
+    [data-el-section][data-js-collapsed]
+    [data-el-section-content] {
+    @apply hidden;
+  }
 
-[data-el-notebook-headline][data-js-focused] [data-el-heading],
-[data-el-section-headline][data-js-focused] [data-el-heading] {
-  @apply border-blue-300 outline-none;
-}
+  [data-el-section]:not([data-js-collapsed])
+    :is(
+      [data-el-section-headline]:not(:hover, [data-js-focused])
+        [data-el-section-collapse-button],
+      [data-el-section-expand-button],
+      [data-el-section-subheadline-collapsed]
+    ) {
+    @apply hidden;
+  }
 
-[data-el-section-headline]:not(:hover):not([data-js-focused])
-  [data-el-heading]
-  + [data-el-section-actions]:not(:focus-within) {
-  @apply hidden;
-}
+  /* Cells */
 
-[data-el-section][data-js-collapsed] [data-el-section-collapse-button],
-[data-el-section]:not([data-js-collapsed])
-  [data-el-section-headline]:not(:hover):not([data-js-focused])
-  [data-el-section-collapse-button],
-[data-el-section]:not([data-js-collapsed]) [data-el-section-expand-button],
-[data-el-session]:not([data-js-view="code-zen"])
-  [data-el-section][data-js-collapsed]
-  > [data-el-section-content],
-[data-el-section]:not([data-js-collapsed])
-  > [data-el-section-subheadline-collapsed] {
-  @apply hidden;
-}
+  &:not([data-js-insert-mode]) [data-el-insert-mode-indicator] {
+    @apply invisible;
+  }
 
-[data-el-session]:not([data-js-dragging]) [data-el-insert-drop-area] {
-  @apply hidden;
-}
+  [data-el-cell][data-js-hover] [data-el-cell-focus-indicator] {
+    @apply bg-blue-200;
+  }
 
-[data-el-session]:not([data-js-dragging="external"]) [data-el-files-drop-area] {
-  @apply hidden;
-}
+  [data-el-cell][data-js-focused] {
+    @apply border-blue-300 border-opacity-100;
 
-[data-el-session][data-js-dragging="external"] [data-el-files-add-button] {
-  @apply hidden;
-}
+    [data-el-cell-focus-indicator] {
+      @apply bg-blue-300;
+    }
+  }
 
-[data-el-cell][data-js-focused] {
-  @apply border-blue-300 border-opacity-100;
-}
+  [data-el-cell]:not([data-js-focused]) {
+    /* We use opacity, so the buttons are focusable via tab navigation */
 
-[data-el-cell]:not([data-js-focused]) [data-el-actions]:not(:focus-within) {
-  /* Note: using opacity, so the buttons are focusable (via tab navigation)
-      and when focused we show the actions back. */
-  @apply opacity-0;
-}
+    & [data-el-actions][data-secondary] {
+      @apply opacity-0 pointer-events-none;
+    }
 
-[data-el-cell]:not([data-js-focused])
-  [data-el-actions]:not([data-primary]):not(:focus-within) {
-  @apply pointer-events-none;
-}
+    &:not([data-js-hover]) [data-el-actions][data-primary] {
+      @apply opacity-0;
+    }
+  }
 
-[data-el-cell]:not([data-js-focused])[data-js-hover]
-  [data-el-actions][data-primary] {
-  @apply opacity-100 pointer-events-auto;
-}
+  [data-el-cell][data-js-changed] [data-el-cell-status] {
+    @apply italic;
+  }
 
-[data-el-cell][data-js-changed] [data-el-cell-status] {
-  @apply italic;
-}
+  [data-el-cell]:not([data-js-changed])
+    [data-el-cell-status]
+    [data-el-change-indicator] {
+    @apply invisible;
+  }
 
-[data-el-cell]:not([data-js-changed])
-  [data-el-cell-status]
-  [data-el-change-indicator] {
-  @apply invisible;
-}
+  [data-el-cell][data-type="markdown"]:not([data-js-insert-mode])
+    [data-el-editor-box] {
+    @apply hidden;
+  }
 
-[data-el-outline-item][data-js-is-viewed] {
-  @apply text-gray-900;
-}
+  [data-el-cell][data-type="markdown"][data-js-insert-mode]
+    [data-el-enable-insert-mode-button] {
+    @apply hidden;
+  }
 
-[data-el-cell]:not([data-js-focused])[data-js-hover]
-  [data-el-cell-focus-indicator] {
-  @apply bg-blue-200;
-}
+  [data-el-cell][data-type="smart"][data-js-source-visible] {
+    [data-el-ui-box] {
+      @apply hidden;
+    }
 
-[data-el-cell][data-js-focused] [data-el-cell-focus-indicator] {
-  @apply bg-blue-300;
-}
+    [data-el-toggle-source-button] > button {
+      @apply bg-gray-100 text-gray-900;
+    }
+  }
 
-[data-el-cell][data-js-amplified] [data-el-outputs-container] {
-  @apply bg-white m-0 py-16;
+  [data-el-cell][data-type="smart"]:not([data-js-source-visible]) {
+    [data-el-editor-box] {
+      @apply hidden;
+    }
 
-  width: 90vw;
-  position: relative;
-  left: calc(-45vw + 50%);
-}
+    [data-el-cell-indicators] {
+      @apply static flex justify-end pt-2;
+    }
 
-[data-el-cell][data-js-amplified] [data-el-amplify-outputs-button] > button {
-  @apply bg-gray-100 text-gray-900;
-}
+    [data-el-cell-indicator] {
+      @apply bg-gray-50 border-gray-200 text-gray-500;
+    }
+  }
 
-[data-el-cell][data-type="smart"]:not([data-js-source-visible])
-  [data-el-editor-box] {
-  /* Note: we intentionally don't hide the editor, because this leads
-     to issues with hover intellisense once the editor is shown. */
-  @apply h-0 overflow-hidden;
-}
-
-[data-el-cell][data-type="smart"][data-js-source-visible] [data-el-ui-box] {
-  @apply hidden;
-}
-
-[data-el-cell][data-type="smart"]:not([data-js-source-visible])
-  [data-el-cell-indicators] {
-  @apply static flex justify-end pt-2;
-}
-
-[data-el-cell][data-type="smart"]:not([data-js-source-visible])
-  [data-el-cell-indicator] {
-  @apply bg-gray-50 border-gray-200 text-gray-500;
-}
-
-[data-el-session]
   [data-el-cell][data-type="setup"]:not(
-    [data-eval-validity="fresh"]:not([data-js-empty])
-  ):not([data-eval-errored]):not([data-js-changed]):not([data-js-focused])
-  [data-el-editor-box] {
-  @apply h-0 overflow-hidden;
-}
+      [data-js-focused],
+      [data-eval-validity="fresh"]:not([data-js-empty]),
+      [data-eval-errored],
+      [data-js-changed]
+    ) {
+    [data-el-editor-box] {
+      @apply hidden;
+    }
 
-[data-el-session]
-  [data-el-cell][data-type="setup"]:not(
-    [data-eval-validity="fresh"]:not([data-js-empty])
-  ):not([data-eval-errored]):not([data-js-changed]):not([data-js-focused])
-  [data-el-cell-indicator] {
-  @apply bg-gray-50 border-gray-200 text-gray-500;
-}
+    [data-el-cell-indicator] {
+      @apply bg-gray-50 border-gray-200 text-gray-500;
+    }
+  }
 
-[data-el-session]
-  [data-el-cell][data-type="setup"][data-js-focused]
-  [data-el-info-box],
-[data-el-session]
-  [data-el-cell][data-type="setup"][data-eval-validity="fresh"]:not(
-    [data-js-empty]
-  )
-  [data-el-info-box],
-[data-el-session]
-  [data-el-cell][data-type="setup"][data-eval-errored]
-  [data-el-info-box],
-[data-el-session]
-  [data-el-cell][data-type="setup"][data-js-changed]
-  [data-el-info-box] {
-  @apply hidden;
-}
+  [data-el-cell][data-type="setup"]:is(
+      [data-js-focused],
+      [data-eval-validity="fresh"]:not([data-js-empty]),
+      [data-eval-errored],
+      [data-js-changed]
+    )
+    [data-el-info-box] {
+    @apply hidden;
+  }
 
-[data-el-cell][data-type="smart"][data-js-source-visible]
-  [data-el-toggle-source-button]
-  > button {
-  @apply bg-gray-100 text-gray-900;
-}
+  /* Outputs */
 
-[data-el-cell][data-type="smart"][data-js-source-visible]
-  [data-el-cell-status-container] {
-  @apply absolute bottom-2 right-2;
-}
+  [data-el-cell][data-js-amplified] {
+    [data-el-amplify-outputs-button] > button {
+      @apply bg-gray-100 text-gray-900;
+    }
 
-[data-el-output][data-border] {
-  @apply p-4 border border-t-0 border-gray-200 divide-y divide-gray-200;
-}
+    [data-el-outputs-container] {
+      @apply bg-white m-0 py-16;
 
-[data-el-output][data-border]:first-child {
-  @apply rounded-t-lg border-t;
-}
+      width: 90vw;
+      position: relative;
+      left: calc(-45vw + 50%);
+    }
+  }
 
-[data-el-output]:not([data-border]) + [data-el-output][data-border] {
-  @apply border-t;
-}
+  [data-el-output][data-border] {
+    @apply p-4 border border-t-0 border-gray-200 divide-y divide-gray-200;
+  }
 
-[data-el-output][data-border]:last-child {
-  @apply rounded-b-lg border-b;
-}
+  [data-el-output][data-border]:first-child {
+    @apply rounded-t-lg border-t;
+  }
 
-[data-el-output]:not(:first-child) {
-  @apply mt-2;
-}
+  [data-el-output]:not([data-border]) + [data-el-output][data-border] {
+    @apply border-t;
+  }
 
-[data-el-output][data-border] + [data-el-output][data-border] {
-  @apply mt-0;
-}
+  [data-el-output][data-border]:last-child {
+    @apply rounded-b-lg border-b;
+  }
 
-[data-el-outputs-container] > [data-el-output]:first-child {
-  @apply mt-2;
-}
+  [data-el-output]:not(:first-child) {
+    @apply mt-2;
+  }
 
-[data-el-session]:not([data-js-side-panel-content]) [data-el-side-panel] {
-  @apply hidden;
-}
+  [data-el-output][data-border] + [data-el-output][data-border] {
+    @apply mt-0;
+  }
 
-[data-el-session]:not([data-js-side-panel-content="outline"])
-  [data-el-outline] {
-  @apply hidden;
-}
+  [data-el-outputs-container] > [data-el-output]:first-child {
+    @apply mt-2;
+  }
 
-[data-el-session]:not([data-js-side-panel-content="clients-list"])
-  [data-el-clients-list] {
-  @apply hidden;
-}
+  /* Side panel */
 
-[data-el-session]:not([data-js-side-panel-content="secrets-list"])
-  [data-el-secrets-list] {
-  @apply hidden;
-}
+  &:not([data-js-side-panel-content]) [data-el-side-panel] {
+    @apply hidden;
+  }
 
-[data-el-session]:not([data-js-side-panel-content="files-list"])
-  [data-el-files-list] {
-  @apply hidden;
-}
+  &:not([data-js-side-panel-content="outline"]) [data-el-outline],
+  &:not([data-js-side-panel-content="clients-list"]) [data-el-clients-list],
+  &:not([data-js-side-panel-content="secrets-list"]) [data-el-secrets-list],
+  &:not([data-js-side-panel-content="files-list"]) [data-el-files-list],
+  &:not([data-js-side-panel-content="runtime-info"]) [data-el-runtime-info],
+  &:not([data-js-side-panel-content="app-info"]) [data-el-app-info] {
+    @apply hidden;
+  }
 
-[data-el-session]:not([data-js-side-panel-content="runtime-info"])
-  [data-el-runtime-info] {
-  @apply hidden;
-}
+  &[data-js-side-panel-content="outline"] [data-el-outline-toggle],
+  &[data-js-side-panel-content="clients-list"] [data-el-clients-list-toggle],
+  &[data-js-side-panel-content="secrets-list"] [data-el-secrets-list-toggle],
+  &[data-js-side-panel-content="files-list"] [data-el-files-list-toggle],
+  &[data-js-side-panel-content="runtime-info"] [data-el-runtime-info-toggle],
+  &[data-js-side-panel-content="app-info"] [data-el-app-info-toggle] {
+    @apply text-gray-50 bg-gray-700;
+  }
 
-[data-el-session][data-js-side-panel-content="runtime-info"]
-  [data-el-runtime-indicator] {
-  @apply border-gray-700;
-}
+  &[data-js-side-panel-content="runtime-info"] [data-el-runtime-indicator] {
+    @apply border-gray-700;
+  }
 
-[data-el-session]:not([data-js-side-panel-content="app-info"])
-  [data-el-app-info] {
-  @apply hidden;
-}
+  [data-el-clients-list-item]:not([data-js-followed]) [data-meta="unfollow"] {
+    @apply hidden;
+  }
 
-[data-el-session][data-js-side-panel-content="outline"]
-  [data-el-outline-toggle] {
-  @apply text-gray-50 bg-gray-700;
-}
+  [data-el-clients-list-item][data-js-followed] [data-meta="follow"] {
+    @apply hidden;
+  }
 
-[data-el-session][data-js-side-panel-content="clients-list"]
-  [data-el-clients-list-toggle] {
-  @apply text-gray-50 bg-gray-700;
-}
+  [data-el-outline-item][data-js-is-viewed] {
+    @apply text-gray-900;
+  }
 
-[data-el-session][data-js-side-panel-content="secrets-list"]
-  [data-el-secrets-list-toggle] {
-  @apply text-gray-50 bg-gray-700;
-}
+  /* Drag and drop */
 
-[data-el-session][data-js-side-panel-content="files-list"]
-  [data-el-files-list-toggle] {
-  @apply text-gray-50 bg-gray-700;
-}
+  &:not([data-js-dragging]) [data-el-insert-drop-area] {
+    @apply hidden;
+  }
 
-[data-el-session][data-js-side-panel-content="runtime-info"]
-  [data-el-runtime-info-toggle] {
-  @apply text-gray-50 bg-gray-700;
-}
+  &:not([data-js-dragging="external"]) [data-el-files-drop-area] {
+    @apply hidden;
+  }
 
-[data-el-session][data-js-side-panel-content="app-info"]
-  [data-el-app-info-toggle] {
-  @apply text-gray-50 bg-gray-700;
-}
+  &[data-js-dragging="external"] [data-el-files-add-button] {
+    @apply hidden;
+  }
 
-[data-el-clients-list-item]:not([data-js-followed]) [data-meta="unfollow"] {
-  @apply hidden;
-}
+  /* Session views */
 
-[data-el-clients-list-item][data-js-followed] [data-meta="follow"] {
-  @apply hidden;
-}
+  &[data-js-view="code-zen"] [data-el-view-toggle="code-zen"],
+  &[data-js-view="presentation"] [data-el-view-toggle="presentation"],
+  &[data-js-view="custom"] [data-el-view-toggle="custom"] {
+    @apply text-green-bright-400;
+  }
 
-/* === Session views === */
+  &[data-js-view] {
+    [data-el-actions],
+    [data-el-insert-buttons] {
+      @apply hidden;
+    }
 
-[data-el-session][data-js-view="code-zen"] [data-el-view-toggle="code-zen"] {
-  @apply text-green-bright-400;
-}
+    [data-el-views-disabled] {
+      @apply hidden;
+    }
+  }
 
-[data-el-session][data-js-view="presentation"]
-  [data-el-view-toggle="presentation"] {
-  @apply text-green-bright-400;
-}
+  &:not([data-js-view]) [data-el-views-enabled] {
+    @apply hidden;
+  }
 
-[data-el-session][data-js-view="custom"] [data-el-view-toggle="custom"] {
-  @apply text-green-bright-400;
-}
+  &[data-js-hide-output] {
+    [data-el-outputs-container] {
+      @apply hidden;
+    }
+  }
 
-[data-el-session][data-js-view]
-  :is([data-el-actions], [data-el-insert-buttons]) {
-  @apply hidden;
-}
-
-[data-el-session][data-js-view] [data-el-views-disabled] {
-  @apply hidden;
-}
-
-[data-el-session]:not([data-js-view]) [data-el-views-enabled] {
-  @apply hidden;
-}
-
-[data-js-hide-output] [data-el-output] {
-  @apply hidden;
-}
-
-[data-js-hide-section]
-  :is(
+  &[data-js-hide-section] {
     [data-el-section-headline],
     [data-el-section-subheadline],
-    [data-el-section-subheadline-collapsed]
-  ) {
-  @apply hidden;
-}
+    [data-el-section-subheadline-collapsed] {
+      @apply hidden;
+    }
 
-[data-js-hide-section] [data-el-sections-container] {
-  @apply space-y-0 mt-0;
-}
+    [data-el-sections-container] {
+      @apply space-y-0 mt-0;
+    }
+  }
 
-[data-js-hide-markdown] [data-el-cell][data-type="markdown"] {
-  @apply hidden;
-}
+  &[data-js-hide-markdown] {
+    [data-el-cell][data-type="markdown"] {
+      @apply hidden;
+    }
+  }
 
-[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
-  [data-el-cell]
-  [data-el-cell-indicator],
-[data-js-hide-code][data-el-session]
-  [data-el-cell]:not([data-js-focused])
-  [data-el-cell-indicator] {
-  @apply bg-gray-50 border-gray-200 text-gray-500;
-}
+  &[data-js-hide-code] {
+    [data-el-cell]:is(
+        [data-type="code"],
+        [data-type="setup"],
+        [data-type="smart"]
+      ):not([data-js-insert-mode]) {
+      [data-el-editor-box],
+      &[data-type="setup"] [data-el-info-box],
+      &[data-type="smart"] [data-el-ui-box] {
+        @apply hidden;
+      }
 
-[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
-  [data-el-cell][data-type="code"]
-  [data-el-editor-box],
-[data-js-hide-code][data-el-session][data-js-insert-mode]
-  [data-el-cell][data-type="code"]:not([data-js-focused])
-  [data-el-editor-box] {
-  @apply hidden;
-}
+      [data-el-cell-body-root]:after {
+        @apply flex py-2 px-3 border border-gray-200 rounded-lg text-sm text-gray-400 font-medium;
+        content: "Code";
+      }
 
-[data-js-hide-code][data-el-session]
-  [data-el-cell][data-type="setup"]
-  [data-el-info-box],
-[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
-  [data-el-cell][data-type="setup"]
-  [data-el-editor-box],
-[data-js-hide-code][data-el-session][data-js-insert-mode]
-  [data-el-cell][data-type="setup"]:not([data-js-focused])
-  [data-el-editor-box] {
-  @apply hidden;
-}
+      [data-el-cell-indicator] {
+        @apply bg-gray-50 border-gray-200 text-gray-500;
+      }
 
-[data-js-hide-code] [data-el-cell][data-type="smart"] [data-el-ui-box] {
-  @apply hidden;
-}
+      &[data-type="smart"] [data-el-cell-indicators] {
+        @apply absolute bottom-2 right-2;
+      }
+    }
+  }
 
-[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
-  [data-el-cell][data-type="smart"]
-  [data-el-editor-box],
-[data-js-hide-code][data-el-session][data-js-insert-mode]
-  [data-el-cell][data-type="smart"]:not([data-js-focused])
-  [data-el-editor-box] {
-  @apply hidden;
-}
-
-[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
-  [data-el-cell][data-type="code"]
-  [data-el-cell-body-root]:after,
-[data-js-hide-code][data-el-session][data-js-insert-mode]
-  [data-el-cell][data-type="code"]:not([data-js-focused])
-  [data-el-cell-body-root]:after,
-[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
-  [data-el-cell][data-type="setup"]
-  [data-el-cell-body-root]:after,
-[data-js-hide-code][data-el-session][data-js-insert-mode]
-  [data-el-cell][data-type="setup"]:not([data-js-focused])
-  [data-el-cell-body-root]:after,
-[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
-  [data-el-cell][data-type="smart"]
-  [data-el-cell-body-root]:after,
-[data-js-hide-code][data-el-session][data-js-insert-mode]
-  [data-el-cell][data-type="smart"]:not([data-js-focused])
-  [data-el-cell-body-root]:after {
-  content: "Code";
-
-  @apply flex py-2 px-3 border border-gray-200 rounded-lg text-sm text-gray-400 font-medium;
-}
-
-[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
-  [data-el-cell][data-type="smart"]
-  [data-el-cell-indicators],
-[data-js-hide-code][data-el-session][data-js-insert-mode]
-  [data-el-cell][data-type="smart"]:not([data-js-focused])
-  [data-el-cell-indicators] {
-  @apply absolute bottom-2 right-2;
-}
-
-[data-js-spotlight]
-  :is(
+  &[data-js-spotlight] {
     [data-el-section-headline]:not([data-js-focused]),
     [data-el-section-subheadline]:not([data-js-focused]),
     [data-el-cell]:not([data-js-focused]),
-    [data-el-js-view-iframes] iframe:not([data-js-focused])
-  ) {
-  @apply opacity-10;
-}
+    [data-el-js-view-iframes] iframe:not([data-js-focused]) {
+      @apply opacity-10;
+    }
 
-[data-js-spotlight]
-  :is([data-el-sidebar], [data-el-side-panel], [data-el-toggle-sidebar]) {
-  @apply hidden;
+    [data-el-sidebar],
+    [data-el-side-panel],
+    [data-el-toggle-sidebar] {
+      @apply hidden;
+    }
+  }
 }
