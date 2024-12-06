@@ -3,6 +3,8 @@ const esbuild = require("esbuild");
 const stylePlugin = require("esbuild-style-plugin");
 const postcssImport = require("postcss-import");
 const tailwind = require("tailwindcss");
+const tailwindNesting = require("tailwindcss/nesting");
+const postcssNesting = require("postcss-nesting");
 const autoprefixer = require("autoprefixer");
 
 const args = process.argv.slice(2);
@@ -27,7 +29,13 @@ async function main() {
     plugins: [
       stylePlugin({
         postcss: {
-          plugins: [postcssImport, tailwind, autoprefixer],
+          plugins: [
+            postcssImport,
+            // See https://tailwindcss.com/docs/using-with-preprocessors#nesting
+            tailwindNesting(postcssNesting),
+            tailwind,
+            autoprefixer,
+          ],
         },
       }),
     ],

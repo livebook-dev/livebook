@@ -41,7 +41,7 @@ const Highlight = {
 
     const html = highlight(code, this.props.language);
     this.targetEl.innerHTML = html;
-    this.el.setAttribute("data-highlighted", "");
+    this.sourceEl.style.display = "none";
   },
 };
 

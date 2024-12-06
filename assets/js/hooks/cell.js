@@ -330,6 +330,7 @@ const Cell = {
   handleInsertModeChanged(insertMode) {
     if (this.isFocused && !this.insertMode && insertMode) {
       this.insertMode = insertMode;
+      this.el.setAttribute("data-js-insert-mode", "");
 
       if (this.currentEditor()) {
         this.currentEditor().focus();
@@ -337,6 +338,7 @@ const Cell = {
       }
     } else if (this.insertMode && !insertMode) {
       this.insertMode = insertMode;
+      this.el.removeAttribute("data-js-insert-mode");
 
       if (this.currentEditor()) {
         this.currentEditor().blur();
