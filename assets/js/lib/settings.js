@@ -30,6 +30,7 @@ const DEFAULTSETTINGS = {
   editor_mode: EDITOR_MODE.default,
   custom_view_show_section: true,
   custom_view_show_markdown: true,
+  custom_view_show_code: true,
   custom_view_show_output: true,
   custom_view_spotlight: false,
 };

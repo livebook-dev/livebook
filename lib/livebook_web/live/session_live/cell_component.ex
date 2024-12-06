@@ -109,16 +109,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:secondary>
     </.cell_actions>
     <.cell_body>
-      <div class="relative">
-        <.cell_editor
-          cell_id={@cell_view.id}
-          tag="primary"
-          empty={@cell_view.empty}
-          language={@cell_view.language}
-          intellisense
-        />
-        <div class="absolute bottom-2 right-2">
-          <.cell_indicators id={@cell_view.id} variant="editor" cell_view={@cell_view} />
+      <div class="relative" data-el-cell-body-root>
+        <div class="relative" data-el-editor-box>
+          <.cell_editor
+            cell_id={@cell_view.id}
+            tag="primary"
+            empty={@cell_view.empty}
+            language={@cell_view.language}
+            intellisense
+          />
+        </div>
+        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} />
         </div>
       </div>
       <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
@@ -151,14 +153,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:secondary>
     </.cell_actions>
     <.cell_body>
-      <div data-el-info-box>
-        <div class="p-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 rounded-lg">
-          <span class="font-medium">Notebook dependencies and setup</span>
-          <.cell_indicators id={"#{@cell_view.id}-1"} variant="default" cell_view={@cell_view} />
+      <div class="relative" data-el-cell-body-root>
+        <div data-el-info-box>
+          <div class="py-2 px-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 rounded-lg">
+            <span class="font-medium">Notebook dependencies and setup</span>
+          </div>
         </div>
-      </div>
-      <div data-el-editor-box>
-        <div class="relative">
+        <div data-el-editor-box>
           <.cell_editor
             cell_id={@cell_view.id}
             tag="primary"
@@ -166,18 +167,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             language="elixir"
             intellisense
           />
-          <div class="absolute bottom-2 right-2">
-            <.cell_indicators id={"#{@cell_view.id}-2"} variant="editor" cell_view={@cell_view} />
-          </div>
         </div>
-        <.evaluation_outputs
-          outputs={@streams.outputs}
-          cell_view={@cell_view}
-          session_id={@session_id}
-          session_pid={@session_pid}
-          client_id={@client_id}
-        />
+        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} />
+        </div>
       </div>
+      <.evaluation_outputs
+        outputs={@streams.outputs}
+        cell_view={@cell_view}
+        session_id={@session_id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+      />
     </.cell_body>
     """
   end
@@ -206,73 +207,71 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:secondary>
     </.cell_actions>
     <.cell_body>
-      <div data-el-ui-box>
-        <%= case @cell_view.status do %>
-          <% :started -> %>
-            <div class={
+      <div class="relative" data-el-cell-body-root>
+        <div data-el-ui-box>
+          <%= case @cell_view.status do %>
+            <% :started -> %>
+              <div class={
               "flex #{if(@cell_view.editor && @cell_view.editor.placement == :top, do: "flex-col-reverse", else: "flex-col")}"
             }>
-              <.live_component
-                module={LivebookWeb.JSViewComponent}
-                id={@cell_view.id}
-                js_view={@cell_view.js_view}
-                session_id={@session_id}
-                client_id={@client_id}
-              />
-              <.cell_editor
-                :if={@cell_view.editor}
-                cell_id={@cell_view.id}
-                tag="secondary"
-                empty={@cell_view.editor.empty}
-                language={@cell_view.editor.language}
-                rounded={@cell_view.editor.placement}
-                intellisense={@cell_view.editor.language == "elixir"}
-                hidden={not @cell_view.editor.visible}
-              />
-            </div>
-          <% :dead -> %>
-            <div class="info-box">
-              <%= if @installing? do %>
-                Waiting for dependency installation to complete...
-              <% else %>
-                Run the notebook setup to show the contents of this Smart cell.
-              <% end %>
-            </div>
-          <% :down -> %>
-            <div class="info-box flex justify-between items-center">
-              <span>
-                The Smart cell crashed unexpectedly, this is most likely a bug.
-              </span>
-              <.button
-                color="gray"
-                phx-click={JS.push("recover_smart_cell", value: %{cell_id: @cell_view.id})}
-              >
-                Restart Smart cell
-              </.button>
-            </div>
-          <% :starting -> %>
-            <div class="delay-200">
-              <.content_skeleton empty={false} />
-            </div>
-        <% end %>
-        <div class="flex flex-col items-end space-y-2 text-gray-400">
-          <div></div>
-          <.cell_indicators id={"#{@cell_view.id}-1"} variant="default" cell_view={@cell_view} />
+                <.live_component
+                  module={LivebookWeb.JSViewComponent}
+                  id={@cell_view.id}
+                  js_view={@cell_view.js_view}
+                  session_id={@session_id}
+                  client_id={@client_id}
+                />
+                <.cell_editor
+                  :if={@cell_view.editor}
+                  cell_id={@cell_view.id}
+                  tag="secondary"
+                  empty={@cell_view.editor.empty}
+                  language={@cell_view.editor.language}
+                  rounded={@cell_view.editor.placement}
+                  intellisense={@cell_view.editor.language == "elixir"}
+                  hidden={not @cell_view.editor.visible}
+                />
+              </div>
+            <% :dead -> %>
+              <div class="info-box">
+                <%= if @installing? do %>
+                  Waiting for dependency installation to complete...
+                <% else %>
+                  Run the notebook setup to show the contents of this Smart cell.
+                <% end %>
+              </div>
+            <% :down -> %>
+              <div class="info-box flex justify-between items-center">
+                <span>
+                  The Smart cell crashed unexpectedly, this is most likely a bug.
+                </span>
+                <.button
+                  color="gray"
+                  phx-click={JS.push("recover_smart_cell", value: %{cell_id: @cell_view.id})}
+                >
+                  Restart Smart cell
+                </.button>
+              </div>
+            <% :starting -> %>
+              <div class="delay-200">
+                <.content_skeleton empty={false} />
+              </div>
+          <% end %>
         </div>
-      </div>
-      <div data-el-editor-box>
-        <div class="relative">
-          <.cell_editor
-            cell_id={@cell_view.id}
-            tag="primary"
-            empty={@cell_view.empty}
-            language="elixir"
-            intellisense
-            read_only
-          />
-          <div class="absolute bottom-2 right-2">
-            <.cell_indicators id={"#{@cell_view.id}-2"} variant="editor" cell_view={@cell_view} />
+        <div data-el-editor-box>
+          <div class="relative">
+            <.cell_editor
+              cell_id={@cell_view.id}
+              tag="primary"
+              empty={@cell_view.empty}
+              language="elixir"
+              intellisense
+              read_only
+            />
           </div>
+        </div>
+        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} />
         </div>
       </div>
       <.evaluation_outputs
@@ -683,24 +682,25 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_indicators(assigns) do
     ~H"""
     <div class="flex gap-1">
-      <div :if={has_status?(@cell_view)} class={cell_indicator_container_class(@variant)}>
+      <.cell_indicator :if={has_status?(@cell_view)}>
         <.cell_status id={@id} cell_view={@cell_view} />
-      </div>
-      <div class={cell_indicator_container_class(@variant)}>
+      </.cell_indicator>
+      <.cell_indicator>
         <.language_icon language={cell_language(@cell_view)} class="w-3 h-3" />
-      </div>
+      </.cell_indicator>
     </div>
     """
   end
 
-  defp cell_indicator_container_class(variant) do
-    [
-      "px-1.5 h-[22px] rounded-lg flex items-center",
-      case variant do
-        "default" -> "bg-gray-50 border border-gray-200 text-gray-500 px-1.5 h-[22px]"
-        "editor" -> "bg-editor-lighter border border-editor text-editor px-1.5 h-[22px]"
-      end
-    ]
+  defp cell_indicator(assigns) do
+    ~H"""
+    <div
+      data-el-cell-indicator
+      class="px-1.5 h-[22px] rounded-lg flex items-center border bg-editor-lighter border-editor text-editor"
+    >
+      {render_slot(@inner_block)}
+    </div>
+    """
   end
 
   defp cell_language(%{language: language}), do: Atom.to_string(language)

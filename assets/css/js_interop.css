@@ -151,12 +151,30 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-el-cell][data-type="smart"]:not([data-js-source-visible])
+  [data-el-cell-indicators] {
+  @apply static flex justify-end pt-2;
+}
+
+[data-el-cell][data-type="smart"]:not([data-js-source-visible])
+  [data-el-cell-indicator] {
+  @apply bg-gray-50 border-gray-200 text-gray-500;
+}
+
 [data-el-session]
   [data-el-cell][data-type="setup"]:not(
     [data-eval-validity="fresh"]:not([data-js-empty])
   ):not([data-eval-errored]):not([data-js-changed]):not([data-js-focused])
   [data-el-editor-box] {
   @apply h-0 overflow-hidden;
+}
+
+[data-el-session]
+  [data-el-cell][data-type="setup"]:not(
+    [data-eval-validity="fresh"]:not([data-js-empty])
+  ):not([data-eval-errored]):not([data-js-changed]):not([data-js-focused])
+  [data-el-cell-indicator] {
+  @apply bg-gray-50 border-gray-200 text-gray-500;
 }
 
 [data-el-session]
@@ -339,6 +357,81 @@ solely client-side operations.
 
 [data-js-hide-markdown] [data-el-cell][data-type="markdown"] {
   @apply hidden;
+}
+
+[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
+  [data-el-cell]
+  [data-el-cell-indicator],
+[data-js-hide-code][data-el-session]
+  [data-el-cell]:not([data-js-focused])
+  [data-el-cell-indicator] {
+  @apply bg-gray-50 border-gray-200 text-gray-500;
+}
+
+[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
+  [data-el-cell][data-type="code"]
+  [data-el-editor-box],
+[data-js-hide-code][data-el-session][data-js-insert-mode]
+  [data-el-cell][data-type="code"]:not([data-js-focused])
+  [data-el-editor-box] {
+  @apply hidden;
+}
+
+[data-js-hide-code][data-el-session]
+  [data-el-cell][data-type="setup"]
+  [data-el-info-box],
+[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
+  [data-el-cell][data-type="setup"]
+  [data-el-editor-box],
+[data-js-hide-code][data-el-session][data-js-insert-mode]
+  [data-el-cell][data-type="setup"]:not([data-js-focused])
+  [data-el-editor-box] {
+  @apply hidden;
+}
+
+[data-js-hide-code] [data-el-cell][data-type="smart"] [data-el-ui-box] {
+  @apply hidden;
+}
+
+[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
+  [data-el-cell][data-type="smart"]
+  [data-el-editor-box],
+[data-js-hide-code][data-el-session][data-js-insert-mode]
+  [data-el-cell][data-type="smart"]:not([data-js-focused])
+  [data-el-editor-box] {
+  @apply hidden;
+}
+
+[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
+  [data-el-cell][data-type="code"]
+  [data-el-cell-body-root]:after,
+[data-js-hide-code][data-el-session][data-js-insert-mode]
+  [data-el-cell][data-type="code"]:not([data-js-focused])
+  [data-el-cell-body-root]:after,
+[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
+  [data-el-cell][data-type="setup"]
+  [data-el-cell-body-root]:after,
+[data-js-hide-code][data-el-session][data-js-insert-mode]
+  [data-el-cell][data-type="setup"]:not([data-js-focused])
+  [data-el-cell-body-root]:after,
+[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
+  [data-el-cell][data-type="smart"]
+  [data-el-cell-body-root]:after,
+[data-js-hide-code][data-el-session][data-js-insert-mode]
+  [data-el-cell][data-type="smart"]:not([data-js-focused])
+  [data-el-cell-body-root]:after {
+  content: "Code";
+
+  @apply flex py-2 px-3 border border-gray-200 rounded-lg text-sm text-gray-400 font-medium;
+}
+
+[data-js-hide-code][data-el-session]:not([data-js-insert-mode])
+  [data-el-cell][data-type="smart"]
+  [data-el-cell-indicators],
+[data-js-hide-code][data-el-session][data-js-insert-mode]
+  [data-el-cell][data-type="smart"]:not([data-js-focused])
+  [data-el-cell-indicators] {
+  @apply absolute bottom-2 right-2;
 }
 
 [data-js-spotlight]
