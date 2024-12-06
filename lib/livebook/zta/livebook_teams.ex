@@ -146,7 +146,7 @@ defmodule Livebook.ZTA.LivebookTeams do
         name: name,
         avatar_url: avatar_url,
         email: email,
-        payload: %{"access_token" => access_token}
+        payload: Map.put(payload, "access_token", access_token)
       }
 
       {:ok, metadata}

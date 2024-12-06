@@ -49,7 +49,7 @@ defmodule Livebook.ZTA.Cloudflare do
          {:ok, token} <- verify_token(encoded_token, keys),
          :ok <- verify_iss(token, identity.iss),
          {:ok, user} <- get_user_identity(encoded_token, identity.user_identity) do
-      for({k, v} <- user, new_k = @fields[k], do: {new_k, v}, into: %{payload: token.fields})
+      for({k, v} <- user, new_k = @fields[k], do: {new_k, v}, into: %{payload: user})
     else
       _ -> nil
     end
