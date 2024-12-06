@@ -6,7 +6,13 @@ defmodule Livebook.Users.UserTest do
   describe "change/2" do
     test "given valid attributes returns and updated user" do
       user = build(:user)
-      attrs = %{"name" => "Jake Peralta", "hex_color" => "#000000", "payload" => %{"country" => "US"}}
+
+      attrs = %{
+        "name" => "Jake Peralta",
+        "hex_color" => "#000000",
+        "payload" => %{"country" => "US"}
+      }
+
       changeset = User.changeset(user, attrs)
 
       assert changeset.valid?
