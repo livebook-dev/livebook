@@ -42,13 +42,14 @@ defmodule Livebook.Users.User do
       name: nil,
       email: nil,
       avatar_url: nil,
+      payload: nil,
       hex_color: Livebook.EctoTypes.HexColor.random()
     }
   end
 
   def changeset(user, attrs \\ %{}) do
     user
-    |> cast(attrs, [:name, :email, :avatar_url, :hex_color])
+    |> cast(attrs, [:name, :email, :avatar_url, :hex_color, :payload])
     |> validate_required([:hex_color])
   end
 end
