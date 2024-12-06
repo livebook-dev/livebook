@@ -247,7 +247,9 @@ defmodule Livebook.Hubs.Dockerfile do
   defp format_envs([]), do: nil
 
   defp format_envs(list) do
-    Enum.map_join(list, fn {key, value} -> ~s/ENV #{key} "#{value}"\n/ end)
+    Enum.map_join(list, fn {key, value} ->
+      ~s/ENV #{key} "#{String.replace(value, ~S["], ~S[\"])}"\n/
+    end)
   end
 
   defp encrypt_secrets_to_dockerfile(secrets, hub) do

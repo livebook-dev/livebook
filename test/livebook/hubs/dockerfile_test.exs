@@ -210,7 +210,8 @@ defmodule Livebook.Hubs.DockerfileTest do
         dockerfile_config()
         | environment_variables: [
             {"LIVEBOOK_IDENTITY_PROVIDER", "cloudflare:foobar"},
-            {"LIVEBOOK_TEAMS_URL", "http://localhost:8000"}
+            {"LIVEBOOK_TEAMS_URL", "http://localhost:8000"},
+            {"MY_JSON", ~S|{"foo": "bar"}|}
           ]
       }
 
@@ -222,7 +223,8 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert dockerfile =~ """
              # Deployment group environment variables
              ENV LIVEBOOK_IDENTITY_PROVIDER "cloudflare:foobar"
-             ENV LIVEBOOK_TEAMS_URL "http://localhost:8000"\
+             ENV LIVEBOOK_TEAMS_URL "http://localhost:8000"
+             ENV MY_JSON "{\\"foo\\": \\"bar\\"}"\
              """
     end
   end
