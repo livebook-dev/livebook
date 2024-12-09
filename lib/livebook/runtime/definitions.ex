@@ -17,7 +17,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.10"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.3.0"}, config: []}
   }
 
   exqlite = %{
@@ -126,7 +126,7 @@ defmodule Livebook.Runtime.Definitions do
             kino_db,
             %{
               name: "adbc",
-              dependency: %{dep: {:adbc, ">= 0.0.0"}, config: []}
+              dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:duckdb]]]}
             }
           ]
         },
@@ -135,8 +135,8 @@ defmodule Livebook.Runtime.Definitions do
           packages: [
             kino_db,
             %{
-              name: "req_bigquery",
-              dependency: %{dep: {:req_bigquery, ">= 0.0.0"}, config: []}
+              name: "adbc",
+              dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:bigquery]]]}
             }
           ]
         },
@@ -159,7 +159,10 @@ defmodule Livebook.Runtime.Definitions do
           packages: [
             kino_db,
             kino_explorer,
-            %{name: "adbc", dependency: %{dep: {:adbc, ">= 0.0.0"}, config: []}}
+            %{
+              name: "adbc",
+              dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:snowflake]]]}
+            }
           ]
         },
         %{
