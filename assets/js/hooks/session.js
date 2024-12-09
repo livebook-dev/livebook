@@ -163,7 +163,11 @@ const Session = {
       globalPubsub.subscribe("jump_to_editor", ({ line, file }) =>
         this.jumpToLine(file, line),
       ),
-      globalPubsub.subscribe("history", this.handleHistoryEvent.bind(this)),
+      globalPubsub.subscribe(
+        "navigation:cursor_moved",
+        ({ cellId, line, offset }) =>
+          this.cursorHistory.push(cellId, line, offset),
+      ),
     ];
 
     this.initializeDragAndDrop();
@@ -951,10 +955,10 @@ const Session = {
       // If an evaluable cell is focused, we forward the evaluation
       // request to that cell, so it can synchronize itself before
       // sending the request to the server
-      globalPubsub.broadcast(`cells:${this.focusedId}`, {
-        type: "dispatch_queue_evaluation",
-        dispatch,
-      });
+      globalPubsub.broadcast(
+        `cells:${this.focusedId}:dispatch_queue_evaluation`,
+        { dispatch },
+      );
     } else {
       dispatch();
     }
@@ -1085,8 +1089,7 @@ const Session = {
       }
     }
 
-    globalPubsub.broadcast("navigation", {
-      type: "element_focused",
+    globalPubsub.broadcast("navigation:focus_changed", {
       focusableId: focusableId,
       scroll,
     });
@@ -1105,8 +1108,7 @@ const Session = {
       this.el.removeAttribute("data-js-insert-mode");
     }
 
-    globalPubsub.broadcast("navigation", {
-      type: "insert_mode_changed",
+    globalPubsub.broadcast("navigation:insert_mode_changed", {
       enabled: insertModeEnabled,
     });
   },
@@ -1265,7 +1267,7 @@ const Session = {
     this.repositionJSViews();
 
     if (this.focusedId === cellId) {
-      globalPubsub.broadcast("cells", { type: "cell_moved", cellId });
+      globalPubsub.broadcast("cells:cell_moved", { cellId });
     }
   },
 
@@ -1323,8 +1325,7 @@ const Session = {
   },
 
   handleSecretSelected(select_secret_ref, secretName) {
-    globalPubsub.broadcast(`js_views:${select_secret_ref}`, {
-      type: "secretSelected",
+    globalPubsub.broadcast(`js_views:${select_secret_ref}:secret_selected`, {
       secretName,
     });
   },
@@ -1344,14 +1345,8 @@ const Session = {
     }
   },
 
-  handleHistoryEvent(event) {
-    if (event.type === "navigation") {
-      this.cursorHistory.push(event.cellId, event.line, event.offset);
-    }
-  },
-
   repositionJSViews() {
-    globalPubsub.broadcast("js_views", { type: "reposition" });
+    globalPubsub.broadcast("js_views:reposition", {});
   },
 
   /**
@@ -1476,7 +1471,7 @@ const Session = {
     this.setFocusedEl(cellId, { scroll: false });
     this.setInsertMode(true);
 
-    globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
+    globalPubsub.broadcast(`cells:${cellId}:jump_to_line`, { line });
   },
 
   cursorHistoryGoBack() {
@@ -1485,11 +1480,7 @@ const Session = {
       this.setFocusedEl(cellId, { scroll: false });
       this.setInsertMode(true);
 
-      globalPubsub.broadcast(`cells:${cellId}`, {
-        type: "jump_to_line",
-        line,
-        offset,
-      });
+      globalPubsub.broadcast(`cells:${cellId}:jump_to_line`, { line, offset });
     }
   },
 
@@ -1499,11 +1490,7 @@ const Session = {
       this.setFocusedEl(cellId, { scroll: false });
       this.setInsertMode(true);
 
-      globalPubsub.broadcast(`cells:${cellId}`, {
-        type: "jump_to_line",
-        line,
-        offset,
-      });
+      globalPubsub.broadcast(`cells:${cellId}:jump_to_line`, { line, offset });
     }
   },
 };

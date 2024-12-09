@@ -132,12 +132,15 @@ const JSView = {
 
     this.subscriptions = [
       globalPubsub.subscribe(
-        `js_views:${this.props.ref}`,
-        this.handleJSViewEvent.bind(this),
+        `js_views:${this.props.ref}:sync`,
+        ({ callback }) => this.handleSync(callback),
       ),
       globalPubsub.subscribe(
-        "navigation",
-        this.handleNavigationEvent.bind(this),
+        `js_views:${this.props.ref}:secret_selected`,
+        ({ secretName }) => this.handleSecretSelected(secretName),
+      ),
+      globalPubsub.subscribe("navigation:focus_changed", ({ focusableId }) =>
+        this.handleElementFocused(focusableId),
       ),
     ];
 
@@ -248,11 +251,10 @@ const JSView = {
     // dispatched to trigger reposition. This way we don't need to
     // use deep MutationObserver, which would be expensive, especially
     // with code editor
-    const jsViewSubscription = globalPubsub.subscribe("js_views", (event) => {
-      if (event.type === "reposition") {
-        this.repositionIframe();
-      }
-    });
+    const jsViewSubscription = globalPubsub.subscribe(
+      "js_views:reposition",
+      (event) => this.repositionIframe(),
+    );
 
     // Emulate mouse enter and leave on the placeholder. Note that we
     // intentionally use bubbling to notify all parents that may have
@@ -467,36 +469,33 @@ const JSView = {
     callback();
   },
 
-  handleJSViewEvent(event) {
-    if (event.type === "sync") {
-      // First, we invoke optional synchronization callback in the iframe,
-      // that may send any deferred UI changes to the server. Then, we
-      // do a ping to synchronize with the server
-      this.syncCallbackQueue.push(event.callback);
-      this.postMessage({ type: "sync" });
-    } else if (event.type == "secretSelected") {
-      this.postMessage({
-        type: "secretSelected",
-        secretName: event.secretName,
-      });
-    }
+  handleSync(callback) {
+    // First, we invoke optional synchronization callback in the iframe,
+    // that may send any deferred UI changes to the server. Then, we
+    // do a ping to synchronize with the server
+    this.syncCallbackQueue.push(callback);
+    this.postMessage({ type: "sync" });
   },
 
-  handleNavigationEvent(event) {
-    if (event.type === "element_focused") {
-      // If a parent focusable element is focused, mirror the attribute
-      // to the iframe element. This way if we need to apply style rules
-      // (such as opacity) to focused elements, we can target the iframe
-      // elements placed elsewhere in the DOM
+  handleSecretSelected(secretName) {
+    this.postMessage({ type: "secretSelected", secretName });
+  },
 
-      const focusableEl = this.el.closest(`[data-focusable-id]`);
-      const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
+  handleElementFocused(focusableId) {
+    // If a parent focusable element is focused, mirror the attribute
+    // to the iframe element. This way if we need to apply style rules
+    // (such as opacity) to focused elements, we can target the iframe
+    // elements placed elsewhere in the DOM
 
-      this.iframe.toggleAttribute(
-        "data-js-focused",
-        focusableId === event.focusableId,
-      );
-    }
+    const parentFocusableEl = this.el.closest(`[data-focusable-id]`);
+    const parentFocusableId = parentFocusableEl
+      ? parentFocusableEl.dataset.focusableId
+      : null;
+
+    this.iframe.toggleAttribute(
+      "data-js-focused",
+      parentFocusableId === focusableId,
+    );
   },
 };
 

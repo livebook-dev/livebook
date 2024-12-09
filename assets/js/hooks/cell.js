@@ -85,13 +85,23 @@ const Cell = {
 
     this.subscriptions = [
       globalPubsub.subscribe(
-        "navigation",
-        this.handleNavigationEvent.bind(this),
+        "navigation:focus_changed",
+        ({ focusableId, scroll }) =>
+          this.handleElementFocused(focusableId, scroll),
       ),
-      globalPubsub.subscribe("cells", this.handleCellsEvent.bind(this)),
+      globalPubsub.subscribe("navigation:insert_mode_changed", ({ enabled }) =>
+        this.handleInsertModeChanged(enabled),
+      ),
+      globalPubsub.subscribe("cells:cell_moved", ({ cellId }) =>
+        this.handleCellMoved(cellId),
+      ),
       globalPubsub.subscribe(
-        `cells:${this.props.cellId}`,
-        this.handleCellEvent.bind(this),
+        `cells:${this.props.cellId}:dispatch_queue_evaluation`,
+        ({ dispatch }) => this.handleDispatchQueueEvaluation(dispatch),
+      ),
+      globalPubsub.subscribe(
+        `cells:${this.props.cellId}:jump_to_line`,
+        ({ line, offset = 0 }) => this.handleJumpToLine(line, offset),
       ),
     ];
 
@@ -136,30 +146,6 @@ const Cell = {
       "smart-cell-js-view-ref",
       "allowed-uri-schemes",
     ]);
-  },
-
-  handleNavigationEvent(event) {
-    if (event.type === "element_focused") {
-      this.handleElementFocused(event.focusableId, event.scroll);
-    } else if (event.type === "insert_mode_changed") {
-      this.handleInsertModeChanged(event.enabled);
-    }
-  },
-
-  handleCellsEvent(event) {
-    if (event.type === "cell_moved") {
-      this.handleCellMoved(event.cellId);
-    }
-  },
-
-  handleCellEvent(event) {
-    if (event.type === "dispatch_queue_evaluation") {
-      this.handleDispatchQueueEvaluation(event.dispatch);
-    } else if (event.type === "jump_to_line") {
-      if (this.isFocused) {
-        this.currentEditor().moveCursorToLine(event.line, event.offset || 0);
-      }
-    }
   },
 
   handleElementFocused(focusableId, scroll) {
@@ -355,12 +341,17 @@ const Cell = {
   handleDispatchQueueEvaluation(dispatch) {
     if (this.props.type === "smart" && this.props.smartCellJsViewRef) {
       // Ensure the smart cell UI is reflected on the server, before the evaluation
-      globalPubsub.broadcast(`js_views:${this.props.smartCellJsViewRef}`, {
-        type: "sync",
+      globalPubsub.broadcast(`js_views:${this.props.smartCellJsViewRef}:sync`, {
         callback: dispatch,
       });
     } else {
       dispatch();
+    }
+  },
+
+  handleJumpToLine(line, offset) {
+    if (this.isFocused) {
+      this.currentEditor().moveCursorToLine(line, offset);
     }
   },
 
@@ -381,9 +372,9 @@ const Cell = {
     const cursor = this.currentEditor().getCurrentCursorPosition();
     if (cursor === null) return;
 
-    globalPubsub.broadcast("history", {
-      ...cursor,
-      type: "navigation",
+    globalPubsub.broadcast("navigation:cursor_moved", {
+      line: cursor.line,
+      offset: cursor.offset,
       cellId: this.props.cellId,
     });
   },

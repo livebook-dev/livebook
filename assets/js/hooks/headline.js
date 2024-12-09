@@ -26,10 +26,16 @@ const Headline = {
 
     this.initializeHeadingEl();
 
-    this.navigationSubscription = globalPubsub.subscribe(
-      "navigation",
-      this.handleNavigationEvent.bind(this),
-    );
+    this.subscriptions = [
+      globalPubsub.subscribe(
+        "navigation:focus_changed",
+        ({ focusableId, scroll }) =>
+          this.handleElementFocused(focusableId, scroll),
+      ),
+      globalPubsub.subscribe("navigation:insert_mode_changed", ({ enabled }) =>
+        this.handleInsertModeChanged(enabled),
+      ),
+    ];
   },
 
   updated() {
@@ -38,7 +44,7 @@ const Headline = {
   },
 
   destroyed() {
-    this.navigationSubscription.destroy();
+    this.subscriptions.forEach((subscription) => subscription.destroy());
   },
 
   getProps() {
@@ -78,14 +84,6 @@ const Headline = {
         }
       }, 0);
     });
-  },
-
-  handleNavigationEvent(event) {
-    if (event.type === "element_focused") {
-      this.handleElementFocused(event.focusableId, event.scroll);
-    } else if (event.type === "insert_mode_changed") {
-      this.handleInsertModeChanged(event.enabled);
-    }
   },
 
   handleElementFocused(focusableId, scroll) {
