@@ -10,7 +10,7 @@ defmodule Livebook.Application do
     ensure_directories!()
     set_local_file_system!()
 
-    validate_epmd_module!()
+    set_epmd_module!()
     start_distribution!()
     set_cookie()
 
@@ -125,19 +125,28 @@ defmodule Livebook.Application do
     :persistent_term.put(:livebook_local_file_system, local_file_system)
   end
 
-  defp validate_epmd_module!() do
+  defp set_epmd_module!() do
     # We use a custom EPMD module. In releases and Escript, we make
     # sure the necessary erl flags are set. When running from source,
-    # those need to be passed explicitly.
+    # we try to use the new :kernel configuration available in OTP 27.2,
+    # otherwise it needs to be set explicitly.
+
+    # TODO: always rely on :kernel configuration once we require OTP 27.2
+
     case :init.get_argument(:epmd_module) do
       {:ok, [[~c"Elixir.Livebook.EPMD"]]} ->
         :ok
 
       _ ->
-        Livebook.Config.abort!("""
-        You must set the environment variable ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD" \
-        before the command (and exclusively before the command)
-        """)
+        Application.put_env(:kernel, :epmd_module, Livebook.EPMD, persistent: true)
+
+        # Note: this is a private API
+        if :net_kernel.epmd_module() != Livebook.EPMD do
+          Livebook.Config.abort!("""
+          You must set the environment variable ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD" \
+          before the command (and exclusively before the command)
+          """)
+        end
     end
   end
 
