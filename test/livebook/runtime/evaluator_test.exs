@@ -697,7 +697,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       %{
                         column: 6,
                         details:
-                          "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented for 1 of type Integer. " <>
+                          "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented for type Integer. " <>
                             _,
                         end_line: 10,
                         line: 9,
@@ -1565,7 +1565,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
                in function  list_to_binary/1
                   called as list_to_binary(1)
                   *** argument 1: not an iolist term
-               in call from erl_eval:do_apply/7 (erl_eval.erl, line 900)\
+               in call from erl_eval:do_apply/7 (erl_eval.erl, line 915)\
              """
     end
   end
