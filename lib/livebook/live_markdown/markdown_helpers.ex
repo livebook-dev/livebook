@@ -345,7 +345,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
 
   defp max_length_per_column(cell_grid) do
     cell_grid
-    |> List.zip()
+    |> Enum.zip()
     |> Enum.map(&Tuple.to_list/1)
     |> Enum.map(fn cells ->
       cells
