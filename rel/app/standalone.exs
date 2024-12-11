@@ -100,7 +100,7 @@ defmodule Standalone do
       File.write!(path, binary, [:binary])
     end
 
-    :zip.unzip(String.to_charlist(path), cwd: destination)
+    :zip.unzip(String.to_charlist(path), cwd: String.to_charlist(destination))
   end
 
   @doc """
