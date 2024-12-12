@@ -115,18 +115,18 @@ defmodule Livebook.Hubs.Dockerfile do
         "auto" ->
           """
           # Clustering configuration (note that we need the same Livebook secrets across all nodes)
-          ENV LIVEBOOK_CLUSTER "auto"
-          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
-          ENV LIVEBOOK_COOKIE "#{cookie}"
+          ENV LIVEBOOK_CLUSTER="auto"
+          ENV LIVEBOOK_SECRET_KEY_BASE="#{secret_key_base}"
+          ENV LIVEBOOK_COOKIE="#{cookie}"
           """
 
         "dns" ->
           """
           # Clustering configuration (note that we need the same Livebook secrets across all nodes)
-          ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"
-          ENV LIVEBOOK_CLUSTER "dns:QUERY"
-          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
-          ENV LIVEBOOK_COOKIE "#{cookie}"
+          ENV LIVEBOOK_NODE="livebook_server@MACHINE_IP"
+          ENV LIVEBOOK_CLUSTER="dns:QUERY"
+          ENV LIVEBOOK_SECRET_KEY_BASE="#{secret_key_base}"
+          ENV LIVEBOOK_COOKIE="#{cookie}"
           """
 
         _ ->
@@ -135,8 +135,8 @@ defmodule Livebook.Hubs.Dockerfile do
 
     apps_config = """
     # Apps configuration
-    ENV LIVEBOOK_APPS_PATH "/apps"
-    ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
+    ENV LIVEBOOK_APPS_PATH="/apps"
+    ENV LIVEBOOK_APPS_PATH_WARMUP="manual"
     """
 
     notebook =
@@ -210,21 +210,21 @@ defmodule Livebook.Hubs.Dockerfile do
       ARG TEAMS_KEY="#{hub.teams_key}"
 
       # Teams Hub configuration for airgapped deployment
-      ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
-      ENV LIVEBOOK_TEAMS_AUTH "offline:#{hub.hub_name}:#{hub.org_public_key}"
+      ENV LIVEBOOK_TEAMS_KEY=${TEAMS_KEY}
+      ENV LIVEBOOK_TEAMS_AUTH="offline:#{hub.hub_name}:#{hub.org_public_key}"
       """
 
     secrets =
       if used_secrets != [] do
         """
-        ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(used_secrets, hub)}"
+        ENV LIVEBOOK_TEAMS_SECRETS="#{encrypt_secrets_to_dockerfile(used_secrets, hub)}"
         """
       end
 
     file_systems =
       if hub_file_systems != [] do
         """
-        ENV LIVEBOOK_TEAMS_FS "#{encrypt_file_systems_to_dockerfile(hub_file_systems, hub)}"
+        ENV LIVEBOOK_TEAMS_FS="#{encrypt_file_systems_to_dockerfile(hub_file_systems, hub)}"
         """
       end
 
@@ -248,7 +248,7 @@ defmodule Livebook.Hubs.Dockerfile do
 
   defp format_envs(list) do
     Enum.map_join(list, fn {key, value} ->
-      ~s/ENV #{key} "#{String.replace(value, ~S["], ~S[\"])}"\n/
+      ~s/ENV #{key}="#{String.replace(value, ~S["], ~S[\"])}"\n/
     end)
   end
 
