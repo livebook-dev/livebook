@@ -23,8 +23,8 @@ defmodule Livebook.Hubs.DockerfileTest do
              FROM ghcr.io/livebook-dev/livebook:#{@version}
 
              # Apps configuration
-             ENV LIVEBOOK_APPS_PATH "/apps"
-             ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
+             ENV LIVEBOOK_APPS_PATH="/apps"
+             ENV LIVEBOOK_APPS_PATH_WARMUP="manual"
 
              # Notebook
              COPY notebook.livemd /apps/
@@ -48,7 +48,7 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert dockerfile =~
                """
                # Personal Hub secrets
-               ENV LB_TEST "test"
+               ENV LB_TEST="test"
                """
 
       refute dockerfile =~ "ENV LB_SESSION"
@@ -81,8 +81,8 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert dockerfile =~
                """
                # Personal Hub secrets
-               ENV LB_TEST "test"
-               ENV LB_TEST2 "test"
+               ENV LB_TEST="test"
+               ENV LB_TEST2="test"
                """
 
       refute dockerfile =~ "ENV LB_SESSION"
@@ -101,12 +101,12 @@ defmodule Livebook.Hubs.DockerfileTest do
              ARG TEAMS_KEY="lb_tk_fn0pL3YLWzPoPFWuHeV3kd0o7_SFuIOoU4C_k6OWDYg"
 
              # Teams Hub configuration for airgapped deployment
-             ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
-             ENV LIVEBOOK_TEAMS_AUTH "offline:org-name-387:lb_opk_fpxnp3r5djwxnmirx3tu276hialoivf3"
+             ENV LIVEBOOK_TEAMS_KEY=${TEAMS_KEY}
+             ENV LIVEBOOK_TEAMS_AUTH="offline:org-name-387:lb_opk_fpxnp3r5djwxnmirx3tu276hialoivf3"
 
              # Apps configuration
-             ENV LIVEBOOK_APPS_PATH "/apps"
-             ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
+             ENV LIVEBOOK_APPS_PATH="/apps"
+             ENV LIVEBOOK_APPS_PATH_WARMUP="manual"
 
              # Notebook
              COPY notebook.livemd /apps/
@@ -191,7 +191,7 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
 
-      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "auto"/
+      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER="auto"/
     end
 
     test "deploying with dns cluster setup" do
@@ -201,8 +201,8 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
 
-      assert dockerfile =~ ~s/ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"/
-      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "dns:QUERY"/
+      assert dockerfile =~ ~s/ENV LIVEBOOK_NODE="livebook_server@MACHINE_IP"/
+      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER="dns:QUERY"/
     end
 
     test "deploying with deployment group environment variables" do
@@ -222,9 +222,9 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       assert dockerfile =~ """
              # Deployment group environment variables
-             ENV LIVEBOOK_IDENTITY_PROVIDER "cloudflare:foobar"
-             ENV LIVEBOOK_TEAMS_URL "http://localhost:8000"
-             ENV MY_JSON "{\\"foo\\": \\"bar\\"}"\
+             ENV LIVEBOOK_IDENTITY_PROVIDER="cloudflare:foobar"
+             ENV LIVEBOOK_TEAMS_URL="http://localhost:8000"
+             ENV MY_JSON="{\\"foo\\": \\"bar\\"}"\
              """
     end
   end
