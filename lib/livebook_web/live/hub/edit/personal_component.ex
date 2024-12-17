@@ -212,6 +212,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
           module={LivebookWeb.Hub.FileSystemFormComponent}
           id="file-systems"
           hub={@hub}
+          disabled={false}
           file_system={@file_system}
           file_system_id={@file_system_id}
           return_to={~p"/hub/#{@hub.id}"}
