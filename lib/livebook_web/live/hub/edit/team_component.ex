@@ -323,6 +323,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           module={LivebookWeb.Hub.FileSystemFormComponent}
           id="file-systems"
           hub={@hub}
+          disabled={not @hub.active}
           file_system={@file_system}
           file_system_id={@file_system_id}
           return_to={~p"/hub/#{@hub.id}"}
