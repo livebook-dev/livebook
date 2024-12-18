@@ -41,6 +41,7 @@ defmodule Livebook.Hubs.Team do
     field :session_token, :string, redact: true
     field :hub_name, :string
     field :hub_emoji, :string
+    field :active, :boolean, default: true
 
     embeds_one :offline, Offline
   end
