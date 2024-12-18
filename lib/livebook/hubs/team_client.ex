@@ -802,33 +802,25 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp update_hub(state, %LivebookProto.UserConnected{org_active: active}) do
-    hub = %{state.hub | active: active}
-
-    if Livebook.Hubs.hub_exists?(hub.id) do
-      Hubs.save_hub(hub)
-    end
-
-    %{state | hub: hub}
+    update_hub(state, &put_in(&1.active, active))
   end
 
   defp update_hub(state, %LivebookProto.OrgUpdated{active: active}) do
-    hub = %{state.hub | active: active}
-
-    if Livebook.Hubs.hub_exists?(hub.id) do
-      Hubs.save_hub(hub)
-    end
-
-    %{state | hub: hub}
+    update_hub(state, &put_in(&1.active, active))
   end
 
   defp update_hub(state, %LivebookProto.AgentConnected{public_key: org_public_key}) do
-    hub = %{state.hub | org_public_key: org_public_key}
+    update_hub(state, &put_in(&1.org_public_key, org_public_key))
+  end
 
-    if Livebook.Hubs.hub_exists?(hub.id) do
+  defp update_hub(state, fun) when is_function(fun, 1) do
+    hub = fun.(state.hub)
+
+    if Hubs.hub_exists?(hub.id) do
       Hubs.save_hub(hub)
     end
 
-    %{state | hub: hub}
+    put_in(state.hub, hub)
   end
 
   defp diff(old_list, new_list, fun, deleted_fun \\ nil, updated_fun \\ nil) do
