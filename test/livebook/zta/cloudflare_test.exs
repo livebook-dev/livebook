@@ -37,7 +37,7 @@ defmodule Livebook.ZTA.CloudflareTest do
     Bypass.expect(bypass, fn conn ->
       conn
       |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(%{keys: [key]}))
+      |> send_resp(200, JSON.encode!(%{keys: [key]}))
     end)
 
     conn = conn(:get, "/") |> put_req_header("cf-access-jwt-assertion", token)
@@ -56,7 +56,7 @@ defmodule Livebook.ZTA.CloudflareTest do
     Bypass.expect_once(context.user_identity, fn conn ->
       conn
       |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(expected_user))
+      |> send_resp(200, JSON.encode!(expected_user))
     end)
 
     start_supervised!({Cloudflare, context.options})
@@ -104,7 +104,7 @@ defmodule Livebook.ZTA.CloudflareTest do
     Bypass.expect_once(bypass, fn conn ->
       conn
       |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(%{keys: ["invalid_key"]}))
+      |> send_resp(200, JSON.encode!(%{keys: ["invalid_key"]}))
     end)
 
     start_supervised!({Cloudflare, options})

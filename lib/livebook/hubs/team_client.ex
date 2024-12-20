@@ -396,7 +396,7 @@ defmodule Livebook.Hubs.TeamClient do
 
     dumped_data =
       decrypted_value
-      |> Jason.decode!()
+      |> JSON.decode!()
       |> Map.put("external_id", file_system.id)
 
     FileSystems.load(file_system.type, dumped_data)

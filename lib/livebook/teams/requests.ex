@@ -120,7 +120,7 @@ defmodule Livebook.Teams.Requests do
     type = FileSystems.type(file_system)
     %{name: name} = FileSystem.external_metadata(file_system)
     attrs = FileSystem.dump(file_system)
-    json = Jason.encode!(attrs)
+    json = JSON.encode!(attrs)
 
     params = %{
       name: name,
@@ -142,7 +142,7 @@ defmodule Livebook.Teams.Requests do
     type = FileSystems.type(file_system)
     %{name: name} = FileSystem.external_metadata(file_system)
     attrs = FileSystem.dump(file_system)
-    json = Jason.encode!(attrs)
+    json = JSON.encode!(attrs)
 
     params = %{
       id: file_system.external_id,

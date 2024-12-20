@@ -174,7 +174,7 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
   def handle_event("load_config", %{"name" => name}, socket) do
     secret = Enum.find(socket.assigns.hub_secrets, &(&1.name == name))
 
-    case Jason.decode(secret.value) do
+    case JSON.decode(secret.value) do
       {:ok, config_defaults} ->
         send_event(socket.assigns.target, {:load_config, config_defaults})
         {:noreply, socket}
@@ -214,7 +214,7 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
   defp config_secret_changeset(socket, attrs) do
     secret_prefix = socket.assigns.secret_prefix
     hub = socket.assigns.hub
-    value = Jason.encode!(socket.assigns.save_config_payload)
+    value = JSON.encode!(socket.assigns.save_config_payload)
     secret = %Livebook.Secrets.Secret{hub_id: hub.id, name: nil, value: value}
 
     secret

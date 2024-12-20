@@ -276,7 +276,7 @@ defmodule Livebook.Hubs.Dockerfile do
     secret_key = Livebook.Teams.derive_key(hub.teams_key)
 
     data
-    |> Jason.encode!()
+    |> JSON.encode!()
     |> Livebook.Teams.encrypt(secret_key)
   end
 

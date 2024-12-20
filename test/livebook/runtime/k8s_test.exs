@@ -113,7 +113,7 @@ defmodule Livebook.Runtime.K8sTest do
     cmd!(
       ~w(kubectl get pod --selector=livebook.dev/runtime=integration-test --field-selector=status.phase==Running --output json)
     )
-    |> Jason.decode!()
+    |> JSON.decode!()
     |> Map.fetch!("items")
   end
 

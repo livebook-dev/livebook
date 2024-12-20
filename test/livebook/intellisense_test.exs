@@ -321,15 +321,15 @@ defmodule Livebook.IntellisenseTest do
       context = eval(do: nil)
 
       assert %{
-               label: "Jason",
+               label: "Req",
                kind: :module,
                documentation: """
-               A blazing fast JSON parser and generator in pure Elixir.
+               The high-level API.
 
                (module)\
                """,
-               insert_text: "Jason"
-             } in Intellisense.get_completion_items("Jas", context, node())
+               insert_text: "Req"
+             } in Intellisense.get_completion_items("R", context, node())
     end
 
     test "Elixir no completion" do

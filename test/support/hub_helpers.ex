@@ -206,7 +206,7 @@ defmodule Livebook.HubHelpers do
     secret_key = Livebook.Teams.derive_key(hub.teams_key)
     %{name: name} = Livebook.FileSystem.external_metadata(file_system)
     attrs = Livebook.FileSystem.dump(file_system)
-    json = Jason.encode!(attrs)
+    json = JSON.encode!(attrs)
     value = Livebook.Teams.encrypt(json, secret_key)
 
     file_system_created =

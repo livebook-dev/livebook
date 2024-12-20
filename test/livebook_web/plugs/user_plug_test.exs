@@ -36,12 +36,12 @@ defmodule LivebookWeb.UserPlugTest do
     assert %{
              "name" => nil,
              "hex_color" => <<_::binary>>
-           } = conn.cookies["lb_user_data"] |> Base.decode64!() |> Jason.decode!()
+           } = conn.cookies["lb_user_data"] |> Base.decode64!() |> JSON.decode!()
   end
 
   test "keeps user_data cookie if present" do
     cookie_value =
-      %{name: "Jake Peralta", hex_color: "#000000"} |> Jason.encode!() |> Base.encode64()
+      %{name: "Jake Peralta", hex_color: "#000000"} |> JSON.encode!() |> Base.encode64()
 
     conn =
       conn(:get, "/")

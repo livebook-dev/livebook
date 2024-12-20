@@ -140,7 +140,7 @@ defmodule LivebookWeb.JSViewChannel do
     rescue
       error ->
         case error do
-          %Protocol.UndefinedError{protocol: Jason.Encoder, value: value} ->
+          %Protocol.UndefinedError{protocol: JSON.Encoder, value: value} ->
             {:error, "value #{inspect(value)} is not JSON-serializable, use another data type"}
 
           error ->

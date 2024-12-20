@@ -90,7 +90,7 @@ defmodule LivebookWeb.CodecHelpers do
   """
   @spec encode_annotated_binary!(term(), binary()) :: binary()
   def encode_annotated_binary!(meta, binary) do
-    meta = Jason.encode!(meta)
+    meta = JSON.encode!(meta)
     meta_size = byte_size(meta)
     <<meta_size::size(32), meta::binary, binary::binary>>
   end
@@ -101,7 +101,7 @@ defmodule LivebookWeb.CodecHelpers do
   @spec decode_annotated_binary!(binary()) :: {term(), binary()}
   def decode_annotated_binary!(raw) do
     <<meta_size::size(32), meta::binary-size(meta_size), binary::binary>> = raw
-    meta = Jason.decode!(meta)
+    meta = JSON.decode!(meta)
     {meta, binary}
   end
 end
