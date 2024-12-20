@@ -134,6 +134,10 @@ server in solely client-side operations.
       @apply hidden;
     }
 
+    [data-el-outputs-container] {
+      @apply hidden;
+    }
+
     [data-el-cell-indicator] {
       @apply bg-gray-50 border-gray-200 text-gray-500;
     }
