@@ -2003,12 +2003,12 @@ defmodule LivebookWeb.SessionLiveTest do
       # Search the predefined dependencies in the embedded runtime
       search_view
       |> element(~s{form[phx-change="search"]})
-      |> render_change(%{"search" => "ja"})
+      |> render_change(%{"search" => "re"})
 
       page = render(view)
-      assert page =~ "jason"
-      assert page =~ "A blazing fast JSON parser and generator in pure Elixir"
-      assert page =~ "1.3.0"
+      assert page =~ "req"
+      assert page =~ "Req is a batteries-included HTTP client for Elixir."
+      assert page =~ "0.5.0"
     end
   end
 

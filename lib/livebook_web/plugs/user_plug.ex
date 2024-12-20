@@ -61,7 +61,7 @@ defmodule LivebookWeb.UserPlug do
     else
       encoded =
         %{"name" => nil, "hex_color" => Livebook.EctoTypes.HexColor.random()}
-        |> Jason.encode!()
+        |> JSON.encode!()
         |> Base.encode64()
 
       # We disable HttpOnly, so that it can be accessed on the client
@@ -76,7 +76,7 @@ defmodule LivebookWeb.UserPlug do
   defp mirror_user_data_in_session(conn) when conn.halted, do: conn
 
   defp mirror_user_data_in_session(conn) do
-    user_data = conn.cookies["lb_user_data"] |> Base.decode64!() |> Jason.decode!()
+    user_data = conn.cookies["lb_user_data"] |> Base.decode64!() |> JSON.decode!()
     put_session(conn, :user_data, user_data)
   end
 

@@ -70,11 +70,6 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:explorer, "~> 0.10.0"}, config: []}
   }
 
-  jason = %{
-    name: "jason",
-    dependency: %{dep: {:jason, "~> 1.4"}, config: []}
-  }
-
   stb_image = %{
     name: "stb_image",
     dependency: %{dep: {:stb_image, "~> 0.6.9"}, config: []}
@@ -309,11 +304,11 @@ defmodule Livebook.Runtime.Definitions do
       data =
         Kino.FS.file_path("{{NAME}}")
         |> File.read!()
-        |> Jason.decode!()
+        |> JSON.decode!()
 
       Kino.Tree.new(data)\
       """,
-      packages: [kino, jason]
+      packages: [kino]
     },
     %{
       type: :file_action,

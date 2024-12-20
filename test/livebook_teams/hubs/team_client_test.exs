@@ -119,7 +119,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
       attrs = Livebook.FileSystem.dump(file_system)
-      credentials = Jason.encode!(attrs)
+      credentials = JSON.encode!(attrs)
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       value = Livebook.Teams.encrypt(credentials, secret_key)
@@ -148,7 +148,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       }
 
       updated_attrs = Livebook.FileSystem.dump(updated_file_system)
-      updated_credentials = Jason.encode!(updated_attrs)
+      updated_credentials = JSON.encode!(updated_attrs)
       updated_value = Livebook.Teams.encrypt(updated_credentials, secret_key)
 
       updated_livebook_proto_file_system = %{
@@ -385,7 +385,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
       attrs = Livebook.FileSystem.dump(file_system)
-      credentials = Jason.encode!(attrs)
+      credentials = JSON.encode!(attrs)
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       value = Livebook.Teams.encrypt(credentials, secret_key)
@@ -414,7 +414,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       }
 
       updated_attrs = Livebook.FileSystem.dump(updated_file_system)
-      updated_credentials = Jason.encode!(updated_attrs)
+      updated_credentials = JSON.encode!(updated_attrs)
       updated_value = Livebook.Teams.encrypt(updated_credentials, secret_key)
 
       updated_livebook_proto_file_system = %{

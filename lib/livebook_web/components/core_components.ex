@@ -1061,7 +1061,7 @@ defmodule LivebookWeb.CoreComponents do
   def exec_js(socket, js, opts \\ []) do
     opts = Keyword.validate!(opts, [:to])
 
-    Phoenix.LiveView.push_event(socket, "lb:exec_js", %{js: Jason.encode!(js.ops), to: opts[:to]})
+    Phoenix.LiveView.push_event(socket, "lb:exec_js", %{js: JSON.encode!(js.ops), to: opts[:to]})
   end
 
   @doc """
@@ -1080,6 +1080,6 @@ defmodule LivebookWeb.CoreComponents do
   end
 
   def hook_prop(value) do
-    Jason.encode!(value)
+    JSON.encode!(value)
   end
 end

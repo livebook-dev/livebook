@@ -221,7 +221,7 @@ defmodule Livebook.SessionTest do
 
       Session.subscribe(session.id)
 
-      Session.add_dependencies(session.pid, [%{dep: {:jason, "~> 1.3.0"}, config: []}])
+      Session.add_dependencies(session.pid, [%{dep: {:req, "~> 0.5.0"}, config: []}])
 
       assert_receive {:operation,
                       {:apply_cell_delta, "__server__", "setup", :primary, _delta, _selection, 0}}
@@ -233,7 +233,7 @@ defmodule Livebook.SessionTest do
                      %{
                        source: """
                        Mix.install([
-                         {:jason, "~> 1.3.0"}
+                         {:req, "~> 0.5.0"}
                        ])\
                        """
                      }
@@ -249,7 +249,7 @@ defmodule Livebook.SessionTest do
 
       Session.subscribe(session.id)
 
-      Session.add_dependencies(session.pid, [%{dep: {:jason, "~> 1.3.0"}, config: []}])
+      Session.add_dependencies(session.pid, [%{dep: {:req, "~> 0.5.0"}, config: []}])
 
       assert_receive {:error, "failed to add dependencies to the setup cell, reason:" <> _}
     end

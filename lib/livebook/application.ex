@@ -341,7 +341,7 @@ defmodule Livebook.Application do
       if encrypted_secrets do
         case Livebook.Teams.decrypt(encrypted_secrets, secret_key) do
           {:ok, json} ->
-            for {name, value} <- Jason.decode!(json) do
+            for {name, value} <- JSON.decode!(json) do
               %Livebook.Secrets.Secret{name: name, value: value, hub_id: id}
             end
 
@@ -358,7 +358,7 @@ defmodule Livebook.Application do
       if encrypted_file_systems do
         case Livebook.Teams.decrypt(encrypted_file_systems, secret_key) do
           {:ok, json} ->
-            for %{"type" => type} = dumped_data <- Jason.decode!(json),
+            for %{"type" => type} = dumped_data <- JSON.decode!(json),
                 do: Livebook.FileSystems.load(type, dumped_data)
 
           :error ->

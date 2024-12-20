@@ -1289,7 +1289,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
   defp stamp_metadata(notebook, source) do
     [_, json] = Regex.run(~r/<!-- livebook:(.*) -->\n$/, source)
-    %{"offset" => offset, "stamp" => stamp} = Jason.decode!(json)
+    %{"offset" => offset, "stamp" => stamp} = JSON.decode!(json)
 
     hub = Livebook.Hubs.fetch_hub!(notebook.hub_id)
     source = binary_slice(source, 0, offset)

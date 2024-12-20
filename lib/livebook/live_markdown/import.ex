@@ -177,7 +177,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp livebook_json_to_element(json) do
-    data = Jason.decode!(json)
+    data = JSON.decode!(json)
 
     case data do
       %{"livebook_object" => "cell_input"} ->
@@ -251,7 +251,7 @@ defmodule Livebook.LiveMarkdown.Import do
           attrs
 
         encoded when is_binary(encoded) ->
-          encoded |> Base.decode64!(padding: false) |> Jason.decode!()
+          encoded |> Base.decode64!(padding: false) |> JSON.decode!()
       end
 
     chunks = if(chunks = data["chunks"], do: Enum.map(chunks, &List.to_tuple/1))

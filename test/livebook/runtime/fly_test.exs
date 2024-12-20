@@ -83,7 +83,7 @@ defmodule Livebook.Runtime.FlyTest do
     {output, 0} =
       System.cmd("fly", args ++ ["--app", fly.app_name, "--access-token", fly.token, "--json"])
 
-    Jason.decode!(output)
+    JSON.decode!(output)
   end
 
   defp fly!() do

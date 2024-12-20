@@ -13,7 +13,7 @@ defmodule Livebook.ZTA.TailscaleTest do
     |> put_resp_content_type("application/json")
     |> send_resp(
       200,
-      Jason.encode!(%{
+      JSON.encode!(%{
         UserProfile: %{
           ID: 1_234_567_890,
           DisplayName: "John",

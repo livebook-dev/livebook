@@ -35,7 +35,7 @@ defmodule Livebook.ZTA.GoogleIAPTest do
     Bypass.expect(bypass, fn conn ->
       conn
       |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(%{keys: [key]}))
+      |> send_resp(200, JSON.encode!(%{keys: [key]}))
     end)
 
     conn = conn(:get, "/") |> put_req_header("x-goog-iap-jwt-assertion", token)
@@ -83,7 +83,7 @@ defmodule Livebook.ZTA.GoogleIAPTest do
     Bypass.expect_once(bypass, fn conn ->
       conn
       |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(%{keys: ["invalid_key"]}))
+      |> send_resp(200, JSON.encode!(%{keys: ["invalid_key"]}))
     end)
 
     start_supervised!({GoogleIAP, options})
