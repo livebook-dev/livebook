@@ -88,7 +88,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
             </p>
           <% end %>
           <div class="flex space-x-2">
-            <.button type="submit" disabled={not @changeset.valid?}>
+            <.button type="submit" disabled={@disabled or not @changeset.valid?}>
               <.remix_icon icon={@button.icon} />
               <span class="font-normal">{@button.label}</span>
             </.button>

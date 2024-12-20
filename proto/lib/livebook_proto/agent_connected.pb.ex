@@ -18,4 +18,5 @@ defmodule LivebookProto.AgentConnected do
     json_name: "appDeployments"
 
   field :agents, 9, repeated: true, type: LivebookProto.Agent
+  field :org_active, 10, type: :bool, json_name: "orgActive"
 end
