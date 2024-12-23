@@ -107,7 +107,7 @@ message UserConnected {
   repeated DeploymentGroup deployment_groups = 4;
   repeated AppDeployment app_deployments = 5;
   repeated Agent agents = 6;
-  bool org_active = 7;
+  bool org_disabled = 7;
 }
 
 message AgentConnected {
@@ -119,7 +119,7 @@ message AgentConnected {
   repeated DeploymentGroup deployment_groups = 7;
   repeated AppDeployment app_deployments = 8;
   repeated Agent agents = 9;
-  bool org_active = 10;
+  bool org_disabled = 10;
 }
 
 message AppDeployment {
@@ -158,7 +158,7 @@ message AgentLeft {
 
 message OrgUpdated {
   string id = 1;
-  bool active = 2;
+  bool disabled = 2;
 }
 
 message Agent {
