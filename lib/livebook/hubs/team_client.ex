@@ -801,12 +801,12 @@ defmodule Livebook.Hubs.TeamClient do
     state
   end
 
-  defp update_hub(state, %LivebookProto.UserConnected{org_active: active}) do
-    update_hub(state, &put_in(&1.active, active))
+  defp update_hub(state, %LivebookProto.UserConnected{org_disabled: disabled}) do
+    update_hub(state, &put_in(&1.disabled, disabled))
   end
 
-  defp update_hub(state, %LivebookProto.OrgUpdated{active: active}) do
-    update_hub(state, &put_in(&1.active, active))
+  defp update_hub(state, %LivebookProto.OrgUpdated{disabled: disabled}) do
+    update_hub(state, &put_in(&1.disabled, disabled))
   end
 
   defp update_hub(state, %LivebookProto.AgentConnected{public_key: org_public_key}) do

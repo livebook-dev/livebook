@@ -75,7 +75,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
             <.hidden_field field={f[:hub_id]} value={@hub.id} />
             <.hidden_field field={f[:deployment_group_id]} value={@deployment_group_id} />
             <div class="flex space-x-2">
-              <.button type="submit" disabled={not @changeset.valid? or @disabled}>
+              <.button type="submit" disabled={@disabled or not @changeset.valid?}>
                 <.remix_icon icon={@button.icon} />
                 <span class="font-normal">{@button.label}</span>
               </.button>

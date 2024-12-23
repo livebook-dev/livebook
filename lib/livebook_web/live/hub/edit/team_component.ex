@@ -63,7 +63,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         {Provider.connection_status(@hub)}
       </LayoutComponents.topbar>
 
-      <LayoutComponents.topbar :if={!@hub.active} variant="warning">
+      <LayoutComponents.topbar :if={@hub.disabled} variant="warning">
         <h2>
           Workspace disabled: your organization doesn't have an active subscription. Please contact your <.link
             href={org_url(@hub, "/users")}
@@ -185,14 +185,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 secrets={@secrets}
                 edit_path={"hub/#{@hub.id}/secrets/edit"}
                 return_to={~p"/hub/#{@hub.id}"}
-                disabled={not @hub.active}
+                disabled={@hub.disabled}
               />
 
               <div>
                 <.button
                   patch={~p"/hub/#{@hub.id}/secrets/new"}
                   id="add-secret"
-                  disabled={not @hub.active}
+                  disabled={@hub.disabled}
                 >
                   Add secret
                 </.button>
@@ -214,7 +214,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 hub_id={@hub.id}
                 file_systems={@file_systems}
                 target={@myself}
-                disabled={not @hub.active}
+                disabled={@hub.disabled}
               />
             </div>
 
@@ -251,7 +251,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 <.button
                   patch={~p"/hub/#{@hub.id}/groups/new"}
                   id="add-deployment-group"
-                  disabled={not @hub.active}
+                  disabled={@hub.disabled}
                 >
                   Add deployment group
                 </.button>
@@ -308,7 +308,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           secret_name={@secret_name}
           secret_value={@secret_value}
           return_to={~p"/hub/#{@hub.id}"}
-          disabled={not @hub.active}
+          disabled={@hub.disabled}
         />
       </.modal>
 
@@ -323,7 +323,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           module={LivebookWeb.Hub.FileSystemFormComponent}
           id="file-systems"
           hub={@hub}
-          disabled={not @hub.active}
+          disabled={@hub.disabled}
           file_system={@file_system}
           file_system_id={@file_system_id}
           return_to={~p"/hub/#{@hub.id}"}
