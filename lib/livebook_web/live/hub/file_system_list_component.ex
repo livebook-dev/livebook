@@ -60,7 +60,11 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
         </div>
       </div>
       <div class="flex">
-        <.button patch={~p"/hub/#{@hub_id}/file-systems/new"} id="add-file-system">
+        <.button
+          patch={~p"/hub/#{@hub_id}/file-systems/new"}
+          id="add-file-system"
+          disabled={@disabled}
+        >
           Add file storage
         </.button>
       </div>
