@@ -9,4 +9,5 @@ defmodule LivebookProto.DeploymentGroupCreated do
   field :zta_key, 7, type: :string, json_name: "ztaKey", deprecated: true
   field :agent_keys, 8, repeated: true, type: LivebookProto.AgentKey, json_name: "agentKeys"
   field :url, 9, type: :string
+  field :teams_auth, 10, type: :bool, json_name: "teamsAuth"
 end

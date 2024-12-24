@@ -134,7 +134,7 @@ defmodule LivebookWeb.AppComponents do
     <%= if Livebook.Hubs.Provider.type(@hub) == "team" and to_string(@form[:mode].value) == "online" do %>
       <div class="flex flex-col gap-2">
         <.checkbox_field
-          field={@form[:zta_provider]}
+          field={@form[:teams_auth]}
           label="Authenticate via Livebook Teams"
           help={
             ~S'''
@@ -143,8 +143,6 @@ defmodule LivebookWeb.AppComponents do
             Livebook Teams for authentication.
             '''
           }
-          checked_value="livebook_teams"
-          unchecked_value=""
           small
         />
       </div>

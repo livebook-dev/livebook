@@ -275,7 +275,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:identity_enabled?, _caller, %{deployment_group_id: id} = state) do
     case fetch_deployment_group(id, state) do
-      {:ok, %{zta_provider: :livebook_teams}} -> {:reply, true, state}
+      {:ok, deployment_group} -> {:reply, deployment_group.teams_auth, state}
       _ -> {:reply, false, state}
     end
   end
@@ -451,7 +451,8 @@ defmodule Livebook.Hubs.TeamClient do
       environment_variables: environment_variables,
       clustering: nullify(deployment_group.clustering),
       zta_provider: atomize(deployment_group.zta_provider),
-      url: nullify(deployment_group.url)
+      url: nullify(deployment_group.url),
+      teams_auth: deployment_group.teams_auth
     }
   end
 
@@ -468,7 +469,8 @@ defmodule Livebook.Hubs.TeamClient do
       environment_variables: [],
       clustering: nullify(deployment_group_created.clustering),
       zta_provider: atomize(deployment_group_created.zta_provider),
-      url: nullify(deployment_group_created.url)
+      url: nullify(deployment_group_created.url),
+      teams_auth: deployment_group_created.teams_auth
     }
   end
 
@@ -487,7 +489,8 @@ defmodule Livebook.Hubs.TeamClient do
         environment_variables: environment_variables,
         clustering: atomize(deployment_group_updated.clustering),
         zta_provider: atomize(deployment_group_updated.zta_provider),
-        url: nullify(deployment_group_updated.url)
+        url: nullify(deployment_group_updated.url),
+        teams_auth: deployment_group_updated.teams_auth
     }
   end
 

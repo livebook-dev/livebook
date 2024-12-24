@@ -65,6 +65,7 @@ message DeploymentGroup {
   repeated AgentKey agent_keys = 8;
   string url = 9;
   repeated EnvironmentVariable environment_variables = 10;
+  bool teams_auth = 11;
 }
 
 message DeploymentGroupCreated {
@@ -76,6 +77,7 @@ message DeploymentGroupCreated {
   string zta_key = 7 [deprecated = true];
   repeated AgentKey agent_keys = 8;
   string url = 9;
+  bool teams_auth = 10;
 }
 
 message DeploymentGroupUpdated {
@@ -88,6 +90,7 @@ message DeploymentGroupUpdated {
   repeated AgentKey agent_keys = 7;
   string url = 8;
   repeated EnvironmentVariable environment_variables = 9;
+  bool teams_auth = 10;
 }
 
 message DeploymentGroupDeleted {
