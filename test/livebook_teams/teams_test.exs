@@ -185,22 +185,13 @@ defmodule Livebook.TeamsTest do
     test "creates a new deployment group with Livebook Teams authentication",
          %{user: user, node: node} do
       team = connect_to_teams(user, node)
+      attrs = params_for(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
-      attrs =
-        params_for(:deployment_group,
-          name: "DEPLOYMENT_GROUP_#{team.id}",
-          mode: :online,
-          zta_provider: :livebook_teams
-        )
-
-      assert {:ok, deployment_group} = Teams.create_deployment_group(team, attrs)
-
-      %{id: id, name: name, mode: mode, zta_provider: zta_provider} = deployment_group
-
-      assert zta_provider == :livebook_teams
+      assert {:ok, %{id: id, name: name, mode: mode, teams_auth: true}} =
+               Teams.create_deployment_group(team, attrs)
 
       assert_receive {:deployment_group_created,
-                      %{id: ^id, name: ^name, mode: ^mode, zta_provider: ^zta_provider}}
+                      %{id: ^id, name: ^name, mode: ^mode, teams_auth: true}}
     end
 
     test "returns changeset errors when the name is invalid", %{user: user, node: node} do

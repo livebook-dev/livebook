@@ -30,8 +30,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
         name: deployment_group.name,
         value: deployment_group.mode,
         hub_id: deployment_group.hub_id,
-        zta_provider: :livebook_teams,
-        url: url
+        url: url,
+        teams_auth: true
       }
     }
 

@@ -6,9 +6,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
   setup %{test: test, node: node} do
     Livebook.Teams.Broadcasts.subscribe([:agents])
-
-    {_agent_key, org, deployment_group, team} =
-      create_agent_team_hub(node, deployment_group: [zta_provider: :livebook_teams])
+    {_agent_key, org, deployment_group, team} = create_agent_team_hub(node)
 
     # we wait until the agent_connected is received by livebook
     hub_id = team.id

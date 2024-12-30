@@ -450,7 +450,6 @@ defmodule Livebook.Hubs.TeamClient do
       agent_keys: agent_keys,
       environment_variables: environment_variables,
       clustering: nullify(deployment_group.clustering),
-      zta_provider: atomize(deployment_group.zta_provider),
       url: nullify(deployment_group.url),
       teams_auth: deployment_group.teams_auth
     }
@@ -468,7 +467,6 @@ defmodule Livebook.Hubs.TeamClient do
       agent_keys: agent_keys,
       environment_variables: [],
       clustering: nullify(deployment_group_created.clustering),
-      zta_provider: atomize(deployment_group_created.zta_provider),
       url: nullify(deployment_group_created.url),
       teams_auth: deployment_group_created.teams_auth
     }
@@ -488,7 +486,6 @@ defmodule Livebook.Hubs.TeamClient do
         agent_keys: agent_keys,
         environment_variables: environment_variables,
         clustering: atomize(deployment_group_updated.clustering),
-        zta_provider: atomize(deployment_group_updated.zta_provider),
         url: nullify(deployment_group_updated.url),
         teams_auth: deployment_group_updated.teams_auth
     }
