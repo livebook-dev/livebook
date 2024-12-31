@@ -5,7 +5,7 @@ defmodule LivebookProto.DeploymentGroupUpdated do
   field :name, 2, type: :string
   field :secrets, 3, repeated: true, type: LivebookProto.DeploymentGroupSecret
   field :clustering, 4, type: :string
-  field :zta_provider, 5, type: :string, json_name: "ztaProvider"
+  field :zta_provider, 5, type: :string, json_name: "ztaProvider", deprecated: true
   field :zta_key, 6, type: :string, json_name: "ztaKey", deprecated: true
   field :agent_keys, 7, repeated: true, type: LivebookProto.AgentKey, json_name: "agentKeys"
   field :url, 8, type: :string
@@ -14,4 +14,6 @@ defmodule LivebookProto.DeploymentGroupUpdated do
     repeated: true,
     type: LivebookProto.EnvironmentVariable,
     json_name: "environmentVariables"
+
+  field :teams_auth, 10, type: :bool, json_name: "teamsAuth"
 end

@@ -176,7 +176,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           id: "1",
           name: "sleepy-cat-#{System.unique_integer([:positive])}",
           mode: :offline,
-          hub_id: team.id
+          hub_id: team.id,
+          teams_auth: false
         )
 
       livebook_proto_deployment_group =
@@ -184,9 +185,9 @@ defmodule Livebook.Hubs.TeamClientTest do
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
-          zta_provider: to_string(deployment_group.zta_provider),
           secrets: [],
-          agent_keys: []
+          agent_keys: [],
+          teams_auth: deployment_group.teams_auth
         }
 
       # creates the deployment group
@@ -471,8 +472,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
-          zta_provider: to_string(deployment_group.zta_provider),
           agent_keys: [livebook_proto_agent_key],
+          teams_auth: deployment_group.teams_auth,
           secrets: [],
           environment_variables: []
         }
@@ -566,8 +567,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
-          zta_provider: to_string(deployment_group.zta_provider),
-          secrets: [livebook_proto_deployment_group_secret]
+          secrets: [livebook_proto_deployment_group_secret],
+          teams_auth: deployment_group.teams_auth
         }
 
       agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
@@ -617,7 +618,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           secrets: [],
-          agent_keys: [livebook_proto_agent_key]
+          agent_keys: [livebook_proto_agent_key],
+          teams_auth: deployment_group.teams_auth
         }
 
       agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}

@@ -60,11 +60,12 @@ message DeploymentGroup {
   string mode = 3;
   repeated DeploymentGroupSecret secrets = 4;
   string clustering = 5;
-  string zta_provider = 6;
+  string zta_provider = 6 [deprecated = true];
   string zta_key = 7 [deprecated = true];
   repeated AgentKey agent_keys = 8;
   string url = 9;
   repeated EnvironmentVariable environment_variables = 10;
+  bool teams_auth = 11;
 }
 
 message DeploymentGroupCreated {
@@ -72,10 +73,11 @@ message DeploymentGroupCreated {
   string name = 2;
   string mode = 3;
   string clustering = 5;
-  string zta_provider = 6;
+  string zta_provider = 6 [deprecated = true];
   string zta_key = 7 [deprecated = true];
   repeated AgentKey agent_keys = 8;
   string url = 9;
+  bool teams_auth = 10;
 }
 
 message DeploymentGroupUpdated {
@@ -83,11 +85,12 @@ message DeploymentGroupUpdated {
   string name = 2;
   repeated DeploymentGroupSecret secrets = 3;
   string clustering = 4;
-  string zta_provider = 5;
+  string zta_provider = 5 [deprecated = true];
   string zta_key = 6 [deprecated = true];
   repeated AgentKey agent_keys = 7;
   string url = 8;
   repeated EnvironmentVariable environment_variables = 9;
+  bool teams_auth = 10;
 }
 
 message DeploymentGroupDeleted {
