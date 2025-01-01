@@ -110,6 +110,7 @@ message UserConnected {
   repeated DeploymentGroup deployment_groups = 4;
   repeated AppDeployment app_deployments = 5;
   repeated Agent agents = 6;
+  bool org_disabled = 7;
 }
 
 message AgentConnected {
@@ -121,6 +122,7 @@ message AgentConnected {
   repeated DeploymentGroup deployment_groups = 7;
   repeated AppDeployment app_deployments = 8;
   repeated Agent agents = 9;
+  bool org_disabled = 10;
 }
 
 message AppDeployment {
@@ -155,6 +157,11 @@ message AgentJoined {
 
 message AgentLeft {
   string id = 1;
+}
+
+message OrgUpdated {
+  string id = 1;
+  bool disabled = 2;
 }
 
 message Agent {
@@ -210,5 +217,6 @@ message Event {
     AgentJoined agent_joined = 14;
     AgentLeft agent_left = 15;
     AppDeploymentStopped app_deployment_stopped = 16;
+    OrgUpdated org_updated = 17;
   }
 }
