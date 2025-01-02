@@ -91,8 +91,13 @@ defmodule Livebook.Runtime.Attached do
     # changes are unlikely within the same minor version, so that's
     # the requirement we enforce.
 
-    current = Version.parse!(System.version())
-    same_minor = "#{current.major}.#{current.minor}.0"
+    current = System.version()
+
+    same_minor =
+      current
+      |> Version.parse!()
+      |> Map.replace!(:patch, 0)
+      |> Version.to_string()
 
     # Make sure Livebook does not enforce a higher patch version
     min_version =
