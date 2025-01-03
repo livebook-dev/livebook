@@ -100,4 +100,50 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
                "Failed to authenticate with Livebook Teams: you do not belong to this org"
     end
   end
+
+  describe "logout/2" do
+    test "revoke access token from Livebook Teams", %{conn: conn, node: node, test: test} do
+      # Step 1: Get redirected to Livebook Teams
+      conn = init_test_session(conn, %{})
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+
+      [_, location] = Regex.run(~r/URL\("(.*?)"\)/, html_response(conn, 200))
+      uri = URI.parse(location)
+      assert uri.path == "/identity/authorize"
+      assert %{"code" => code} = URI.decode_query(uri.query)
+
+      erpc_call(node, :allow_auth_request, [code])
+
+      # Step 2: Emulate the redirect back with the code for validation
+      conn =
+        build_conn(:get, "/", %{teams_identity: "", code: code})
+        |> init_test_session(%{})
+
+      assert {conn, %{id: _id, name: _, email: _, payload: %{"access_token" => _}} = metadata} =
+               LivebookTeams.authenticate(test, conn, [])
+
+      assert redirected_to(conn, 302) == "/"
+
+      # Step 3: Confirm the token/metadata is valid for future requests
+      conn =
+        build_conn(:get, "/")
+        |> init_test_session(%{identity_data: metadata})
+
+      assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
+
+      # Step 4: Revoke the token and the metadata will be invalid for future requests
+      user =
+        metadata.id
+        |> Livebook.Users.User.new()
+        |> Livebook.Users.User.changeset(metadata)
+        |> Ecto.Changeset.apply_changes()
+
+      conn =
+        build_conn(:get, "/")
+        |> init_test_session(%{identity_data: metadata})
+        |> assign(:current_user, user)
+
+      assert LivebookTeams.logout(test, conn) == :ok
+    end
+  end
 end
