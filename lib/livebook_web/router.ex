@@ -171,7 +171,7 @@ defmodule LivebookWeb.Router do
 
   scope "/", LivebookWeb do
     pipe_through [:browser]
-    get "/logout", LogoutController, :logout
+    get "/logout", AuthController, :logout
   end
 
   defp within_iframe_secure_headers(conn, _opts) do

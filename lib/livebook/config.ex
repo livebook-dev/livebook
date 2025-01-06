@@ -271,6 +271,15 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns if the identity provider supports logout.
+  """
+  @spec logout_enabled?() :: boolean()
+  def logout_enabled?() do
+    {_type, module, _key} = Livebook.Config.identity_provider()
+    authentication().mode != :disabled or module.logout_supported?()
+  end
+
+  @doc """
   Returns whether the application is running inside an iframe.
   """
   @spec within_iframe?() :: boolean()

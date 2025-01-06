@@ -45,6 +45,9 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
+  @impl true
+  def logout_supported?, do: true
+
   defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, metadata} <- get_user_info(team, access_token) do

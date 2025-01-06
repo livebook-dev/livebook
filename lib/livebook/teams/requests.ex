@@ -239,7 +239,7 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
-  Send a request to Livebook Team API to get the user information from given access token.
+  Send a request to Livebook Team API to revoke session from given access token.
   """
   @spec logout_identity_provider(Team.t(), String.t()) ::
           {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}

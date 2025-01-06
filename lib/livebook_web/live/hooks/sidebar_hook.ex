@@ -41,7 +41,7 @@ defmodule LivebookWeb.SidebarHook do
          |> redirect(to: ~p"/logout")}
 
       :error ->
-        {:cont, socket}
+        {:cont, put_flash(socket, :error, Livebook.Teams.Requests.error_message())}
     end
   end
 

@@ -26,9 +26,10 @@ defmodule Livebook.ZTA.GoogleIAP do
   end
 
   @impl true
-  def logout(_name, _socket) do
-    :error
-  end
+  def logout(_name, _socket), do: raise("not implemented")
+
+  @impl true
+  def logout_supported?, do: false
 
   @impl true
   def init(options) do
