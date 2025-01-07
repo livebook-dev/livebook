@@ -1,8 +1,6 @@
 defmodule Livebook.Config do
   alias Livebook.FileSystem
 
-  @type authentication_mode :: :token | :password | :disabled
-
   @type authentication ::
           %{mode: :password, secret: String.t()}
           | %{mode: :token, secret: String.t()}
@@ -68,7 +66,7 @@ defmodule Livebook.Config do
   @doc """
   Returns the authentication configuration.
   """
-  @spec authentication() :: authentication_mode()
+  @spec authentication() :: authentication()
   def authentication() do
     case Application.fetch_env!(:livebook, :authentication) do
       {:password, password} -> %{mode: :password, secret: password}
@@ -276,7 +274,7 @@ defmodule Livebook.Config do
   @spec logout_enabled?() :: boolean()
   def logout_enabled?() do
     {_type, module, _key} = Livebook.Config.identity_provider()
-    authentication().mode != :disabled or module.logout_supported?()
+    Code.ensure_loaded?(module) and function_exported?(module, :logout, 2)
   end
 
   @doc """

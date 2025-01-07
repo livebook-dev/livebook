@@ -111,6 +111,20 @@ defmodule LivebookWeb.LayoutComponents do
               to={~p"/settings"}
               current={@current_page}
             />
+            <button
+              :if={Livebook.Config.logout_enabled?()}
+              class="h-7 flex items-center text-gray-400 hover:text-white border-l-4 border-transparent hover:border-white"
+              aria-label="logout"
+              phx-click="logout"
+            >
+              <.remix_icon
+                icon="logout-box-line"
+                class="text-lg leading-6 w-[56px] flex justify-center"
+              />
+              <span class="text-sm font-medium">
+                Logout
+              </span>
+            </button>
           </div>
           <.hub_section hubs={@saved_hubs} current_page={@current_page} />
         </div>
@@ -126,20 +140,7 @@ defmodule LivebookWeb.LayoutComponents do
               Shut Down
             </span>
           </button>
-          <button
-            :if={@current_user.email}
-            class="h-7 flex items-center text-gray-400 hover:text-white border-l-4 border-transparent hover:border-white"
-            aria-label="logout"
-            phx-click="logout"
-          >
-            <.remix_icon
-              icon="logout-box-line"
-              class="text-lg leading-6 w-[56px] flex justify-center"
-            />
-            <span class="text-sm font-medium">
-              Logout
-            </span>
-          </button>
+
           <button
             class="mt-6 flex items-center group border-l-4 border-transparent"
             aria_label="user profile"

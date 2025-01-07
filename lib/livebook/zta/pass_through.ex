@@ -10,10 +10,4 @@ defmodule Livebook.ZTA.PassThrough do
   def authenticate(_name, conn, _opts) do
     {conn, %{}}
   end
-
-  @impl true
-  def logout(_name, _socket), do: raise("not implemented")
-
-  @impl true
-  def logout_supported?, do: false
 end

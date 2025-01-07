@@ -41,12 +41,10 @@ defmodule Livebook.ZTA.LivebookTeams do
 
     case Teams.Requests.logout_identity_provider(team, token) do
       {:ok, _no_content} -> :ok
-      _otherwise -> :error
+      {:error, _} = error -> error
+      {:transport_error, reason} -> {:error, reason}
     end
   end
-
-  @impl true
-  def logout_supported?, do: true
 
   defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),

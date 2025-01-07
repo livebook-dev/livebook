@@ -29,12 +29,6 @@ defmodule Livebook.ZTA.Tailscale do
     {conn, user}
   end
 
-  @impl true
-  def logout(_name, _socket), do: raise("not implemented")
-
-  @impl true
-  def logout_supported?, do: false
-
   defp authenticate_ip(remote_ip, address) do
     {url, options} =
       if String.starts_with?(address, "http") do

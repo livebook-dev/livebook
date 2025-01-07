@@ -34,14 +34,10 @@ defmodule LivebookWeb.SidebarHook do
     case module.logout(LivebookWeb.ZTA, socket) do
       :ok ->
         Livebook.Users.unsubscribe(socket.assigns.current_user.id)
+        {:halt, redirect(socket, to: ~p"/logout")}
 
-        {:halt,
-         socket
-         |> assign(current_user: nil)
-         |> redirect(to: ~p"/logout")}
-
-      :error ->
-        {:cont, put_flash(socket, :error, Livebook.Teams.Requests.error_message())}
+      {:error, reason} ->
+        {:cont, put_flash(socket, :error, reason)}
     end
   end
 

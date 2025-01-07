@@ -26,10 +26,4 @@ defmodule Livebook.ZTA.BasicAuth do
       {conn, %{}}
     end
   end
-
-  @impl true
-  def logout(_name, _socket), do: raise("not implemented")
-
-  @impl true
-  def logout_supported?, do: false
 end

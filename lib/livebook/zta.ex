@@ -48,12 +48,8 @@ defmodule Livebook.ZTA do
   @doc """
   Logouts against the given name.
   """
-  @callback logout(name(), Phoenix.LiveView.Socket.t()) :: :ok | :error | :unsupported
-
-  @doc """
-  Checks if the logout is supported against the given name.
-  """
-  @callback logout_supported?() :: boolean()
+  @callback logout(name(), Phoenix.LiveView.Socket.t()) :: :ok | {:error, String.t()}
+  @optional_callbacks logout: 2
 
   @doc false
   def init do
