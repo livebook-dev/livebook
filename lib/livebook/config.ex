@@ -274,7 +274,11 @@ defmodule Livebook.Config do
   @spec logout_enabled?() :: boolean()
   def logout_enabled?() do
     {_type, module, _key} = Livebook.Config.identity_provider()
-    Code.ensure_loaded?(module) and function_exported?(module, :logout, 2)
+
+    identity_logout? =
+      Code.ensure_loaded?(module) and function_exported?(module, :logout, 2)
+
+    authentication().mode != :disabled or identity_logout?
   end
 
   @doc """
