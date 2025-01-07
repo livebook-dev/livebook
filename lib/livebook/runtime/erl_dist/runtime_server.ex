@@ -855,11 +855,18 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     # We propagate Mix.install/2 project dir in the transient state,
     # so that future runtimes can set it as the starting point for
     # Mix.install/2
-    if dir = state.mix_install_project_dir == nil && Mix.install_project_dir() do
+    if dir = state.mix_install_project_dir == nil && mix_install_project_dir() do
       send(state.owner, {:runtime_transient_state, %{mix_install_project_dir: dir}})
       %{state | mix_install_project_dir: dir}
     else
       state
+    end
+  end
+
+  defp mix_install_project_dir() do
+    # Make sure Mix is loaded (for attached runtime it may not)
+    if Code.ensure_loaded?(Mix) do
+      Mix.install_project_dir()
     end
   end
 
