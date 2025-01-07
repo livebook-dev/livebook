@@ -144,6 +144,14 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         |> assign(:current_user, user)
 
       assert LivebookTeams.logout(test, conn) == :ok
+
+      # Step 5: If we try to revoke again, it should fail
+      assert {:error, _} = LivebookTeams.logout(test, conn)
+
+      # Step 6: It we try to authenticate again, it should redirect to Teams
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert conn.halted
+      assert html_response(conn, 200) =~ "window.location.href = "
     end
   end
 end

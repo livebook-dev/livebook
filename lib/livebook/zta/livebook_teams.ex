@@ -40,9 +40,14 @@ defmodule Livebook.ZTA.LivebookTeams do
     team = Livebook.ZTA.get(name)
 
     case Teams.Requests.logout_identity_provider(team, token) do
-      {:ok, _no_content} -> :ok
-      {:error, _} = error -> error
-      {:transport_error, reason} -> {:error, reason}
+      {:ok, _no_content} ->
+        :ok
+
+      {:error, %{"errors" => %{"revoked_at" => _}}} ->
+        {:error, "You are already logged out. We will redirect you"}
+
+      {:transport_error, reason} ->
+        {:error, reason}
     end
   end
 

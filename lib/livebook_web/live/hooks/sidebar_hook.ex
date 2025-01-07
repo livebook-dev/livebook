@@ -32,12 +32,8 @@ defmodule LivebookWeb.SidebarHook do
     {_type, module, _key} = Livebook.Config.identity_provider()
 
     case module.logout(LivebookWeb.ZTA, socket) do
-      :ok ->
-        Livebook.Users.unsubscribe(socket.assigns.current_user.id)
-        {:halt, redirect(socket, to: ~p"/logout")}
-
-      {:error, reason} ->
-        {:cont, put_flash(socket, :error, reason)}
+      :ok -> {:halt, redirect(socket, to: ~p"/logout")}
+      {:error, reason} -> {:cont, put_flash(socket, :error, reason)}
     end
   end
 
