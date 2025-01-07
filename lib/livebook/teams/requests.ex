@@ -242,7 +242,7 @@ defmodule Livebook.Teams.Requests do
   Send a request to Livebook Team API to revoke session from given access token.
   """
   @spec logout_identity_provider(Team.t(), String.t()) ::
-          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+          {:ok, String.t()} | {:error, map()} | {:transport_error, String.t()}
   def logout_identity_provider(team, access_token) do
     post("/api/v1/org/identity/revoke", %{access_token: access_token}, team)
   end
