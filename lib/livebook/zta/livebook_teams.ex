@@ -35,7 +35,7 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  @impl true
+  # Our extension to Livebook.ZTA to deal with logouts
   def logout(name, %{assigns: %{current_user: %{payload: %{"access_token" => token}}}}) do
     team = Livebook.ZTA.get(name)
 
