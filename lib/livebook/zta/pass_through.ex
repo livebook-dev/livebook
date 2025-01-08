@@ -7,7 +7,7 @@ defmodule Livebook.ZTA.PassThrough do
   end
 
   @impl true
-  def authenticate(_, conn, _) do
+  def authenticate(_name, conn, _opts) do
     {conn, %{}}
   end
 end

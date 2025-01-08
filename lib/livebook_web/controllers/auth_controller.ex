@@ -46,6 +46,17 @@ defmodule LivebookWeb.AuthController do
     end
   end
 
+  def logout(conn, _params) do
+    if get_session(conn, :user_id) do
+      conn
+      |> configure_session(renew: true)
+      |> clear_session()
+      |> render("logout.html")
+    else
+      redirect_to(conn)
+    end
+  end
+
   defp render_form_error(conn, authentication_mode) do
     errors = [{"%{authentication_mode} is invalid", [authentication_mode: authentication_mode]}]
 

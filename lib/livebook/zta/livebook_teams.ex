@@ -35,6 +35,17 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
+  # Our extension to Livebook.ZTA to deal with logouts
+  def logout(name, %{assigns: %{current_user: %{payload: %{"access_token" => token}}}}) do
+    team = Livebook.ZTA.get(name)
+
+    case Teams.Requests.logout_identity_provider(team, token) do
+      {:ok, _no_content} -> :ok
+      {:error, %{}} -> {:error, "You are already logged out."}
+      {:transport_error, reason} -> {:error, reason}
+    end
+  end
+
   defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, metadata} <- get_user_info(team, access_token) do

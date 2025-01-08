@@ -16,7 +16,7 @@ defmodule Livebook.ZTA.BasicAuth do
   end
 
   @impl true
-  def authenticate(name, conn, _options) do
+  def authenticate(name, conn, _opts) do
     {username, password} = Livebook.ZTA.get(name)
     conn = Plug.BasicAuth.basic_auth(conn, username: username, password: password)
 
