@@ -119,6 +119,7 @@ defmodule Livebook.Runtime.Definitions do
           name: "DuckDB",
           packages: [
             kino_db,
+            kino_explorer,
             %{
               name: "adbc",
               dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:duckdb]]]}
@@ -129,6 +130,7 @@ defmodule Livebook.Runtime.Definitions do
           name: "Google BigQuery",
           packages: [
             kino_db,
+            kino_explorer,
             %{
               name: "adbc",
               dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:bigquery]]]}
