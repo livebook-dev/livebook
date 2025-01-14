@@ -163,7 +163,12 @@ defmodule Livebook.Runtime.Standalone do
             {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok
           end
       after
-        10_000 -> :timeout
+        10_000 ->
+          IO.puts(
+            "Communication between Livebook main node (#{inspect(parent_node)}) and new standalone runtime node (#{inspect(node())}) timed out."
+          )
+
+          :timeout
       end
 
       # We explicitly halt at the end, just in case `System.no_halt(true)`
