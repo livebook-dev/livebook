@@ -108,6 +108,8 @@ defmodule Livebook.Runtime.Standalone do
     port_ref = Port.monitor(port)
 
     loop = fn loop ->
+      # Note that the child node terminates when communication times out,
+      # so we should always receive either a message or :DOWN event.
       receive do
         {:node_started, init_ref, ^child_node, child_port, primary_pid} ->
           Port.demonitor(port_ref)
@@ -122,11 +124,8 @@ defmodule Livebook.Runtime.Standalone do
 
         {:DOWN, ^port_ref, :port, _object, reason} ->
           {:error,
-           "Elixir terminated unexpectedly, please check your logs for errors. Reason: #{inspect(reason)}"}
-      after
-        # Use a longer timeout to account for longer child node startup.
-        30_000 ->
-          {:error, "connection timed out"}
+           "standalone runtime node (#{inspect(child_node)}) terminated unexpectedly on startup, " <>
+             "please check your logs for errors. Reason: #{inspect(reason)}"}
       end
     end
 
@@ -165,8 +164,8 @@ defmodule Livebook.Runtime.Standalone do
       after
         10_000 ->
           IO.puts(
-            "Error: timeout during initial communication between standalone runtime" <>
-              " (node: #{inspect(node())}) and Livebook (node: #{inspect(parent_node)})."
+            "Error: timeout during initial communication between standalone runtime " <>
+              "(node: #{inspect(node())}) and Livebook (node: #{inspect(parent_node)})."
           )
 
           :timeout
