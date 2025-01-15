@@ -165,8 +165,7 @@ defmodule Livebook.Runtime.Standalone do
       after
         10_000 ->
           IO.puts(
-            "Communication between Livebook main node (#{inspect(parent_node)}) and new standalone runtime node (#{inspect(node())}) timed out."
-          )
+            "Error: timeout during initial communication between standalone runtime (node: #{inspect(node())}) and Livebook (node: #{inspect(parent_node)})."
 
           :timeout
       end
