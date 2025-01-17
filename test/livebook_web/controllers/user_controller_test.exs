@@ -1,4 +1,4 @@
-defmodule LivebookWeb.UserAuthControllerTest do
+defmodule LivebookWeb.UserControllerTest do
   use LivebookWeb.ConnCase, async: true
 
   describe "GET /logout" do

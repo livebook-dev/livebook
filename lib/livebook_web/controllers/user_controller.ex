@@ -1,6 +1,5 @@
-defmodule LivebookWeb.UserAuthController do
+defmodule LivebookWeb.UserController do
   use LivebookWeb, :controller
-  alias LivebookWeb.AuthHelpers
 
   def logout(conn, _params) do
     if get_session(conn, :user_id) do
@@ -9,7 +8,7 @@ defmodule LivebookWeb.UserAuthController do
       |> clear_session()
       |> render("logout.html")
     else
-      AuthHelpers.redirect_to(conn)
+      redirect(conn, to: ~p"/")
     end
   end
 end
