@@ -278,7 +278,7 @@ defmodule Livebook.Config do
     identity_logout? =
       Code.ensure_loaded?(module) and function_exported?(module, :logout, 2)
 
-    authentication().mode != :disabled or identity_logout?
+    identity_logout?
   end
 
   @doc """

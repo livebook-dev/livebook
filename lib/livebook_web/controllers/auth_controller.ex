@@ -1,5 +1,6 @@
 defmodule LivebookWeb.AuthController do
   use LivebookWeb, :controller
+  alias LivebookWeb.AuthHelpers
 
   plug(:require_unauthenticated)
 
@@ -7,7 +8,7 @@ defmodule LivebookWeb.AuthController do
 
   defp require_unauthenticated(conn, _opts) do
     if AuthPlug.authenticated?(conn) do
-      redirect_to(conn)
+      AuthHelpers.redirect_to(conn)
     else
       conn
     end
@@ -30,7 +31,7 @@ defmodule LivebookWeb.AuthController do
     conn = AuthPlug.store(conn, :password, password)
 
     if AuthPlug.authenticated?(conn) do
-      redirect_to(conn)
+      AuthHelpers.redirect_to(conn)
     else
       render_form_error(conn, :password)
     end
@@ -40,20 +41,9 @@ defmodule LivebookWeb.AuthController do
     conn = AuthPlug.store(conn, :token, token)
 
     if AuthPlug.authenticated?(conn) do
-      redirect_to(conn)
+      AuthHelpers.redirect_to(conn)
     else
       render_form_error(conn, :token)
-    end
-  end
-
-  def logout(conn, _params) do
-    if get_session(conn, :user_id) do
-      conn
-      |> configure_session(renew: true)
-      |> clear_session()
-      |> render("logout.html")
-    else
-      redirect_to(conn)
     end
   end
 
@@ -64,19 +54,5 @@ defmodule LivebookWeb.AuthController do
       errors: errors,
       authentication_mode: authentication_mode
     )
-  end
-
-  defp redirect_to(conn) do
-    conn
-    |> then(fn conn ->
-      if redirect_to = get_session(conn, :redirect_to) do
-        conn
-        |> delete_session(:redirect_to)
-        |> redirect(to: redirect_to)
-      else
-        redirect(conn, to: ~p"/")
-      end
-    end)
-    |> halt()
   end
 end
