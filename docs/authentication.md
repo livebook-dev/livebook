@@ -6,7 +6,7 @@ Livebook has three levels of authentication:
 
   * Admin authentication: this authenticates access to Livebook admin interface, where users can create, write, and manage notebooks. Both password and token authentication are available. See the next section for more information.
 
-  * Deployed notebook authentication: additionally, when deploying notebooks as applications, each application may be password protected with a unique password. Only users authenticated as admin or with the password will be able to access them.
+  * Deployed notebook passwords: additionally, when deploying notebooks as applications, each application may be password protected with a unique password. Only users authenticated as admin or with the password will be able to access them.
 
 ## Admin authentication
 
