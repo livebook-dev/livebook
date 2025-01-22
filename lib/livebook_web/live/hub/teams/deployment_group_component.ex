@@ -157,6 +157,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             secret_name={@secret_name}
             secret_value={@secret_value}
             return_to={~p"/hub/#{@hub.id}"}
+            disabled={@hub.disabled}
           />
         </.modal>
 
