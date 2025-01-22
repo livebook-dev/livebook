@@ -1,6 +1,5 @@
 defmodule Livebook.ZTA.LivebookTeamsTest do
-  # Not async, because we alter global config (teams auth)
-  use Livebook.TeamsIntegrationCase, async: false
+  use Livebook.TeamsIntegrationCase, async: true
 
   alias Livebook.ZTA.LivebookTeams
 
