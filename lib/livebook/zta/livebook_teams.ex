@@ -56,8 +56,8 @@ defmodule Livebook.ZTA.LivebookTeams do
     else
       _ ->
         {conn
-         |> redirect(to: conn.request_path)
          |> put_session(:teams_error, true)
+         |> redirect(to: conn.request_path)
          |> halt(), nil}
     end
   end
@@ -142,8 +142,8 @@ defmodule Livebook.ZTA.LivebookTeams do
 
       _ ->
         {conn
-         |> redirect(to: conn.request_path)
          |> put_session(:teams_error, true)
+         |> redirect(to: conn.request_path)
          |> halt(), nil}
     end
   end
