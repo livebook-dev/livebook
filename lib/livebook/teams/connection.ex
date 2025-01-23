@@ -44,16 +44,20 @@ defmodule Livebook.Teams.Connection do
       {:ok, conn, websocket, ref} ->
         send(data.listener, :connected)
         send(self(), {:loop_ping, ref})
+        Logger.info("Teams WebSocket connection - established")
 
         {:keep_state, %{data | http_conn: conn, ref: ref, websocket: websocket}}
 
       {:transport_error, reason} ->
         send(data.listener, {:connection_error, reason})
+        Logger.warning("Teams WebSocket connection - transport error: #{inspect(reason)}")
+
         {:keep_state_and_data, {{:timeout, :backoff}, @backoff, nil}}
 
       {:server_error, error} ->
         reason = LivebookProto.Error.decode(error).details
         send(data.listener, {:server_error, reason})
+        Logger.warning("Teams WebSocket connection - server error : #{inspect(reason)}")
 
         {:keep_state, data}
     end
@@ -70,6 +74,7 @@ defmodule Livebook.Teams.Connection do
         {:keep_state, %{data | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, _reason} ->
+        Logger.warning("Teams WebSocket connection - ping error")
         {:keep_state, %{data | http_conn: conn, websocket: websocket}}
     end
   end
