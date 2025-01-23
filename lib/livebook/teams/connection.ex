@@ -44,7 +44,7 @@ defmodule Livebook.Teams.Connection do
       {:ok, conn, websocket, ref} ->
         send(data.listener, :connected)
         send(self(), {:loop_ping, ref})
-        Logger.warning("Teams WebSocket connection - established")
+        Logger.info("Teams WebSocket connection - established")
 
         {:keep_state, %{data | http_conn: conn, ref: ref, websocket: websocket}}
 
