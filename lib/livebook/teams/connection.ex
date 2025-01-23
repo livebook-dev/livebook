@@ -57,7 +57,7 @@ defmodule Livebook.Teams.Connection do
       {:server_error, error} ->
         reason = LivebookProto.Error.decode(error).details
         send(data.listener, {:server_error, reason})
-        Logger.warning("Teams WebSocket connection - server error : #{reason}")
+        Logger.warning("Teams WebSocket connection - server error : #{inspect(reason)}")
 
         {:keep_state, data}
     end
