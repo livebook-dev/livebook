@@ -75,7 +75,7 @@ defmodule Livebook.Teams.Connection do
         {:keep_state, %{data | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, _reason} ->
-        Logger.warning("Teams WebSocket connection - ping with error")
+        Logger.warning("Teams WebSocket connection - ping error")
         {:keep_state, %{data | http_conn: conn, websocket: websocket}}
     end
   end
