@@ -71,7 +71,6 @@ defmodule Livebook.Teams.Connection do
     case WebSocket.send(data.http_conn, data.websocket, data.ref, :ping) do
       {:ok, conn, websocket} ->
         Process.send_after(self(), {:loop_ping, data.ref}, @loop_ping_delay)
-        Logger.warning("Teams WebSocket connection - ping with success")
         {:keep_state, %{data | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, _reason} ->
