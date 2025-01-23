@@ -50,7 +50,7 @@ defmodule Livebook.Teams.Connection do
 
       {:transport_error, reason} ->
         send(data.listener, {:connection_error, reason})
-        Logger.warning("Teams WebSocket connection - transport error: #{reason}")
+        Logger.warning("Teams WebSocket connection - transport error: #{inspect(reason)}")
 
         {:keep_state_and_data, {{:timeout, :backoff}, @backoff, nil}}
 
