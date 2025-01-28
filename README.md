@@ -382,7 +382,7 @@ For Windows, run:
    1. Wait for CI to finish (Docker and Desktop)
 6. Run `mix hex.publish`.
 7. Publish GH release with copied changelog notes.
-8. If you crated branch in step 2., update main changelog to point to
+8. If you created a branch in step 2., update main changelog to point to
    the branch and bump version in mix.exs (with `-dev` suffix).
 
 ## Platinum sponsors
