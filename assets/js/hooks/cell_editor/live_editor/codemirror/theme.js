@@ -561,9 +561,6 @@ function buildHighlightStyle({
 
     // CSS specific
     { tag: t.className, color: peach },
-
-    // Shell specific
-    { tag: t.meta, color: gray },
   ]);
 }
 
