@@ -232,7 +232,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "keeps non-elixir code snippets" do
+  test "keeps non-code cell snippets" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
@@ -248,8 +248,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     mix deps.get
                     ```
 
-                    ```erlang
-                    spawn_link(fun() -> io:format("Hiya") end).
+                    ```json
+                    {"x": 1, "y": 1}
                     ```
                     """
                 }
@@ -267,8 +267,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     mix deps.get
     ```
 
-    ```erlang
-    spawn_link(fun() -> io:format("Hiya") end).
+    ```json
+    {"x": 1, "y": 1}
     ```
     """
 
@@ -277,7 +277,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "marks elixir snippets in markdown cells as such" do
+  test "marks code cell snippets in markdown cells as such" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
@@ -305,8 +305,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     Some markdown.
 
-                    ```elixir
-                    [1, 2, 3]
+                    ```erlang
+                    [1, 2, 3].
                     ```\
                     """
                 }
@@ -332,8 +332,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     <!-- livebook:{"force_markdown":true} -->
 
-    ```elixir
-    [1, 2, 3]
+    ```erlang
+    [1, 2, 3].
     ```
     """
 
