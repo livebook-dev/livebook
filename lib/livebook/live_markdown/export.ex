@@ -321,7 +321,8 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp add_markdown_annotation_before_elixir_block(ast) do
     Enum.flat_map(ast, fn
-      {"pre", _, [{"code", [{"class", "elixir"}], [_source], %{}}], %{}} = ast_node ->
+      {"pre", _, [{"code", [{"class", language}], [_source], %{}}], %{}} = ast_node
+      when language in ["elixir", "erlang"] ->
         [{:comment, [], [~s/livebook:{"force_markdown":true}/], %{comment: true}}, ast_node]
 
       ast_node ->

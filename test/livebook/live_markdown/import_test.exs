@@ -373,7 +373,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert ["line 3 - closing unclosed backquotes ` at end of input"] == messages
   end
 
-  test "imports non-elixir code snippets as part of markdown cells" do
+  test "imports non-code cell snippets as part of markdown cells" do
     markdown = """
     # My Notebook
 
@@ -387,10 +387,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Enum.to_list(1..10)
     ```
 
-    <!-- livebook:{"force_markdown":true} -->
-
-    ```erlang
-    spawn_link(fun() -> io:format("Hiya") end).
+    ```json
+    {"x": 1, "y": 1}
     ```
     """
 
@@ -416,8 +414,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    },
                    %Cell.Markdown{
                      source: """
-                     ```erlang
-                     spawn_link(fun() -> io:format("Hiya") end).
+                     ```json
+                     {"x": 1, "y": 1}
                      ```\
                      """
                    }
@@ -427,7 +425,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
            } = notebook
   end
 
-  test "imports elixir snippets as part of markdown cells if marked as such" do
+  test "imports code cell snippets as part of markdown cells if marked as such" do
     markdown = """
     # My Notebook
 
@@ -445,8 +443,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     <!-- livebook:{"force_markdown":true} -->
 
-    ```elixir
-    [1, 2, 3]
+    ```erlang
+    [1, 2, 3].
     ```
     """
 
@@ -474,8 +472,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      source: """
                      Some markdown.
 
-                     ```elixir
-                     [1, 2, 3]
+                     ```erlang
+                     [1, 2, 3].
                      ```\
                      """
                    }
