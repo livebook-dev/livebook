@@ -50,7 +50,7 @@ defmodule Livebook.Runtime.EPMD do
     # If the target node is on the same host, check if it's a Livebook
     # server or runtime to bypass EPMD. If it is a different node, we
     # always fall back to :erl_epmd, even if it's a Livebook node.
-    if host() == normalize_host(host) do
+    if host_to_ip(host()) == host_to_ip(host) do
       case livebook_port(name) do
         0 -> :erl_epmd.port_please(name, host, timeout)
         port -> {:port, port, @epmd_dist_version}
@@ -65,9 +65,18 @@ defmodule Livebook.Runtime.EPMD do
     host
   end
 
-  defp normalize_host(host) when is_tuple(host), do: :inet.ntoa(host)
-  defp normalize_host(host) when is_atom(host), do: Atom.to_charlist(host)
-  defp normalize_host(host) when is_list(host), do: host
+  import Record
+  defrecordp :hostent, Record.extract(:hostent, from_lib: "kernel/include/inet.hrl")
+
+  defp host_to_ip(host) when is_tuple(host), do: {:ok, host}
+  defp host_to_ip(host) when is_atom(host), do: host_to_ip(Atom.to_charlist(host))
+
+  defp host_to_ip(host) when is_list(host) do
+    case :inet.gethostbyname(host) do
+      {:ok, hostent(h_addrtype: :inet, h_addr_list: [ip | _])} -> {:ok, ip}
+      _other -> :error
+    end
+  end
 
   defp livebook_port(name) do
     {parent_name, parent_host, parent_node, parent_port} = :persistent_term.get(:livebook_parent)
