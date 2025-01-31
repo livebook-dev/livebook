@@ -47,11 +47,27 @@ defmodule Livebook.Runtime.EPMD do
   def port_please(name, host), do: port_please(name, host, :infinity)
 
   def port_please(name, host, timeout) do
-    case livebook_port(name) do
-      0 -> :erl_epmd.port_please(name, host, timeout)
-      port -> {:port, port, @epmd_dist_version}
+    # If the target node is on the same host, check if it's a Livebook
+    # server or runtime to bypass EPMD. If it is a different node, we
+    # always fall back to :erl_epmd, even if it's a Livebook node.
+    if host() == normalize_host(host) do
+      case livebook_port(name) do
+        0 -> :erl_epmd.port_please(name, host, timeout)
+        port -> {:port, port, @epmd_dist_version}
+      end
+    else
+      :erl_epmd.port_please(name, host, timeout)
     end
   end
+
+  defp host() do
+    [_, host] = node() |> Atom.to_charlist() |> :string.split(~c"@")
+    host
+  end
+
+  defp normalize_host(host) when is_tuple(host), do: :inet.ntoa(host)
+  defp normalize_host(host) when is_atom(host), do: Atom.to_charlist(host)
+  defp normalize_host(host) when is_list(host), do: host
 
   defp livebook_port(name) do
     {parent_name, parent_host, parent_node, parent_port} = :persistent_term.get(:livebook_parent)
