@@ -47,9 +47,34 @@ defmodule Livebook.Runtime.EPMD do
   def port_please(name, host), do: port_please(name, host, :infinity)
 
   def port_please(name, host, timeout) do
-    case livebook_port(name) do
-      0 -> :erl_epmd.port_please(name, host, timeout)
-      port -> {:port, port, @epmd_dist_version}
+    # If the target node is on the same host, check if it's a Livebook
+    # server or runtime to bypass EPMD. If it is a different node, we
+    # always fall back to :erl_epmd, even if it's a Livebook node.
+    if host_to_ip(host()) == host_to_ip(host) do
+      case livebook_port(name) do
+        0 -> :erl_epmd.port_please(name, host, timeout)
+        port -> {:port, port, @epmd_dist_version}
+      end
+    else
+      :erl_epmd.port_please(name, host, timeout)
+    end
+  end
+
+  defp host() do
+    [_, host] = node() |> Atom.to_charlist() |> :string.split(~c"@")
+    host
+  end
+
+  import Record
+  defrecordp :hostent, Record.extract(:hostent, from_lib: "kernel/include/inet.hrl")
+
+  defp host_to_ip(host) when is_tuple(host), do: {:ok, host}
+  defp host_to_ip(host) when is_atom(host), do: host_to_ip(Atom.to_charlist(host))
+
+  defp host_to_ip(host) when is_list(host) do
+    case :inet.gethostbyname(host) do
+      {:ok, hostent(h_addrtype: :inet, h_addr_list: [ip | _])} -> {:ok, ip}
+      _other -> :error
     end
   end
 
