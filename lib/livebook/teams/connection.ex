@@ -144,6 +144,6 @@ defmodule Livebook.Teams.Connection do
   end
 
   defp ensure_closed(data) do
-    WebSocket.disconnect(data.http_conn, data.websocket, data.ref)
+    _ = WebSocket.disconnect(data.http_conn, data.websocket, data.ref)
   end
 end
