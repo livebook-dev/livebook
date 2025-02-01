@@ -45,20 +45,17 @@ defmodule Livebook.Teams.Connection do
         send(data.listener, :connected)
         send(self(), {:loop_ping, ref})
         Logger.info("Teams WebSocket connection - established")
-
         {:keep_state, %{data | http_conn: conn, ref: ref, websocket: websocket}}
 
       {:transport_error, reason} ->
         send(data.listener, {:connection_error, reason})
         Logger.warning("Teams WebSocket connection - transport error: #{inspect(reason)}")
-
         {:keep_state_and_data, {{:timeout, :backoff}, @backoff, nil}}
 
       {:server_error, error} ->
         reason = LivebookProto.Error.decode(error).details
         send(data.listener, {:server_error, reason})
-        Logger.warning("Teams WebSocket connection - server error : #{inspect(reason)}")
-
+        Logger.warning("Teams WebSocket connection - server error: #{inspect(reason)}")
         {:keep_state, data}
     end
   end
@@ -73,9 +70,12 @@ defmodule Livebook.Teams.Connection do
         Process.send_after(self(), {:loop_ping, data.ref}, @loop_ping_delay)
         {:keep_state, %{data | http_conn: conn, websocket: websocket}}
 
-      {:error, conn, websocket, _reason} ->
-        Logger.warning("Teams WebSocket connection - ping error")
-        {:keep_state, %{data | http_conn: conn, websocket: websocket}}
+      {:error, conn, websocket, reason} ->
+        data = %{data | http_conn: conn, websocket: websocket}
+        send(data.listener, {:connection_error, reason})
+        Logger.warning("Teams WebSocket connection - ping error: #{inspect(reason)}")
+        ensure_closed(data)
+        {:keep_state, data, {:next_event, :internal, :connect}}
     end
   end
 
@@ -106,7 +106,8 @@ defmodule Livebook.Teams.Connection do
         data = %{data | http_conn: conn, websocket: websocket}
         send(data.listener, {:connection_error, reason})
         :gen_statem.reply(from, {:error, reason})
-
+        Logger.warning("Teams WebSocket connection - send error: #{inspect(reason)}")
+        ensure_closed(data)
         {:keep_state, data, {:next_event, :internal, :connect}}
     end
   end
@@ -117,19 +118,32 @@ defmodule Livebook.Teams.Connection do
     case WebSocket.receive(data.http_conn, data.ref, data.websocket, message) do
       {:ok, conn, websocket, binaries} ->
         data = %{data | http_conn: conn, websocket: websocket}
-
-        for binary <- binaries do
-          %{type: {topic, message}} = LivebookProto.Event.decode(binary)
-          send(data.listener, {:event, topic, message})
-        end
-
+        handle_messages(data, binaries)
         {:keep_state, data}
+
+      {:closed, conn, websocket, binaries} ->
+        handle_messages(data, binaries)
+        data = %{data | http_conn: conn, websocket: websocket}
+        Logger.warning("Teams WebSocket connection - closed")
+        {:keep_state, data, {:next_event, :internal, :connect}}
 
       {:error, conn, websocket, reason} ->
         send(data.listener, {:connection_error, reason})
         data = %{data | http_conn: conn, websocket: websocket}
-
+        Logger.warning("Teams WebSocket connection - receive error: #{inspect(reason)}")
+        ensure_closed(data)
         {:keep_state, data, {:next_event, :internal, :connect}}
     end
+  end
+
+  defp handle_messages(data, binaries) do
+    for binary <- binaries do
+      %{type: {topic, message}} = LivebookProto.Event.decode(binary)
+      send(data.listener, {:event, topic, message})
+    end
+  end
+
+  defp ensure_closed(data) do
+    WebSocket.disconnect(data.http_conn, data.websocket, data.ref)
   end
 end
