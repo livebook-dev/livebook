@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.14.7](https://github.com/livebook-dev/livebook/tree/v0.14.7) (2025-02-01)
+
+### Fixed
+
+* Teams websocket not reconnecting after a graceful close ([#2924](https://github.com/livebook-dev/livebook/pull/2924))
+
 ## [v0.14.6](https://github.com/livebook-dev/livebook/tree/v0.14.6) (2025-01-23)
 
 ### Added
