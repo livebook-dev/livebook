@@ -20,6 +20,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:client_connected, ^id}
     end
 
+    @tag capture_log: true
     test "rejects the web socket connection with invalid credentials", %{user: user, token: token} do
       team =
         build(:team,
