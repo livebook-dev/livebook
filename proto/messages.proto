@@ -110,7 +110,7 @@ message UserConnected {
   repeated DeploymentGroup deployment_groups = 4;
   repeated AppDeployment app_deployments = 5;
   repeated Agent agents = 6;
-  bool org_disabled = 7;
+  BillingStatus billing_status = 7;
 }
 
 message AgentConnected {
@@ -122,7 +122,7 @@ message AgentConnected {
   repeated DeploymentGroup deployment_groups = 7;
   repeated AppDeployment app_deployments = 8;
   repeated Agent agents = 9;
-  bool org_disabled = 10;
+  BillingStatus billing_status = 10;
 }
 
 message AppDeployment {
@@ -161,7 +161,7 @@ message AgentLeft {
 
 message OrgUpdated {
   string id = 1;
-  bool disabled = 2;
+  BillingStatus billing_status = 3;
 }
 
 message Agent {
@@ -219,4 +219,30 @@ message Event {
     AppDeploymentStopped app_deployment_stopped = 16;
     OrgUpdated org_updated = 17;
   }
+}
+
+message BillingStatus {
+  bool disabled = 1;
+  oneof type {
+    BillingStatusTrialing trialing = 2;
+    BillingStatusTrialEnded trial_ended = 3;
+    BillingStatusCanceling canceling = 4;
+    BillingStatusCanceled canceled = 5;
+  }
+}
+
+message BillingStatusTrialing {
+  int64 trial_ends_at = 1;
+}
+
+message BillingStatusTrialEnded {
+  int64 trial_ends_at = 1;
+}
+
+message BillingStatusCanceling {
+  int64 cancel_at = 1;
+}
+
+message BillingStatusCanceled {
+  int64 cancel_at = 1;
 }
