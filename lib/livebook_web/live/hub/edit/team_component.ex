@@ -50,8 +50,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secret_name: secret_name,
        secret_value: secret_value,
        hub_metadata: Provider.to_metadata(assigns.hub),
-       default?: default?,
-       billing_info: Hubs.Team.billing_info(assigns.hub)
+       default?: default?
      )
      |> assign_form(changeset)}
   end
@@ -64,9 +63,12 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         {Provider.connection_status(@hub)}
       </LayoutComponents.topbar>
 
-      <LayoutComponents.topbar :if={@billing_info.status == :trial_until} variant="warning">
+      <LayoutComponents.topbar :if={@hub.billing_status.type == :trialing} variant="warning">
         <h2>
-          Your organization has <strong>{@billing_info.trial_days_left} day(s) left</strong>
+          Your organization has
+          <strong>
+            {Date.diff(@hub.billing_status.trial_ends_at, Date.utc_today())} day(s) left
+          </strong>
           on the free trial. Need help getting set up? <a
             class="underline"
             href="mailto:suport@livebook.dev?subject=Help%20with%20Livebook%20Teams"
@@ -74,7 +76,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         </h2>
       </LayoutComponents.topbar>
 
-      <LayoutComponents.topbar :if={@billing_info.disabled?} variant="warning">
+      <LayoutComponents.topbar :if={@hub.billing_status.disabled} variant="warning">
         <h2>
           Workspace disabled: your organization doesn't have an active subscription. Please contact your <.link
             href={org_url(@hub, "/users")}
@@ -196,14 +198,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 secrets={@secrets}
                 edit_path={"hub/#{@hub.id}/secrets/edit"}
                 return_to={~p"/hub/#{@hub.id}"}
-                disabled={@billing_info.disabled?}
+                disabled={@hub.billing_status.disabled}
               />
 
               <div>
                 <.button
                   patch={~p"/hub/#{@hub.id}/secrets/new"}
                   id="add-secret"
-                  disabled={@billing_info.disabled?}
+                  disabled={@hub.billing_status.disabled}
                 >
                   Add secret
                 </.button>
@@ -225,7 +227,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 hub_id={@hub.id}
                 file_systems={@file_systems}
                 target={@myself}
-                disabled={@billing_info.disabled?}
+                disabled={@hub.billing_status.disabled}
               />
             </div>
 
@@ -262,7 +264,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 <.button
                   patch={~p"/hub/#{@hub.id}/groups/new"}
                   id="add-deployment-group"
-                  disabled={@billing_info.disabled?}
+                  disabled={@hub.billing_status.disabled}
                 >
                   Add deployment group
                 </.button>
@@ -319,7 +321,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           secret_name={@secret_name}
           secret_value={@secret_value}
           return_to={~p"/hub/#{@hub.id}"}
-          disabled={@billing_info.disabled?}
+          disabled={@hub.billing_status.disabled}
         />
       </.modal>
 
@@ -334,7 +336,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           module={LivebookWeb.Hub.FileSystemFormComponent}
           id="file-systems"
           hub={@hub}
-          disabled={@billing_info.disabled?}
+          disabled={@hub.billing_status.disabled}
           file_system={@file_system}
           file_system_id={@file_system_id}
           return_to={~p"/hub/#{@hub.id}"}
