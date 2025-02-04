@@ -801,16 +801,30 @@ defmodule Livebook.Hubs.TeamClient do
     state
   end
 
-  defp update_hub(state, %LivebookProto.UserConnected{org_disabled: disabled}) do
-    update_hub(state, &put_in(&1.disabled, disabled))
+  defp update_hub(state, %LivebookProto.UserConnected{billing_status: billing_status}) do
+    update_hub(
+      state,
+      &put_billing_status(&1, billing_status)
+    )
   end
 
-  defp update_hub(state, %LivebookProto.OrgUpdated{disabled: disabled}) do
-    update_hub(state, &put_in(&1.disabled, disabled))
+  defp update_hub(state, %LivebookProto.AgentConnected{
+         public_key: org_public_key,
+         billing_status: billing_status
+       }) do
+    update_hub(
+      state,
+      &(&1
+        |> struct!(org_public_key: org_public_key)
+        |> put_billing_status(billing_status))
+    )
   end
 
-  defp update_hub(state, %LivebookProto.AgentConnected{public_key: org_public_key}) do
-    update_hub(state, &put_in(&1.org_public_key, org_public_key))
+  defp update_hub(state, %LivebookProto.OrgUpdated{billing_status: billing_status}) do
+    update_hub(
+      state,
+      &put_billing_status(&1, billing_status)
+    )
   end
 
   defp update_hub(state, fun) when is_function(fun, 1) do
@@ -821,6 +835,41 @@ defmodule Livebook.Hubs.TeamClient do
     end
 
     put_in(state.hub, hub)
+  end
+
+  defp put_billing_status(hub, %LivebookProto.BillingStatus{} = status) do
+    put_in(
+      hub.billing_status,
+      Map.merge(%{disabled: status.disabled}, put_billing_status(status.type))
+    )
+  end
+
+  # TODO: Remove when Billign is public
+  defp put_billing_status(hub, nil) do
+    put_in(
+      hub.billing_status,
+      %{disabled: false, type: nil}
+    )
+  end
+
+  defp put_billing_status({:trialing, %LivebookProto.BillingStatusTrialing{} = type}) do
+    %{type: :trialing, trial_ends_at: DateTime.from_unix!(type.trial_ends_at)}
+  end
+
+  defp put_billing_status({:trial_ended, %LivebookProto.BillingStatusTrialEnded{} = type}) do
+    %{type: :trial_ended, trial_ends_at: DateTime.from_unix!(type.trial_ends_at)}
+  end
+
+  defp put_billing_status({:canceling, %LivebookProto.BillingStatusCanceling{} = type}) do
+    %{type: :canceling, cancel_at: DateTime.from_unix!(type.cancel_at)}
+  end
+
+  defp put_billing_status({:canceled, %LivebookProto.BillingStatusCanceled{} = type}) do
+    %{type: :canceled, cancel_at: DateTime.from_unix!(type.cancel_at)}
+  end
+
+  defp put_billing_status(_other) do
+    %{type: nil}
   end
 
   defp diff(old_list, new_list, fun, deleted_fun \\ nil, updated_fun \\ nil) do
