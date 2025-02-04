@@ -33,6 +33,7 @@ defmodule Livebook.Runtime.EPMD do
 
   def register_node(name, port, family) do
     :persistent_term.put(:livebook_dist_port, port)
+    :persistent_term.put(:livebook_dist_family, family)
 
     case :erl_epmd.register_node(name, port, family) do
       {:ok, creation} -> {:ok, creation}
@@ -50,7 +51,7 @@ defmodule Livebook.Runtime.EPMD do
     # If the target node is on the same host, check if it's a Livebook
     # server or runtime to bypass EPMD. If it is a different node, we
     # always fall back to :erl_epmd, even if it's a Livebook node.
-    if host_to_ip(host()) == host_to_ip(host) do
+    if host_to_ip!(host()) == host_to_ip!(host) do
       case livebook_port(name) do
         0 -> :erl_epmd.port_please(name, host, timeout)
         port -> {:port, port, @epmd_dist_version}
@@ -68,13 +69,18 @@ defmodule Livebook.Runtime.EPMD do
   import Record
   defrecordp :hostent, Record.extract(:hostent, from_lib: "kernel/include/inet.hrl")
 
-  defp host_to_ip(host) when is_tuple(host), do: {:ok, host}
-  defp host_to_ip(host) when is_atom(host), do: host_to_ip(Atom.to_charlist(host))
+  defp host_to_ip!(host) when is_tuple(host), do: host
+  defp host_to_ip!(host) when is_atom(host), do: host_to_ip!(Atom.to_charlist(host))
 
-  defp host_to_ip(host) when is_list(host) do
-    case :inet.gethostbyname(host) do
-      {:ok, hostent(h_addrtype: :inet, h_addr_list: [ip | _])} -> {:ok, ip}
-      _other -> :error
+  defp host_to_ip!(host) when is_list(host) do
+    family = :persistent_term.get(:livebook_dist_family)
+
+    case :inet.gethostbyname(host, family) do
+      {:ok, hostent(h_addrtype: ^family, h_addr_list: [ip | _])} ->
+        ip
+
+      other ->
+        raise "failed to resolve hostname #{inspect(host)}, reason: #{inspect(other)}"
     end
   end
 
