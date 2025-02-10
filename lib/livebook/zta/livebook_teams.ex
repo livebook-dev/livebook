@@ -31,7 +31,7 @@ defmodule Livebook.ZTA.LivebookTeams do
     if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
       handle_request(conn, team, conn.params)
     else
-      {conn, nil}
+      {conn, %{}}
     end
   end
 
