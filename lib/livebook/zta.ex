@@ -1,4 +1,53 @@
 defmodule Livebook.ZTA do
+  @moduledoc """
+             Enable zero-trust authentication within your Plug/Phoenix application.
+
+             The following ZTA providers are supported:
+
+               * Livebook.ZTA.Cloudflare
+               * Livebook.ZTA.GoogleIAP
+               * Livebook.ZTA.Tailscale
+
+             We also support the following providers for dev/test/staging:
+
+               * Livebook.ZTA.BasicAuth - HTTP basic authentication with a single user-pass
+               * Livebook.ZTA.PassThrough - always succeeds with no metadata
+
+             You can find documentation for setting up these providers under [Livebook's
+             authentication section in the sidebar](https://hexdocs.pm/livebook/).
+
+             ## Usage
+
+             First you must add the ZTA provider of your choice to your supervision tree:
+
+                 {Livebook.ZTA.GoogleIAP, name: :google_iap, identity_key: "foobar"}
+
+             where the `identity_key` is the identity provider specific key.
+
+             Then you can use the provider `c:authenticate/3` callback to authenticate
+             users on every request:
+
+                 plug :zta
+
+                 def zta(conn, _opts) do
+                   case Livebook.ZTA.GoogleIAP.authenticate(conn, :google_iap) do
+                     # The provider is redirecting somewhere for follow up
+                     {%{halted: true} = conn, nil} ->
+                       conn
+
+                     # Authentication failed
+                     {%{halted: false} = conn, nil} ->
+                       send_resp(conn, 401, "Unauthorized")
+
+                     # Authentication succeeded
+                     {conn, metadata} ->
+                       put_session(conn, :user_metadata, metadata)
+                   end
+                 end
+
+             Each provider may have specific optoins supported on `authenticate/3`.
+             """ && false
+
   @type name :: atom()
 
   @typedoc """
