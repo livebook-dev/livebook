@@ -10,12 +10,12 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
   end
 
   @impl true
-  def update(%{event: {:append, text}}, socket) do
-    {:ok, append_text(socket, text)}
+  def update(%{event: {:append, output}}, socket) do
+    {:ok, append_text(socket, output.text)}
   end
 
   def update(assigns, socket) do
-    {text, assigns} = Map.pop(assigns, :text)
+    {output, assigns} = Map.pop(assigns, :output)
     socket = assign(socket, assigns)
 
     if socket.assigns.initialized do
@@ -23,12 +23,13 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
     else
       {:ok,
        socket
-       |> append_text(text)
+       |> append_text(output.text)
        |> assign(:initialized, true)}
     end
   end
 
   defp append_text(socket, text) do
+    # text = if text == :__pruned__, do: nil, else: text
     text = (socket.assigns.last_line || "") <> text
 
     text = Livebook.Notebook.normalize_terminal_text(text)

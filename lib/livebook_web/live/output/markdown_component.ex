@@ -10,12 +10,12 @@ defmodule LivebookWeb.Output.MarkdownComponent do
   end
 
   @impl true
-  def update(%{event: {:append, text}}, socket) do
-    {:ok, append_text(socket, text)}
+  def update(%{event: {:append, output}}, socket) do
+    {:ok, append_text(socket, output.text)}
   end
 
   def update(assigns, socket) do
-    {text, assigns} = Map.pop(assigns, :text)
+    {output, assigns} = Map.pop(assigns, :output)
     socket = assign(socket, assigns)
 
     if socket.assigns.initialized do
@@ -23,12 +23,13 @@ defmodule LivebookWeb.Output.MarkdownComponent do
     else
       {:ok,
        socket
-       |> append_text(text)
+       |> append_text(output.text)
        |> assign(:initialized, true)}
     end
   end
 
   defp append_text(socket, text) do
+    # text = if text == :__pruned__, do: nil, else: text
     chunk = %{id: Livebook.Utils.random_long_id(), text: text}
     stream_insert(socket, :chunks, chunk)
   end

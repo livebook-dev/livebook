@@ -2070,7 +2070,7 @@ defmodule LivebookWeb.SessionLive do
         :markdown -> LivebookWeb.Output.MarkdownComponent
       end
 
-    send_update(module, id: "outputs-#{idx}-output", event: {:append, output.text})
+    send_update(module, id: "outputs-#{idx}-output", event: {:append, output})
   end
 
   defp prune_outputs(%{private: %{data: data}} = socket) do
