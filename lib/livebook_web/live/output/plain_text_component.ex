@@ -19,7 +19,8 @@ defmodule LivebookWeb.Output.PlainTextComponent do
     socket = assign(socket, assigns)
 
     if socket.assigns.initialized do
-      # After initialization, .text may be pruned
+      # After initialization, output text may be pruned and updates
+      # are sent as events instead
       {:ok, socket}
     else
       {:ok,

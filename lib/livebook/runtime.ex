@@ -108,7 +108,7 @@ defprotocol Livebook.Runtime do
           type: :plain_text,
           text: String.t(),
           chunk: boolean(),
-          style: keyword()
+          style: [{:color | :font_weight | :font_size, String.Chars.t()}]
         }
 
   @typedoc """
