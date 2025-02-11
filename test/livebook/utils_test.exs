@@ -21,6 +21,9 @@ defmodule Livebook.UtilsTest do
 
       assert Livebook.Utils.expand_desktop_url("file://c\\foo.txt") ==
                "http://localhost:4002/open?path=c%5Cfoo.txt"
+
+      assert Livebook.Utils.expand_desktop_url("file:///this is a dir/with many spaces/foo.txt") ==
+               "http://localhost:4002/open?path=%2Fthis+is+a+dir%2Fwith+many+spaces%2Ffoo.txt"
     end
 
     test "livebook://" do
