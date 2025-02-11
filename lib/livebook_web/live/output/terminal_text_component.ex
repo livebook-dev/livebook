@@ -19,6 +19,7 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
     socket = assign(socket, assigns)
 
     if socket.assigns.initialized do
+      # After initialization, .text may be pruned
       {:ok, socket}
     else
       {:ok,
@@ -29,7 +30,6 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
   end
 
   defp append_text(socket, text) do
-    # text = if text == :__pruned__, do: nil, else: text
     text = (socket.assigns.last_line || "") <> text
 
     text = Livebook.Notebook.normalize_terminal_text(text)

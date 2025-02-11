@@ -3171,6 +3171,10 @@ defmodule Livebook.Session do
 
   # Traverse composite outputs
 
+  defp normalize_runtime_output(%{type: :plain_text} = plain_text) do
+    Map.put_new(plain_text, :style, [])
+  end
+
   defp normalize_runtime_output(%{type: :grid} = grid) do
     grid
     |> Map.update!(:outputs, fn outputs -> Enum.map(outputs, &normalize_runtime_output/1) end)

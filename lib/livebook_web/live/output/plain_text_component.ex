@@ -19,6 +19,7 @@ defmodule LivebookWeb.Output.PlainTextComponent do
     socket = assign(socket, assigns)
 
     if socket.assigns.initialized do
+      # After initialization, .text may be pruned
       {:ok, socket}
     else
       {:ok,
@@ -29,11 +30,10 @@ defmodule LivebookWeb.Output.PlainTextComponent do
   end
 
   defp append_output(socket, output) do
-    # text = if text == :__pruned__, do: nil, else: text
     chunk = %{
       id: Livebook.Utils.random_long_id(),
       text: output.text,
-      style: Map.get(output, :style, [])
+      style: output.style
     }
 
     stream_insert(socket, :chunks, chunk)
@@ -53,12 +53,14 @@ defmodule LivebookWeb.Output.PlainTextComponent do
   end
 
   defp format_style(enum) do
-    Enum.map_join(enum, "; ", fn
-      {key, value} when is_binary(key) ->
-        "#{key}: #{value}"
+    Enum.map_join(enum, "; ", fn {key, value} when key in [:color, :font_weight, :font_size] ->
+      value = to_string(value)
 
-      {key, value} when is_atom(key) ->
-        "#{key |> Atom.to_string() |> String.replace("_", "-")}: #{value}"
+      if String.contains?(value, ";") do
+        raise ArgumentError, "invalid CSS property value"
+      end
+
+      "#{key |> Atom.to_string() |> String.replace("_", "-")}: #{value}"
     end)
   end
 end

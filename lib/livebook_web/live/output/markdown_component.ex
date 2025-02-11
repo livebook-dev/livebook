@@ -19,6 +19,7 @@ defmodule LivebookWeb.Output.MarkdownComponent do
     socket = assign(socket, assigns)
 
     if socket.assigns.initialized do
+      # After initialization, .text may be pruned
       {:ok, socket}
     else
       {:ok,
@@ -29,7 +30,6 @@ defmodule LivebookWeb.Output.MarkdownComponent do
   end
 
   defp append_text(socket, text) do
-    # text = if text == :__pruned__, do: nil, else: text
     chunk = %{id: Livebook.Utils.random_long_id(), text: text}
     stream_insert(socket, :chunks, chunk)
   end
