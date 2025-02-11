@@ -244,5 +244,4 @@ message BillingStatusCanceling {
 }
 
 message BillingStatusCanceled {
-  int64 cancel_at = 1;
 }
