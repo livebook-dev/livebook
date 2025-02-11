@@ -18,8 +18,7 @@ static class LivebookMain
 
         if (args.Length == 1 && args[0].StartsWith(prefix))
         {
-            var uri = new System.Uri(args[0].Remove(0, prefix.Length));
-            url = uri.AbsoluteUri;
+            url = $"file://{args[0].Remove(0, prefix.Length)}"
         }
 
         var logPath = getLogPath();
