@@ -110,7 +110,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         for url in urls {
-            ElixirKit.API.publish("open", url.absoluteString)
+            ElixirKit.API.publish("open", "file://\(url.path)")       
         }
     }
 
