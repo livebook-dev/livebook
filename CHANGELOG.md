@@ -22,9 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 * (Desktop) The server to start on a fixed port by default (`32123`) and fall back to random if taken ([#2867](https://github.com/livebook-dev/livebook/pull/2867))
-* Bumped versions to Elixir 1.18.2 and Erlang 27.2.1 in the Docker image and the desktop app
+* Bumped versions to Elixir 1.18.2 and Erlang 27.2.2 in the Docker image and the desktop app
 * Bumped the required Elixir version to 1.18
 * In case you set `RELEASE_DISTRIBUTION`, it has been ignored since v0.13, but now it must not be set
+* Changed the Docker image to use Ubuntu 24.04
 
 ### Removed
 
