@@ -7,27 +7,14 @@ defmodule LivebookWeb.Output.PlainTextComponentTest do
   test "renders chunks with styles" do
     assigns = %{
       id: "test-id",
-      output: %{text: "Hello", style: [color: "red"]}
+      output: %{
+        text: "Hello",
+        style: [color: "red", unknown: "discarded", font_size: "invalid;discarded"]
+      }
     }
 
     content = render_component(PlainTextComponent, assigns)
-    assert content =~ "<div id=\"test-id\""
-    assert content =~ "style=\"color: red\">Hello</span>"
-  end
-
-  test "raises on unsafe styles" do
-    assert_raise ArgumentError, fn ->
-      render_component(PlainTextComponent, %{
-        id: "test-id",
-        output: %{text: "Hello", style: [color: "red;blue"]}
-      })
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      render_component(PlainTextComponent, %{
-        id: "test-id",
-        output: %{text: "Hello", style: [unknown: "red"]}
-      })
-    end
+    assert content =~ ~s|<div id="test-id"|
+    assert content =~ ~s|style="color: red">Hello</span>|
   end
 end

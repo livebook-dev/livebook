@@ -53,15 +53,15 @@ defmodule LivebookWeb.Output.PlainTextComponent do
     """
   end
 
+  defp format_style([]), do: nil
+
   defp format_style(enum) do
-    Enum.map_join(enum, "; ", fn {key, value} when key in [:color, :font_weight, :font_size] ->
-      value = to_string(value)
-
-      if String.contains?(value, ";") do
-        raise ArgumentError, "invalid CSS property value"
-      end
-
+    for {key, value} <- enum,
+        key in [:color, :font_weight, :font_size],
+        value = to_string(value),
+        not String.contains?(value, ";") do
       "#{key |> Atom.to_string() |> String.replace("_", "-")}: #{value}"
-    end)
+    end
+    |> Enum.join("; ")
   end
 end
