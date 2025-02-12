@@ -3169,6 +3169,10 @@ defmodule Livebook.Session do
   # attributes that are missing.
   defp normalize_runtime_output(output)
 
+  defp normalize_runtime_output(%{type: :plain_text} = plain_text) do
+    Map.put_new(plain_text, :style, [])
+  end
+
   # Traverse composite outputs
 
   defp normalize_runtime_output(%{type: :grid} = grid) do

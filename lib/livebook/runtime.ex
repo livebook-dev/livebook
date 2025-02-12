@@ -104,7 +104,12 @@ defprotocol Livebook.Runtime do
 
   Similar to `t:markdown/0`, but with no special markup.
   """
-  @type plain_text_output :: %{type: :plain_text, text: String.t(), chunk: boolean()}
+  @type plain_text_output :: %{
+          type: :plain_text,
+          text: String.t(),
+          chunk: boolean(),
+          style: [{:color | :font_weight | :font_size, String.Chars.t()}]
+        }
 
   @typedoc """
   Markdown content.
