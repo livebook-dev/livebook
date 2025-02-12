@@ -228,7 +228,7 @@ defmodule LivebookWeb.FileSelectComponent do
 
           <div
             :if={@highlighted_file_infos != []}
-            class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+            class="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
           >
             <%= for file_info <- Enum.take(@highlighted_file_infos, visible_files_limit()) do %>
               <.file
@@ -242,7 +242,7 @@ defmodule LivebookWeb.FileSelectComponent do
             <.more_files_indicator length={length(@highlighted_file_infos)} />
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div class="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2">
             <%= for file_info <- Enum.take(@unhighlighted_file_infos, visible_files_limit()) do %>
               <.file
                 id={"#{@id}-file-#{file_info.id}"}
@@ -263,7 +263,7 @@ defmodule LivebookWeb.FileSelectComponent do
   defp new_item_section(assigns) do
     ~H"""
     <div
-      class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+      class="hidden grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
       id={@id}
     >
       <form
@@ -399,18 +399,21 @@ defmodule LivebookWeb.FileSelectComponent do
           <span class={
             "flex font-medium overflow-hidden whitespace-nowrap #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-500")}"
           }>
+            <span>
+              {@file_info.unhighlighted_before}
+            </span>
             <span
               :if={@file_info.highlighted != ""}
               class={[
                 "font-medium",
-                @file_info.unhighlighted == "" && "overflow-hidden text-ellipsis",
+                @file_info.unhighlighted_after == "" && "overflow-hidden text-ellipsis",
                 if(@file_info.is_running, do: "text-green-400", else: "text-gray-900")
               ]}
             >
               {@file_info.highlighted}
             </span>
             <span class="overflow-hidden text-ellipsis">
-              {@file_info.unhighlighted}
+              {@file_info.unhighlighted_after}
             </span>
           </span>
         </button>
@@ -628,6 +631,10 @@ defmodule LivebookWeb.FileSelectComponent do
     {unhighlighted_file_infos, highlighted_file_infos} =
       Enum.split_with(file_infos, &(&1.highlighted == ""))
 
+    # List files with prefix matching first
+    highlighted_file_infos =
+      Enum.sort_by(highlighted_file_infos, &if(&1.unhighlighted_before == "", do: 1, else: 2))
+
     assign(socket,
       file_infos: file_infos,
       unhighlighted_file_infos: unhighlighted_file_infos,
@@ -637,10 +644,17 @@ defmodule LivebookWeb.FileSelectComponent do
 
   defp annotate_matching(file_infos, prefix) do
     for %{name: name} = info <- file_infos do
-      if String.starts_with?(name, prefix) do
-        %{info | highlighted: prefix, unhighlighted: String.replace_prefix(name, prefix, "")}
-      else
-        %{info | highlighted: "", unhighlighted: name}
+      case String.split(name, prefix, parts: 2) do
+        [unhighlighted_before, unhighlighted_after] ->
+          %{
+            info
+            | unhighlighted_before: unhighlighted_before,
+              highlighted: prefix,
+              unhighlighted_after: unhighlighted_after
+          }
+
+        [^name] ->
+          %{info | unhighlighted_before: "", highlighted: "", unhighlighted_after: name}
       end
     end
   end
@@ -685,8 +699,9 @@ defmodule LivebookWeb.FileSelectComponent do
     %{
       id: Base.url_encode64(file.path, padding: false),
       name: name,
+      unhighlighted_before: "",
       highlighted: "",
-      unhighlighted: name,
+      unhighlighted_after: name,
       file: file,
       is_dir: FileSystem.File.dir?(file),
       is_running: running?(file, running_files),
