@@ -18,7 +18,7 @@ static class LivebookMain
 
         if (args.Length == 1 && args[0].StartsWith(prefix))
         {
-            url = $"file://{args[0].Remove(0, prefix.Length)}"
+            url = $"file://{args[0].Remove(0, prefix.Length)}";
         }
 
         var logPath = getLogPath();
