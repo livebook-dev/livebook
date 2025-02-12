@@ -228,7 +228,7 @@ defmodule LivebookWeb.FileSelectComponent do
 
           <div
             :if={@highlighted_file_infos != []}
-            class="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+            class="grid grid-cols-2 lg:grid-cols-3 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
           >
             <%= for file_info <- Enum.take(@highlighted_file_infos, visible_files_limit()) do %>
               <.file
@@ -242,7 +242,7 @@ defmodule LivebookWeb.FileSelectComponent do
             <.more_files_indicator length={length(@highlighted_file_infos)} />
           </div>
 
-          <div class="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2">
+          <div class="grid grid-cols-2 lg:grid-cols-3 gap-2">
             <%= for file_info <- Enum.take(@unhighlighted_file_infos, visible_files_limit()) do %>
               <.file
                 id={"#{@id}-file-#{file_info.id}"}
@@ -263,7 +263,7 @@ defmodule LivebookWeb.FileSelectComponent do
   defp new_item_section(assigns) do
     ~H"""
     <div
-      class="hidden grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+      class="hidden grid grid-cols-2 lg:grid-cols-3 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
       id={@id}
     >
       <form
