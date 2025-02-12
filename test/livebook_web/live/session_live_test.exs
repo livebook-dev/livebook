@@ -548,7 +548,8 @@ defmodule LivebookWeb.SessionLiveTest do
               id: "input1",
               destination: test,
               attrs: %{type: :text, default: "initial", label: "Name", debounce: :blur}
-            }
+            },
+            value: nil
           ],
           submit: "Send",
           report_changes: %{},
@@ -575,7 +576,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-outputs-container] button/, "Send")
       |> render_click()
 
-      assert_receive {:event, "control_ref1", %{data: %{name: "sherlock"}, type: :submit}}
+      assert_receive {:event, "control_ref1",
+                      %{data: %{name: "sherlock", value: nil}, type: :submit}}
     end
 
     test "file input", %{conn: conn, session: session, test: test} do

@@ -437,7 +437,7 @@ defprotocol Livebook.Runtime do
             }
           | %{
               type: :form,
-              fields: list({field :: atom(), input_output()}),
+              fields: list({field :: atom(), input_output() | nil}),
               submit: String.t() | nil,
               # Currently we always use true, but we can support
               # other tracking modes in the future

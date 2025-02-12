@@ -3311,8 +3311,9 @@ defmodule Livebook.Session do
 
         :form ->
           Map.update!(attrs, :fields, fn fields ->
-            Enum.map(fields, fn {field, attrs} ->
-              {field, normalize_runtime_output({:input, attrs})}
+            Enum.map(fields, fn
+              {field, nil} -> {field, nil}
+              {field, attrs} -> {field, normalize_runtime_output({:input, attrs})}
             end)
           end)
 

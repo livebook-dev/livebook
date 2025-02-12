@@ -13,8 +13,9 @@ defmodule LivebookWeb.Output.ControlFormComponent do
     socket = assign(socket, assigns)
 
     data =
-      Map.new(assigns.control.attrs.fields, fn {field, input} ->
-        {field, assigns.input_views[input.id].value}
+      Map.new(assigns.control.attrs.fields, fn
+        {field, nil} -> {field, nil}
+        {field, input} -> {field, assigns.input_views[input.id].value}
       end)
 
     if prev_data != nil and data != prev_data do
@@ -38,6 +39,7 @@ defmodule LivebookWeb.Output.ControlFormComponent do
     <div class="flex flex-col space-y-3">
       <.live_component
         :for={{_field, input} <- @control.attrs.fields}
+        :if={input}
         module={LivebookWeb.Output.InputComponent}
         id={"#{@id}-#{input.id}"}
         input={input}
@@ -75,7 +77,7 @@ defmodule LivebookWeb.Output.ControlFormComponent do
   defp reset_inputs(socket) do
     values =
       for {field, input} <- socket.assigns.control.attrs.fields,
-          field in socket.assigns.control.attrs.reset_on_submit,
+          input != nil and field in socket.assigns.control.attrs.reset_on_submit,
           do: {input.id, input.attrs.default}
 
     send(self(), {:set_input_values, values, true})

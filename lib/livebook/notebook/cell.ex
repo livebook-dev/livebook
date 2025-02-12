@@ -57,7 +57,7 @@ defmodule Livebook.Notebook.Cell do
   end
 
   def find_inputs_in_output({_idx, %{type: :control, attrs: %{type: :form, fields: fields}}}) do
-    Keyword.values(fields)
+    for {_field, input} <- fields, input != nil, do: input
   end
 
   def find_inputs_in_output({_idx, output}) when output.type in [:frame, :tabs, :grid] do
