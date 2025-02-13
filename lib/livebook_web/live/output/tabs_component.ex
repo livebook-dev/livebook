@@ -39,15 +39,18 @@ defmodule LivebookWeb.Output.TabsComponent do
     ~H"""
     <div id={@id}>
       <div class="tabs mb-2" id={"#{@id}-tabs"}>
+        <%!-- Note that we use > in the phx-click selectors, because there may be nested tabs --%>
         <button
           :for={{output_idx, label} <- @labels}
           id={"#{@id}-tabs-#{output_idx}"}
           class={["tab", output_idx == @active_idx && "active"]}
           phx-click={
-            JS.remove_class("active", to: "##{@id}-tabs .tab.active")
+            JS.remove_class("active", to: "##{@id}-tabs > .tab.active")
             |> JS.add_class("active")
-            |> JS.add_class("hidden", to: "##{@id} [data-tab-content]:not(.hidden)")
-            |> JS.remove_class("hidden", to: ~s/##{@id} [data-tab-content="#{output_idx}"]/)
+            |> JS.add_class("hidden", to: "##{@id}-tab-contents > [data-tab-content]:not(.hidden)")
+            |> JS.remove_class("hidden",
+              to: ~s/##{@id}-tab-contents > [data-tab-content="#{output_idx}"]/
+            )
           }
         >
           {label}
