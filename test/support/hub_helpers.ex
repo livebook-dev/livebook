@@ -57,6 +57,7 @@ defmodule Livebook.HubHelpers do
     org_key = erpc_call(node, :create_org_key, [[org: org, key_hash: key_hash]])
     org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org]])
     token = erpc_call(node, :associate_user_with_org, [user, org])
+    erpc_call(node, :create_billing_subscription, [org])
 
     build(:team,
       id: "team-#{org.name}",
@@ -66,7 +67,8 @@ defmodule Livebook.HubHelpers do
       org_key_id: org_key.id,
       org_public_key: org_key_pair.public_key,
       session_token: token,
-      teams_key: teams_key
+      teams_key: teams_key,
+      billing_status: %{disabled: false, type: nil}
     )
   end
 
