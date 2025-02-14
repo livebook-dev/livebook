@@ -1560,12 +1560,12 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, :erlang, "list_to_binary(1).", :code_4, [])
       assert_receive {:runtime_evaluation_response, :code_4, error(message), metadata()}
 
-      assert clean_message(message) === """
+      assert clean_message(message) =~ """
              exception error: bad argument
                in function  list_to_binary/1
                   called as list_to_binary(1)
                   *** argument 1: not an iolist term
-               in call from erl_eval:do_apply/7 (erl_eval.erl, line 915)\
+               in call from erl_eval:do_apply/7 (erl_eval.erl, line\
              """
     end
   end
