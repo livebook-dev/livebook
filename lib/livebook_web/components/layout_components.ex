@@ -130,7 +130,7 @@ defmodule LivebookWeb.LayoutComponents do
         </div>
         <div class="flex flex-col">
           <button
-            :if={Livebook.Config.logout_enabled?()}
+            :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}
             class="h-7 flex items-center text-gray-400 hover:text-white border-l-4 border-transparent hover:border-white"
             aria-label="logout"
             phx-click="logout"
