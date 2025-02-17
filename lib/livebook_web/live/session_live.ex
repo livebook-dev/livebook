@@ -255,6 +255,18 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("enable_language", %{"language" => language}, socket) do
+    language = language_to_string(language)
+    Session.enable_language(socket.assigns.session.pid, language)
+    {:noreply, socket}
+  end
+
+  def handle_event("disable_language", %{"language" => language}, socket) do
+    language = language_to_string(language)
+    Session.disable_language(socket.assigns.session.pid, language)
+    {:noreply, socket}
+  end
+
   def handle_event("insert_cell_below", params, socket) do
     {:noreply, insert_cell_below(socket, params)}
   end
@@ -327,9 +339,8 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("set_default_language", %{"language" => language} = params, socket)
-      when language in ["elixir", "erlang"] do
-    language = String.to_atom(language)
+  def handle_event("set_default_language", %{"language" => language} = params, socket) do
+    language = language_to_string(language)
     Session.set_notebook_attributes(socket.assigns.session.pid, %{default_language: language})
     {:noreply, insert_cell_below(socket, params)}
   end
@@ -545,6 +556,12 @@ defmodule LivebookWeb.SessionLive do
       reevaluate_automatically: value
     })
 
+    {:noreply, socket}
+  end
+
+  def handle_event("set_cell_language", %{"cell_id" => cell_id, "language" => language}, socket) do
+    language = language_to_string(language)
+    Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{language: language})
     {:noreply, socket}
   end
 
@@ -1346,6 +1363,20 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp after_operation(socket, _prev_socket, {:enable_language, client_id, language}) do
+    cell = Notebook.get_extra_setup_cell(socket.private.data.notebook, language)
+
+    socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
+
+    socket = prune_cell_sources(socket)
+
+    if client_id == socket.assigns.client_id do
+      push_event(socket, "cell_inserted", %{cell_id: cell.id})
+    else
+      socket
+    end
+  end
+
   defp after_operation(
          socket,
          _prev_socket,
@@ -1471,12 +1502,10 @@ defmodule LivebookWeb.SessionLive do
 
   defp cell_type_and_attrs_from_params(%{"type" => "code"} = params, socket) do
     language =
-      case params["language"] do
-        language when language in ["elixir", "erlang"] ->
-          String.to_atom(language)
-
-        _ ->
-          socket.private.data.notebook.default_language
+      if language = params["language"] do
+        language_to_string(language)
+      else
+        socket.private.data.notebook.default_language
       end
 
     {:code, %{language: language}}
@@ -1558,7 +1587,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp confirm_setup_runtime(socket, reason) do
     on_confirm = fn socket ->
-      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.main_setup_cell_id())
       socket
     end
 
@@ -1616,7 +1645,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp add_dependencies_and_reevaluate(socket, dependencies) do
     Session.add_dependencies(socket.assigns.session.pid, dependencies)
-    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.main_setup_cell_id())
     Session.queue_cells_reevaluation(socket.assigns.session.pid)
     socket
   end
@@ -1762,6 +1791,13 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
+  defp language_to_string(language) do
+    %{language: language} =
+      Enum.find(Cell.Code.languages(), &(Atom.to_string(&1.language) == language))
+
+    language
+  end
+
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
   # We then use `@data_view` in the templates and consequently
@@ -1804,11 +1840,10 @@ defmodule LivebookWeb.SessionLive do
         data.clients_map
         |> Enum.map(fn {client_id, user_id} -> {client_id, data.users_map[user_id]} end)
         |> Enum.sort_by(fn {_client_id, user} -> user.name || "Anonymous" end),
-      installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
-      setup_cell_view: %{
-        cell_to_view(hd(data.notebook.setup_section.cells), data, changed_input_ids)
-        | type: :setup
-      },
+      enabled_languages: Notebook.enabled_languages(data.notebook),
+      installing?: data.cell_infos[Cell.main_setup_cell_id()].eval.status == :evaluating,
+      setup_cell_views:
+        Enum.map(data.notebook.setup_section.cells, &cell_to_view(&1, data, changed_input_ids)),
       section_views: section_views(data.notebook.sections, data, changed_input_ids),
       bin_entries: data.bin_entries,
       secrets: data.secrets,
@@ -1913,6 +1948,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :code,
+      setup: Cell.setup?(cell),
       language: cell.language,
       empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data, changed_input_ids),

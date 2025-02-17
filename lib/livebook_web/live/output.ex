@@ -349,7 +349,7 @@ defmodule LivebookWeb.Output do
   defp render_output(%{type: :error, context: :dependencies} = output, %{id: id, cell_id: cell_id}) do
     assigns = %{message: output.message, id: id, cell_id: cell_id}
 
-    if cell_id == Livebook.Notebook.Cell.setup_cell_id() do
+    if cell_id == Livebook.Notebook.Cell.main_setup_cell_id() do
       ~H"""
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between gap-2" style="color: var(--ansi-color-red);">

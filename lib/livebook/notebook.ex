@@ -41,13 +41,13 @@ defmodule Livebook.Notebook do
           leading_comments: list(list(line :: String.t())),
           persist_outputs: boolean(),
           autosave_interval_s: non_neg_integer() | nil,
-          default_language: :elixir | :erlang,
+          default_language: :elixir | :erlang | :python,
           output_counter: non_neg_integer(),
           app_settings: AppSettings.t(),
           hub_id: String.t(),
           hub_secret_names: list(String.t()),
           file_entries: list(file_entry()),
-          quarantine_file_entry_names: MapSet.new(String.t()),
+          quarantine_file_entry_names: MapSet.t(),
           teams_enabled: boolean(),
           deployment_group_id: String.t() | nil
         }
@@ -116,15 +116,62 @@ defmodule Livebook.Notebook do
       teams_enabled: false,
       deployment_group_id: nil
     }
-    |> put_setup_cell(Cell.new(:code))
+    |> put_setup_cells([Cell.new(:code)])
   end
 
   @doc """
-  Sets the given cell as the setup cell.
+  Sets the given cells as the setup section cells.
   """
-  @spec put_setup_cell(t(), Cell.Code.t()) :: t()
-  def put_setup_cell(notebook, %Cell.Code{} = cell) do
-    put_in(notebook.setup_section.cells, [%{cell | id: Cell.setup_cell_id()}])
+  @spec put_setup_cells(t(), list(Cell.Code.t())) :: t()
+  def put_setup_cells(notebook, [main_setup_cell | setup_cells]) do
+    put_in(notebook.setup_section.cells, [
+      %{main_setup_cell | id: Cell.main_setup_cell_id()}
+      | Enum.map(setup_cells, &%{&1 | id: Cell.extra_setup_cell_id(&1.language)})
+    ])
+  end
+
+  @doc """
+  Returns the list of languages used by the notebook.
+  """
+  @spec enabled_languages(t()) :: list(atom())
+  def enabled_languages(notebook) do
+    python_setup_cell_id = Cell.extra_setup_cell_id(:"pyproject.toml")
+    python_enabled? = Enum.any?(notebook.setup_section.cells, &(&1.id == python_setup_cell_id))
+    if(python_enabled?, do: [:python], else: []) ++ [:elixir, :erlang]
+  end
+
+  @doc """
+  Adds extra setup cell specific to the given language.
+  """
+  @spec add_extra_setup_cell(t(), atom()) :: t()
+  def add_extra_setup_cell(notebook, language)
+
+  def add_extra_setup_cell(notebook, :python) do
+    cell = %{
+      Cell.new(:code)
+      | id: Cell.extra_setup_cell_id(:"pyproject.toml"),
+        language: :"pyproject.toml",
+        source: """
+        [project]
+        name = "project"
+        version = "0.0.0"
+        requires-python = "==3.13.*"
+        dependencies = []\
+        """
+    }
+
+    update_in(notebook.setup_section.cells, &(&1 ++ [cell]))
+  end
+
+  @doc """
+  Retrieves extra setup cell specific to the given language.
+  """
+  @spec get_extra_setup_cell(t(), atom()) :: Cell.Code.t()
+  def get_extra_setup_cell(notebook, language)
+
+  def get_extra_setup_cell(notebook, :python) do
+    id = Cell.extra_setup_cell_id(:"pyproject.toml")
+    Enum.find(notebook.setup_section.cells, &(&1.id == id))
   end
 
   @doc """
@@ -272,7 +319,7 @@ defmodule Livebook.Notebook do
   def delete_cell(notebook, cell_id) do
     {_, notebook} =
       pop_in(notebook, [
-        Access.key(:sections),
+        access_all_sections(),
         Access.all(),
         Access.key(:cells),
         access_by_id(cell_id)
@@ -791,7 +838,7 @@ defmodule Livebook.Notebook do
   Recursively adds index to all outputs, including frames.
   """
   @spec index_outputs(list(Livebook.Runtime.output()), non_neg_integer()) ::
-          {list(Cell.index_output()), non_neg_integer()}
+          {list(Cell.indexed_output()), non_neg_integer()}
   def index_outputs(outputs, counter) do
     Enum.map_reduce(outputs, counter, &index_output/2)
   end

@@ -10,7 +10,7 @@ import {
   lineNumbers,
   highlightActiveLineGutter,
 } from "@codemirror/view";
-import { EditorState, EditorSelection } from "@codemirror/state";
+import { EditorState, EditorSelection, Compartment } from "@codemirror/state";
 import {
   indentOnInput,
   bracketMatching,
@@ -236,6 +236,15 @@ export default class LiveEditor {
     this.deltaSubscription.destroy();
   }
 
+  setLanguage(language, intellisense) {
+    this.language = language;
+    this.intellisense = intellisense;
+
+    this.view.dispatch({
+      effects: this.languageCompartment.reconfigure(this.languageExtensions()),
+    });
+  }
+
   /**
    * Either adds or updates doctest indicators.
    */
@@ -322,13 +331,6 @@ export default class LiveEditor {
       },
     });
 
-    const lineWrappingEnabled =
-      this.language === "markdown" && settings.editor_markdown_word_wrap;
-
-    const language =
-      this.language &&
-      LanguageDescription.matchLanguageName(languages, this.language, false);
-
     const customKeymap = [
       { key: "Escape", run: exitMulticursor },
       { key: "Alt-Enter", run: insertBlankLineAndCloseHints },
@@ -337,6 +339,8 @@ export default class LiveEditor {
     const selectionChangeListener = EditorView.updateListener.of((update) =>
       this.handleViewUpdate(update),
     );
+
+    this.languageCompartment = new Compartment();
 
     this.view = new EditorView({
       parent: this.container,
@@ -365,7 +369,6 @@ export default class LiveEditor {
         keymap.of(vscodeKeymap),
         EditorState.tabSize.of(2),
         EditorState.lineSeparator.of("\n"),
-        lineWrappingEnabled ? EditorView.lineWrapping : [],
         // We bind tab to actions within the editor, which would trap
         // the user if they tabbed into the editor, so we remove it
         // from the tab navigation
@@ -379,19 +382,9 @@ export default class LiveEditor {
           activateOnTyping: settings.editor_auto_completion,
           defaultKeymap: false,
         }),
-        this.intellisense
-          ? [
-              autocompletion({ override: [this.completionSource.bind(this)] }),
-              hoverDetails(this.docsHoverTooltipSource.bind(this)),
-              signature(this.signatureSource.bind(this), {
-                activateOnTyping: settings.editor_auto_signature,
-              }),
-              formatter(this.formatterSource.bind(this)),
-            ]
-          : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
-        language ? language.support : [],
+        this.languageCompartment.of(this.languageExtensions()),
         EditorView.domEventHandlers({
           click: this.handleEditorClick.bind(this),
           keydown: this.handleEditorKeydown.bind(this),
@@ -402,6 +395,33 @@ export default class LiveEditor {
         selectionChangeListener,
       ],
     });
+  }
+
+  /** @private */
+  languageExtensions() {
+    const settings = settingsStore.get();
+
+    const lineWrappingEnabled =
+      this.language === "markdown" && settings.editor_markdown_word_wrap;
+
+    const language =
+      this.language &&
+      LanguageDescription.matchLanguageName(languages, this.language, false);
+
+    return [
+      lineWrappingEnabled ? EditorView.lineWrapping : [],
+      language ? language.support : [],
+      this.intellisense
+        ? [
+            autocompletion({ override: [this.completionSource.bind(this)] }),
+            hoverDetails(this.docsHoverTooltipSource.bind(this)),
+            signature(this.signatureSource.bind(this), {
+              activateOnTyping: settings.editor_auto_signature,
+            }),
+            formatter(this.formatterSource.bind(this)),
+          ]
+        : [],
+    ];
   }
 
   /** @private */

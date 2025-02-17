@@ -115,7 +115,7 @@ defmodule Livebook.Notebook.Export.ElixirTest do
           | name: "My Notebook",
             sections: [%{Notebook.Section.new() | name: "Section 1"}]
         }
-        |> Notebook.put_setup_cell(%{Notebook.Cell.new(:code) | source: "Mix.install([...])"})
+        |> Notebook.put_setup_cells([%{Notebook.Cell.new(:code) | source: "Mix.install([...])"}])
 
       expected_document = """
       # Run as: iex --dot-iex path/to/notebook.exs
@@ -171,6 +171,80 @@ defmodule Livebook.Notebook.Export.ElixirTest do
 
     # lists:seq(1, 10).
     """
+
+    document = Export.Elixir.notebook_to_elixir(notebook)
+
+    assert expected_document == document
+  end
+
+  test "python" do
+    notebook =
+      %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:code)
+                    | language: :python,
+                      source: """
+                      range(0, 10)\
+                      """
+                  }
+                ]
+            }
+          ]
+      }
+      |> Notebook.put_setup_cells([
+        %{
+          Notebook.Cell.new(:code)
+          | source: """
+            Mix.install([
+              {:pythonx, github: "livebook-dev/pythonx"}
+            ])\
+            """
+        },
+        %{
+          Notebook.Cell.new(:code)
+          | language: :"pyproject.toml",
+            source: """
+            [project]
+            name = "project"
+            version = "0.0.0"
+            requires-python = "==3.13.*"
+            dependencies = []\
+            """
+        }
+      ])
+
+    expected_document = ~S'''
+    # Run as: iex --dot-iex path/to/notebook.exs
+
+    # Title: My Notebook
+
+    Mix.install([
+      {:pythonx, github: "livebook-dev/pythonx"}
+    ])
+
+    Pythonx.uv_init("""
+    [project]
+    name = "project"
+    version = "0.0.0"
+    requires-python = "==3.13.*"
+    dependencies = []
+    """)
+
+    import Pythonx
+
+    # ── Section 1 ──
+
+    ~PY"""
+    range(0, 10)
+    """
+    '''
 
     document = Export.Elixir.notebook_to_elixir(notebook)
 

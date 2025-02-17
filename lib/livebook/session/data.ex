@@ -196,6 +196,8 @@ defmodule Livebook.Session.Data do
           | {:restore_cell, client_id(), Cell.id()}
           | {:move_cell, client_id(), Cell.id(), offset :: integer()}
           | {:move_section, client_id(), Section.id(), offset :: integer()}
+          | {:enable_language, client_id(), atom()}
+          | {:disable_language, client_id(), atom()}
           | {:queue_cells_evaluation, client_id(), list(Cell.id()), evaluation_opts :: keyword()}
           | {:add_cell_doctest_report, client_id(), Cell.id(), Runtime.doctest_report()}
           | {:add_cell_evaluation_output, client_id(), Cell.id(), term()}
@@ -567,6 +569,32 @@ defmodule Livebook.Session.Data do
     end
   end
 
+  def apply_operation(data, {:enable_language, _client_id, language}) do
+    with false <- language in Notebook.enabled_languages(data.notebook) do
+      data
+      |> with_actions()
+      |> enable_language(language)
+      |> update_validity_and_evaluation()
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:disable_language, _client_id, language}) do
+    with true <- language in Notebook.enabled_languages(data.notebook) do
+      data
+      |> with_actions()
+      |> disable_language(language)
+      |> update_validity_and_evaluation()
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
   def apply_operation(data, {:queue_cells_evaluation, _client_id, cell_ids, evaluation_opts}) do
     cells_with_section =
       data.notebook
@@ -585,6 +613,7 @@ defmodule Livebook.Session.Data do
       |> reduce(cells_with_section, fn data_actions, {cell, section} ->
         queue_cell_evaluation(data_actions, cell, section, evaluation_opts)
       end)
+      |> maybe_queue_other_setup_cells(evaluation_opts)
       |> maybe_connect_runtime(data)
       |> update_validity_and_evaluation()
       |> wrap_ok()
@@ -1337,6 +1366,36 @@ defmodule Livebook.Session.Data do
     end
   end
 
+  defp enable_language({data, _} = data_actions, language) do
+    notebook = Notebook.add_extra_setup_cell(data.notebook, language)
+    cell = Notebook.get_extra_setup_cell(notebook, language)
+
+    set!(data_actions,
+      notebook: %{notebook | default_language: language},
+      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info(cell, data.clients_map))
+    )
+  end
+
+  defp disable_language({data, _} = data_actions, language) do
+    cell = Notebook.get_extra_setup_cell(data.notebook, language)
+    section = data.notebook.setup_section
+    info = data.cell_infos[cell.id]
+
+    data_actions =
+      if Cell.evaluable?(cell) and not pristine_evaluation?(info.eval) do
+        data_actions
+        |> cancel_cell_evaluation(cell, section)
+        |> add_action({:forget_evaluation, cell, section})
+      else
+        data_actions
+      end
+
+    set!(data_actions,
+      notebook: %{Notebook.delete_cell(data.notebook, cell.id) | default_language: :elixir}
+    )
+    |> delete_cell_info(cell)
+  end
+
   defp queue_cell_evaluation(data_actions, cell, section, evaluation_opts \\ []) do
     data_actions
     |> update_section_info!(section.id, fn section ->
@@ -1431,10 +1490,13 @@ defmodule Livebook.Session.Data do
           do: {cell_id, eval_info.snapshot},
           into: %{}
 
+    enabled_languages = Notebook.enabled_languages(eval_data.notebook)
+
     # We compute evaluation snapshot based on the notebook state prior
     # to evaluation, but using the information about the dependencies
     # obtained during evaluation (identifiers, inputs)
-    evaluation_snapshot = cell_snapshot(cell, section, graph, cell_snapshots, eval_data)
+    evaluation_snapshot =
+      cell_snapshot(cell, section, graph, cell_snapshots, enabled_languages, eval_data)
 
     data_actions
     |> update_cell_eval_info!(
@@ -1481,8 +1543,27 @@ defmodule Livebook.Session.Data do
     queue_prerequisite_cells_evaluation(data_actions, trailing_queued_cell_ids)
   end
 
+  defp maybe_queue_other_setup_cells({data, _} = data_actions, evaluation_opts) do
+    # If one of the setup cells is queued, we automatically queue the
+    # subsequent ones
+
+    {queued, rest} =
+      Enum.split_while(data.notebook.setup_section.cells, fn cell ->
+        data.cell_infos[cell.id].eval.status == :queued
+      end)
+
+    if queued != [] and rest != [] do
+      data_actions
+      |> reduce(rest, fn data_actions, cell ->
+        queue_cell_evaluation(data_actions, cell, data.notebook.setup_section, evaluation_opts)
+      end)
+    else
+      data_actions
+    end
+  end
+
   defp maybe_evaluate_queued(data_actions) do
-    {data, _} = data_actions = check_setup_cell_for_reevaluation(data_actions)
+    {data, _} = data_actions = check_setup_cells_for_reevaluation(data_actions)
 
     if data.runtime_status == :connected do
       main_flow_evaluating? = main_flow_evaluating?(data)
@@ -1533,40 +1614,43 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp check_setup_cell_for_reevaluation({data, _} = data_actions) do
+  defp check_setup_cells_for_reevaluation({data, _} = data_actions) do
     # When setup cell has been evaluated and is queued again, we need
     # to reconnect the runtime to get a fresh evaluation environment
     # for setup. We subsequently queue all cells that are currently
     # queued
 
-    case data.cell_infos[Cell.setup_cell_id()].eval do
-      %{status: :queued, validity: :evaluated} when data.runtime_status == :connected ->
-        queued_cells_with_section =
-          data.notebook
-          |> Notebook.evaluable_cells_with_section()
-          |> Enum.filter(fn {cell, _} ->
-            data.cell_infos[cell.id].eval.status == :queued
-          end)
-          |> Enum.map(fn {cell, section} ->
-            {cell, section, data.cell_infos[cell.id].eval.evaluation_opts}
-          end)
+    setup_cell_evaluated_and_queued? =
+      Enum.any?(data.notebook.setup_section.cells, fn cell ->
+        match?(%{status: :queued, validity: :evaluated}, data.cell_infos[cell.id].eval)
+      end)
 
-        cell_ids =
-          for {cell, _section, _evaluation_opts} <- queued_cells_with_section, do: cell.id
+    if setup_cell_evaluated_and_queued? and data.runtime_status == :connected do
+      queued_cells_with_section =
+        data.notebook
+        |> Notebook.evaluable_cells_with_section()
+        |> Enum.filter(fn {cell, _} ->
+          data.cell_infos[cell.id].eval.status == :queued
+        end)
+        |> Enum.map(fn {cell, section} ->
+          {cell, section, data.cell_infos[cell.id].eval.evaluation_opts}
+        end)
 
-        data_actions
-        |> disconnect_runtime()
-        |> connect_runtime()
-        |> queue_prerequisite_cells_evaluation(cell_ids)
-        |> reduce(
-          queued_cells_with_section,
-          fn data_actions, {cell, section, evaluation_opts} ->
-            queue_cell_evaluation(data_actions, cell, section, evaluation_opts)
-          end
-        )
+      cell_ids =
+        for {cell, _section, _evaluation_opts} <- queued_cells_with_section, do: cell.id
 
-      _ ->
-        data_actions
+      data_actions
+      |> disconnect_runtime()
+      |> connect_runtime()
+      |> queue_prerequisite_cells_evaluation(cell_ids)
+      |> reduce(
+        queued_cells_with_section,
+        fn data_actions, {cell, section, evaluation_opts} ->
+          queue_cell_evaluation(data_actions, cell, section, evaluation_opts)
+        end
+      )
+    else
+      data_actions
     end
   end
 
@@ -2550,9 +2634,11 @@ defmodule Livebook.Session.Data do
 
     cells_with_section = Notebook.evaluable_cells_with_section(data.notebook)
 
+    enabled_languages = Notebook.enabled_languages(data.notebook)
+
     cell_snapshots =
       Enum.reduce(cells_with_section, %{}, fn {cell, section}, cell_snapshots ->
-        snapshot = cell_snapshot(cell, section, graph, cell_snapshots, data)
+        snapshot = cell_snapshot(cell, section, graph, cell_snapshots, enabled_languages, data)
         put_in(cell_snapshots[cell.id], snapshot)
       end)
 
@@ -2564,8 +2650,14 @@ defmodule Livebook.Session.Data do
     end)
   end
 
-  defp cell_snapshot(cell, section, graph, cell_snapshots, data) do
+  defp cell_snapshot(cell, section, graph, cell_snapshots, enabled_languages, data) do
     info = data.cell_infos[cell.id]
+
+    language =
+      case cell do
+        %Cell.Code{language: language} -> language
+        _other -> nil
+      end
 
     # Note that this is an implication of the Elixir runtime, we want
     # to reevaluate as much as possible in a branch, rather than copying
@@ -2585,7 +2677,9 @@ defmodule Livebook.Session.Data do
       )
       |> Enum.sort()
 
-    deps = {is_branch?, parent_snapshots, identifier_versions, bound_input_current_hashes}
+    deps =
+      {enabled_languages, language, is_branch?, parent_snapshots, identifier_versions,
+       bound_input_current_hashes}
 
     :erlang.phash2(deps)
   end
@@ -2819,8 +2913,9 @@ defmodule Livebook.Session.Data do
   @spec cell_ids_for_full_evaluation(t(), list(Cell.id())) :: list(Cell.id())
   def cell_ids_for_full_evaluation(data, forced_cell_ids) do
     requires_reconnect? =
-      data.cell_infos[Cell.setup_cell_id()].eval.validity == :evaluated and
-        cell_outdated?(data, Cell.setup_cell_id())
+      Enum.any?(data.notebook.setup_section.cells, fn cell ->
+        data.cell_infos[cell.id].eval.validity == :evaluated and cell_outdated?(data, cell.id)
+      end)
 
     evaluable_cells_with_section = Notebook.evaluable_cells_with_section(data.notebook)
 

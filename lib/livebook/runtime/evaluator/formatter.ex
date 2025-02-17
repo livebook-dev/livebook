@@ -42,6 +42,29 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
     end
   end
 
+  @compile {:no_warn_undefined, {Pythonx, :eval, 2}}
+  @compile {:no_warn_undefined, {Pythonx, :decode, 1}}
+
+  def format_result({:error, _kind, error, _stacktrace}, :python)
+      when is_struct(error, Pythonx.Error) do
+    formatted =
+      Pythonx.eval(
+        """
+        import traceback
+        # For SyntaxErrors the traceback is not relevant
+        traceback_ = None if isinstance(value, SyntaxError) else traceback_
+        traceback.format_exception(type, value, traceback_)
+        """,
+        %{"type" => error.type, "value" => error.value, "traceback_" => error.traceback}
+      )
+      |> elem(0)
+      |> Pythonx.decode()
+      |> error_color()
+      |> IO.iodata_to_binary()
+
+    %{type: :error, message: formatted, context: nil}
+  end
+
   def format_result({:error, kind, error, stacktrace}, _language) do
     formatted = format_error(kind, error, stacktrace)
     %{type: :error, message: formatted, context: error_context(error)}
@@ -49,6 +72,19 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
 
   def format_result({:ok, value}, :erlang) do
     erlang_to_output(value)
+  end
+
+  def format_result({:ok, nil}, :python) do
+    %{type: :ignored}
+  end
+
+  def format_result({:ok, value}, :python) do
+    repr_string = Pythonx.eval("repr(value)", %{"value" => value}) |> elem(0) |> Pythonx.decode()
+    %{type: :terminal_text, text: repr_string, chunk: false}
+  end
+
+  def format_result({:ok, _value}, :"pyproject.toml") do
+    %{type: :ignored}
   end
 
   @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}

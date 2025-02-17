@@ -21,6 +21,8 @@ defmodule Livebook.SessionTest do
     code_markers: []
   }
 
+  @setup_id Notebook.Cell.main_setup_cell_id()
+
   describe "file_name_for_download/1" do
     @tag :tmp_dir
     test "uses associated file name if one is attached", %{tmp_dir: tmp_dir} do
@@ -130,6 +132,58 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "enable_language/2" do
+    test "sends setup cell diff and enable language operation to subscribers" do
+      session = start_session()
+
+      Session.subscribe(session.id)
+
+      Session.enable_language(session.pid, :python)
+
+      assert_receive {:operation,
+                      {:apply_cell_delta, _client_id, @setup_id, :primary, _delta, _selection, 0}}
+
+      assert_receive {:operation, {:enable_language, _client_id, :python}}
+    end
+
+    test "if there is a single empty cell, changes its language" do
+      session = start_session()
+
+      Session.subscribe(session.id)
+
+      Session.enable_language(session.pid, :python)
+
+      assert_receive {:operation,
+                      {:set_cell_attributes, _client_id, _cell_id, %{language: :python}}}
+    end
+  end
+
+  describe "disable_language/2" do
+    test "sends a disable language operation to subscribers" do
+      session = start_session()
+
+      Session.subscribe(session.id)
+
+      Session.enable_language(session.pid, :python)
+      assert_receive {:operation, {:enable_language, _client_id, :python}}
+
+      Session.disable_language(session.pid, :python)
+
+      assert_receive {:operation, {:disable_language, _client_id, :python}}
+    end
+
+    test "if there is a single empty cell, changes its language" do
+      session = start_session()
+
+      Session.subscribe(session.id)
+
+      Session.enable_language(session.pid, :python)
+
+      assert_receive {:operation,
+                      {:set_cell_attributes, _client_id, _cell_id, %{language: :python}}}
+    end
+  end
+
   describe "recover_smart_cell/2" do
     test "sends a recover operations to subscribers and starts the smart cell" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
@@ -224,7 +278,8 @@ defmodule Livebook.SessionTest do
       Session.add_dependencies(session.pid, [%{dep: {:req, "~> 0.5.0"}, config: []}])
 
       assert_receive {:operation,
-                      {:apply_cell_delta, "__server__", "setup", :primary, _delta, _selection, 0}}
+                      {:apply_cell_delta, "__server__", @setup_id, :primary, _delta, _selection,
+                       0}}
 
       assert %{
                notebook: %{
@@ -244,7 +299,7 @@ defmodule Livebook.SessionTest do
     end
 
     test "broadcasts an error if modifying the setup source fails" do
-      notebook = Notebook.new() |> Notebook.update_cell("setup", &%{&1 | source: "[,]"})
+      notebook = Notebook.new() |> Notebook.update_cell(@setup_id, &%{&1 | source: "[,]"})
       session = start_session(notebook: notebook)
 
       Session.subscribe(session.id)
@@ -1121,7 +1176,7 @@ defmodule Livebook.SessionTest do
 
       Session.queue_cell_evaluation(session.pid, smart_cell.id)
 
-      send(session.pid, {:runtime_evaluation_response, "setup", {:ok, ""}, @eval_meta})
+      send(session.pid, {:runtime_evaluation_response, @setup_id, {:ok, ""}, @eval_meta})
 
       session_pid = session.pid
       assert_receive {:ping, ^session_pid, metadata, %{ref: "ref"}}
@@ -1159,11 +1214,11 @@ defmodule Livebook.SessionTest do
           {:connect_runtime, self()},
           {:runtime_connected, self(), Livebook.Runtime.NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"], []},
-          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
+          {:add_cell_evaluation_response, self(), @setup_id, {:ok, nil}, @eval_meta},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
         ])
 
-      assert [{:main_flow, "c1"}, {:main_flow, "setup"}] =
+      assert [{:main_flow, "c1"}, {:main_flow, @setup_id}] =
                Session.parent_locators_for_cell(data, cell3)
     end
 
@@ -1190,11 +1245,12 @@ defmodule Livebook.SessionTest do
           {:connect_runtime, self()},
           {:runtime_connected, self(), Livebook.Runtime.NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"], []},
-          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
+          {:add_cell_evaluation_response, self(), @setup_id, {:ok, nil}, @eval_meta},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
         ])
 
-      assert [{"s2", "c1"}, {:main_flow, "setup"}] = Session.parent_locators_for_cell(data, cell3)
+      assert [{"s2", "c1"}, {:main_flow, @setup_id}] =
+               Session.parent_locators_for_cell(data, cell3)
     end
 
     test "given cell in main flow returns an empty list if there is no previous cell" do
@@ -1223,11 +1279,11 @@ defmodule Livebook.SessionTest do
           {:connect_runtime, self()},
           {:runtime_connected, self(), Livebook.Runtime.NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"], []},
-          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
+          {:add_cell_evaluation_response, self(), @setup_id, {:ok, nil}, @eval_meta},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
         ])
 
-      assert [{:main_flow, "c1"}, {:main_flow, "setup"}] =
+      assert [{:main_flow, "c1"}, {:main_flow, @setup_id}] =
                Session.parent_locators_for_cell(data, cell3)
 
       data =

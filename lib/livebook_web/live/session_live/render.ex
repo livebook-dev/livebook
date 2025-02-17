@@ -1350,18 +1350,36 @@ defmodule LivebookWeb.SessionLive.Render do
           </div>
         </div>
       </div>
-      <div>
-        <.live_component
-          module={LivebookWeb.SessionLive.CellComponent}
-          id={@data_view.setup_cell_view.id}
-          session_id={@session.id}
-          session_pid={@session.pid}
-          client_id={@client_id}
-          runtime={@data_view.runtime}
-          installing?={@data_view.installing?}
-          allowed_uri_schemes={@allowed_uri_schemes}
-          cell_view={@data_view.setup_cell_view}
-        />
+      <div data-el-setup-section>
+        <div class="flex flex-col gap-2">
+          <.live_component
+            :for={setup_cell_view <- @data_view.setup_cell_views}
+            module={LivebookWeb.SessionLive.CellComponent}
+            id={setup_cell_view.id}
+            session_id={@session.id}
+            session_pid={@session.pid}
+            client_id={@client_id}
+            runtime={@data_view.runtime}
+            installing?={@data_view.installing?}
+            allowed_uri_schemes={@allowed_uri_schemes}
+            enabled_languages={@data_view.enabled_languages}
+            cell_view={setup_cell_view}
+          />
+        </div>
+        <div
+          :if={:python not in @data_view.enabled_languages}
+          class="flex mt-2"
+          data-el-language-buttons
+        >
+          <button
+            class="flex gap-1 items-center text-gray-400 text-sm hover:text-gray-500 disabled:text-gray-400"
+            phx-click="enable_language"
+            phx-value-language="python"
+            disabled={Livebook.Runtime.fixed_dependencies?(@data_view.runtime)}
+          >
+            <.remix_icon icon="add-line" class="text-lg" /> Python
+          </button>
+        </div>
       </div>
       <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
         <div :if={@data_view.section_views == []} class="flex justify-center">
@@ -1384,6 +1402,7 @@ defmodule LivebookWeb.SessionLive.Render do
           allowed_uri_schemes={@allowed_uri_schemes}
           section_view={section_view}
           default_language={@data_view.default_language}
+          enabled_languages={@data_view.enabled_languages}
         />
         <div style="height: 80vh"></div>
       </div>

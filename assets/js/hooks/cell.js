@@ -41,10 +41,11 @@ const Cell = {
 
     // Setup action handlers
 
-    if (["code", "smart"].includes(this.props.type)) {
-      const amplifyButton = this.el.querySelector(
-        `[data-el-amplify-outputs-button]`,
-      );
+    const amplifyButton = this.el.querySelector(
+      `[data-el-amplify-outputs-button]`,
+    );
+
+    if (amplifyButton) {
       amplifyButton.addEventListener("click", (event) => {
         this.el.toggleAttribute("data-js-amplified");
       });

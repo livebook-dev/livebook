@@ -56,7 +56,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_notebook(notebook, ctx) do
-    %{setup_section: %{cells: [setup_cell]}} = notebook
+    %{setup_section: %{cells: setup_cells}} = notebook
 
     comments =
       Enum.map(notebook.leading_comments, fn
@@ -65,13 +65,13 @@ defmodule Livebook.LiveMarkdown.Export do
       end)
 
     name = ["# ", notebook.name]
-    setup_cell = render_setup_cell(setup_cell, %{ctx | include_outputs?: false})
+    setup_cells = render_setup_cells(setup_cells, %{ctx | include_outputs?: false})
     sections = Enum.map(notebook.sections, &render_section(&1, notebook, ctx))
 
     metadata = notebook_metadata(notebook)
 
     notebook_with_metadata =
-      [name, setup_cell | sections]
+      [name | setup_cells ++ sections]
       |> Enum.reject(&is_nil/1)
       |> Enum.intersperse("\n\n")
       |> prepend_metadata(metadata)
@@ -175,8 +175,13 @@ defmodule Livebook.LiveMarkdown.Export do
     %{"branch_parent_index" => parent_idx}
   end
 
-  defp render_setup_cell(%{source: ""}, _ctx), do: nil
-  defp render_setup_cell(cell, ctx), do: render_cell(cell, ctx)
+  defp render_setup_cells([%{source: ""}], _ctx), do: []
+
+  defp render_setup_cells(cells, ctx) do
+    Enum.map(cells, fn cell ->
+      render_cell(cell, ctx)
+    end)
+  end
 
   defp render_cell(%Cell.Markdown{} = cell, _ctx) do
     metadata = cell_metadata(cell)
@@ -322,7 +327,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp add_markdown_annotation_before_elixir_block(ast) do
     Enum.flat_map(ast, fn
       {"pre", _, [{"code", [{"class", language}], [_source], %{}}], %{}} = ast_node
-      when language in ["elixir", "erlang"] ->
+      when language in ["elixir", "erlang", "python", "pyproject.toml"] ->
         [{:comment, [], [~s/livebook:{"force_markdown":true}/], %{comment: true}}, ast_node]
 
       ast_node ->

@@ -446,6 +446,24 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Requests the given langauge to be enabled.
+
+  This inserts extra cells and adds dependencies if applicable.
+  """
+  @spec enable_language(pid(), atom()) :: :ok
+  def enable_language(pid, language) do
+    GenServer.cast(pid, {:enable_language, self(), language})
+  end
+
+  @doc """
+  Requests the given langauge to be disabled.
+  """
+  @spec disable_language(pid(), atom()) :: :ok
+  def disable_language(pid, language) do
+    GenServer.cast(pid, {:disable_language, self(), language})
+  end
+
+  @doc """
   Requests a smart cell to be recovered.
 
   This can be used to restart a smart cell that crashed unexpectedly.
@@ -1170,14 +1188,12 @@ defmodule Livebook.Session do
 
   def handle_cast({:set_section_parent, client_pid, section_id, parent_id}, state) do
     client_id = client_id(state, client_pid)
-    # Include new id in the operation, so it's reproducible
     operation = {:set_section_parent, client_id, section_id, parent_id}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:unset_section_parent, client_pid, section_id}, state) do
     client_id = client_id(state, client_pid)
-    # Include new id in the operation, so it's reproducible
     operation = {:unset_section_parent, client_id, section_id}
     {:noreply, handle_operation(state, operation)}
   end
@@ -1219,6 +1235,39 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:enable_language, client_pid, language}, state) do
+    case do_add_dependencies(state, [Livebook.Runtime.Definitions.pythonx_dependency()]) do
+      {:ok, state} ->
+        client_id = client_id(state, client_pid)
+
+        # If there is a single empty cell (new notebook), change its
+        # langauge automatically. Note that we cannot do it as part of
+        # the :enable_language operation, because clients prune the
+        # source.
+        state =
+          case state.data.notebook.sections do
+            [%{cells: [%{source: ""} = cell]}] ->
+              operation = {:set_cell_attributes, client_id, cell.id, %{language: language}}
+              handle_operation(state, operation)
+
+            _ ->
+              state
+          end
+
+        operation = {:enable_language, client_id, language}
+        {:noreply, handle_operation(state, operation)}
+
+      {:error, state} ->
+        {:noreply, state}
+    end
+  end
+
+  def handle_cast({:disable_language, client_pid, language}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:disable_language, client_id, language}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:recover_smart_cell, client_pid, cell_id}, state) do
     client_id = client_id(state, client_pid)
     operation = {:recover_smart_cell, client_id, cell_id}
@@ -1257,7 +1306,8 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:add_dependencies, dependencies}, state) do
-    {:noreply, do_add_dependencies(state, dependencies)}
+    {_ok_error, state} = do_add_dependencies(state, dependencies)
+    {:noreply, state}
   end
 
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id, evaluation_opts}, state) do
@@ -2220,21 +2270,26 @@ defmodule Livebook.Session do
   end
 
   defp do_add_dependencies(state, dependencies) do
-    {:ok, cell, _} = Notebook.fetch_cell_and_section(state.data.notebook, Cell.setup_cell_id())
+    {:ok, cell, _} =
+      Notebook.fetch_cell_and_section(state.data.notebook, Cell.main_setup_cell_id())
+
     source = cell.source
 
     case Runtime.add_dependencies(state.data.runtime, source, dependencies) do
       {:ok, ^source} ->
-        state
+        {:ok, state}
 
       {:ok, new_source} ->
         delta = Livebook.Text.Delta.diff(cell.source, new_source)
         revision = state.data.cell_infos[cell.id].sources.primary.revision
 
-        handle_operation(
-          state,
-          {:apply_cell_delta, @client_id, cell.id, :primary, delta, nil, revision}
-        )
+        state =
+          handle_operation(
+            state,
+            {:apply_cell_delta, @client_id, cell.id, :primary, delta, nil, revision}
+          )
+
+        {:ok, state}
 
       {:error, message} ->
         broadcast_error(
@@ -2242,7 +2297,7 @@ defmodule Livebook.Session do
           "failed to add dependencies to the setup cell, reason:\n\n#{message}"
         )
 
-        state
+        {:error, state}
     end
   end
 

@@ -13,15 +13,15 @@ defmodule Livebook.Notebook.Export.Elixir do
   end
 
   defp render_notebook(notebook) do
-    %{setup_section: %{cells: [setup_cell]} = setup_section} = notebook
+    %{setup_section: %{cells: setup_cells} = setup_section} = notebook
 
     prelude = "# Run as: iex --dot-iex path/to/notebook.exs"
 
     name = ["# Title: ", notebook.name]
-    setup_cell = render_setup_cell(setup_cell, setup_section)
+    setup_cells = render_setup_cells(setup_cells, setup_section)
     sections = Enum.map(notebook.sections, &render_section(&1, notebook))
 
-    [prelude, name, setup_cell | sections]
+    [prelude, name | setup_cells ++ sections]
     |> Enum.reject(&is_nil/1)
     |> Enum.intersperse("\n\n")
   end
@@ -46,8 +46,13 @@ defmodule Livebook.Notebook.Export.Elixir do
     |> Enum.intersperse("\n\n")
   end
 
-  defp render_setup_cell(%{source: ""}, _section), do: nil
-  defp render_setup_cell(cell, section), do: render_cell(cell, section)
+  defp render_setup_cells([%{source: ""}], _section), do: []
+
+  defp render_setup_cells(cells, section) do
+    Enum.map(cells, fn cell ->
+      render_cell(cell, section)
+    end)
+  end
 
   defp render_cell(%Cell.Markdown{} = cell, _section) do
     cell.source
@@ -64,6 +69,31 @@ defmodule Livebook.Notebook.Export.Elixir do
     else
       cell.source
     end
+  end
+
+  defp render_cell(%Cell.Code{language: :"pyproject.toml"} = cell, section) do
+    code =
+      {:__block__, [],
+       [
+         {{:., [], [{:__aliases__, [alias: false], [:Pythonx]}, :uv_init]}, [],
+          [{:<<>>, [delimiter: ~s["""]], [cell.source <> "\n"]}]},
+         {:import, [], [{:__aliases__, [], [:Pythonx]}]}
+       ]}
+      |> Code.quoted_to_algebra()
+      |> Inspect.Algebra.format(90)
+      |> IO.iodata_to_binary()
+
+    render_cell(%{cell | language: :elixir, source: code}, section)
+  end
+
+  defp render_cell(%Cell.Code{language: :python} = cell, section) do
+    code =
+      {:sigil_PY, [delimiter: ~s["""]], [{:<<>>, [], [cell.source <> "\n"]}, []]}
+      |> Code.quoted_to_algebra()
+      |> Inspect.Algebra.format(90)
+      |> IO.iodata_to_binary()
+
+    render_cell(%{cell | language: :elixir, source: code}, section)
   end
 
   defp render_cell(%Cell.Code{} = cell, _section) do

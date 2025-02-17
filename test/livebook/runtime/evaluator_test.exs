@@ -6,6 +6,20 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
   @moduletag :tmp_dir
 
+  setup_all do
+    # We setup Pythonx in the current process, so we can test Python
+    # code evaluation. Testing pyproject.toml evaluation is tricky
+    # because it requires a separate VM, so we only rely on the LV
+    # integration tests.
+    Pythonx.uv_init("""
+    [project]
+    name = "project"
+    version = "0.0.0"
+    requires-python = "==3.13.*"
+    dependencies = []
+    """)
+  end
+
   setup ctx do
     ebin_path =
       if ctx[:with_ebin_path] do
@@ -1377,7 +1391,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
   end
 
   describe "erlang evaluation" do
-    test "evaluate erlang code", %{evaluator: evaluator} do
+    test "evaluates erlang code", %{evaluator: evaluator} do
       Evaluator.evaluate_code(
         evaluator,
         :erlang,
@@ -1390,7 +1404,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
 
     @tag :with_ebin_path
-    test "evaluate erlang-module code", %{evaluator: evaluator} do
+    test "evaluates erlang-module code", %{evaluator: evaluator} do
       code = """
       -module(tryme).
 
@@ -1410,7 +1424,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
 
     @tag tmp_dir: false
-    test "evaluate erlang-module code without filesystem", %{evaluator: evaluator} do
+    test "evaluates erlang-module code without filesystem", %{evaluator: evaluator} do
       code = """
       -module(tryme).
 
@@ -1425,7 +1439,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
 
     @tag :with_ebin_path
-    test "evaluate erlang-module error", %{
+    test "evaluates erlang-module error", %{
       evaluator: evaluator
     } do
       code = """
@@ -1566,6 +1580,78 @@ defmodule Livebook.Runtime.EvaluatorTest do
                   called as list_to_binary(1)
                   *** argument 1: not an iolist term
                in call from erl_eval:do_apply/7 (erl_eval.erl, line 915)\
+             """
+    end
+  end
+
+  describe "python evaluation" do
+    test "evaluates python code", %{evaluator: evaluator} do
+      code = """
+      x = [1, 2, 3]
+      sum(x)
+      """
+
+      Evaluator.evaluate_code(evaluator, :python, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text("6"), metadata()}
+    end
+
+    test "uses and defines binding", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :elixir, "x = 1", :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
+
+      Evaluator.evaluate_code(evaluator, :python, "y = x", :code_2, [:code_1])
+      assert_receive {:runtime_evaluation_response, :code_2, _, metadata()}
+
+      Evaluator.evaluate_code(evaluator, :elixir, "z = y", :code_3, [:code_2, :code_1])
+      assert_receive {:runtime_evaluation_response, :code_3, _, metadata()}
+
+      %{binding: binding} =
+        Evaluator.get_evaluation_context(evaluator, [:code_3, :code_2, :code_1])
+
+      assert [{:z, %Pythonx.Object{}}, {:y, %Pythonx.Object{}}, {:x, 1}] = binding
+    end
+
+    test "syntax error", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :python, "1 +", :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, error(message),
+                      %{
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: "SyntaxError: invalid syntax",
+                            severity: :error
+                          }
+                        ]
+                      }}
+
+      assert clean_message(message) == """
+               File "<unknown>", line 1
+                 1 +
+                    ^
+             SyntaxError: invalid syntax
+             """
+    end
+
+    test "runtime error", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :python, "import unknown", :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, error(message),
+                      %{
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: "ModuleNotFoundError: No module named 'unknown'",
+                            severity: :error
+                          }
+                        ]
+                      }}
+
+      assert clean_message(message) == """
+             Traceback (most recent call last):
+               File "<string>", line 1, in <module>
+             ModuleNotFoundError: No module named 'unknown'
              """
     end
   end

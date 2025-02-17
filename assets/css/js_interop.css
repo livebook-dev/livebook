@@ -124,33 +124,64 @@ server in solely client-side operations.
     }
   }
 
-  [data-el-cell][data-type="setup"]:not(
-      [data-js-focused],
-      [data-eval-validity="fresh"]:not([data-js-empty]),
-      [data-eval-errored],
-      [data-js-changed]
+  /* When all setup cells satisfy collapse conditions, collapse the
+     first one and hide the later ones */
+  [data-el-setup-section]:not(
+      :has(
+        [data-el-cell][data-setup]:is(
+            [data-js-focused],
+            [data-eval-validity="fresh"]:not([data-js-empty]),
+            [data-eval-errored],
+            [data-js-changed]
+          )
+      ),
+      :focus-within
     ) {
-    [data-el-editor-box] {
+    [data-el-cell][data-setup]:not(:first-child) {
       @apply hidden;
     }
 
-    [data-el-outputs-container] {
-      @apply hidden;
+    [data-el-cell][data-setup]:first-child {
+      [data-el-editor-box] {
+        @apply hidden;
+      }
+
+      [data-el-outputs-container] {
+        @apply hidden;
+      }
+
+      [data-el-cell-indicator] {
+        @apply bg-gray-50 border-gray-200 text-gray-500;
+      }
     }
 
-    [data-el-cell-indicator] {
-      @apply bg-gray-50 border-gray-200 text-gray-500;
+    [data-el-language-buttons] {
+      @apply hidden;
     }
   }
 
-  [data-el-cell][data-type="setup"]:is(
-      [data-js-focused],
-      [data-eval-validity="fresh"]:not([data-js-empty]),
-      [data-eval-errored],
-      [data-js-changed]
-    )
-    [data-el-info-box] {
-    @apply hidden;
+  /* This is "else" for the above  */
+  [data-el-setup-section]:is(
+      :has(
+        [data-el-cell][data-setup]:is(
+            [data-js-focused],
+            [data-eval-validity="fresh"]:not([data-js-empty]),
+            [data-eval-errored],
+            [data-js-changed]
+          )
+      ),
+      :focus-within
+    ) {
+    [data-el-cell][data-setup] {
+      [data-el-info-box] {
+        @apply hidden;
+      }
+
+      /* Make the primary actions visible for all cells */
+      [data-el-actions][data-primary] {
+        @apply opacity-100;
+      }
+    }
   }
 
   /* Outputs */
@@ -299,13 +330,11 @@ server in solely client-side operations.
   }
 
   &[data-js-hide-code] {
-    [data-el-cell]:is(
-        [data-type="code"],
-        [data-type="setup"],
-        [data-type="smart"]
-      ):not([data-js-insert-mode]) {
+    [data-el-cell]:is([data-type="code"], [data-type="smart"]):not(
+        [data-js-insert-mode]
+      ) {
       [data-el-editor-box],
-      &[data-type="setup"] [data-el-info-box],
+      &[data-setup] [data-el-info-box],
       &[data-type="smart"] [data-el-ui-box] {
         @apply hidden;
       }

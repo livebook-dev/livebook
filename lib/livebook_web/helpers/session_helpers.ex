@@ -30,14 +30,14 @@ defmodule LivebookWeb.SessionHelpers do
 
   ## Options
 
-    * `:queue_setup` - whether to queue the setup cell right after
+    * `:connect_runtime` - whether to connect the runtime right after
       the session is started. Defaults to `false`
 
   Accepts the same options as `Livebook.Sessions.create_session/1`.
   """
   @spec create_session(Socket.t(), keyword()) :: Socket.t()
   def create_session(socket, opts \\ []) do
-    {queue_setup, opts} = Keyword.pop(opts, :queue_setup, false)
+    {connect_runtime, opts} = Keyword.pop(opts, :connect_runtime, false)
 
     # Revert persistence options to default values if there is
     # no file attached to the new session
@@ -50,8 +50,8 @@ defmodule LivebookWeb.SessionHelpers do
 
     case Livebook.Sessions.create_session(opts) do
       {:ok, session} ->
-        if queue_setup do
-          Session.queue_cell_evaluation(session.pid, Livebook.Notebook.Cell.setup_cell_id())
+        if connect_runtime do
+          Session.connect_runtime(session.pid)
         end
 
         redirect_path = session_path(session.id, opts)

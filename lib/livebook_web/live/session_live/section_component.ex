@@ -163,6 +163,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               runtime_status={@runtime_status}
               installing?={@installing?}
               allowed_uri_schemes={@allowed_uri_schemes}
+              enabled_languages={@enabled_languages}
               cell_view={cell_view}
             />
             <.live_component
