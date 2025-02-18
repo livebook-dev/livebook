@@ -44,8 +44,8 @@ defmodule Livebook.SessionHelpers do
     section.id
   end
 
-  def insert_text_cell(session_pid, section_id, type, content \\ " ") do
-    Session.insert_cell(session_pid, section_id, 0, type, %{source: content})
+  def insert_text_cell(session_pid, section_id, type, content \\ " ", attrs \\ %{}) do
+    Session.insert_cell(session_pid, section_id, 0, type, Map.merge(attrs, %{source: content}))
     data = Session.get_data(session_pid)
     {:ok, section} = Livebook.Notebook.fetch_section(data.notebook, section_id)
     cell = hd(section.cells)

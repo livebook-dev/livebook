@@ -225,7 +225,7 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_params(%{}, _url, socket) when socket.assigns.live_action == :public_new_notebook do
-    {:noreply, create_session(socket, queue_setup: true)}
+    {:noreply, create_session(socket, connect_runtime: true)}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}

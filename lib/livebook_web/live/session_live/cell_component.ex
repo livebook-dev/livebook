@@ -37,6 +37,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-el-cell
       id={"cell-#{@cell_view.id}"}
       data-type={@cell_view.type}
+      data-setup={@cell_view[:setup]}
       data-focusable-id={@cell_view.id}
       data-js-empty={@cell_view.empty}
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
@@ -86,56 +87,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell(%{cell_view: %{type: :code}} = assigns) do
-    ~H"""
-    <.cell_actions>
-      <:primary>
-        <.cell_evaluation_button
-          session_id={@session_id}
-          cell_id={@cell_view.id}
-          validity={@cell_view.eval.validity}
-          status={@cell_view.eval.status}
-          reevaluate_automatically={@cell_view.reevaluate_automatically}
-          reevaluates_automatically={@cell_view.eval.reevaluates_automatically}
-        />
-      </:primary>
-      <:secondary>
-        <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
-        <.amplify_output_button />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
-      </:secondary>
-    </.cell_actions>
-    <.cell_body>
-      <div class="relative" data-el-cell-body-root>
-        <div class="relative" data-el-editor-box>
-          <.cell_editor
-            cell_id={@cell_view.id}
-            tag="primary"
-            empty={@cell_view.empty}
-            language={@cell_view.language}
-            intellisense
-          />
-        </div>
-        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
-          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} />
-        </div>
-      </div>
-      <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
-      <.evaluation_outputs
-        outputs={@streams.outputs}
-        cell_view={@cell_view}
-        session_id={@session_id}
-        session_pid={@session_pid}
-        client_id={@client_id}
-      />
-    </.cell_body>
-    """
-  end
-
-  defp render_cell(%{cell_view: %{type: :setup}} = assigns) do
+  defp render_cell(%{cell_view: %{type: :code, setup: true, language: :elixir}} = assigns) do
     ~H"""
     <.cell_actions>
       <:primary>
@@ -172,6 +124,111 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <.cell_indicators id={@cell_view.id} cell_view={@cell_view} />
         </div>
       </div>
+      <.evaluation_outputs
+        outputs={@streams.outputs}
+        cell_view={@cell_view}
+        session_id={@session_id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+      />
+    </.cell_body>
+    """
+  end
+
+  defp render_cell(
+         %{cell_view: %{type: :code, setup: true, language: :"pyproject.toml"}} = assigns
+       ) do
+    ~H"""
+    <.cell_actions>
+      <:primary>
+        <div class="flex gap-1 items-center text-gray-500 text-sm">
+          <.language_icon language="python" class="w-4 h-4" />
+          <span>Python (pyproject.toml)</span>
+        </div>
+      </:primary>
+      <:secondary>
+        <.cell_link_button cell_id={@cell_view.id} />
+        <.disable_language_button language={:python} />
+        <.pyproject_toml_cell_info />
+      </:secondary>
+    </.cell_actions>
+    <.cell_body>
+      <div class="relative" data-el-cell-body-root>
+        <div data-el-editor-box>
+          <.cell_editor
+            cell_id={@cell_view.id}
+            tag="primary"
+            empty={@cell_view.empty}
+            language="pyproject.toml"
+          />
+        </div>
+        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} />
+        </div>
+      </div>
+      <.evaluation_outputs
+        outputs={@streams.outputs}
+        cell_view={@cell_view}
+        session_id={@session_id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+      />
+    </.cell_body>
+    """
+  end
+
+  defp render_cell(%{cell_view: %{type: :code}} = assigns) do
+    ~H"""
+    <.cell_actions>
+      <:primary>
+        <.cell_evaluation_button
+          session_id={@session_id}
+          cell_id={@cell_view.id}
+          validity={@cell_view.eval.validity}
+          status={@cell_view.eval.status}
+          reevaluate_automatically={@cell_view.reevaluate_automatically}
+          reevaluates_automatically={@cell_view.eval.reevaluates_automatically}
+        />
+      </:primary>
+      <:secondary>
+        <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
+        <.amplify_output_button />
+        <.cell_link_button cell_id={@cell_view.id} />
+        <.move_cell_up_button cell_id={@cell_view.id} />
+        <.move_cell_down_button cell_id={@cell_view.id} />
+        <.delete_cell_button cell_id={@cell_view.id} />
+      </:secondary>
+    </.cell_actions>
+    <.cell_body>
+      <div class="relative" data-el-cell-body-root>
+        <div class="relative" data-el-editor-box>
+          <.cell_editor
+            cell_id={@cell_view.id}
+            tag="primary"
+            empty={@cell_view.empty}
+            language={@cell_view.language}
+            intellisense={@cell_view.language == :elixir}
+          />
+        </div>
+        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} langauge_toggle />
+        </div>
+      </div>
+      <div :if={@cell_view.language not in @enabled_languages} class="mt-2">
+        <.message_box kind="error">
+          <div class="flex items-center justify-between">
+            {language_name(@cell_view.language)} is not enabled for the current notebook.
+            <button
+              class="flex gap-1 items-center font-medium text-blue-600"
+              phx-click="enable_language"
+              phx-value-language="python"
+            >
+              Enable Python
+            </button>
+          </div>
+        </.message_box>
+      </div>
+      <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
       <.evaluation_outputs
         outputs={@streams.outputs}
         cell_view={@cell_view}
@@ -581,6 +638,20 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  defp disable_language_button(assigns) do
+    ~H"""
+    <span class="tooltip top" data-tooltip="Delete">
+      <.icon_button
+        aria-label="delete cell"
+        phx-click="disable_language"
+        phx-value-language={@language}
+      >
+        <.remix_icon icon="delete-bin-6-line" />
+      </.icon_button>
+    </span>
+    """
+  end
+
   defp setup_cell_info(assigns) do
     ~H"""
     <span
@@ -590,6 +661,25 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         The setup cell includes code that initializes the notebook
         and should run only once. This is the best place to install
         dependencies and set global configuration.\
+        '''
+      }
+    >
+      <.icon_button>
+        <.remix_icon icon="question-line" />
+      </.icon_button>
+    </span>
+    """
+  end
+
+  defp pyproject_toml_cell_info(assigns) do
+    ~H"""
+    <span
+      class="tooltip left"
+      data-tooltip={
+        ~s'''
+        This cell specifies the Python environment using pyproject.toml
+        configuration. While standardized to a certain extent, this
+        configuration is used specifically with the uv package manager.\
         '''
       }
     >
@@ -680,24 +770,55 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  attr :id, :string, required: true
+  attr :cell_view, :map, required: true
+  attr :langauge_toggle, :boolean, default: false
+
   defp cell_indicators(assigns) do
     ~H"""
     <div class="flex gap-1">
       <.cell_indicator :if={has_status?(@cell_view)}>
         <.cell_status id={@id} cell_view={@cell_view} />
       </.cell_indicator>
-      <.cell_indicator>
-        <.language_icon language={cell_language(@cell_view)} class="w-3 h-3" />
-      </.cell_indicator>
+      <%= if @langauge_toggle do %>
+        <.menu id={"cell-#{@id}-language-menu"} position="bottom-right">
+          <:toggle>
+            <.cell_indicator class="cursor-pointer">
+              <.language_icon language={cell_language(@cell_view)} class="w-3 h-3" />
+            </.cell_indicator>
+          </:toggle>
+          <.menu_item :for={language <- Livebook.Notebook.Cell.Code.languages()}>
+            <button
+              role="menuitem"
+              phx-click="set_cell_language"
+              phx-value-language={language.language}
+              phx-value-cell_id={@id}
+            >
+              <.cell_icon cell_type={:code} language={language.language} />
+              <span>{language.name}</span>
+            </button>
+          </.menu_item>
+        </.menu>
+      <% else %>
+        <.cell_indicator>
+          <.language_icon language={cell_language(@cell_view)} class="w-3 h-3" />
+        </.cell_indicator>
+      <% end %>
     </div>
     """
   end
+
+  attr :class, :string, default: nil
+  slot :inner_block, required: true
 
   defp cell_indicator(assigns) do
     ~H"""
     <div
       data-el-cell-indicator
-      class="px-1.5 h-[22px] rounded-lg flex items-center border bg-editor-lighter border-editor text-editor"
+      class={[
+        "px-1.5 h-[22px] rounded-lg flex items-center border bg-editor-lighter border-editor text-editor",
+        @class
+      ]}
     >
       {render_slot(@inner_block)}
     </div>
@@ -806,4 +927,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp smart_cell_js_view_ref(%{type: :smart, status: :started, js_view: %{ref: ref}}), do: ref
   defp smart_cell_js_view_ref(_cell_view), do: nil
+
+  defp language_name(language) do
+    Enum.find_value(
+      Livebook.Notebook.Cell.Code.languages(),
+      &(&1.language == language && &1.name)
+    )
+  end
 end

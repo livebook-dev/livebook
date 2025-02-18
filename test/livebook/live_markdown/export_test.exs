@@ -91,6 +91,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     source: """
                     lists:seq(1, 10).\
                     """
+                },
+                %{
+                  Notebook.Cell.new(:code)
+                  | language: :python,
+                    source: """
+                    range(0, 10)\
+                    """
                 }
               ]
           }
@@ -148,6 +155,10 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ```erlang
     lists:seq(1, 10).
+    ```
+
+    ```python
+    range(0, 10)
     ```
     """
 
@@ -1131,13 +1142,67 @@ defmodule Livebook.LiveMarkdown.ExportTest do
           | name: "My Notebook",
             sections: [%{Notebook.Section.new() | name: "Section 1"}]
         }
-        |> Notebook.put_setup_cell(%{Notebook.Cell.new(:code) | source: "Mix.install([...])"})
+        |> Notebook.put_setup_cells([%{Notebook.Cell.new(:code) | source: "Mix.install([...])"}])
 
       expected_document = """
       # My Notebook
 
       ```elixir
       Mix.install([...])
+      ```
+
+      ## Section 1
+      """
+
+      {document, []} = Export.notebook_to_livemd(notebook)
+
+      assert expected_document == document
+    end
+
+    test "includes pyproject setup cell when present" do
+      notebook =
+        %{
+          Notebook.new()
+          | name: "My Notebook",
+            sections: [%{Notebook.Section.new() | name: "Section 1"}]
+        }
+        |> Notebook.put_setup_cells([
+          %{
+            Notebook.Cell.new(:code)
+            | source: """
+              Mix.install([
+                {:pythonx, github: "livebook-dev/pythonx"}
+              ])\
+              """
+          },
+          %{
+            Notebook.Cell.new(:code)
+            | language: :"pyproject.toml",
+              source: """
+              [project]
+              name = "project"
+              version = "0.0.0"
+              requires-python = "==3.13.*"
+              dependencies = []\
+              """
+          }
+        ])
+
+      expected_document = """
+      # My Notebook
+
+      ```elixir
+      Mix.install([
+        {:pythonx, github: "livebook-dev/pythonx"}
+      ])
+      ```
+
+      ```pyproject.toml
+      [project]
+      name = "project"
+      version = "0.0.0"
+      requires-python = "==3.13.*"
+      dependencies = []
       ```
 
       ## Section 1

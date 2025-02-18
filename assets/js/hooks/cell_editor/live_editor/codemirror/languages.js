@@ -15,6 +15,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import { erlang } from "@codemirror/legacy-modes/mode/erlang";
 import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { toml } from "@codemirror/legacy-modes/mode/toml";
 import { elixir } from "codemirror-lang-elixir";
 
 export const elixirDesc = LanguageDescription.of({
@@ -77,6 +78,12 @@ const shellDesc = LanguageDescription.of({
   support: new LanguageSupport(StreamLanguage.define(shell)),
 });
 
+const tomlDesc = LanguageDescription.of({
+  name: "TOML",
+  alias: ["pyproject.toml"],
+  support: new LanguageSupport(StreamLanguage.define(toml)),
+});
+
 const markdownDesc = LanguageDescription.of({
   name: "Markdown",
   support: markdown({
@@ -94,6 +101,7 @@ const markdownDesc = LanguageDescription.of({
       javascriptDesc,
       dockerfileDesc,
       shellDesc,
+      tomlDesc,
     ],
   }),
 });
@@ -111,5 +119,6 @@ export const languages = [
   javascriptDesc,
   dockerfileDesc,
   shellDesc,
+  tomlDesc,
   markdownDesc,
 ];

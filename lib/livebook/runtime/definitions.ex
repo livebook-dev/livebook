@@ -504,4 +504,8 @@ defmodule Livebook.Runtime.Definitions do
   def smart_cell_definitions(), do: @smart_cell_definitions
 
   def snippet_definitions(), do: @snippet_definitions
+
+  def pythonx_dependency() do
+    %{dep: {:pythonx, github: "livebook-dev/pythonx"}, config: []}
+  end
 end

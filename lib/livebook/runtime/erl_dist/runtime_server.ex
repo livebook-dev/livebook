@@ -83,7 +83,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   """
   @spec evaluate_code(
           pid(),
-          :elixir | :erlang,
+          Runtime.language(),
           String.t(),
           Runtime.locator(),
           Runtime.parent_locators(),

@@ -142,7 +142,7 @@ defmodule Livebook.Runtime.Evaluator do
       as an argument
 
   """
-  @spec evaluate_code(t(), :elixir | :erlang, ref(), list(ref()), keyword()) :: :ok
+  @spec evaluate_code(t(), Livebook.Runtime.language(), ref(), list(ref()), keyword()) :: :ok
   def evaluate_code(evaluator, language, code, ref, parent_refs, opts \\ []) do
     cast(evaluator, {:evaluate_code, language, code, ref, parent_refs, opts})
   end
@@ -434,7 +434,12 @@ defmodule Livebook.Runtime.Evaluator do
     start_time = System.monotonic_time()
 
     {eval_result, code_markers} =
-      eval(language, code, context.binding, context.env, state.tmp_dir)
+      case language do
+        :elixir -> eval_elixir(code, context.binding, context.env)
+        :erlang -> eval_erlang(code, context.binding, context.env, state.tmp_dir)
+        :python -> eval_python(code, context.binding, context.env)
+        :"pyproject.toml" -> eval_pyproject_toml(code, context.binding, context.env)
+      end
 
     evaluation_time_ms = time_diff_ms(start_time)
 
@@ -491,7 +496,7 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     state = put_context(state, ref, new_context)
-    output = Evaluator.Formatter.format_result(result, language)
+    output = Evaluator.Formatter.format_result(language, result)
 
     metadata = %{
       errored: error_result?(result),
@@ -637,7 +642,7 @@ defmodule Livebook.Runtime.Evaluator do
     |> Map.update!(:context_modules, &(&1 ++ prev_env.context_modules))
   end
 
-  defp eval(:elixir, code, binding, env, _tmp_dir) do
+  defp eval_elixir(code, binding, env) do
     {{result, extra_diagnostics}, diagnostics} =
       Code.with_diagnostics([log: true], fn ->
         try do
@@ -701,6 +706,16 @@ defmodule Livebook.Runtime.Evaluator do
     {result, code_markers}
   end
 
+  defp extra_diagnostic?(%SyntaxError{}), do: true
+  defp extra_diagnostic?(%TokenMissingError{}), do: true
+  defp extra_diagnostic?(%MismatchedDelimiterError{}), do: true
+
+  defp extra_diagnostic?(%CompileError{description: description}) do
+    not String.contains?(description, "(errors have been logged)")
+  end
+
+  defp extra_diagnostic?(_error), do: false
+
   # Erlang code is either statements as currently supported, or modules.
   # In case we want to support modules - it makes sense to allow users to use
   # includes, defines and thus we use the epp-module first - try to find out
@@ -708,7 +723,7 @@ defmodule Livebook.Runtime.Evaluator do
   # if in the tokens from erl_scan we find at least 1 module-token we assume
   # that the user is defining a module, if not the previous code is called.
 
-  defp eval(:erlang, code, binding, env, tmp_dir) do
+  defp eval_erlang(code, binding, env, tmp_dir) do
     case :erl_scan.string(String.to_charlist(code), {1, 1}, [:text]) do
       {:ok, [{:-, _}, {:atom, _, :module} | _], _} ->
         eval_erlang_module(code, binding, env, tmp_dir)
@@ -918,15 +933,122 @@ defmodule Livebook.Runtime.Evaluator do
     Enum.reject(code_markers, &(&1.line == 0))
   end
 
-  defp extra_diagnostic?(%SyntaxError{}), do: true
-  defp extra_diagnostic?(%TokenMissingError{}), do: true
-  defp extra_diagnostic?(%MismatchedDelimiterError{}), do: true
+  @compile {:no_warn_undefined, {Pythonx, :eval, 2}}
+  @compile {:no_warn_undefined, {Pythonx, :decode, 1}}
 
-  defp extra_diagnostic?(%CompileError{description: description}) do
-    not String.contains?(description, "(errors have been logged)")
+  defp eval_python(code, binding, env) do
+    with :ok <- ensure_pythonx() do
+      {result, _diagnostics} =
+        Code.with_diagnostics([log: true], fn ->
+          try do
+            quoted = python_code_to_quoted(code)
+
+            {value, binding, env} =
+              Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+
+            result = {:ok, value, binding, env}
+            code_markers = []
+            {result, code_markers}
+          catch
+            kind, error ->
+              code_markers =
+                if is_struct(error, Pythonx.Error) do
+                  Pythonx.eval(
+                    """
+                    import traceback
+
+                    if traceback_ is None:
+                      diagnostic = None
+                    elif isinstance(value, SyntaxError):
+                      diagnostic = (value.lineno, "SyntaxError: invalid syntax")
+                    else:
+                      description = " ".join(traceback.format_exception_only(type, value)).strip()
+                      diagnostic = (traceback_.tb_lineno, description)
+
+                    diagnostic
+                    """,
+                    %{
+                      "type" => error.type,
+                      "value" => error.value,
+                      "traceback_" => error.traceback
+                    }
+                  )
+                  |> elem(0)
+                  |> Pythonx.decode()
+                  |> case do
+                    nil -> []
+                    {line, message} -> [%{line: line, description: message, severity: :error}]
+                  end
+                else
+                  []
+                end
+
+              result = {:error, kind, error, []}
+              {result, code_markers}
+          end
+        end)
+
+      result
+    end
   end
 
-  defp extra_diagnostic?(_error), do: false
+  defp python_code_to_quoted(code) do
+    # We expand the sigil upfront, so it is not traced as import usage
+    # during evaluation.
+
+    quoted = {:sigil_PY, [], [{:<<>>, [], [code]}, []]}
+
+    env = Code.env_for_eval([])
+
+    env =
+      env
+      |> Map.replace!(:requires, [Pythonx])
+      |> Map.replace!(:macros, [{Pythonx, [{:sigil_PY, 2}]}])
+
+    Macro.expand_once(quoted, env)
+  end
+
+  defp eval_pyproject_toml(code, binding, env) do
+    with :ok <- ensure_pythonx() do
+      quoted = {{:., [], [{:__aliases__, [alias: false], [:Pythonx]}, :uv_init]}, [], [code]}
+
+      {result, _diagnostics} =
+        Code.with_diagnostics([log: true], fn ->
+          try do
+            {value, binding, env} =
+              Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+
+            result = {:ok, value, binding, env}
+            code_markers = []
+            {result, code_markers}
+          catch
+            kind, error ->
+              code_markers = []
+
+              result = {:error, kind, error, []}
+              {result, code_markers}
+          end
+        end)
+
+      result
+    end
+  end
+
+  defp ensure_pythonx() do
+    if Code.ensure_loaded?(Pythonx) do
+      :ok
+    else
+      message =
+        """
+        Pythonx is missing, make sure to add it as a dependency:
+
+            #{Macro.to_string(Livebook.Runtime.Definitions.pythonx_dependency().dep)}
+        """
+
+      exception = RuntimeError.exception(message)
+      {{:error, :error, exception, []}, []}
+    end
+  end
 
   defp identifier_dependencies(context, tracer_info, prev_context) do
     identifiers_used = MapSet.new()

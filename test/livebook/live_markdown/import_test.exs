@@ -60,6 +60,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```erlang
     lists:seq(1, 10).
     ```
+
+    ```python
+    range(0, 10)
+    ```
     """
 
     {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
@@ -138,6 +142,12 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      language: :erlang,
                      source: """
                      lists:seq(1, 10).\
+                     """
+                   },
+                   %Cell.Code{
+                     language: :python,
+                     source: """
+                     range(0, 10)\
                      """
                    }
                  ]
@@ -1135,6 +1145,56 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                setup_section: %{
                  cells: [
                    %Cell.Code{id: "setup", source: "Mix.install([...])"}
+                 ]
+               },
+               sections: []
+             } = notebook
+    end
+
+    test "imports pyproject setup cell" do
+      markdown = """
+      # My Notebook
+
+      ```elixir
+      Mix.install([
+        {:pythonx, github: "livebook-dev/pythonx"}
+      ])
+      ```
+
+      ```pyproject.toml
+      [project]
+      name = "project"
+      version = "0.0.0"
+      requires-python = "==3.13.*"
+      dependencies = []
+      ```
+      """
+
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               setup_section: %{
+                 cells: [
+                   %Cell.Code{
+                     id: "setup",
+                     source: """
+                     Mix.install([
+                       {:pythonx, github: "livebook-dev/pythonx"}
+                     ])\
+                     """
+                   },
+                   %Cell.Code{
+                     id: "setup-pyproject.toml",
+                     language: :"pyproject.toml",
+                     source: """
+                     [project]
+                     name = "project"
+                     version = "0.0.0"
+                     requires-python = "==3.13.*"
+                     dependencies = []\
+                     """
+                   }
                  ]
                },
                sections: []

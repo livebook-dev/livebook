@@ -42,30 +42,17 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               </div>
             </.insert_button>
           </:toggle>
-          <.menu_item>
+          <.menu_item :for={language <- Livebook.Notebook.Cell.Code.languages()}>
             <button
               role="menuitem"
               phx-click="set_default_language"
               phx-value-type="code"
-              phx-value-language="elixir"
+              phx-value-language={language.language}
               phx-value-section_id={@section_id}
               phx-value-cell_id={@cell_id}
             >
-              <.cell_icon cell_type={:code} language={:elixir} />
-              <span>Elixir</span>
-            </button>
-          </.menu_item>
-          <.menu_item>
-            <button
-              role="menuitem"
-              phx-click="set_default_language"
-              phx-value-type="code"
-              phx-value-language="erlang"
-              phx-value-section_id={@section_id}
-              phx-value-cell_id={@cell_id}
-            >
-              <.cell_icon cell_type={:code} language={:erlang} />
-              <span>Erlang</span>
+              <.cell_icon cell_type={:code} language={language.language} />
+              <span>{language.name}</span>
             </button>
           </.menu_item>
         </.menu>

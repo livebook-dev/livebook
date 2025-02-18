@@ -44,81 +44,91 @@ defmodule LivebookWeb.NotebookComponents do
 
   def cell_icon(assigns)
 
-  def cell_icon(%{cell_type: :code, language: :elixir} = assigns) do
+  def cell_icon(%{cell_type: :code} = assigns) do
     ~H"""
-    <div class="w-6 h-6 p-1 rounded flex items-center justify-center bg-purple-100">
-      <.language_icon language="elixir" class="w-full h-full text-[#663299]" />
-    </div>
-    """
-  end
-
-  def cell_icon(%{cell_type: :code, language: :erlang} = assigns) do
-    ~H"""
-    <div class="w-6 h-6 p-1 rounded flex items-center justify-center bg-red-100">
-      <.language_icon language="erlang" class="w-full h-full text-[#a90533]" />
+    <div class="w-6 h-6 p-1 rounded flex items-center justify-center bg-gray-100">
+      <.language_icon language={Atom.to_string(@language)} class="w-full h-full text-gray-600" />
     </div>
     """
   end
 
   def cell_icon(%{cell_type: :markdown} = assigns) do
     ~H"""
-    <div class="w-6 h-6 p-1 rounded flex items-center justify-center bg-blue-100">
-      <.language_icon language="markdown" class="w-full h-full text-[#3e64ff]" />
+    <div class="w-6 h-6 p-1 rounded flex items-center justify-center bg-gray-100">
+      <.language_icon language="markdown" class="w-full h-full text-gray-600" />
     </div>
     """
   end
 
   def cell_icon(%{cell_type: :smart} = assigns) do
     ~H"""
-    <div class="flex w-6 h-6 bg-red-100 rounded items-center justify-center">
-      <.remix_icon icon="flashlight-line text-red-900" />
+    <div class="flex w-6 h-6 p-1 rounded items-center justify-center bg-gray-100">
+      <.remix_icon icon="flashlight-line text-gray-600" />
     </div>
     """
   end
 
   @doc """
   Renders an icon for the given language.
+
+  The icons are adapted from https://github.com/material-extensions/vscode-material-icon-theme.
   """
   attr :language, :string, required: true
   attr :class, :string, default: nil
 
   def language_icon(%{language: "elixir"} = assigns) do
     ~H"""
-    <svg class={@class} viewBox="0 0 11 15" xmlns="http://www.w3.org/2000/svg">
+    <svg class={@class} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path
-        d="M5.7784 3.58083C7.4569 5.87527 9.67878 5.70652 10.0618 9.04833C10.1147 12.9425 8.03684
-      14.27 6.55353 14.6441C4.02227 15.3635 1.7644 14.2813 0.875648 11.8316C-0.83154 7.89408 2.36684
-      1.41746 4.42502 0.0668945C4.60193 1.32119 5.05745 2.51995 5.75815 3.57521L5.7784 3.58083Z"
         fill="currentColor"
-      >
-      </path>
+        d="M12.173 22.681c-3.86 0-6.99-3.64-6.99-8.13 0-3.678 2.773-8.172 4.916-10.91 1.014-1.296 2.93-2.322 2.93-2.322s-.982 5.239 1.683 7.319c2.366 1.847 4.106 4.25 4.106 6.363 0 4.232-2.784 7.68-6.645 7.68"
+      />
     </svg>
     """
   end
 
   def language_icon(%{language: "erlang"} = assigns) do
     ~H"""
-    <svg class={@class} viewBox="0 0 15 10" xmlns="http://www.w3.org/2000/svg">
-      <g fill="currentColor">
-        <path d="M2.4 10A7.7 7.7 0 0 1 .5 4.8c0-2 .6-3.6 1.6-4.8H0v10ZM13 10c.5-.6 1-1.2 1.4-2l-2.3-1.2c-.8 1.4-2 2.6-3.6 2.6-2.3 0-3.2-2-3.2-4.8H14V4c0-1.6-.3-3-1-4H15v10h-2Zm0 0" />
-        <path d="M5.5 2.3c.1-1.2 1-2 2.1-2s1.9.8 2 2Zm0 0" />
-      </g>
+    <svg class={@class} viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+      <path
+        fill="currentColor"
+        d="M5.207 4.33q-.072.075-.143.153Q1.5 8.476 1.5 15.33c0 4.418 1.155 7.862 3.459 10.34h19.415c2.553-1.152 4.127-3.43 4.127-3.43l-3.147-2.52L23.9 21.1c-.867.773-.845.931-2.315 1.78-1.495.674-3.04.966-4.634.966-2.515 0-4.423-.909-5.723-2.059-1.286-1.15-1.985-4.511-2.096-6.68l17.458.067-.183-1.472s-.847-7.129-2.541-9.372zm8.76.846c1.565 0 3.22.535 3.961 1.471.74.937.931 1.667.973 3.524H9.11c.112-1.955.436-2.81 1.373-3.698.936-.887 2.03-1.297 3.484-1.297"
+      />
     </svg>
     """
   end
 
   def language_icon(%{language: "markdown"} = assigns) do
     ~H"""
-    <svg class={@class} viewBox="0 0 16 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg class={@class} viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
       <path
-        d="M1.25 0.25H14.75C14.9489 0.25 15.1397 0.329018 15.2803 0.46967C15.421 0.610322 15.5 0.801088
-      15.5 1V13C15.5 13.1989 15.421 13.3897 15.2803 13.5303C15.1397 13.671 14.9489 13.75 14.75 13.75H1.25C1.05109
-      13.75 0.860322 13.671 0.71967 13.5303C0.579018 13.3897 0.5 13.1989 0.5 13V1C0.5 0.801088 0.579018 0.610322
-      0.71967 0.46967C0.860322 0.329018 1.05109 0.25 1.25 0.25ZM4.25 9.625V6.625L5.75 8.125L7.25
-      6.625V9.625H8.75V4.375H7.25L5.75 5.875L4.25 4.375H2.75V9.625H4.25ZM12.5 7.375V4.375H11V7.375H9.5L11.75
-      9.625L14 7.375H12.5Z"
         fill="currentColor"
+        d="m14 10-4 3.5L6 10H4v12h4v-6l2 2 2-2v6h4V10zm12 6v-6h-4v6h-4l6 8 6-8z"
       />
+    </svg>
+    """
+  end
+
+  def language_icon(%{language: "python"} = assigns) do
+    ~H"""
+    <svg class={@class} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path
+        fill="currentColor"
+        d="M9.86 2A2.86 2.86 0 0 0 7 4.86v1.68h4.29c.39 0 .71.57.71.96H4.86A2.86 2.86 0 0 0 2 10.36v3.781a2.86 2.86 0 0 0 2.86 2.86h1.18v-2.68a2.85 2.85 0 0 1 2.85-2.86h5.25c1.58 0 2.86-1.271 2.86-2.851V4.86A2.86 2.86 0 0 0 14.14 2zm-.72 1.61c.4 0 .72.12.72.71s-.32.891-.72.891c-.39 0-.71-.3-.71-.89s.32-.711.71-.711"
+      />
+      <path
+        fill="currentColor"
+        d="M17.959 7v2.68a2.85 2.85 0 0 1-2.85 2.859H9.86A2.85 2.85 0 0 0 7 15.389v3.75a2.86 2.86 0 0 0 2.86 2.86h4.28A2.86 2.86 0 0 0 17 19.14v-1.68h-4.291c-.39 0-.709-.57-.709-.96h7.14A2.86 2.86 0 0 0 22 13.64V9.86A2.86 2.86 0 0 0 19.14 7zM8.32 11.513l-.004.004.038-.004zm6.54 7.276c.39 0 .71.3.71.89a.71.71 0 0 1-.71.71c-.4 0-.72-.12-.72-.71s.32-.89.72-.89"
+      />
+    </svg>
+    """
+  end
+
+  def language_icon(%{language: "pyproject.toml"} = assigns) do
+    ~H"""
+    <svg class={@class} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+      <path fill="currentColor" d="M4 6V4h8v2H9v7H7V6z" />
+      <path fill="currentColor" d="M4 1v1H2v12h2v1H1V1zm8 0v1h2v12h-2v1h3V1z" />
     </svg>
     """
   end

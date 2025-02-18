@@ -126,12 +126,14 @@ defmodule Livebook.Apps.DeployerTest do
 
       notebook =
         %{Notebook.new() | app_settings: app_settings}
-        |> Notebook.put_setup_cell(%{
-          Notebook.Cell.new(:code)
-          | source: """
-            File.touch!("#{path}")
-            """
-        })
+        |> Notebook.put_setup_cells([
+          %{
+            Notebook.Cell.new(:code)
+            | source: """
+              File.touch!("#{path}")
+              """
+          }
+        ])
 
       app_spec = Apps.NotebookAppSpec.new(notebook, should_warmup: true)
 
@@ -152,12 +154,14 @@ defmodule Livebook.Apps.DeployerTest do
 
       notebook =
         %{Notebook.new() | app_settings: app_settings}
-        |> Notebook.put_setup_cell(%{
-          Notebook.Cell.new(:code)
-          | source: """
-            raise "error"
-            """
-        })
+        |> Notebook.put_setup_cells([
+          %{
+            Notebook.Cell.new(:code)
+            | source: """
+              raise "error"
+              """
+          }
+        ])
 
       app_spec = Apps.NotebookAppSpec.new(notebook, should_warmup: true)
 
@@ -178,12 +182,14 @@ defmodule Livebook.Apps.DeployerTest do
 
       notebook =
         %{Notebook.new() | app_settings: app_settings}
-        |> Notebook.put_setup_cell(%{
-          Notebook.Cell.new(:code)
-          | source: """
-            Process.sleep(:infinity)
-            """
-        })
+        |> Notebook.put_setup_cells([
+          %{
+            Notebook.Cell.new(:code)
+            | source: """
+              Process.sleep(:infinity)
+              """
+          }
+        ])
 
       app_spec = Apps.NotebookAppSpec.new(notebook, should_warmup: true)
 
