@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Shell code block highlighting in Markdown cells
 * Added a custom view option that hides code ([#2889](https://github.com/livebook-dev/livebook/pull/2889))
 * Information accessed via `Kino.Workspace.info()` to include payload returned from identity provider ([#2890](https://github.com/livebook-dev/livebook/pull/2890))
+* Support for text styles in plain text output ([#2928](https://github.com/livebook-dev/livebook/pull/2928))
+* Support for `nil` fields in forms ([#2931](https://github.com/livebook-dev/livebook/pull/2931))
 
 ### Changed
 
@@ -26,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Bumped the required Elixir version to 1.18
 * In case you set `RELEASE_DISTRIBUTION`, it has been ignored since v0.13, but now it must not be set
 * Changed the Docker image to use Ubuntu 24.04
+* Updateed Docker base image to Ubuntu 24.04 ([#2933](https://github.com/livebook-dev/livebook/pull/2933))
+* Improveed file select to list files matching search anywhere in the name ([#2932](https://github.com/livebook-dev/livebook/pull/2932))
 
 ### Removed
 
@@ -39,6 +43,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * (Desktop) "Copy URL" not pasting properly into Terminal
 * (Desktop) Subsequent installations on Windows leading to conflicting Hex archives ([#2859](https://github.com/livebook-dev/livebook/pull/2859))
 * Erlang snippets in Markdown cells being exported as Erlang code cells
+* (Desktop) Fixed opening notebook files with space in the path ([#2926](https://github.com/livebook-dev/livebook/pull/2926))
+* Tab content disappearning in nested tab outputs
 
 ## v0.14
 
