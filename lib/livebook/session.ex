@@ -1241,7 +1241,7 @@ defmodule Livebook.Session do
         client_id = client_id(state, client_pid)
 
         # If there is a single empty cell (new notebook), change its
-        # langauge automatically. Note that we cannot do it as part of
+        # language automatically. Note that we cannot do it as part of
         # the :enable_language operation, because clients prune the
         # source.
         state =
