@@ -25,19 +25,38 @@ on how Tailscale authentication works.
 
 ### macOS
 
-On macOS, when Tailscale is installed via the Mac App Store, no unix socket is exposed.
-Instead, a TCP port is made available and protected via a password, which needs to be located.
-Tailscale itself uses lsof for this. This method is replicated in the bash script below,
-which will start Livebook with your Tailscale IP and correct port and password.
+On macOS, Tailscale uses a password-protected TCP port instead of a unix socket. The following script automatically detects the port and password, then starts Livebook with the correct Tailscale configuration:
 
 ```bash
 #!/bin/bash
-addr_info=$(lsof -n -a -c IPNExtension -F | sed -n 's/.*sameuserproof-\([[:digit:]]*-.*\).*/\1/p')
-port=$(echo "$addr_info" | cut -d '-' -f 1)
-pass=$(echo "$addr_info" | cut -d '-' -f 2)
-LIVEBOOK_IP=$(exec $(ps -xo comm | grep MacOS/Tailscale$) ip | head -1 | tr -d '\n') \
-LIVEBOOK_IDENTITY_PROVIDER=tailscale:http://:$pass@127.0.0.1:$port \
-livebook server
+# This is script is adatpated from https://github.com/tailscale/tailscale/blob/v1.80.2/safesocket/safesocket_darwin.go#L69-L160
+
+# When Tailscale was installed via Mac App Store. Adapteed from
+port_and_token=$(lsof -n -a -c IPNExtension -F | grep -o "sameuserproof-[0-9]*-[a-f0-9]*" | head -1)
+if [ ! -z "$port_and_token" ]; then
+    port=$(echo "$port_and_token" | cut -d'-' -f2)
+    token=$(echo "$port_and_token" | cut -d'-' -f3)
+else
+    # When Tailscale was installed using the Standandalone variant
+    port=$(readlink /Library/Tailscale/ipnport)
+    if [ ! -z "$port" ]; then
+        token=$(cat "/Library/Tailscale/sameuserproof-$port")
+    fi
+fi
+
+# Get Tailscale IP
+tailscale_ip=$(exec $(ps -xo comm | grep MacOS/Tailscale$) ip | head -1 | tr -d '\n')
+
+if [ ! -z "$port" ] && [ ! -z "$token" ] && [ ! -z "$tailscale_ip" ]; then
+    LIVEBOOK_IP=$tailscale_ip \
+    LIVEBOOK_IDENTITY_PROVIDER=tailscale:http://:$token@127.0.0.1:$port \
+    livebook server
+else
+    echo "Error: Missing required configuration"
+    [ -z "$port" ] && echo "- Could not determine port"
+    [ -z "$token" ] && echo "- Could not determine token"
+    [ -z "$tailscale_ip" ] && echo "- Could not determine Tailscale IP"
+fi
 ```
 
 ## Livebook Teams
