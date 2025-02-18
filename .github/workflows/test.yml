@@ -99,6 +99,8 @@ jobs:
           # Reinstalling deps fails on Windows in rare cases, so we always use a new cache
           # restore-keys: |
           #   ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
+      # Setup nmake, in case we need to compile Pythonx from source
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: Install mix dependencies
         run: mix deps.get
       - name: Run tests
