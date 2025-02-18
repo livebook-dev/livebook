@@ -2413,16 +2413,20 @@ defmodule LivebookWeb.SessionLiveTest do
 
       section_id = insert_section(session.pid)
 
-      cell_id = insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("PATH")})
+      # Note that we use IO.write, to make sure the value is not truncated
+      # (which inspect does)
+      cell_id =
+        insert_text_cell(session.pid, section_id, :code, ~s{IO.write(System.get_env("PATH"))})
 
       view
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
+                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text(output, true)}}
 
-      assert output == "\e[32m\"#{String.replace(expected_path, "\\", "\\\\")}\"\e[0m"
+      assert output == expected_path
+      # assert output == "\e[32m\"#{String.replace(expected_path, "\\", "\\\\")}\"\e[0m"
 
       Settings.unset_env_var("PATH")
 
@@ -2431,9 +2435,9 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
+                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text(output, true)}}
 
-      assert output == "\e[32m\"#{String.replace(initial_os_path, "\\", "\\\\")}\"\e[0m"
+      assert output == initial_os_path
     end
   end
 
