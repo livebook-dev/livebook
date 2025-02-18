@@ -29,22 +29,21 @@ On macOS, Tailscale uses a password-protected TCP port instead of a unix socket.
 
 ```bash
 #!/bin/bash
-# This is script is adatpated from https://github.com/tailscale/tailscale/blob/v1.80.2/safesocket/safesocket_darwin.go#L69-L160
+# This is script is adapted from https://github.com/tailscale/tailscale/blob/v1.80.2/safesocket/safesocket_darwin.go#L69-L160
 
-# When Tailscale was installed via Mac App Store. Adapteed from
+# When Tailscale was installed via Mac App Store.
 port_and_token=$(lsof -n -a -c IPNExtension -F | grep -o "sameuserproof-[0-9]*-[a-f0-9]*" | head -1)
 if [ ! -z "$port_and_token" ]; then
     port=$(echo "$port_and_token" | cut -d'-' -f2)
     token=$(echo "$port_and_token" | cut -d'-' -f3)
 else
-    # When Tailscale was installed using the Standandalone variant
+    # When Tailscale was installed using the standalone variant
     port=$(readlink /Library/Tailscale/ipnport)
     if [ ! -z "$port" ]; then
         token=$(cat "/Library/Tailscale/sameuserproof-$port")
     fi
 fi
 
-# Get Tailscale IP
 tailscale_ip=$(exec $(ps -xo comm | grep MacOS/Tailscale$) ip | head -1 | tr -d '\n')
 
 if [ ! -z "$port" ] && [ ! -z "$token" ] && [ ! -z "$tailscale_ip" ]; then
