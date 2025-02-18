@@ -84,7 +84,7 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
   end
 
   def format_result({:ok, _value}, :"pyproject.toml") do
-    %{type: :ignored}
+    %{type: :terminal_text, text: "Ok", chunk: false}
   end
 
   @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}

@@ -1371,14 +1371,17 @@ defmodule LivebookWeb.SessionLive.Render do
           class="flex mt-2"
           data-el-language-buttons
         >
-          <button
-            class="flex gap-1 items-center text-gray-400 text-sm hover:text-gray-500 disabled:text-gray-400"
+          <.button
+            color="gray"
+            outlined
+            small
             phx-click="enable_language"
             phx-value-language="python"
             disabled={Livebook.Runtime.fixed_dependencies?(@data_view.runtime)}
           >
-            <.remix_icon icon="add-line" class="text-lg" /> Python
-          </button>
+            <.remix_icon icon="add-line" class="text-sm -mx-0.5 leading-none" />
+            <span>Python</span>
+          </.button>
         </div>
       </div>
       <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>

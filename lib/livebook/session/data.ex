@@ -609,10 +609,10 @@ defmodule Livebook.Session.Data do
 
       data
       |> with_actions()
-      |> queue_prerequisite_cells_evaluation(cell_ids)
       |> reduce(cells_with_section, fn data_actions, {cell, section} ->
         queue_cell_evaluation(data_actions, cell, section, evaluation_opts)
       end)
+      |> queue_prerequisite_cells_evaluation(cell_ids)
       |> maybe_queue_other_setup_cells(evaluation_opts)
       |> maybe_connect_runtime(data)
       |> update_validity_and_evaluation()
@@ -748,8 +748,8 @@ defmodule Livebook.Session.Data do
          true <- eval_info.validity in [:evaluated, :stale] do
       data
       |> with_actions()
-      |> queue_prerequisite_cells_evaluation([cell.id])
       |> queue_cell_evaluation(cell, section)
+      |> queue_prerequisite_cells_evaluation([cell.id])
       |> maybe_evaluate_queued()
       |> wrap_ok()
     else
@@ -1642,13 +1642,13 @@ defmodule Livebook.Session.Data do
       data_actions
       |> disconnect_runtime()
       |> connect_runtime()
-      |> queue_prerequisite_cells_evaluation(cell_ids)
       |> reduce(
         queued_cells_with_section,
         fn data_actions, {cell, section, evaluation_opts} ->
           queue_cell_evaluation(data_actions, cell, section, evaluation_opts)
         end
       )
+      |> queue_prerequisite_cells_evaluation(cell_ids)
     else
       data_actions
     end
@@ -1799,6 +1799,7 @@ defmodule Livebook.Session.Data do
       |> Notebook.parent_cells_with_section(cell_ids)
       |> Enum.filter(fn {cell, _section} ->
         info = data.cell_infos[cell.id]
+
         Cell.evaluable?(cell) and cell_outdated?(data, cell.id) and info.eval.status == :ready
       end)
       |> Enum.reverse()
@@ -2828,10 +2829,10 @@ defmodule Livebook.Session.Data do
     cell_ids = for {cell, _section} <- cells_to_reevaluate, do: cell.id
 
     data_actions
-    |> queue_prerequisite_cells_evaluation(cell_ids)
     |> reduce(cells_to_reevaluate, fn data_actions, {cell, section} ->
       queue_cell_evaluation(data_actions, cell, section)
     end)
+    |> queue_prerequisite_cells_evaluation(cell_ids)
   end
 
   defp app_update_execution_status({data, _} = data_actions)

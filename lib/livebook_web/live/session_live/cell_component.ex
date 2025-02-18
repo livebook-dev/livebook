@@ -142,7 +142,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <.cell_actions>
       <:primary>
         <div class="flex gap-1 items-center text-gray-500 text-sm">
-          <.remix_icon icon="corner-down-right-line" class="text-lg" /> Python
+          <.language_icon language="python" class="w-4 h-4" />
+          <span>Python (pyproject.toml)</span>
         </div>
       </:primary>
       <:secondary>

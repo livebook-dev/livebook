@@ -887,11 +887,11 @@ defmodule LivebookWeb.CoreComponents do
   defp button_classes(small, disabled, color, outlined) do
     [
       if small do
-        "px-2 py-1 font-normal text-xs"
+        "px-2 py-1 font-normal text-xs gap-1"
       else
-        "px-5 py-2 font-medium text-sm"
+        "px-5 py-2 font-medium text-sm gap-1.5"
       end,
-      "inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1.5 focus-visible:outline-none",
+      "inline-flex rounded-lg border whitespace-nowrap items-center justify-center focus-visible:outline-none",
       if disabled do
         "cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400"
       else
