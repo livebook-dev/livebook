@@ -496,7 +496,7 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     state = put_context(state, ref, new_context)
-    output = Evaluator.Formatter.format_result(result, language)
+    output = Evaluator.Formatter.format_result(language, result)
 
     metadata = %{
       errored: error_result?(result),

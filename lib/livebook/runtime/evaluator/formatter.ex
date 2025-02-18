@@ -1,6 +1,10 @@
 defmodule Livebook.Runtime.Evaluator.Formatter do
   require Logger
 
+  @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
+  @compile {:no_warn_undefined, {Pythonx, :eval, 2}}
+  @compile {:no_warn_undefined, {Pythonx, :decode, 1}}
+
   @doc """
   Formats evaluation result into an output.
 
@@ -10,28 +14,34 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
   to format in the runtime node, because it oftentimes relies on the
   `inspect` protocol implementations from external packages.
   """
-  @spec format_result(Livebook.Runtime.Evaluator.evaluation_result(), atom()) ::
-          Livebook.Runtime.output()
-  def format_result(result, language)
+  @spec format_result(
+          Livebook.Runtime.language(),
+          Livebook.Runtime.Evaluator.evaluation_result()
+        ) :: Livebook.Runtime.output()
+  def format_result(language, result)
 
-  def format_result({:ok, :"do not show this result in output"}, :elixir) do
+  def format_result(:elixir, {:ok, :"do not show this result in output"}) do
     # Functions in the `IEx.Helpers` module return this specific value
     # to indicate no result should be printed in the iex shell,
     # so we respect that as well.
     %{type: :ignored}
   end
 
-  def format_result({:ok, {:module, _, _, _} = value}, :elixir) do
+  def format_result(:elixir, {:ok, {:module, _, _, _} = value}) do
     to_inspect_output(value, limit: 10)
   end
 
-  def format_result({:ok, value}, :elixir) do
+  def format_result(:elixir, {:ok, value}) do
     to_output(value)
   end
 
-  def format_result({:error, kind, error, stacktrace}, :erlang) do
+  def format_result(:erlang, {:ok, value}) do
+    erlang_to_output(value)
+  end
+
+  def format_result(:erlang, {:error, kind, error, stacktrace}) do
     if is_exception(error) do
-      format_result({:error, kind, error, stacktrace}, :elixir)
+      format_result(:elixir, {:error, kind, error, stacktrace})
     else
       formatted =
         :erl_error.format_exception(kind, error, stacktrace)
@@ -42,10 +52,16 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
     end
   end
 
-  @compile {:no_warn_undefined, {Pythonx, :eval, 2}}
-  @compile {:no_warn_undefined, {Pythonx, :decode, 1}}
+  def format_result(:python, {:ok, nil}) do
+    %{type: :ignored}
+  end
 
-  def format_result({:error, _kind, error, _stacktrace}, :python)
+  def format_result(:python, {:ok, value}) do
+    repr_string = Pythonx.eval("repr(value)", %{"value" => value}) |> elem(0) |> Pythonx.decode()
+    %{type: :terminal_text, text: repr_string, chunk: false}
+  end
+
+  def format_result(:python, {:error, _kind, error, _stacktrace})
       when is_struct(error, Pythonx.Error) do
     formatted =
       Pythonx.eval(
@@ -65,29 +81,23 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
     %{type: :error, message: formatted, context: nil}
   end
 
-  def format_result({:error, kind, error, stacktrace}, _language) do
-    formatted = format_error(kind, error, stacktrace)
-    %{type: :error, message: formatted, context: error_context(error)}
-  end
-
-  def format_result({:ok, value}, :erlang) do
-    erlang_to_output(value)
-  end
-
-  def format_result({:ok, nil}, :python) do
-    %{type: :ignored}
-  end
-
-  def format_result({:ok, value}, :python) do
-    repr_string = Pythonx.eval("repr(value)", %{"value" => value}) |> elem(0) |> Pythonx.decode()
-    %{type: :terminal_text, text: repr_string, chunk: false}
-  end
-
-  def format_result({:ok, _value}, :"pyproject.toml") do
+  def format_result(:"pyproject.toml", {:ok, _value}) do
     %{type: :terminal_text, text: "Ok", chunk: false}
   end
 
-  @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
+  def format_result(:"pyproject.toml", {:error, _kind, _error, _stacktrace}) do
+    formatted =
+      "Error, see the output above for details"
+      |> error_color()
+      |> IO.iodata_to_binary()
+
+    %{type: :error, message: formatted, context: nil}
+  end
+
+  def format_result(_language, {:error, kind, error, stacktrace}) do
+    formatted = format_error(kind, error, stacktrace)
+    %{type: :error, message: formatted, context: error_context(error)}
+  end
 
   defp to_output(value) do
     # Kino is a "client side" extension for Livebook that may be
