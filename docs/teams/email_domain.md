@@ -1,4 +1,5 @@
 # Authentication via email domain
+
 Email domain authentication allows you to authenticate users based on their email domain when they access your app servers and Livebook apps. For example, your users can access your Livebook apps using their company email accounts.
 
 ![](images/email_domain_auth.png)
