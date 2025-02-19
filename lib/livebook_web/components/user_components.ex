@@ -15,31 +15,40 @@ defmodule LivebookWeb.UserComponents do
 
   def user_avatar(%{user: %{avatar_url: nil}} = assigns) do
     ~H"""
+    <.avatar_text class={@class} user={@user} text_class={@text_class} />
+    """
+  end
+
+  def user_avatar(assigns) do
+    ~H"""
+    <object
+      data={@user.avatar_url}
+      type="image/png"
+      class={["rounded-full flex items-center justify-center", @class]}
+      aria-hidden="true"
+    >
+      <.avatar_text class={@class} user={@user} text_class={@text_class} />
+    </object>
+    """
+  end
+
+  defp avatar_text(assigns) do
+    ~H"""
     <div
       class={["rounded-full flex items-center justify-center", @class]}
       style={"background-color: #{@user.hex_color}"}
       aria-hidden="true"
     >
       <div class={["text-gray-100 font-semibold", @text_class]}>
-        {avatar_text(@user.name)}
+        {initials(@user.name)}
       </div>
     </div>
     """
   end
 
-  def user_avatar(assigns) do
-    ~H"""
-    <img
-      src={@user.avatar_url}
-      class={["rounded-full flex items-center justify-center", @class]}
-      aria-hidden="true"
-    />
-    """
-  end
+  defp initials(nil), do: "?"
 
-  defp avatar_text(nil), do: "?"
-
-  defp avatar_text(name) do
+  defp initials(name) do
     name
     |> String.split()
     |> Enum.map(&String.at(&1, 0))
