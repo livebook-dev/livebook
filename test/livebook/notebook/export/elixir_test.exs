@@ -203,7 +203,7 @@ defmodule Livebook.Notebook.Export.ElixirTest do
           Notebook.Cell.new(:code)
           | source: """
             Mix.install([
-              {:pythonx, github: "livebook-dev/pythonx"}
+              {:pythonx, "~> 0.3.0"}
             ])\
             """
         },
@@ -226,7 +226,7 @@ defmodule Livebook.Notebook.Export.ElixirTest do
     # Title: My Notebook
 
     Mix.install([
-      {:pythonx, github: "livebook-dev/pythonx"}
+      {:pythonx, "~> 0.3.0"}
     ])
 
     Pythonx.uv_init("""

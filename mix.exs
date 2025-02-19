@@ -125,7 +125,7 @@ defmodule Livebook.MixProject do
       {:floki, ">= 0.27.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
       # So that we can test Python evaluation in the same node
-      {:pythonx, github: "livebook-dev/pythonx", only: :test},
+      {:pythonx, "~> 0.3.0", only: :test},
       # ZTA deps
       {:jose, "~> 1.11.5"},
       {:req, "~> 0.5.8"},
