@@ -42,8 +42,8 @@ defmodule Livebook.Runtime.ErlDist.IOForwardGL do
   def handle_info({:io_request, from, reply_as, req}, state) do
     case Process.info(from, :group_leader) do
       {:group_leader, group_leader} ->
-        # Forward the request to sender's group leader
-        # and instruct it to get back to us.
+        # Forward the request to sender's group leader and instruct
+        # it to get back to the sender.
         send(group_leader, {:io_request, from, reply_as, req})
 
       _ ->

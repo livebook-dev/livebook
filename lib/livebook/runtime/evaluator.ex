@@ -1005,7 +1005,25 @@ defmodule Livebook.Runtime.Evaluator do
       |> Map.replace!(:requires, [Pythonx])
       |> Map.replace!(:macros, [{Pythonx, [{:sigil_PY, 2}]}])
 
-    Macro.expand_once(quoted, env)
+    ast = Macro.expand_once(quoted, env)
+
+    # We modify the Pythonx.eval/2 call to specify the :stderr_device
+    # option. We want to Python stderr output to also be send to our
+    # group leader. By default it would be sent to our :standard_error,
+    # which sends it further to sender's group leader, however the
+    # sender is a process in the Pythonx supervision tree and has the
+    # default group leader.mix
+    Macro.prewalk(ast, fn
+      {{:., _, [{:__aliases__, _, [:Pythonx]}, :eval]} = target, meta, [code, globals]} ->
+        opts = [
+          stderr_device: {{:., [], [{:__aliases__, [], [:Process]}, :group_leader]}, [], []}
+        ]
+
+        {target, meta, [code, globals, opts]}
+
+      other ->
+        other
+    end)
   end
 
   defp eval_pyproject_toml(code, binding, env) do

@@ -1659,6 +1659,29 @@ defmodule Livebook.Runtime.EvaluatorTest do
              ModuleNotFoundError: No module named 'unknown'
              """
     end
+
+    test "captures standard output and sends it to the caller", %{evaluator: evaluator} do
+      code = """
+      print("hello from Python")
+      """
+
+      Evaluator.evaluate_code(evaluator, :python, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      terminal_text("hello from Python\n", true)}
+    end
+
+    test "captures standard error and sends it to the caller", %{evaluator: evaluator} do
+      code = """
+      import sys
+      print("error from Python", file=sys.stderr)
+      """
+
+      Evaluator.evaluate_code(evaluator, :python, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      terminal_text("error from Python\n", true)}
+    end
   end
 
   describe "formatting" do

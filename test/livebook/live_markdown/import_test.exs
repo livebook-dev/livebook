@@ -1157,7 +1157,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
       ```elixir
       Mix.install([
-        {:pythonx, "~> 0.3.0"}
+        {:pythonx, "~> 0.4.0"}
       ])
       ```
 
@@ -1180,7 +1180,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      id: "setup",
                      source: """
                      Mix.install([
-                       {:pythonx, "~> 0.3.0"}
+                       {:pythonx, "~> 0.4.0"}
                      ])\
                      """
                    },
