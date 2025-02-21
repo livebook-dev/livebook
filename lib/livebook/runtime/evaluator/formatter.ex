@@ -85,15 +85,6 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
     %{type: :terminal_text, text: "Ok", chunk: false}
   end
 
-  def format_result(:"pyproject.toml", {:error, _kind, _error, _stacktrace}) do
-    formatted =
-      "Error, see the output above for details"
-      |> error_color()
-      |> IO.iodata_to_binary()
-
-    %{type: :error, message: formatted, context: nil}
-  end
-
   def format_result(_language, {:error, kind, error, stacktrace}) do
     formatted = format_error(kind, error, stacktrace)
     %{type: :error, message: formatted, context: error_context(error)}

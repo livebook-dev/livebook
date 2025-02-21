@@ -1053,20 +1053,34 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp ensure_pythonx() do
-    if Code.ensure_loaded?(Pythonx) do
-      :ok
-    else
-      message =
-        """
-        Pythonx is missing, make sure to add it as a dependency:
+    pythonx_requirement = Livebook.Runtime.Definitions.pythonx_requirement()
 
-            #{Macro.to_string(Livebook.Runtime.Definitions.pythonx_dependency().dep)}
-        """
+    cond do
+      not Code.ensure_loaded?(Pythonx) ->
+        message =
+          """
+          Pythonx is missing, make sure to add it as a dependency:
 
-      exception = RuntimeError.exception(message)
-      {{:error, :error, exception, []}, []}
+              #{Macro.to_string(Livebook.Runtime.Definitions.pythonx_dependency().dep)}
+          """
+
+        exception = RuntimeError.exception(message)
+        {{:error, :error, exception, []}, []}
+
+      not Version.match?(pythonx_version(), pythonx_requirement) ->
+        message =
+          "this Livebook version requires Pythonx #{pythonx_requirement}," <>
+            " but #{pythonx_version()} is installed, please update the dependency"
+
+        exception = RuntimeError.exception(message)
+        {{:error, :error, exception, []}, []}
+
+      true ->
+        :ok
     end
   end
+
+  defp pythonx_version(), do: List.to_string(Application.spec(:pythonx)[:vsn])
 
   defp identifier_dependencies(context, tracer_info, prev_context) do
     identifiers_used = MapSet.new()

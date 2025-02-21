@@ -508,4 +508,6 @@ defmodule Livebook.Runtime.Definitions do
   def pythonx_dependency() do
     %{dep: {:pythonx, "~> 0.4.0"}, config: []}
   end
+
+  def pythonx_requirement(), do: "~> 0.4.0"
 end
