@@ -41,9 +41,13 @@ defmodule Livebook.Session.Data do
     :app_data
   ]
 
-  alias Livebook.{Notebook, Text, Runtime, FileSystem, Hubs}
+  alias Livebook.Notebook
+  alias Livebook.Notebook.Cell
+  alias Livebook.Notebook.Section
+  alias Livebook.Text
+  alias Livebook.FileSystem
+  alias Livebook.Runtime
   alias Livebook.Users.User
-  alias Livebook.Notebook.{Cell, Section, AppSettings}
   alias Livebook.Utils.Graph
   alias Livebook.Secrets.Secret
 
@@ -244,7 +248,7 @@ defmodule Livebook.Session.Data do
           | {:rename_file_entry, client_id(), name :: String.t(), new_name :: String.t()}
           | {:delete_file_entry, client_id(), String.t()}
           | {:allow_file_entry, client_id(), String.t()}
-          | {:set_app_settings, client_id(), AppSettings.t()}
+          | {:set_app_settings, client_id(), Notebook.AppSettings.t()}
           | {:set_deployed_app_slug, client_id(), String.t()}
           | {:app_deactivate, client_id()}
           | {:app_shutdown, client_id()}
@@ -295,8 +299,8 @@ defmodule Livebook.Session.Data do
         %{status: %{execution: :executing, lifecycle: :active}}
       end
 
-    hub = Hubs.fetch_hub!(notebook.hub_id)
-    hub_secrets = Hubs.get_secrets(hub)
+    hub = Livebook.Hubs.fetch_hub!(notebook.hub_id)
+    hub_secrets = Livebook.Hubs.get_secrets(hub)
 
     startup_secrets =
       for secret <- Livebook.Secrets.get_startup_secrets(),
@@ -1029,7 +1033,7 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:set_notebook_hub, _client_id, id}) do
-    with {:ok, hub} <- Hubs.fetch_hub(id) do
+    with {:ok, hub} <- Livebook.Hubs.fetch_hub(id) do
       data
       |> with_actions()
       |> set_notebook_hub(hub)
@@ -1947,7 +1951,7 @@ defmodule Livebook.Session.Data do
         | hub_id: hub.id,
           teams_enabled: is_struct(hub, Livebook.Hubs.Team)
       },
-      hub_secrets: Hubs.get_secrets(hub)
+      hub_secrets: Livebook.Hubs.get_secrets(hub)
     )
   end
 

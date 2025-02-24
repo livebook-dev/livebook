@@ -3,8 +3,6 @@ defmodule LivebookWeb.SessionLive.StandaloneRuntimeComponent do
 
   import Ecto.Changeset
 
-  alias Livebook.{Session, Runtime}
-
   @impl true
   def mount(socket) do
     unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Standalone) do
@@ -39,7 +37,7 @@ defmodule LivebookWeb.SessionLive.StandaloneRuntimeComponent do
   defp changeset(runtime, attrs \\ %{}) do
     data =
       case runtime do
-        %Runtime.Standalone{erl_flags: erl_flags} ->
+        %Livebook.Runtime.Standalone{erl_flags: erl_flags} ->
           %{erl_flags: erl_flags}
 
         _ ->
@@ -116,9 +114,9 @@ defmodule LivebookWeb.SessionLive.StandaloneRuntimeComponent do
     |> apply_action(:insert)
     |> case do
       {:ok, data} ->
-        runtime = Runtime.Standalone.new(erl_flags: data.erl_flags)
-        Session.set_runtime(socket.assigns.session.pid, runtime)
-        Session.connect_runtime(socket.assigns.session.pid)
+        runtime = Livebook.Runtime.Standalone.new(erl_flags: data.erl_flags)
+        Livebook.Session.set_runtime(socket.assigns.session.pid, runtime)
+        Livebook.Session.connect_runtime(socket.assigns.session.pid)
         {:noreply, socket}
 
       {:error, changeset} ->

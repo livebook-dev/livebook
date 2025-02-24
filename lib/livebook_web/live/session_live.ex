@@ -4,7 +4,9 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import LivebookWeb.FileSystemComponents
 
-  alias Livebook.{Session, Text, Notebook, Runtime}
+  alias Livebook.Session
+  alias Livebook.Text
+  alias Livebook.Notebook
   alias Livebook.Notebook.Cell
 
   on_mount LivebookWeb.SidebarHook
@@ -598,7 +600,7 @@ defmodule LivebookWeb.SessionLive do
     node = Enum.find(socket.private.data.runtime_connected_nodes, &(Atom.to_string(&1) == node))
 
     if node do
-      Runtime.disconnect_node(socket.private.data.runtime, node)
+      Livebook.Runtime.disconnect_node(socket.private.data.runtime, node)
     end
 
     {:noreply, socket}
@@ -647,7 +649,14 @@ defmodule LivebookWeb.SessionLive do
         parent_locators = Session.parent_locators_for_cell(data, cell)
         node = intellisense_node(cell)
 
-        ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators, node)
+        ref =
+          Livebook.Runtime.handle_intellisense(
+            data.runtime,
+            self(),
+            request,
+            parent_locators,
+            node
+          )
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else
@@ -1606,7 +1615,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp example_snippet_definition_by_name(data, name) do
     data.runtime
-    |> Runtime.snippet_definitions()
+    |> Livebook.Runtime.snippet_definitions()
     |> Enum.find_value(:error, &(&1.type == :example && &1.name == name && {:ok, &1}))
   end
 
@@ -1619,7 +1628,7 @@ defmodule LivebookWeb.SessionLive do
 
     has_dependencies? =
       dependencies == [] or
-        Runtime.has_dependencies?(socket.private.data.runtime, dependencies)
+        Livebook.Runtime.has_dependencies?(socket.private.data.runtime, dependencies)
 
     cond do
       has_dependencies? ->
@@ -1628,7 +1637,7 @@ defmodule LivebookWeb.SessionLive do
           :error -> socket
         end
 
-      Runtime.fixed_dependencies?(socket.private.data.runtime) ->
+      Livebook.Runtime.fixed_dependencies?(socket.private.data.runtime) ->
         put_flash(socket, :error, "This runtime doesn't support adding dependencies")
 
       true ->
@@ -1746,7 +1755,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp handlers_for_file_entry(file_entry, runtime) do
     handlers =
-      for definition <- Runtime.snippet_definitions(runtime),
+      for definition <- Livebook.Runtime.snippet_definitions(runtime),
           definition.type == :file_action,
           do: %{definition: definition, cell_type: :code}
 
@@ -1814,14 +1823,14 @@ defmodule LivebookWeb.SessionLive do
       dirty: data.dirty,
       persistence_warnings: data.persistence_warnings,
       runtime: data.runtime,
-      runtime_metadata: Runtime.describe(data.runtime),
+      runtime_metadata: Livebook.Runtime.describe(data.runtime),
       runtime_status: data.runtime_status,
       runtime_connect_info: data.runtime_connect_info,
       runtime_connected_nodes: Enum.sort(data.runtime_connected_nodes),
       smart_cell_definitions: Enum.sort_by(data.smart_cell_definitions, & &1.name),
       example_snippet_definitions:
         data.runtime
-        |> Runtime.snippet_definitions()
+        |> Livebook.Runtime.snippet_definitions()
         |> Enum.filter(&(&1.type == :example))
         |> Enum.sort_by(& &1.name),
       global_status: global_status(data),

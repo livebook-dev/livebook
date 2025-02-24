@@ -3,7 +3,10 @@ defmodule LivebookWeb.SessionControllerTest do
 
   require Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session, Notebook, FileSystem}
+  alias Livebook.Sessions
+  alias Livebook.Session
+  alias Livebook.Notebook
+  alias Livebook.FileSystem
 
   describe "show_file" do
     test "returns not found when the given session does not exist", %{conn: conn} do

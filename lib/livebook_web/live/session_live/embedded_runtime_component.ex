@@ -1,8 +1,6 @@
 defmodule LivebookWeb.SessionLive.EmbeddedRuntimeComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.{Session, Runtime}
-
   @impl true
   def mount(socket) do
     unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Embedded) do
@@ -36,15 +34,15 @@ defmodule LivebookWeb.SessionLive.EmbeddedRuntimeComponent do
     """
   end
 
-  defp label(%Runtime.Embedded{}, :connecting), do: "Connecting..."
-  defp label(%Runtime.Embedded{}, :connected), do: "Reconnect"
+  defp label(%Livebook.Runtime.Embedded{}, :connecting), do: "Connecting..."
+  defp label(%Livebook.Runtime.Embedded{}, :connected), do: "Reconnect"
   defp label(_runtime, _runtime_status), do: "Connect"
 
   @impl true
   def handle_event("init", _params, socket) do
-    runtime = Runtime.Embedded.new()
-    Session.set_runtime(socket.assigns.session.pid, runtime)
-    Session.connect_runtime(socket.assigns.session.pid)
+    runtime = Livebook.Runtime.Embedded.new()
+    Livebook.Session.set_runtime(socket.assigns.session.pid, runtime)
+    Livebook.Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 end

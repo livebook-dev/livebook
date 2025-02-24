@@ -6,14 +6,14 @@ defmodule Livebook.Sessions do
   # propagated using `Livebook.Tracker`, which serves as an ephemeral
   # distributed database for the `%Session{}` structs.
 
-  alias Livebook.{Session, Utils}
+  alias Livebook.Session
 
   @doc """
   Spawns a new `Session` process with the given options.
   """
   @spec create_session(keyword()) :: {:ok, Session.t()} | {:error, any()}
   def create_session(opts \\ []) do
-    id = Utils.random_node_aware_id()
+    id = Livebook.Utils.random_node_aware_id()
 
     opts = Keyword.put(opts, :id, id)
 
@@ -47,7 +47,7 @@ defmodule Livebook.Sessions do
       :error ->
         boot_id = Livebook.Config.random_boot_id()
 
-        case Utils.node_from_node_aware_id(id) do
+        case Livebook.Utils.node_from_node_aware_id(id) do
           # The local tracker server doesn't know about this session,
           # but it may not have propagated yet, so we extract the session
           # node from id and ask the corresponding tracker directly

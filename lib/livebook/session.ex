@@ -85,11 +85,14 @@ defmodule Livebook.Session do
 
   require Logger
 
-  alias Livebook.NotebookManager
-  alias Livebook.Session.{Data, FileGuard}
-  alias Livebook.{Utils, Notebook, Text, Runtime, LiveMarkdown, FileSystem}
-  alias Livebook.Users.User
-  alias Livebook.Notebook.{Cell, Section}
+  alias Livebook.Session
+  alias Livebook.Session.Data
+  alias Livebook.Notebook
+  alias Livebook.Notebook.Cell
+  alias Livebook.Notebook.Section
+  alias Livebook.Runtime
+  alias Livebook.FileSystem
+  alias Livebook.Users
 
   @timeout :infinity
   @main_container_ref :main_flow
@@ -131,8 +134,8 @@ defmodule Livebook.Session do
           app_pid: pid() | nil,
           auto_shutdown_ms: non_neg_integer() | nil,
           auto_shutdown_timer_ref: reference() | nil,
-          started_by: Livebook.Users.User.t() | nil,
-          deployed_by: Livebook.Users.User.t() | nil
+          started_by: Users.User.t() | nil,
+          deployed_by: Users.User.t() | nil
         }
 
   @type memory_usage ::
@@ -147,7 +150,7 @@ defmodule Livebook.Session do
   @typedoc """
   An id assigned to every running session process.
   """
-  @type id :: Utils.id()
+  @type id :: Livebook.Utils.id()
 
   ## API
 
@@ -228,7 +231,7 @@ defmodule Livebook.Session do
   Also returns a unique client identifier representing the registered
   client.
   """
-  @spec register_client(pid(), pid(), User.t()) :: {Data.t(), Data.client_id()}
+  @spec register_client(pid(), pid(), Users.User.t()) :: {Data.t(), Data.client_id()}
   def register_client(pid, client_pid, user) do
     GenServer.call(pid, {:register_client, client_pid, user}, @timeout)
   end
@@ -586,7 +589,7 @@ defmodule Livebook.Session do
           pid(),
           Cell.id(),
           Data.cell_source_tag(),
-          Text.Delta.t(),
+          Livebook.Text.Delta.t(),
           Selection.t() | nil,
           Data.cell_revision()
         ) :: :ok
@@ -978,7 +981,7 @@ defmodule Livebook.Session do
     data = Data.new(notebook: notebook, origin: origin, mode: mode)
 
     if file do
-      case FileGuard.lock(file, self()) do
+      case Session.FileGuard.lock(file, self()) do
         :ok ->
           {:ok, %{data | file: file}}
 
@@ -1069,7 +1072,7 @@ defmodule Livebook.Session do
         {state, client_id}
       else
         Process.monitor(client_pid)
-        client_id = Utils.random_id()
+        client_id = Livebook.Utils.random_id()
         state = handle_operation(state, {:client_join, client_id, user})
         state = put_in(state.client_pids_with_id[client_pid], client_id)
         {state, client_id}
@@ -1116,7 +1119,7 @@ defmodule Livebook.Session do
   end
 
   def handle_call(:register_file_init, _from, state) do
-    file_id = Utils.random_id()
+    file_id = Livebook.Utils.random_id()
     file_ref = {:file, file_id}
     path = registered_file_path(state.session_id, file_ref)
     reply = %{file_ref: file_ref, path: path}
@@ -1168,21 +1171,23 @@ defmodule Livebook.Session do
   def handle_cast({:insert_section, client_pid, index}, state) do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_section, client_id, index, Utils.random_id()}
+    operation = {:insert_section, client_id, index, Livebook.Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:insert_section_into, client_pid, section_id, index}, state) do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_section_into, client_id, section_id, index, Utils.random_id()}
+    operation = {:insert_section_into, client_id, section_id, index, Livebook.Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:insert_branching_section_into, client_pid, section_id, index}, state) do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_branching_section_into, client_id, section_id, index, Utils.random_id()}
+    operation =
+      {:insert_branching_section_into, client_id, section_id, index, Livebook.Utils.random_id()}
+
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1201,7 +1206,9 @@ defmodule Livebook.Session do
   def handle_cast({:insert_cell, client_pid, section_id, index, type, attrs}, state) do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_cell, client_id, section_id, index, type, Utils.random_id(), attrs}
+    operation =
+      {:insert_cell, client_id, section_id, index, type, Livebook.Utils.random_id(), attrs}
+
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1289,7 +1296,7 @@ defmodule Livebook.Session do
               source = binary_part(cell.source, offset, size)
               attrs = %{source: source}
               cell_idx = index + chunk_idx
-              cell_id = Utils.random_id()
+              cell_id = Livebook.Utils.random_id()
 
               handle_operation(
                 state,
@@ -1424,14 +1431,14 @@ defmodule Livebook.Session do
     client_id = client_id(state, client_pid)
 
     if file do
-      FileGuard.lock(file, self())
+      Session.FileGuard.lock(file, self())
     else
       :ok
     end
     |> case do
       :ok ->
         if state.data.file do
-          FileGuard.unlock(state.data.file)
+          Session.FileGuard.unlock(state.data.file)
         end
 
         {:noreply, handle_operation(state, {:set_file, client_id, file})}
@@ -2328,7 +2335,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_notebook_name, _client_id, _name}) do
     if file = state.data.file do
-      NotebookManager.update_notebook_name(file, state.data.notebook.name)
+      Livebook.NotebookManager.update_notebook_name(file, state.data.notebook.name)
     end
 
     notify_update(state)
@@ -2376,7 +2383,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, prev_state, {:client_join, client_id, user}) do
     unless Map.has_key?(prev_state.data.users_map, user.id) do
-      Livebook.Users.subscribe(user.id)
+      Users.subscribe(user.id)
     end
 
     state = put_in(state.client_id_with_assets[client_id], %{})
@@ -2394,7 +2401,7 @@ defmodule Livebook.Session do
     user_id = prev_state.data.clients_map[client_id]
 
     unless Map.has_key?(state.data.users_map, user_id) do
-      Livebook.Users.unsubscribe(user_id)
+      Users.unsubscribe(user_id)
     end
 
     state = delete_client_files(state, client_id)
@@ -2448,7 +2455,7 @@ defmodule Livebook.Session do
          _prev_state,
          {:smart_cell_started, _client_id, cell_id, delta, _chunks, _js_view, _editor}
        ) do
-    unless Text.Delta.empty?(delta) do
+    unless Livebook.Text.Delta.empty?(delta) do
       hydrate_cell_source_digest(state, cell_id, :primary)
     end
 
@@ -2746,7 +2753,7 @@ defmodule Livebook.Session do
 
       %{ref: ref} =
         Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
-          {content, warnings} = LiveMarkdown.notebook_to_livemd(notebook)
+          {content, warnings} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
           result = FileSystem.File.write(file, content)
           {:save_finished, result, warnings, file, default?}
         end)
@@ -2763,7 +2770,7 @@ defmodule Livebook.Session do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
-      {content, warnings} = LiveMarkdown.notebook_to_livemd(state.data.notebook)
+      {content, warnings} = Livebook.LiveMarkdown.notebook_to_livemd(state.data.notebook)
       result = FileSystem.File.write(file, content)
       handle_save_finished(state, result, warnings, file, default?)
     else

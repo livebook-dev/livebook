@@ -2,7 +2,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManagerTest do
   use ExUnit.Case, async: true
 
   alias Livebook.Runtime
-  alias Livebook.Runtime.ErlDist.{NodeManager, RuntimeServer}
+  alias Livebook.Runtime.ErlDist.NodeManager
+  alias Livebook.Runtime.ErlDist.RuntimeServer
 
   test "terminates when the last runtime server terminates" do
     # We use a standalone runtime, so that we have an isolated node

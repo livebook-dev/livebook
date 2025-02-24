@@ -4,7 +4,10 @@ defmodule LivebookWeb.AppLiveTest do
   import Phoenix.LiveViewTest
   import Livebook.AppHelpers
 
-  alias Livebook.{App, Apps, Notebook, Utils}
+  alias Livebook.App
+  alias Livebook.Apps
+  alias Livebook.Notebook
+  alias Livebook.Utils
 
   describe "single-session app" do
     test "redirects to the current session page", %{conn: conn} do

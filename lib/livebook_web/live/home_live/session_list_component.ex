@@ -5,8 +5,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   import LivebookWeb.SessionHelpers
   import LivebookWeb.HTMLHelpers
 
-  alias Livebook.{Session, Notebook}
-
   @impl true
   def mount(socket) do
     {:ok, assign(socket, order_by: "date")}
@@ -329,8 +327,8 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   def handle_event("fork_session", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     %{files_dir: files_dir} = session
-    data = Session.get_data(session.pid)
-    notebook = Notebook.forked(data.notebook)
+    data = Livebook.Session.get_data(session.pid)
+    notebook = Livebook.Notebook.forked(data.notebook)
 
     origin =
       if data.file do
@@ -349,7 +347,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
-    Session.disconnect_runtime(session.pid)
+    Livebook.Session.disconnect_runtime(session.pid)
     {:noreply, socket}
   end
 

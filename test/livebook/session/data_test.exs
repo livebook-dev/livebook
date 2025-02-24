@@ -4,7 +4,8 @@ defmodule Livebook.Session.DataTest do
   import Livebook.TestHelpers
 
   alias Livebook.Session.Data
-  alias Livebook.{Text, Notebook}
+  alias Livebook.Text
+  alias Livebook.Notebook
   alias Livebook.Text.Delta
   alias Livebook.Users.User
 

@@ -1,7 +1,9 @@
 defmodule Livebook.AppTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.{App, Notebook, Utils}
+  alias Livebook.App
+  alias Livebook.Notebook
+  alias Livebook.Utils
 
   describe "startup" do
     test "eagerly starts a session in single-session mode" do

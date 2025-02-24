@@ -1,7 +1,8 @@
 defmodule Livebook.SessionsTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.{Sessions, Session}
+  alias Livebook.Sessions
+  alias Livebook.Session
 
   describe "create_session/0" do
     test "starts a new session process under the sessions supervisor" do

@@ -3,8 +3,6 @@ defmodule LivebookWeb.SessionLive.AttachedRuntimeComponent do
 
   import Ecto.Changeset
 
-  alias Livebook.{Session, Runtime}
-
   @impl true
   def mount(socket) do
     unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Attached) do
@@ -39,7 +37,7 @@ defmodule LivebookWeb.SessionLive.AttachedRuntimeComponent do
   defp changeset(runtime, attrs \\ %{}) do
     data =
       case runtime do
-        %Runtime.Attached{node: node, cookie: cookie} ->
+        %Livebook.Runtime.Attached{node: node, cookie: cookie} ->
           %{name: Atom.to_string(node), cookie: Atom.to_string(cookie)}
 
         _ ->
@@ -118,9 +116,9 @@ defmodule LivebookWeb.SessionLive.AttachedRuntimeComponent do
       {:ok, data} ->
         node = String.to_atom(data.name)
         cookie = String.to_atom(data.cookie)
-        runtime = Runtime.Attached.new(node, cookie)
-        Session.set_runtime(socket.assigns.session.pid, runtime)
-        Session.connect_runtime(socket.assigns.session.pid)
+        runtime = Livebook.Runtime.Attached.new(node, cookie)
+        Livebook.Session.set_runtime(socket.assigns.session.pid, runtime)
+        Livebook.Session.connect_runtime(socket.assigns.session.pid)
         {:noreply, socket}
 
       {:error, changeset} ->

@@ -1,6 +1,6 @@
 defmodule Livebook.SessionHelpers do
-  alias Livebook.{Hubs, Session, Sessions}
-  alias Livebook.Secrets.Secret
+  alias Livebook.Session
+  alias Livebook.Secrets
 
   import ExUnit.Assertions
   import Phoenix.LiveViewTest
@@ -34,7 +34,7 @@ defmodule Livebook.SessionHelpers do
   def bypass_url(port), do: "http://localhost:#{port}"
 
   def close_session_by_id(session_id) do
-    {:ok, session} = Sessions.fetch_session(session_id)
+    {:ok, session} = Livebook.Sessions.fetch_session(session_id)
     Session.close(session.pid)
   end
 
@@ -68,7 +68,7 @@ defmodule Livebook.SessionHelpers do
     refute secret in secrets
   end
 
-  def hub_label(%Secret{hub_id: id}), do: hub_label(Hubs.fetch_hub!(id))
+  def hub_label(%Secrets.Secret{hub_id: id}), do: hub_label(Livebook.Hubs.fetch_hub!(id))
   def hub_label(hub), do: "#{hub.hub_emoji} #{hub.hub_name}"
 
   defp secret_selector(secret) do

@@ -3,7 +3,9 @@ defmodule LivebookWeb.OpenLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session, FileSystem}
+  alias Livebook.Sessions
+  alias Livebook.Session
+  alias Livebook.FileSystem
 
   describe "file selection" do
     test "does not mention autosaving if disabled", %{conn: conn} do

@@ -1,7 +1,9 @@
 defmodule LivebookWeb.SessionController do
   use LivebookWeb, :controller
 
-  alias Livebook.{Sessions, Session, FileSystem}
+  alias Livebook.Sessions
+  alias Livebook.Session
+  alias Livebook.FileSystem
   alias LivebookWeb.CodecHelpers
 
   def show_file(conn, %{"id" => id, "name" => name}) do

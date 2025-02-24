@@ -4,26 +4,25 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
-  alias Livebook.Teams.{AppDeployment, DeploymentGroup, Org}
 
   @error_message "Something went wrong, try again later or please file a bug if it persists"
 
   @doc """
   Send a request to Livebook Team API to create a new org.
   """
-  @spec create_org(Org.t()) ::
+  @spec create_org(Teams.Org.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_org(org) do
-    post("/api/v1/org-request", %{name: org.name, key_hash: Org.key_hash(org)})
+    post("/api/v1/org-request", %{name: org.name, key_hash: Teams.Org.key_hash(org)})
   end
 
   @doc """
   Send a request to Livebook Team API to join an org.
   """
-  @spec join_org(Org.t()) ::
+  @spec join_org(Teams.Org.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def join_org(org) do
-    post("/api/v1/org-request/join", %{name: org.name, key_hash: Org.key_hash(org)})
+    post("/api/v1/org-request/join", %{name: org.name, key_hash: Teams.Org.key_hash(org)})
   end
 
   @doc """
@@ -166,7 +165,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to create a deployment group.
   """
-  @spec create_deployment_group(Team.t(), DeploymentGroup.t()) ::
+  @spec create_deployment_group(Team.t(), Teams.DeploymentGroup.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_deployment_group(team, deployment_group) do
     params = %{
@@ -183,7 +182,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to deploy an app.
   """
-  @spec deploy_app(Team.t(), AppDeployment.t()) ::
+  @spec deploy_app(Team.t(), Teams.AppDeployment.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def deploy_app(team, app_deployment) do
     secret_key = Teams.derive_key(team.teams_key)
@@ -204,7 +203,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to download an app revision.
   """
-  @spec download_revision(Team.t(), AppDeployment.t()) ::
+  @spec download_revision(Team.t(), Teams.AppDeployment.t()) ::
           {:ok, binary()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def download_revision(team, app_deployment) do
     params = %{id: app_deployment.id, deployment_group_id: app_deployment.deployment_group_id}

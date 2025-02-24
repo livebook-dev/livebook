@@ -3,8 +3,6 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
 
   import Ecto.Changeset
 
-  alias Livebook.{Session, Runtime}
-
   @impl true
   def mount(socket) do
     unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Fly) do
@@ -52,7 +50,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
         is_map_key(socket.assigns, :config_defaults) ->
           socket
 
-        is_struct(assigns.runtime, Runtime.Fly) ->
+        is_struct(assigns.runtime, Livebook.Runtime.Fly) ->
           %{config: config} = assigns.runtime
 
           config_defaults =
@@ -516,14 +514,14 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
 
   def handle_event("init", %{}, socket) do
     config = build_config(socket)
-    runtime = Runtime.Fly.new(config)
-    Session.set_runtime(socket.assigns.session.pid, runtime)
-    Session.connect_runtime(socket.assigns.session.pid)
+    runtime = Livebook.Runtime.Fly.new(config)
+    Livebook.Session.set_runtime(socket.assigns.session.pid, runtime)
+    Livebook.Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
   def handle_event("disconnect", %{}, socket) do
-    Session.disconnect_runtime(socket.assigns.session.pid)
+    Livebook.Session.disconnect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
@@ -628,7 +626,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
   end
 
   defp reconnecting?(app_name, runtime) do
-    match?(%Runtime.Fly{config: %{app_name: ^app_name}}, runtime)
+    match?(%Livebook.Runtime.Fly{config: %{app_name: ^app_name}}, runtime)
   end
 
   defp cpu_kind_options() do

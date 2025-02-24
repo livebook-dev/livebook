@@ -1,11 +1,11 @@
 defmodule LivebookWeb.SessionLive.PersistenceComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.{Sessions, Session, LiveMarkdown, FileSystem}
+  alias Livebook.FileSystem
 
   @impl true
   def mount(socket) do
-    sessions = Sessions.list_sessions()
+    sessions = Livebook.Sessions.list_sessions()
     running_files = for session <- sessions, session.file, do: session.file
     {:ok, assign(socket, running_files: running_files)}
   end
@@ -74,7 +74,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             id="persistence_file_select"
             file={@draft_file}
             hub={@hub}
-            extnames={[LiveMarkdown.extension()]}
+            extnames={[Livebook.LiveMarkdown.extension()]}
             running_files={@running_files}
             on_submit={JS.push("save", target: @myself)}
             target={{__MODULE__, @id}}
@@ -154,7 +154,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   end
 
   def handle_event("stop_saving", %{}, socket) do
-    Session.set_file(socket.assigns.session.pid, nil)
+    Livebook.Session.set_file(socket.assigns.session.pid, nil)
 
     {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
   end
@@ -166,16 +166,16 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     draft_file = normalize_file(draft_file)
 
     if draft_file != saved_file do
-      Session.set_file(assigns.session.pid, draft_file)
+      Livebook.Session.set_file(assigns.session.pid, draft_file)
     end
 
     diff = map_diff(new_attrs, attrs)
 
     if diff != %{} do
-      Session.set_notebook_attributes(assigns.session.pid, diff)
+      Livebook.Session.set_notebook_attributes(assigns.session.pid, diff)
     end
 
-    Session.save_sync(assigns.session.pid)
+    Livebook.Session.save_sync(assigns.session.pid)
 
     push_patch(socket, to: return_to(assigns))
   end
@@ -207,7 +207,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   end
 
   defp normalize_file(file) do
-    FileSystem.File.ensure_extension(file, LiveMarkdown.extension())
+    FileSystem.File.ensure_extension(file, Livebook.LiveMarkdown.extension())
   end
 
   defp savable?(draft_file, saved_file, running_files) do

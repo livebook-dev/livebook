@@ -2,8 +2,8 @@ defmodule Livebook.Teams.DeploymentGroup do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Livebook.Secrets.Secret
-  alias Livebook.Teams.{AgentKey, EnvironmentVariable}
+  alias Livebook.Secrets
+  alias Livebook.Teams
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
@@ -13,9 +13,9 @@ defmodule Livebook.Teams.DeploymentGroup do
           clustering: :auto | :dns | nil,
           hub_id: String.t() | nil,
           teams_auth: boolean(),
-          secrets: Ecto.Schema.has_many(Secret.t()),
-          agent_keys: Ecto.Schema.has_many(AgentKey.t()),
-          environment_variables: Ecto.Schema.has_many(EnvironmentVariable.t())
+          secrets: Ecto.Schema.has_many(Secrets.Secret.t()),
+          agent_keys: Ecto.Schema.has_many(Teams.AgentKey.t()),
+          environment_variables: Ecto.Schema.has_many(Teams.EnvironmentVariable.t())
         }
 
   @primary_key {:id, :string, autogenerate: false}
@@ -27,9 +27,9 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :url, :string
     field :teams_auth, :boolean, default: true
 
-    has_many :secrets, Secret
-    has_many :agent_keys, AgentKey
-    has_many :environment_variables, EnvironmentVariable
+    has_many :secrets, Secrets.Secret
+    has_many :agent_keys, Teams.AgentKey
+    has_many :environment_variables, Teams.EnvironmentVariable
   end
 
   def changeset(deployment_group, attrs \\ %{}) do

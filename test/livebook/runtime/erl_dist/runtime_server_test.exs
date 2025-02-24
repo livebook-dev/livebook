@@ -1,7 +1,8 @@
 defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.Runtime.ErlDist.{NodeManager, RuntimeServer}
+  alias Livebook.Runtime.ErlDist.NodeManager
+  alias Livebook.Runtime.ErlDist.RuntimeServer
 
   setup ctx do
     {:ok, runtime_server_pid} = NodeManager.start_runtime_server(node(), ctx[:opts] || [])

@@ -5,7 +5,10 @@ defmodule LivebookWeb.AppSessionLiveTest do
   import Livebook.TestHelpers
   import Livebook.AppHelpers
 
-  alias Livebook.{App, Apps, Notebook, Utils}
+  alias Livebook.App
+  alias Livebook.Apps
+  alias Livebook.Notebook
+  alias Livebook.Utils
 
   test "shows a nonexisting message if the session does not exist", %{conn: conn} do
     slug = Utils.random_short_id()

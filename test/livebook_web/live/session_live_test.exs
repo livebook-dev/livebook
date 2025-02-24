@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLiveTest do
   import Livebook.TestHelpers
   import Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session, Settings, Runtime, Users, FileSystem}
+  alias Livebook.{Sessions, Session, Settings, Runtime, FileSystem}
   alias Livebook.Notebook.Cell
 
   setup do
@@ -1777,7 +1777,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert render(view) =~ "Jake Peralta"
 
-      Users.broadcast_change(%{user1 | name: "Raymond Holt"})
+      Livebook.Users.broadcast_change(%{user1 | name: "Raymond Holt"})
       assert_receive {:operation, {:update_user, _client_id, _user}}
 
       refute render(view) =~ "Jake Peralta"

@@ -4,7 +4,6 @@ defmodule LivebookWeb.HomeLive do
   import LivebookWeb.SessionHelpers
 
   alias LivebookWeb.LayoutComponents
-  alias Livebook.{Sessions, Notebook}
 
   on_mount LivebookWeb.SidebarHook
 
@@ -16,8 +15,8 @@ defmodule LivebookWeb.HomeLive do
       Livebook.NotebookManager.subscribe_starred_notebooks()
     end
 
-    sessions = Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
-    notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
+    sessions = Livebook.Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
+    notebook_infos = Livebook.Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
     starred_notebooks = Livebook.NotebookManager.starred_notebooks()
 
     {:ok,

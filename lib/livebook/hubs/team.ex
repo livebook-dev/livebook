@@ -103,7 +103,8 @@ defmodule Livebook.Hubs.Team do
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
-  alias Livebook.Hubs.{Team, TeamClient}
+  alias Livebook.Hubs.Team
+  alias Livebook.Hubs.TeamClient
   alias Livebook.Teams.Requests
   alias Livebook.FileSystem
   alias Livebook.Secrets.Secret

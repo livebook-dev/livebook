@@ -3,8 +3,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   import Ecto.Changeset
 
-  alias Livebook.{Session, Runtime}
-  alias Livebook.K8s.{Pod, PVC}
+  alias Livebook.K8s
 
   @kubeconfig_pipeline Application.compile_env(:livebook, :k8s_kubeconfig_pipeline)
 
@@ -31,7 +30,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        pvc_action: nil,
        pvc_name: nil,
        docker_tag: hd(Livebook.Config.docker_images()).tag,
-       pod_template: %{template: Pod.default_pod_template(), error_message: nil},
+       pod_template: %{template: K8s.Pod.default_pod_template(), error_message: nil},
        save_config_payload: nil
      )}
   end
@@ -62,7 +61,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         is_map_key(socket.assigns, :config_defaults) ->
           socket
 
-        is_struct(assigns.runtime, Runtime.K8s) ->
+        is_struct(assigns.runtime, Livebook.Runtime.K8s) ->
           %{config: config} = assigns.runtime
 
           config_defaults =
@@ -457,7 +456,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   def handle_event("new_pvc", %{}, socket) do
     pvc_action = %{
       type: :new,
-      changeset: PVC.changeset(),
+      changeset: K8s.PVC.changeset(),
       storage_classes: storage_classes(socket.assigns),
       status: :initial,
       error: nil
@@ -469,7 +468,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   def handle_event("validate_pvc", %{"pvc" => pvc}, socket) do
     changeset =
       pvc
-      |> PVC.changeset()
+      |> K8s.PVC.changeset()
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign_nested(socket, :pvc_action, changeset: changeset)}
@@ -481,7 +480,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_event("create_pvc", %{"pvc" => pvc}, socket) do
     pvc
-    |> PVC.changeset()
+    |> K8s.PVC.changeset()
     |> apply_action(:insert)
     |> case do
       {:ok, applied_pvc} ->
@@ -517,14 +516,14 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_event("init", %{}, socket) do
     config = build_config(socket)
-    runtime = Runtime.K8s.new(config)
-    Session.set_runtime(socket.assigns.session.pid, runtime)
-    Session.connect_runtime(socket.assigns.session.pid)
+    runtime = Livebook.Runtime.K8s.new(config)
+    Livebook.Session.set_runtime(socket.assigns.session.pid, runtime)
+    Livebook.Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
   def handle_event("disconnect", %{}, socket) do
-    Session.disconnect_runtime(socket.assigns.session.pid)
+    Livebook.Session.disconnect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
@@ -624,12 +623,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp reconnecting?(namespace, runtime) do
-    match?(%Runtime.K8s{config: %{namespace: ^namespace}}, runtime)
+    match?(%Livebook.Runtime.K8s{config: %{namespace: ^namespace}}, runtime)
   end
 
   defp create_pvc(socket, pvc) do
     namespace = socket.assigns.namespace
-    manifest = PVC.manifest(pvc, namespace)
+    manifest = K8s.PVC.manifest(pvc, namespace)
     kubeconfig = socket.assigns.kubeconfig
 
     socket
@@ -719,7 +718,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
     with {:parse, {:ok, pod_template}} <-
            {:parse, YamlElixir.read_from_string(pod_template_yaml)},
-         {:validate, :ok} <- {:validate, Pod.validate_pod_template(pod_template, namespace)} do
+         {:validate, :ok} <- {:validate, K8s.Pod.validate_pod_template(pod_template, namespace)} do
       assign(socket, :pod_template, %{template: pod_template_yaml, error_message: nil})
     else
       {:parse, {:error, error}} ->

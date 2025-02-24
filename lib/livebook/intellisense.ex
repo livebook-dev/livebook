@@ -5,7 +5,7 @@ defmodule Livebook.Intellisense do
   # In a way, this provides the very basic features of a language
   # server that Livebook uses.
 
-  alias Livebook.Intellisense.{IdentifierMatcher, SignatureMatcher, Docs}
+  alias Livebook.Intellisense
   alias Livebook.Runtime
 
   # Configures width used for inspect and specs formatting.
@@ -57,7 +57,7 @@ defmodule Livebook.Intellisense do
   """
   @spec clear_cache(node()) :: :ok
   def clear_cache(node) do
-    IdentifierMatcher.clear_all_loaded(node)
+    Intellisense.IdentifierMatcher.clear_all_loaded(node)
   end
 
   @doc """
@@ -114,7 +114,7 @@ defmodule Livebook.Intellisense do
   """
   @spec get_signature_items(String.t(), context(), node()) :: Runtime.signature_response() | nil
   def get_signature_items(hint, context, node) do
-    case SignatureMatcher.get_matching_signatures(hint, context, node) do
+    case Intellisense.SignatureMatcher.get_matching_signatures(hint, context, node) do
       {:ok, [], _active_argument} ->
         nil
 
@@ -150,7 +150,7 @@ defmodule Livebook.Intellisense do
   """
   @spec get_completion_items(String.t(), context(), node()) :: list(Runtime.completion_item())
   def get_completion_items(hint, context, node) do
-    IdentifierMatcher.completion_identifiers(hint, context, node)
+    Intellisense.IdentifierMatcher.completion_identifiers(hint, context, node)
     |> Enum.filter(&include_in_completion?/1)
     |> Enum.map(&format_completion_item/1)
     |> Enum.concat(extra_completion_items(hint))
@@ -215,7 +215,7 @@ defmodule Livebook.Intellisense do
          display_name: display_name,
          documentation: documentation
        }) do
-    subtype = Docs.get_module_subtype(module)
+    subtype = Intellisense.Docs.get_module_subtype(module)
 
     kind =
       case subtype do
@@ -440,7 +440,7 @@ defmodule Livebook.Intellisense do
           Runtime.details_response() | nil
   def get_details(line, column, context, node) do
     %{matches: matches, range: range} =
-      IdentifierMatcher.locate_identifier(line, column, context, node)
+      Intellisense.IdentifierMatcher.locate_identifier(line, column, context, node)
 
     case Enum.filter(matches, &include_in_details?/1) do
       [] ->
@@ -554,7 +554,8 @@ defmodule Livebook.Intellisense do
       path = Path.join(context.ebin_path, "#{module}.beam")
 
       with true <- File.exists?(path),
-           {:ok, line} <- Docs.locate_definition(String.to_charlist(path), identifier) do
+           {:ok, line} <-
+             Intellisense.Docs.locate_definition(String.to_charlist(path), identifier) do
         file = module.module_info(:compile)[:source]
         %{file: to_string(file), line: line}
       else

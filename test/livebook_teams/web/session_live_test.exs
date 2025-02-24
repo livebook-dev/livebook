@@ -4,7 +4,9 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   import Phoenix.LiveViewTest
   import Livebook.SessionHelpers
 
-  alias Livebook.{FileSystem, Sessions, Session}
+  alias Livebook.FileSystem
+  alias Livebook.Sessions
+  alias Livebook.Session
 
   setup do
     {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())

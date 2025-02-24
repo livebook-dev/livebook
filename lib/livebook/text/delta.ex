@@ -30,8 +30,10 @@ defmodule Livebook.Text.Delta do
 
   defstruct ops: []
 
-  alias Livebook.Text.{Delta, JS}
-  alias Livebook.Text.Delta.{Operation, Transformation}
+  alias Livebook.Text
+  alias Livebook.Text.Delta
+  alias Livebook.Text.Delta.Operation
+  alias Livebook.Text.Delta.Transformation
 
   @typedoc """
   Delta carries a list of consecutive operations.
@@ -195,7 +197,7 @@ defmodule Livebook.Text.Delta do
   end
 
   defp do_apply([{:retain, n} | ops], result, string) do
-    {left, right} = JS.split_at(string, n)
+    {left, right} = Text.JS.split_at(string, n)
     do_apply(ops, <<result::binary, left::binary>>, right)
   end
 
@@ -204,7 +206,7 @@ defmodule Livebook.Text.Delta do
   end
 
   defp do_apply([{:delete, n} | ops], result, string) do
-    do_apply(ops, result, JS.slice(string, n))
+    do_apply(ops, result, Text.JS.slice(string, n))
   end
 
   defp do_apply([], result, string) do
@@ -220,9 +222,9 @@ defmodule Livebook.Text.Delta do
     string1
     |> String.myers_difference(string2)
     |> Enum.reduce(Delta.new(), fn
-      {:eq, string}, delta -> Delta.retain(delta, JS.length(string))
+      {:eq, string}, delta -> Delta.retain(delta, Text.JS.length(string))
       {:ins, string}, delta -> Delta.insert(delta, string)
-      {:del, string}, delta -> Delta.delete(delta, JS.length(string))
+      {:del, string}, delta -> Delta.delete(delta, Text.JS.length(string))
     end)
     |> Delta.trim()
   end

@@ -7,9 +7,9 @@ defmodule Livebook.SessionTest do
   import Livebook.TestHelpers
 
   alias Livebook.{Session, Text, Runtime, Utils, Notebook, FileSystem, Apps, App}
-  alias Livebook.Notebook.{Section, Cell}
+  alias Livebook.Notebook.Section
+  alias Livebook.Notebook.Cell
   alias Livebook.Session.Data
-  alias Livebook.NotebookManager
 
   @eval_meta %{
     errored: false,
@@ -366,7 +366,7 @@ defmodule Livebook.SessionTest do
       wait_for_session_update(session.pid)
 
       assert %{name: "New notebook name"} =
-               NotebookManager.recent_notebooks() |> Enum.find(&(&1.file == file))
+               Livebook.NotebookManager.recent_notebooks() |> Enum.find(&(&1.file == file))
     end
   end
 
@@ -565,7 +565,7 @@ defmodule Livebook.SessionTest do
 
       wait_for_session_update(session.pid)
 
-      assert NotebookManager.recent_notebooks() |> Enum.any?(&(&1.file == file))
+      assert Livebook.NotebookManager.recent_notebooks() |> Enum.any?(&(&1.file == file))
     end
   end
 
@@ -849,7 +849,7 @@ defmodule Livebook.SessionTest do
 
       start_session(file: file)
 
-      assert NotebookManager.recent_notebooks() |> Enum.any?(&(&1.file == file))
+      assert Livebook.NotebookManager.recent_notebooks() |> Enum.any?(&(&1.file == file))
     end
   end
 

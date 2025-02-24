@@ -29,7 +29,9 @@ defmodule Livebook.Notebook do
     :deployment_group_id
   ]
 
-  alias Livebook.Notebook.{Section, Cell, AppSettings}
+  alias Livebook.Notebook
+  alias Livebook.Notebook.Section
+  alias Livebook.Notebook.Cell
   alias Livebook.FileSystem
   alias Livebook.Utils.Graph
   import Livebook.Utils, only: [access_by_id: 1]
@@ -43,7 +45,7 @@ defmodule Livebook.Notebook do
           autosave_interval_s: non_neg_integer() | nil,
           default_language: :elixir | :erlang | :python,
           output_counter: non_neg_integer(),
-          app_settings: AppSettings.t(),
+          app_settings: Notebook.AppSettings.t(),
           hub_id: String.t(),
           hub_secret_names: list(String.t()),
           file_entries: list(file_entry()),
@@ -86,7 +88,7 @@ defmodule Livebook.Notebook do
           | %{
               name: String.t(),
               type: :file,
-              file: Livebook.FileSystem.File.t()
+              file: FileSystem.File.t()
             }
           | %{
               name: String.t(),
@@ -108,7 +110,7 @@ defmodule Livebook.Notebook do
       autosave_interval_s: default_autosave_interval_s(),
       default_language: :elixir,
       output_counter: 0,
-      app_settings: AppSettings.new(),
+      app_settings: Notebook.AppSettings.new(),
       hub_id: Livebook.Hubs.Personal.id(),
       hub_secret_names: [],
       file_entries: [],
