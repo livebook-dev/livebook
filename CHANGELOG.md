@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.15.1](https://github.com/livebook-dev/livebook/tree/v0.15.1) (2025-02-24)
+
+### Changed
+
+* Updated Kino version references to point to 0.15.0
+
 ## [v0.15.0](https://github.com/livebook-dev/livebook/tree/v0.15.0) (2025-02-21)
 
 ### Added
