@@ -7,7 +7,7 @@ Email domain authentication allows you to authenticate users based on their emai
 Currently, this feature supports only Google emails. If you need to use another email provider, [contact our support team](mailto:support@livebook.com?subject=Feature%20request%3A%20Additional%20email%20provider).
 
 > #### Livebook version requirement {: .info}
-> This feature is only supported with Livebook v0.15 or later.
+> Requires Livebook v0.15 or newer.
 
 ## Demo
 Here's a quick demo of the feature:
