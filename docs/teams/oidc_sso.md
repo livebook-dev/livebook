@@ -4,6 +4,9 @@ Livebook Teams supports OpenID Connect (OIDC) Single Sign-On, allowing you to au
 
 ![](images/auth_via_teams.png)
 
+> #### Livebook version requirement {: .info}
+> This feature is only supported with Livebook v0.15 or later.
+
 ## Demo
 
 Here's a quick demo of the feature working.
