@@ -941,7 +941,7 @@ defmodule Livebook.Runtime.Evaluator do
       {result, _diagnostics} =
         Code.with_diagnostics([log: true], fn ->
           try do
-            quoted = python_code_to_quoted(code)
+            quoted = python_code_to_quoted(code, env)
 
             {value, binding, env} =
               Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
@@ -992,16 +992,15 @@ defmodule Livebook.Runtime.Evaluator do
     end
   end
 
-  defp python_code_to_quoted(code) do
+  defp python_code_to_quoted(code, env) do
     # We expand the sigil upfront, so it is not traced as import usage
     # during evaluation.
 
     quoted = {:sigil_PY, [], [{:<<>>, [], [code]}, []]}
 
-    env = Code.env_for_eval([])
-
     env =
       env
+      |> Map.replace!(:tracers, [])
       |> Map.replace!(:requires, [Pythonx])
       |> Map.replace!(:macros, [{Pythonx, [{:sigil_PY, 2}]}])
 

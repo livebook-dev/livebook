@@ -1617,6 +1617,27 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert [{:z, %Pythonx.Object{}}, {:y, %Pythonx.Object{}}, {:x, 1}] = binding
     end
 
+    test "undefined variable error", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :python, "x + 1", :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, error(message),
+                      %{
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: "NameError: name 'x' is not defined",
+                            severity: :error
+                          }
+                        ]
+                      }}
+
+      assert clean_message(message) == """
+             Traceback (most recent call last):
+               File "<string>", line 1, in <module>
+             NameError: name 'x' is not defined
+             """
+    end
+
     test "syntax error", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, :python, "1 +", :code_1, [])
 
