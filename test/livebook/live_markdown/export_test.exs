@@ -1171,7 +1171,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             Notebook.Cell.new(:code)
             | source: """
               Mix.install([
-                {:pythonx, "~> 0.4.0"}
+                {:pythonx, "~> 0.4.2"}
               ])\
               """
           },
@@ -1193,7 +1193,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
       ```elixir
       Mix.install([
-        {:pythonx, "~> 0.4.0"}
+        {:pythonx, "~> 0.4.2"}
       ])
       ```
 
