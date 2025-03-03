@@ -7,8 +7,11 @@ defmodule LivebookWeb.UserHook do
       socket
       |> assign_new(:current_user, fn ->
         connect_params = get_connect_params(socket) || %{}
-        user_data = connect_params["user_data"]
-        LivebookWeb.UserPlug.build_current_user(session, user_data)
+        identity_data = session["identity_data"]
+        # user_data from connect params takes precedence, since the
+        # cookie may have been altered by the client.
+        user_data = connect_params["user_data"] || session["user_data"]
+        LivebookWeb.UserPlug.build_current_user(session, identity_data, user_data)
       end)
       |> attach_hook(:current_user_subscription, :handle_info, &info/2)
 

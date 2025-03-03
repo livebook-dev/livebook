@@ -52,4 +52,14 @@ defmodule LivebookWeb.UserPlugTest do
 
     assert conn.cookies["lb_user_data"] == cookie_value
   end
+
+  test "assigns identity data and user data" do
+    conn =
+      conn(:get, "/")
+      |> init_test_session(%{})
+      |> fetch_cookies()
+      |> call()
+
+    assert %{identity_data: %{}, user_data: %{}} = conn.assigns
+  end
 end

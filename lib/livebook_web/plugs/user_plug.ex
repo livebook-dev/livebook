@@ -21,11 +21,16 @@ defmodule LivebookWeb.UserPlug do
 
   @impl true
   def call(conn, _opts) do
-    conn
-    |> ensure_user_identity()
-    |> ensure_user_data()
-    |> mirror_user_data_in_session()
-    |> set_logger_metadata()
+    conn = ensure_user_identity(conn)
+
+    if conn.halted do
+      conn
+    else
+      conn
+      |> ensure_user_data()
+      |> assign_user_data()
+      |> set_logger_metadata()
+    end
   end
 
   defp ensure_user_identity(conn) do
@@ -41,7 +46,7 @@ defmodule LivebookWeb.UserPlug do
         id = identity_data[:id] || get_session(conn, :user_id) || Livebook.Utils.random_long_id()
 
         conn
-        |> put_session(:identity_data, identity_data)
+        |> assign(:identity_data, identity_data)
         |> put_session(:user_id, id)
 
       true ->
@@ -52,8 +57,6 @@ defmodule LivebookWeb.UserPlug do
         |> halt()
     end
   end
-
-  defp ensure_user_data(conn) when conn.halted, do: conn
 
   defp ensure_user_data(conn) do
     if Map.has_key?(conn.req_cookies, "lb_user_data") do
@@ -71,36 +74,34 @@ defmodule LivebookWeb.UserPlug do
     end
   end
 
-  # Copies user_data from cookie to session, so that it's
-  # accessible to LiveViews
-  defp mirror_user_data_in_session(conn) when conn.halted, do: conn
-
-  defp mirror_user_data_in_session(conn) do
+  # Copies user_data from cookie to assigns, which we later copy into
+  # LV session
+  defp assign_user_data(conn) do
     user_data = conn.cookies["lb_user_data"] |> Base.decode64!() |> JSON.decode!()
-    put_session(conn, :user_data, user_data)
+    assign(conn, :user_data, user_data)
   end
 
   defp set_logger_metadata(conn) do
-    current_user = build_current_user(get_session(conn))
+    session = get_session(conn)
+    %{identity_data: identity_data, user_data: user_data} = conn.assigns
+    current_user = build_current_user(session, identity_data, user_data)
+
     Logger.metadata(Livebook.Utils.logger_users_metadata([current_user]))
     conn
   end
 
   @doc """
-  Builds `Livebook.Users.User` using information from the session.
+  Builds `Livebook.Users.User` using information from connection and
+  the session.
 
-  Merges the `user_data` with `identity_data`. Optionally an override
-  for `user_data` can be specified, which we use in `UserHook`, where
-  we get possibly updated `user_data` from `connect_params`.
+  We accept individual arguments, because this is used both in plug
+  and LV hooks.
   """
-  def build_current_user(session, user_data_override \\ nil) do
-    identity_data =
-      Map.new(session["identity_data"] || %{}, fn {k, v} -> {Atom.to_string(k), v} end)
-
-    attrs = user_data_override || session["user_data"] || %{}
+  def build_current_user(%{} = session, %{} = identity_data, %{} = user_data) do
+    identity_data = Map.new(identity_data, fn {k, v} -> {Atom.to_string(k), v} end)
 
     attrs =
-      case Map.merge(attrs, identity_data) do
+      case Map.merge(user_data, identity_data) do
         %{"name" => nil, "email" => email} = attrs -> %{attrs | "name" => email}
         attrs -> attrs
       end
@@ -111,5 +112,20 @@ defmodule LivebookWeb.UserPlug do
       {:ok, user} -> user
       {:error, _changeset} -> user
     end
+  end
+
+  @doc """
+  Returns fields to be merged into the LV session.
+  """
+  def extra_lv_session(conn) do
+    # These attributes are always retrieved in UserPlug, so we don't
+    # need to store them in the session. We need to pass them to LV,
+    # so we copy the assigns into LV session. This is particularly
+    # important for identity data, which can be huge and may exceed
+    # cookie limit, if it was stored in the session.
+    %{
+      "identity_data" => conn.assigns.identity_data,
+      "user_data" => conn.assigns.user_data
+    }
   end
 end

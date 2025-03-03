@@ -36,7 +36,9 @@ defmodule Livebook.ZTA.LivebookTeams do
   end
 
   # Our extension to Livebook.ZTA to deal with logouts
-  def logout(name, %{assigns: %{current_user: %{payload: %{"access_token" => token}}}}) do
+  def logout(name, conn) do
+    token = get_session(conn, :livebook_teams_access_token)
+
     team = Livebook.ZTA.get(name)
 
     case Teams.Requests.logout_identity_provider(team, token) do
@@ -50,7 +52,7 @@ defmodule Livebook.ZTA.LivebookTeams do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, metadata} <- get_user_info(team, access_token) do
       {conn
-       |> put_session(:identity_data, metadata)
+       |> put_session(:livebook_teams_access_token, access_token)
        |> redirect(to: conn.request_path)
        |> halt(), metadata}
     else
@@ -71,7 +73,7 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   defp handle_request(conn, team, _params) do
     case get_session(conn) do
-      %{"identity_data" => %{payload: %{"access_token" => access_token}}} ->
+      %{"livebook_teams_access_token" => access_token} ->
         validate_access_token(conn, team, access_token)
 
       # it means, we couldn't reach to Teams server
@@ -157,7 +159,7 @@ defmodule Livebook.ZTA.LivebookTeams do
         name: name,
         avatar_url: avatar_url,
         email: email,
-        payload: Map.put(payload, "access_token", access_token)
+        payload: payload
       }
 
       {:ok, metadata}
