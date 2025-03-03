@@ -26,8 +26,8 @@ Go to your IdP admin, and register Livebook Teams as a Relying Party (client/app
 
 Once that’s done, you should retrieve the following information from the registration process:
 
-- **Client ID**: A unique identifier assigned to Livebook Teams by your IdP.
-- **Client Secret**: A confidential key assigned to Livebook Teams by your IdP.
+- **Client ID**: A unique identifier assigned to Livebook Teams by your IdP
+- **Client Secret**: A confidential key assigned to Livebook Teams by your IdP
 - **Discovery URL**: This is the OIDC metadata URL provided by your IdP. Usual format: `https://YOUR_IDP/.well-known/openid-configuration`
 
 ### 2. Configure OIDC in Livebook Teams
@@ -35,13 +35,13 @@ Once that’s done, you should retrieve the following information from the regis
 <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/dNUcRD0A6kU?si=eNQ55-Aeg4I8PPgy" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 1. Log in to Livebook Teams
-2. Go to the **Authentication** panel
+2. Go to the **Authentication** panel (requires "admin" role in the organization)
 3. Click **Add OIDC SSO** and provide the following details:
-	- **Name**: A display name for your OIDC provider (e.g., Okta, Microsoft Entra, Keycloak).
-	- **Discovery URL**: Use the discovery URL retrieved from your IdP.
-	- **Client ID**: Use the Client ID retrieved from your IdP.
-	- **Client Secret**: Use the Client Secret retrieved from your IdP.
-	- **Enable this SSO provider**: Make sure this option is enabled.
+	- **Name**: A display name for your OIDC provider (e.g., Okta, Microsoft Entra, Keycloak)
+	- **Discovery URL**: Use the discovery URL retrieved from your IdP
+	- **Client ID**: Use the Client ID retrieved from your IdP
+	- **Client Secret**: Use the Client Secret retrieved from your IdP
+	- **Enable this SSO provider**: Make sure this option is enabled
 4. Save
 
 ### 3. Configure your deployment group to authenticate via Livebook Teams
@@ -52,18 +52,18 @@ To enable OIDC authentication, your deployment group must be configured to use a
 
 In order to do so, follow these steps:
 
-1. Log in to Livebook Teams.
-2. Navigate to the **Deployments** panel.
-3. Click **Edit** on the deployment group where you want to enable authentication.
-4. Ensure that **Authenticate via Livebook Teams** is enabled.
-5. Save your changes.
+1. Log in to Livebook Teams
+2. Navigate to the **Deployments** panel
+3. Click **Edit** on the deployment group where you want to enable authentication
+4. Ensure that **Authenticate via Livebook Teams** is enabled
+5. Save your changes
 
 ### Test the integration with your OIDC IdP
 
 To verify the integration is working, follow these steps:
 
 1. Navigate to an application deployed in a deployment group configured for OIDC authentication.
-2. The app server will redirect you to Livebook Teams for authentication.
-3. On the authentication page, you will see an option to sign in using your configured OIDC provider.
-4. Click the name of your OIDC SSO configuration and follow the authentication steps provided by your IdP.
-5. Once authentication is complete, the IdP will redirect you back to your app server, and you will be successfully signed in.
+2. The app server will redirect you to Livebook Teams for authentication
+3. On the authentication page, you will see an option to sign in using your configured OIDC provider
+4. Click the name of your OIDC SSO configuration and follow the authentication steps provided by your IdP
+5. Once authentication is complete, the IdP will redirect you back to your app server, and you will be successfully signed in
