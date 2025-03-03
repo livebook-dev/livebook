@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.15.2](https://github.com/livebook-dev/livebook/tree/v0.15.2) (2025-03-03)
+
+### Fixed
+
+* Iframes not loading when Livebook starts normally, but iframe starts on a random port ([#2947](https://github.com/livebook-dev/livebook/pull/2947))
+* Session cookie overflow error when user identity data exceeds 4kb ([#2948](https://github.com/livebook-dev/livebook/pull/2948))
+
 ## [v0.15.1](https://github.com/livebook-dev/livebook/tree/v0.15.1) (2025-02-24)
 
 ### Changed
