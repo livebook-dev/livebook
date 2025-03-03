@@ -43,31 +43,24 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       # Step 2: Emulate the redirect back with the code for validation
       conn =
         build_conn(:get, "/", %{teams_identity: "", code: code})
-        |> init_test_session(%{})
+        |> init_test_session(Plug.Conn.get_session(conn))
 
-      assert {conn, %{id: _id, name: _, email: _, payload: %{"access_token" => _}} = metadata} =
+      assert {conn, %{id: _id, name: _, email: _, payload: %{}} = metadata} =
                LivebookTeams.authenticate(test, conn, [])
 
       assert redirected_to(conn, 302) == "/"
 
-      # Step 3: Confirm the token/metadata is valid for future requests
+      # Step 3: Confirm the token is valid for future requests
       conn =
         build_conn(:get, "/")
-        |> init_test_session(%{identity_data: metadata})
+        |> init_test_session(Plug.Conn.get_session(conn))
 
       assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
     end
 
     test "redirects to Livebook Teams with invalid access token",
          %{conn: conn, test: test} do
-      identity_data = %{
-        id: "11",
-        name: "Ada Lovelace",
-        payload: %{"access_token" => "1234567890"},
-        email: "user95387220@example.com"
-      }
-
-      conn = init_test_session(conn, %{identity_data: identity_data})
+      conn = init_test_session(conn, %{livebook_teams_access_token: "1234567890"})
       assert {conn, nil} = LivebookTeams.authenticate(test, conn, [])
       assert conn.halted
       assert html_response(conn, 200) =~ "window.location.href = "
@@ -116,31 +109,24 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       # Step 2: Emulate the redirect back with the code for validation
       conn =
         build_conn(:get, "/", %{teams_identity: "", code: code})
-        |> init_test_session(%{})
+        |> init_test_session(Plug.Conn.get_session(conn))
 
-      assert {conn, %{id: _id, name: _, email: _, payload: %{"access_token" => _}} = metadata} =
+      assert {conn, %{id: _id, name: _, email: _, payload: %{}} = metadata} =
                LivebookTeams.authenticate(test, conn, [])
 
       assert redirected_to(conn, 302) == "/"
 
-      # Step 3: Confirm the token/metadata is valid for future requests
+      # Step 3: Confirm the token is valid for future requests
       conn =
         build_conn(:get, "/")
-        |> init_test_session(%{identity_data: metadata})
+        |> init_test_session(Plug.Conn.get_session(conn))
 
       assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
 
       # Step 4: Revoke the token and the metadata will be invalid for future requests
-      user =
-        metadata.id
-        |> Livebook.Users.User.new()
-        |> Livebook.Users.User.changeset(metadata)
-        |> Ecto.Changeset.apply_changes()
-
       conn =
         build_conn(:get, "/")
-        |> init_test_session(%{identity_data: metadata})
-        |> assign(:current_user, user)
+        |> init_test_session(Plug.Conn.get_session(conn))
 
       assert LivebookTeams.logout(test, conn) == :ok
 
