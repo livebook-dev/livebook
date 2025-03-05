@@ -178,6 +178,11 @@ defmodule LivebookWeb.SessionLive do
      %{select_secret_metadata: select_secret_metadata, prefill_secret_name: params["secret_name"]}}
   end
 
+  defp handle_params(:file_settings, _params, _url, socket)
+       when socket.private.data.mode == :app do
+    {redirect_to_self(socket), %{}}
+  end
+
   defp handle_params(live_action, params, _url, socket)
        when live_action in [:app_settings, :file_settings] do
     {socket, %{context: params["context"]}}

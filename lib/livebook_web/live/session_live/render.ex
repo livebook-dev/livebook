@@ -28,6 +28,7 @@ defmodule LivebookWeb.SessionLive.Render do
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <.indicators
           session_id={@session.id}
+          mode={@session.mode}
           file={@data_view.file}
           dirty={@data_view.dirty}
           persistence_warnings={@data_view.persistence_warnings}
@@ -1029,6 +1030,7 @@ defmodule LivebookWeb.SessionLive.Render do
         >
           <.view_indicator />
           <.persistence_indicator
+            mode={@mode}
             file={@file}
             dirty={@dirty}
             persistence_warnings={@persistence_warnings}
@@ -1087,6 +1089,24 @@ defmodule LivebookWeb.SessionLive.Render do
         </.menu_item>
       </.menu>
     </div>
+    """
+  end
+
+  defp persistence_indicator(%{mode: :app} = assigns) do
+    ~H"""
+    <span
+      class="tooltip left"
+      data-tooltip={
+        ~S'''
+        This session is a deployed app. You can use it
+        for debugging, but changes are not persisted.
+        '''
+      }
+    >
+      <button class={[status_button_classes(:gray), "opacity-60"]} disabled>
+        <.remix_icon icon="save-line" />
+      </button>
+    </span>
     """
   end
 
