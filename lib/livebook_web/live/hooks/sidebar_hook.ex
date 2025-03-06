@@ -29,12 +29,7 @@ defmodule LivebookWeb.SidebarHook do
   end
 
   defp handle_info(:logout, socket) do
-    {_type, module, _key} = Livebook.Config.identity_provider()
-
-    case module.logout(LivebookWeb.ZTA, socket) do
-      :ok -> {:halt, redirect(socket, to: ~p"/logout")}
-      {:error, reason} -> {:cont, put_flash(socket, :error, reason)}
-    end
+    {:halt, redirect(socket, to: ~p"/logout")}
   end
 
   @connection_events ~w(hub_connected hub_changed hub_deleted)a
