@@ -1243,7 +1243,12 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:enable_language, client_pid, language}, state) do
-    case do_add_dependencies(state, [Livebook.Runtime.Definitions.pythonx_dependency()]) do
+    dependencies = [
+      Livebook.Runtime.Definitions.pythonx_dependency(),
+      Livebook.Runtime.Definitions.kino_pythonx_dependency()
+    ]
+
+    case do_add_dependencies(state, dependencies) do
       {:ok, state} ->
         client_id = client_id(state, client_pid)
 

@@ -2,6 +2,7 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
   require Logger
 
   @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
+  @compile {:no_warn_undefined, {Kino.Render, :impl_for, 1}}
   @compile {:no_warn_undefined, {Pythonx, :eval, 2}}
   @compile {:no_warn_undefined, {Pythonx, :decode, 1}}
 
@@ -57,8 +58,22 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
   end
 
   def format_result(:python, {:ok, value}) do
-    repr_string = Pythonx.eval("repr(value)", %{"value" => value}) |> elem(0) |> Pythonx.decode()
-    %{type: :terminal_text, text: repr_string, chunk: false}
+    if Code.ensure_loaded?(Kino.Render) do
+      try do
+        if Kino.Render.impl_for(value) == Kino.Render.Any do
+          to_repr_output(value)
+        else
+          Kino.Render.to_livebook(value)
+        end
+      catch
+        kind, error ->
+          formatted = format_error(kind, error, __STACKTRACE__)
+          Logger.error(formatted)
+          to_repr_output(value)
+      end
+    else
+      to_repr_output(value)
+    end
   end
 
   def format_result(:python, {:error, _kind, error, _stacktrace})
@@ -106,6 +121,13 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
     else
       to_inspect_output(value)
     end
+  end
+
+  defp to_repr_output(value) do
+    repr_string =
+      Pythonx.eval("repr(value)", %{"value" => value}) |> elem(0) |> Pythonx.decode()
+
+    %{type: :terminal_text, text: repr_string, chunk: false}
   end
 
   defp to_inspect_output(value, opts \\ []) do
