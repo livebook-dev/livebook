@@ -509,5 +509,9 @@ defmodule Livebook.Runtime.Definitions do
     %{dep: {:pythonx, "~> 0.4.2"}, config: []}
   end
 
+  def kino_pythonx_dependency() do
+    %{dep: {:kino_pythonx, github: "livebook-dev/kino_pythonx"}, config: []}
+  end
+
   def pythonx_requirement(), do: "~> 0.4.0"
 end
