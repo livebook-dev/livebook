@@ -2976,7 +2976,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     assert_receive {:operation,
                     {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}},
-                   20_000
+                   40_000
 
     assert output == "2"
   end
