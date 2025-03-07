@@ -1,6 +1,10 @@
 defmodule LivebookWeb.UserController do
   use LivebookWeb, :controller
 
+  def logout(conn, %{"logout" => _}) do
+    do_logout(conn)
+  end
+
   def logout(conn, _params) do
     if get_session(conn, :user_id) do
       if Livebook.Config.logout_enabled?() do
@@ -25,6 +29,7 @@ defmodule LivebookWeb.UserController do
 
     case module.logout(LivebookWeb.ZTA, conn) do
       :ok -> do_logout(conn)
+      {:ok, url} -> redirect(conn, external: url)
       {:error, reason} -> conn |> redirect(to: ~p"/") |> put_flash(:error, reason)
     end
   end

@@ -42,7 +42,8 @@ defmodule Livebook.ZTA.LivebookTeams do
     team = Livebook.ZTA.get(name)
 
     case Teams.Requests.logout_identity_provider(team, token) do
-      {:ok, _no_content} -> :ok
+      {:ok, ""} -> :ok
+      {:ok, %{"logout_url" => url}} -> {:ok, url}
       {:error, %{}} -> {:error, "You are already logged out."}
       {:transport_error, reason} -> {:error, reason}
     end
@@ -69,6 +70,10 @@ defmodule Livebook.ZTA.LivebookTeams do
      |> put_session(:teams_failed_reason, reason)
      |> redirect(to: conn.request_path)
      |> halt(), nil}
+  end
+
+  defp handle_request(conn, _team, %{"teams_identity" => _, "logout" => _}) do
+    {conn |> redirect(to: ~p"/logout?logout=") |> halt(), nil}
   end
 
   defp handle_request(conn, team, _params) do
