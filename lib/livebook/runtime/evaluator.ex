@@ -498,6 +498,8 @@ defmodule Livebook.Runtime.Evaluator do
     state = put_context(state, ref, new_context)
     output = Evaluator.Formatter.format_result(language, result)
 
+    after_evaluation(language)
+
     metadata = %{
       errored: error_result?(result),
       interrupted: interrupt_result?(result),
@@ -934,6 +936,7 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   @compile {:no_warn_undefined, {Pythonx, :eval, 2}}
+  @compile {:no_warn_undefined, {Pythonx, :uv_init, 1}}
   @compile {:no_warn_undefined, {Pythonx, :decode, 1}}
 
   defp eval_python(code, binding, env) do
@@ -1027,14 +1030,30 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp eval_pyproject_toml(code, binding, env) do
     with :ok <- ensure_pythonx() do
-      quoted = {{:., [], [{:__aliases__, [alias: false], [:Pythonx]}, :uv_init]}, [], [code]}
-
       {result, _diagnostics} =
         Code.with_diagnostics([log: true], fn ->
           try do
-            {value, binding, env} =
-              Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+            Pythonx.uv_init(code)
 
+            # The default matplotlib backend relies on OS-specific GUI
+            # and crashes when embedding Python. For this reason, we
+            # configure a non-interactive backend that only allows
+            # exporting figures as images. In general we want to avoid
+            # special casing like this, but given how common matplotlib
+            # is, it does make sense to streamline the experience.
+            # We set the backend using env var, instead of calling
+            # plt.backend(...), because importing the module for the
+            # first time is slow, so we prefer to avoid that as part
+            # of setup.
+            Pythonx.eval(
+              """
+              import os
+              os.environ["MPLBACKEND"] = "Agg"
+              """,
+              %{}
+            )
+
+            value = :ok
             result = {:ok, value, binding, env}
             code_markers = []
             {result, code_markers}
@@ -1080,6 +1099,27 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp pythonx_version(), do: List.to_string(Application.spec(:pythonx)[:vsn])
+
+  defp after_evaluation(:python) do
+    if ensure_pythonx() == :ok do
+      # With matplotlib the charts are built imperatively, by modifying
+      # a global figure state. We clear the global state after the
+      # evaluation, otherwise re-evaluating cells draws on top of the
+      # previous figure. We do this only if matplotlib is imported.
+      Pythonx.eval(
+        """
+        import sys
+
+        if "matplotlib" in sys.modules:
+          import matplotlib.pyplot as plt
+          plt.close("all")
+        """,
+        %{}
+      )
+    end
+  end
+
+  defp after_evaluation(_language), do: :ok
 
   defp identifier_dependencies(context, tracer_info, prev_context) do
     identifiers_used = MapSet.new()
