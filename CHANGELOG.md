@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.15.3](https://github.com/livebook-dev/livebook/tree/v0.15.3) (2025-03-10)
+
+### Fixed
+
+* Crash when logging out from Livebook with identity provider configured ([#2953](https://github.com/livebook-dev/livebook/pull/2953))
+
 ## [v0.15.2](https://github.com/livebook-dev/livebook/tree/v0.15.2) (2025-03-03)
 
 ### Fixed
