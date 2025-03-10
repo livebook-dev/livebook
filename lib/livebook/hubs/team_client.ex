@@ -837,6 +837,16 @@ defmodule Livebook.Hubs.TeamClient do
     put_in(state.hub, hub)
   end
 
+  # TODO: Remove when Billing is public
+  defp put_billing_status(hub, _status) do
+    Logger.debug("called put_billing_status/2 1", ansi_color: :yellow)
+
+    put_in(
+      hub.billing_status,
+      %{disabled: false, type: nil}
+    )
+  end
+
   defp put_billing_status(hub, %LivebookProto.BillingStatus{} = status) do
     put_in(
       hub.billing_status,
@@ -844,18 +854,10 @@ defmodule Livebook.Hubs.TeamClient do
     )
   end
 
-  # TODO: Remove when Billing is public
-  defp put_billing_status(hub, nil) do
-    put_in(
-      hub.billing_status,
-      %{disabled: false, type: nil}
-    )
-  end
-
   defp put_billing_status(
          {:trialing,
           %LivebookProto.BillingStatusTrialing{
-            trial_ends_at: %DateTime{} = trial_ends_at
+            trial_ends_at: trial_ends_at
           }}
        ) do
     %{type: :trialing, trial_ends_at: DateTime.from_unix!(trial_ends_at)}
@@ -864,7 +866,7 @@ defmodule Livebook.Hubs.TeamClient do
   defp put_billing_status(
          {:trial_ended,
           %LivebookProto.BillingStatusTrialEnded{
-            trial_ends_at: %DateTime{} = trial_ends_at
+            trial_ends_at: trial_ends_at
           }}
        ) do
     %{type: :trial_ended, trial_ends_at: DateTime.from_unix!(trial_ends_at)}
@@ -873,7 +875,7 @@ defmodule Livebook.Hubs.TeamClient do
   defp put_billing_status(
          {:canceling,
           %LivebookProto.BillingStatusCanceling{
-            cancel_at: %DateTime{} = cancel_at
+            cancel_at: cancel_at
           }}
        ) do
     %{type: :canceling, cancel_at: DateTime.from_unix!(cancel_at)}
