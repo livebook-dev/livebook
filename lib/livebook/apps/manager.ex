@@ -268,7 +268,7 @@ defmodule Livebook.Apps.Manager do
   end
 
   defp local_broadcast(message) do
-    Phoenix.PubSub.direct_broadcast!(node(), Livebook.PubSub, "apps_manager", message)
+    Phoenix.PubSub.local_broadcast(Livebook.PubSub, "apps_manager", message)
   end
 
   defp app_definitely_down?(slug) do
