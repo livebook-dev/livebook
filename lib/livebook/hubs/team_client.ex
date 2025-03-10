@@ -839,8 +839,6 @@ defmodule Livebook.Hubs.TeamClient do
 
   # TODO: Remove when Billing is public
   defp put_billing_status(hub, _status) do
-    Logger.debug("called put_billing_status/2 1", ansi_color: :yellow)
-
     put_in(
       hub.billing_status,
       %{disabled: false, type: nil}
