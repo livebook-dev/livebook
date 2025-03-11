@@ -782,7 +782,14 @@ defmodule Livebook.Utils do
     Req.Request.append_request_steps(req,
       connect_options: fn request ->
         uri = URI.parse(request.url)
-        connect_options = mint_connect_options_for_uri(uri)
+
+        # We use a step, because the configuration depends on the URL,
+        # but we allow any specified :connect_options to take precedence.
+        connect_options =
+          uri
+          |> mint_connect_options_for_uri()
+          |> Keyword.merge(Req.Request.get_option(request, :connect_options, []))
+
         Req.Request.merge_options(request, connect_options: connect_options)
       end
     )
