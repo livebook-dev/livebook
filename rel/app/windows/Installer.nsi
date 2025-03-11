@@ -70,7 +70,7 @@ Section "Check"
   ; we use otp\erts-:vsn\bin\erl.exe instead of otp\bin\erl.exe because the latter for some reason
   ; hardcoded the path: c:\otp\erts-:vsn\bin\erlexec.dll. The Elixir releases uses the former
   ; anyway.
-  nsExec::ExecToLog '"$INSTDIR\rel\vendor\otp\erts-${ERTS_VERSION}\bin\erl.exe" -noinput -eval "erlang:display(ok), halt()."'
+  nsExec::ExecToLog '"$INSTDIR\rel\vendor\livebook-${APP_VERSION}\otp\erts-${ERTS_VERSION}\bin\erl.exe" -noinput -eval "erlang:display(ok), halt()."'
   Pop $0
   ${If} $0 != 0
     MessageBox mb_iconStop "Checking Erlang failed: $0. Please click 'Show details' and report an issue."
@@ -78,7 +78,7 @@ Section "Check"
   ${EndIf}
 
   DetailPrint "Checking Distributed Erlang..."
-  nsExec::ExecToLog '"$INSTDIR\rel\vendor\otp\erts-${ERTS_VERSION}\bin\erl.exe" -sname "livebook-install-test" -noinput -eval "erlang:display(ok), halt()."'
+  nsExec::ExecToLog '"$INSTDIR\rel\vendor\livebook-${APP_VERSION}\otp\erts-${ERTS_VERSION}\bin\erl.exe" -sname "livebook-install-test" -noinput -eval "erlang:display(ok), halt()."'
   Pop $0
   ${If} $0 != 0
     MessageBox mb_iconStop "Checking Distributed Erlang failed: $0. Please click 'Show details' and report an issue."
