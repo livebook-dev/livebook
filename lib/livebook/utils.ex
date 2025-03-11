@@ -783,6 +783,8 @@ defmodule Livebook.Utils do
       connect_options: fn request ->
         uri = URI.parse(request.url)
 
+        # We use a step, because the configuration depends on the URL,
+        # but we allow any specified :connect_options to take precedence.
         connect_options =
           uri
           |> mint_connect_options_for_uri()
