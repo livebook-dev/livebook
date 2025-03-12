@@ -6,8 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-* K8s runtime failing to connect due to missing CA certificates (#2957)
-* (Desktop) Fix Windows installer failing path checks step (#2958)
+* K8s runtime failing to connect due to missing CA certificates ([#2957](https://github.com/livebook-dev/livebook/pull/2957))
+* (Desktop) Fix Windows installer failing path checks step ([#2958](https://github.com/livebook-dev/livebook/pull/2958))
 
 ## [v0.15.3](https://github.com/livebook-dev/livebook/tree/v0.15.3) (2025-03-10)
 
