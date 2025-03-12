@@ -128,12 +128,15 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         build_conn(:get, "/")
         |> init_test_session(Plug.Conn.get_session(conn))
 
-      assert LivebookTeams.logout(test, conn) == :ok
+      assert %{status: 302} = conn = LivebookTeams.logout(test, conn)
+      [url] = get_resp_header(conn, "location")
+      assert %{status: 200} = Req.get!(url)
 
-      # Step 5: If we try to revoke again, it should fail
-      assert {:error, _} = LivebookTeams.logout(test, conn)
+      # Step 5: It we try to authenticate again, it should redirect to Teams
+      conn =
+        build_conn(:get, "/")
+        |> init_test_session(Plug.Conn.get_session(conn))
 
-      # Step 6: It we try to authenticate again, it should redirect to Teams
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
       assert conn.halted
       assert html_response(conn, 200) =~ "window.location.href = "
