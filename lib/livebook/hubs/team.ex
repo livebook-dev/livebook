@@ -147,9 +147,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
       team.offline ->
         "You are running an offline Workspace for deployment. You cannot modify its settings."
 
-      team.user_id == nil ->
-        "You are running a Livebook app server. This workspace is in read-only mode."
-
       reason = TeamClient.get_connection_status(team.id) ->
         "Cannot connect to Teams: #{reason}.\nWill attempt to reconnect automatically..."
 
