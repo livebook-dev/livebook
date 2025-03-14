@@ -17,15 +17,11 @@ defmodule LivebookWeb.UserController do
     conn
     |> configure_session(renew: true)
     |> clear_session()
-    |> render("logout.html")
+    |> redirect(to: ~p"/")
   end
 
   defp do_zta_logout(conn) do
     {_type, module, _key} = Livebook.Config.identity_provider()
-
-    case module.logout(LivebookWeb.ZTA, conn) do
-      :ok -> do_logout(conn)
-      {:error, reason} -> conn |> redirect(to: ~p"/") |> put_flash(:error, reason)
-    end
+    module.logout(LivebookWeb.ZTA, conn)
   end
 end
