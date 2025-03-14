@@ -308,7 +308,7 @@ defmodule Livebook.Hubs do
   @doc """
   Gets a list of hub app specs.
   """
-  @spec get_app_specs() :: list(Livebook.AppSpec.t())
+  @spec get_app_specs() :: list(Livebook.Apps.AppSpec.t())
   def get_app_specs() do
     for hub <- get_hubs(),
         app_spec <- Provider.get_app_specs(hub),
