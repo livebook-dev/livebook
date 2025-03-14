@@ -41,9 +41,17 @@ defmodule LivebookWeb.AppAuthHook do
   #
 
   def on_mount(:default, %{"slug" => slug}, session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "app")
+    end
+
     livebook_authenticated? = livebook_authenticated?(session, socket)
 
-    socket = assign(socket, livebook_authenticated?: livebook_authenticated?)
+    socket =
+      socket
+      |> assign(livebook_authenticated?: livebook_authenticated?)
+      |> attach_hook(:logout, :handle_info, &handle_info/2)
+      |> attach_hook(:logout, :handle_event, &handle_event/3)
 
     case Livebook.Apps.fetch_settings(slug) do
       {:ok, %{access_type: :public} = app_settings} ->
@@ -69,6 +77,29 @@ defmodule LivebookWeb.AppAuthHook do
     uri = get_connect_info(socket, :uri)
     LivebookWeb.AuthPlug.authenticated?(session, uri.port)
   end
+
+  defp handle_info(:logout, socket) do
+    {:halt, redirect(socket, to: ~p"/logout")}
+  end
+
+  defp handle_info(_event, socket), do: {:cont, socket}
+
+  defp handle_event("logout", %{}, socket) do
+    on_confirm = fn socket ->
+      Phoenix.PubSub.broadcast(Livebook.PubSub, "app", :logout)
+      put_flash(socket, :info, "Livebook is logging out. You will be redirected soon.")
+    end
+
+    {:halt,
+     LivebookWeb.Confirm.confirm(socket, on_confirm,
+       title: "Log out",
+       description: "Are you sure you want to log out Livebook now?",
+       confirm_text: "Log out",
+       confirm_icon: "logout-box-line"
+     )}
+  end
+
+  defp handle_event(_event, _params, socket), do: {:cont, socket}
 
   defp has_valid_token?(socket, app_settings) do
     connect_params = get_connect_params(socket) || %{}
