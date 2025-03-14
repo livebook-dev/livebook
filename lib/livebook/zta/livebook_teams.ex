@@ -38,14 +38,19 @@ defmodule Livebook.ZTA.LivebookTeams do
   # Our extension to Livebook.ZTA to deal with logouts
   def logout(name, conn) do
     token = get_session(conn, :livebook_teams_access_token)
-
     team = Livebook.ZTA.get(name)
 
-    case Teams.Requests.logout_identity_provider(team, token) do
-      {:ok, _no_content} -> :ok
-      {:error, %{}} -> {:error, "You are already logged out."}
-      {:transport_error, reason} -> {:error, reason}
-    end
+    url =
+      Livebook.Config.teams_url()
+      |> URI.new!()
+      |> URI.append_path("/identity/logout")
+      |> URI.append_query("org_id=#{team.org_id}&access_token=#{token}")
+      |> URI.to_string()
+
+    conn
+    |> configure_session(renew: true)
+    |> clear_session()
+    |> redirect(external: url)
   end
 
   defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
