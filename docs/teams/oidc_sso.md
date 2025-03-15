@@ -22,6 +22,7 @@ To integrate Livebook Teams with your OIDC SSO provider, follow these steps.
 Go to your IdP admin, and register Livebook Teams as a Relying Party (client/app). This is the info you’ll need from Livebook Teams:
 
 - **Redirect URI**: The Livebook Teams sign-in callback URL that must be registered with your IdP: ` https://teams.livebook.dev/identity/callbacks/oidc`
+- **Post Logout Redirect URI**: The Livebook Teams URL that must be registered with your IdP to redirect users after logout:: `https://teams.livebook.dev/identity/logout`
 - **Required OIDC scopes**: the OIDC scopes Livebook Teams requires: `openid`, `profile`, `email`, `offline_access`
 
 Once that’s done, you should retrieve the following information from the registration process:
