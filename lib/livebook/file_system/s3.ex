@@ -85,12 +85,15 @@ defmodule Livebook.FileSystem.S3 do
     end
   end
 
-  @personal_id Livebook.Hubs.Personal.id()
-
   def id(_, nil), do: nil
-  def id(nil, bucket_url), do: hashed_id(bucket_url)
-  def id(@personal_id, bucket_url), do: hashed_id(bucket_url)
-  def id(hub_id, bucket_url), do: "#{hub_id}-#{hashed_id(bucket_url)}"
+
+  def id(hub_id, bucket_url) do
+    if hub_id == nil or hub_id == Livebook.Hubs.Personal.id() do
+      hashed_id(bucket_url)
+    else
+      "#{hub_id}-#{hashed_id(bucket_url)}"
+    end
+  end
 
   defp hashed_id(bucket_url) do
     hash = :crypto.hash(:sha256, bucket_url)
