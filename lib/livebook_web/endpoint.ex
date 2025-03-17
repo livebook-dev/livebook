@@ -108,9 +108,10 @@ defmodule LivebookWeb.Endpoint do
     end
   end
 
+  # Avoid compile-time deps on config as it is invoked as a MFA.
   @plug_ssl Plug.SSL.init(
-              host: {Livebook.Config, :force_ssl_host, []},
-              rewrite_on: {Livebook.Config, :rewrite_on, []}
+              host: {:"Elixir.Livebook.Config", :force_ssl_host, []},
+              rewrite_on: {:"Elixir.Livebook.Config", :rewrite_on, []}
             )
   def force_ssl(conn, _opts) do
     if Livebook.Config.force_ssl_host() do
