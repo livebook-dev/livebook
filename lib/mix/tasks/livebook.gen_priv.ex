@@ -1,18 +1,16 @@
 defmodule Mix.Tasks.Livebook.GenPriv do
   @moduledoc false
 
-  # Note that we need to include priv/.gitkeep in Dockerfile and Hex
-  # package files, so that priv/ is symlinked within _build/, before
-  # we generate the actual files.
-
   use Mix.Task
 
   @gzippable_exts ~w(.js .css .txt .text .html .json .svg .eot .ttf)
 
   @impl true
   def run([]) do
-    compress_and_copy("static", "priv/static")
-    compress_and_copy("iframe/priv/static/iframe", "priv/iframe_static")
+    app_path = Mix.Project.app_path()
+
+    compress_and_copy("static", Path.join(app_path, "priv/static"))
+    compress_and_copy("iframe/priv/static/iframe", Path.join(app_path, "priv/iframe_static"))
   end
 
   defp compress_and_copy(source_dir, target_dir) do
