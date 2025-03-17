@@ -23,8 +23,8 @@ defmodule LivebookWeb.LayoutComponents do
         <.sidebar current_page={@current_page} current_user={@current_user} saved_hubs={@saved_hubs} />
       </div>
       <div class="grow overflow-y-auto">
-        <.topbar :if={Livebook.Config.teams_auth?()} variant="warning">
-          This Livebook instance has been configured for notebook deployment and is in read-only mode.
+        <.topbar :if={Livebook.Config.app_server_instance_warning()} variant="warning">
+          {Livebook.Config.app_server_instance_warning()}
         </.topbar>
 
         <div class="md:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-[500] bg-white border-b border-gray-200">

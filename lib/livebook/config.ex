@@ -201,6 +201,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the app server instance warning message.
+  """
+  @spec app_server_instance_warning() :: String.t() | nil
+  def app_server_instance_warning() do
+    Application.get_env(:livebook, :app_server_instance_warning)
+  end
+
+  @doc """
   Returns the configured URL for the Livebook Teams endpoint.
   """
   @spec teams_url() :: String.t()

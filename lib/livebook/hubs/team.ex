@@ -143,15 +143,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def disconnect(team), do: TeamClient.stop(team.id)
 
   def connection_status(team) do
-    cond do
-      team.offline ->
-        "You are running an offline Workspace for deployment. You cannot modify its settings."
-
-      reason = TeamClient.get_connection_status(team.id) ->
-        "Cannot connect to Teams: #{reason}.\nWill attempt to reconnect automatically..."
-
-      true ->
-        nil
+    if reason = TeamClient.get_connection_status(team.id) do
+      "Cannot connect to Teams: #{reason}.\nWill attempt to reconnect automatically..."
     end
   end
 

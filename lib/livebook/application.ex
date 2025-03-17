@@ -295,6 +295,12 @@ defmodule Livebook.Application do
       teams_key && auth ->
         Application.put_env(:livebook, :teams_auth?, true)
 
+        Application.put_env(
+          :livebook,
+          :app_server_instance_warning,
+          "This Livebook instance has been configured for notebook deployment and is in read-only mode."
+        )
+
         {hub_id, fun} =
           case String.split(auth, ":") do
             ["offline", name, public_key] ->
@@ -369,6 +375,12 @@ defmodule Livebook.Application do
       else
         []
       end
+
+    Application.put_env(
+      :livebook,
+      :app_server_instance_warning,
+      "You are running an offline Workspace for deployment. You cannot modify its settings."
+    )
 
     Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
       id: id,
