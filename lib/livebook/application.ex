@@ -293,15 +293,16 @@ defmodule Livebook.Application do
 
     cond do
       teams_key && auth ->
-        Application.put_env(:livebook, :teams_auth, :online)
-
         {hub_id, fun} =
           case String.split(auth, ":") do
             ["offline", name, public_key] ->
+              Application.put_env(:livebook, :teams_auth, :offline)
               hub_id = "team-#{name}"
+
               {hub_id, fn -> create_offline_hub(teams_key, hub_id, name, public_key) end}
 
             ["online", name, org_id, org_key_id, agent_key] ->
+              Application.put_env(:livebook, :teams_auth, :online)
               hub_id = "team-" <> name
 
               with :error <- Application.fetch_env(:livebook, :identity_provider) do
@@ -369,8 +370,6 @@ defmodule Livebook.Application do
       else
         []
       end
-
-    Application.put_env(:livebook, :teams_auth, :offline)
 
     Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
       id: id,
