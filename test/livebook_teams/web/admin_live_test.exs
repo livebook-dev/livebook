@@ -4,51 +4,28 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
 
   import Phoenix.LiveViewTest
 
-  describe "app server" do
-    setup do
-      Application.put_env(
-        :livebook,
-        :app_server_instance_warning,
-        "This Livebook instance has been configured for notebook deployment and is in read-only mode."
-      )
+  setup %{teams_auth: teams_auth} do
+    Application.put_env(:livebook, :teams_auth, teams_auth)
+    on_exit(fn -> Application.delete_env(:livebook, :teams_auth) end)
 
-      on_exit(fn -> Application.delete_env(:livebook, :app_server_instance_warning) end)
-
-      :ok
-    end
-
-    for page <- ["/", "/settings", "/learn", "/hub", "/apps-dashboard"] do
-      @tag page: page
-      test "GET #{page} shows the app server instance topbar warning", %{conn: conn, page: page} do
-        {:ok, view, _} = live(conn, page)
-
-        assert render(view) =~
-                 "This Livebook instance has been configured for notebook deployment and is in read-only mode."
-      end
-    end
+    :ok
   end
 
-  describe "offline hub" do
-    setup do
-      Application.put_env(
-        :livebook,
-        :app_server_instance_warning,
-        "You are running an offline Workspace for deployment. You cannot modify its settings."
-      )
+  for page <- ["/", "/settings", "/learn", "/hub", "/apps-dashboard"] do
+    @tag page: page, teams_auth: :online
+    test "GET #{page} shows the app server instance topbar warning", %{conn: conn, page: page} do
+      {:ok, view, _} = live(conn, page)
 
-      on_exit(fn -> Application.delete_env(:livebook, :app_server_instance_warning) end)
-
-      :ok
+      assert render(view) =~
+               "This Livebook instance has been configured for notebook deployment and is in read-only mode."
     end
 
-    for page <- ["/", "/settings", "/learn", "/hub", "/apps-dashboard"] do
-      @tag page: page
-      test "GET #{page} shows the offline hub topbar warning", %{conn: conn, page: page} do
-        {:ok, view, _} = live(conn, page)
+    @tag page: page, teams_auth: :offline
+    test "GET #{page} shows the offline hub topbar warning", %{conn: conn, page: page} do
+      {:ok, view, _} = live(conn, page)
 
-        assert render(view) =~
-                 "You are running an offline Workspace for deployment. You cannot modify its settings."
-      end
+      assert render(view) =~
+               "You are running an offline Workspace for deployment. You cannot modify its settings."
     end
   end
 end
