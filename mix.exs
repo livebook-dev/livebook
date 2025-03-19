@@ -19,6 +19,7 @@ defmodule Livebook.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       test_elixirc_options: [docs: true],
       start_permanent: Mix.env() == :prod,
+      listeners: [Phoenix.CodeReloader],
       aliases: aliases(),
       deps: with_lock(target_deps(Mix.target()) ++ deps()),
       escript: escript(),
@@ -103,7 +104,8 @@ defmodule Livebook.MixProject do
   #
   defp deps do
     [
-      {:phoenix, "~> 1.7.8"},
+      # {:phoenix, "~> 1.7.8"},
+      {:phoenix, github: "phoenixframework/phoenix", override: true},
       {:phoenix_live_view, "~> 1.0.0"},
       {:phoenix_html, "~> 4.0"},
       {:phoenix_live_dashboard, "~> 0.8.4"},
