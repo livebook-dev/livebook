@@ -85,7 +85,7 @@ defmodule LivebookCLI do
 
   defp extract_priv!() do
     archive_dir = Path.join(Livebook.Config.tmp_path(), "escript")
-    extracted_path = Path.join(archive_dir, ".extracted")
+    extracted_path = Path.join(archive_dir, "extracted")
     in_archive_priv_path = ~c"livebook/priv"
 
     # In dev we want to extract fresh directory on every boot
@@ -94,7 +94,7 @@ defmodule LivebookCLI do
     end
 
     # When temporary directory is cleaned by the OS, the directories
-    # may be left in place, so we use a regular file (.extracted) to
+    # may be left in place, so we use a regular file (extracted) to
     # check if the extracted archive is already available
     if not File.exists?(extracted_path) do
       {:ok, sections} = :escript.extract(:escript.script_name(), [])
