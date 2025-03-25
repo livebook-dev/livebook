@@ -63,6 +63,33 @@ defmodule Livebook.Apps do
   end
 
   @doc """
+  Returns all the running apps authorized to given user.
+  """
+  @spec list_authorized_apps(Livebook.Users.User.t()) :: list(App.t())
+  def list_authorized_apps(user) do
+    filter_authorized_apps(list_apps(), user)
+  end
+
+  @doc """
+  Filters all the given running apps authorized to given user.
+  """
+  @spec filter_authorized_apps(list(App.t()), Livebook.Users.User.t()) :: list(App.t())
+  def filter_authorized_apps(apps, user) do
+    apps_without_authorization = Enum.filter(apps, &is_nil(&1.app_spec.identity_groups))
+
+    apps_with_authorization =
+      if groups = user.groups do
+        apps
+        |> Enum.reject(&is_nil(&1.app_spec.identity_groups))
+        |> Enum.filter(&Enum.any?(&1.app_spec.identity_groups, fn group -> group in groups end))
+      else
+        []
+      end
+
+    apps_with_authorization ++ apps_without_authorization
+  end
+
+  @doc """
   Updates the given app info across the cluster.
   """
   @spec update_app(App.t()) :: :ok | {:error, any()}

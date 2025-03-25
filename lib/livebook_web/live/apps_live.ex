@@ -7,7 +7,7 @@ defmodule LivebookWeb.AppsLive do
       Livebook.Apps.subscribe()
     end
 
-    apps = Livebook.Apps.list_apps()
+    apps = Livebook.Apps.list_authorized_apps(socket.assigns.current_user)
     empty_apps_path? = Livebook.Apps.empty_apps_path?()
 
     {:ok, assign(socket, apps: apps, empty_apps_path?: empty_apps_path?)}
