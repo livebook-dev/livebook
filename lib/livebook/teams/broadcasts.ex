@@ -22,6 +22,7 @@ defmodule Livebook.Teams.Broadcasts do
 
     * `{:app_deployment_started, AppDeployment.t()}`
     * `{:app_deployment_stopped, AppDeployment.t()}`
+    * `{:app_deployment_updated, AppDeployment.t()}`
 
   Topic `#{@clients_topic}`:
 
@@ -105,6 +106,14 @@ defmodule Livebook.Teams.Broadcasts do
   @spec app_deployment_stopped(Teams.AppDeployment.t()) :: broadcast()
   def app_deployment_stopped(%Teams.AppDeployment{} = app_deployment) do
     broadcast(@app_deployments_topic, {:app_deployment_stopped, app_deployment})
+  end
+
+  @doc """
+  Broadcasts under `#{@app_deployments_topic}` topic when hub received an updated app deployment.
+  """
+  @spec app_deployment_updated(Teams.AppDeployment.t()) :: broadcast()
+  def app_deployment_updated(%Teams.AppDeployment{} = app_deployment) do
+    broadcast(@app_deployments_topic, {:app_deployment_updated, app_deployment})
   end
 
   @doc """
