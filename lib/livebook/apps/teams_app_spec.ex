@@ -1,9 +1,9 @@
 defmodule Livebook.Apps.TeamsAppSpec do
   # App spec for organization apps fetched from Livebook Teams.
 
-  @enforce_keys [:slug, :version, :hub_id, :app_deployment_id]
+  @enforce_keys [:slug, :version, :hub_id, :app_deployment_id, :identity_groups]
 
-  defstruct [:slug, :version, :hub_id, :app_deployment_id]
+  defstruct [:slug, :version, :hub_id, :app_deployment_id, :identity_groups]
 end
 
 defimpl Livebook.Apps.AppSpec, for: Livebook.Apps.TeamsAppSpec do

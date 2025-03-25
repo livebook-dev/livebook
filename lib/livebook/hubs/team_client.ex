@@ -503,6 +503,7 @@ defmodule Livebook.Hubs.TeamClient do
       hub_id: state.hub.id,
       deployment_group_id: app_deployment.deployment_group_id,
       file: nil,
+      identity_groups: app_deployment.identity_groups,
       deployed_by: app_deployment.deployed_by,
       deployed_at: DateTime.from_gregorian_seconds(app_deployment.deployed_at)
     }
