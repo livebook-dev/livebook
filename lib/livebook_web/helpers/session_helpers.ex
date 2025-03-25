@@ -274,4 +274,32 @@ defmodule LivebookWeb.SessionHelpers do
       Livebook.Session.register_file(session_pid, path, key)
     end
   end
+
+  @logout_topic "logout"
+
+  @doc """
+  Subscribes to #{@logout_topic} topic.
+  """
+  @spec subscribe_to_logout() :: :ok | {:error, term()}
+  def subscribe_to_logout do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, @logout_topic)
+  end
+
+  @doc """
+  Shows the confirmation modal to logout user from Livebook.
+  """
+  @spec confirm_logout(Socket.t()) :: Socket.t()
+  def confirm_logout(socket) do
+    on_confirm = fn socket ->
+      Phoenix.PubSub.broadcast(Livebook.PubSub, @logout_topic, :logout)
+      put_flash(socket, :info, "Livebook is logging out. You will be redirected soon.")
+    end
+
+    confirm(socket, on_confirm,
+      title: "Log out",
+      description: "Are you sure you want to log out Livebook now?",
+      confirm_text: "Log out",
+      confirm_icon: "logout-box-line"
+    )
+  end
 end
