@@ -12,4 +12,5 @@ defmodule LivebookProto.AppDeployment do
   field :multi_session, 9, type: :bool, json_name: "multiSession"
   field :access_type, 10, type: :string, json_name: "accessType"
   field :version, 11, type: :string
+  field :identity_groups, 12, repeated: true, type: :string, json_name: "identityGroups"
 end

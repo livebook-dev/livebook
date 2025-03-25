@@ -73,4 +73,9 @@ defmodule LivebookProto.Event do
     oneof: 0
 
   field :org_updated, 17, type: LivebookProto.OrgUpdated, json_name: "orgUpdated", oneof: 0
+
+  field :app_deployment_updated, 18,
+    type: LivebookProto.AppDeploymentUpdated,
+    json_name: "appDeploymentUpdated",
+    oneof: 0
 end
