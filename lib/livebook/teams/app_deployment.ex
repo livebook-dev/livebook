@@ -15,6 +15,7 @@ defmodule Livebook.Teams.AppDeployment do
           hub_id: String.t() | nil,
           deployment_group_id: String.t() | nil,
           file: binary() | nil,
+          identity_groups: list(String.t()) | nil,
           deployed_by: String.t() | nil,
           deployed_at: DateTime.t() | nil
         }
@@ -32,6 +33,7 @@ defmodule Livebook.Teams.AppDeployment do
     field :hub_id, :string
     field :deployment_group_id, :string
     field :file, :string
+    field :identity_groups, {:array, :string}
     field :deployed_by, :string
     field :deployed_at, :utc_datetime
   end
