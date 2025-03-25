@@ -157,6 +157,15 @@ defmodule LivebookWeb.AppComponents do
   def docker_tag_options(), do: @docker_tag_options
 
   @doc """
+  Updates app list with the given apps event and given user.
+  """
+  def update_app_list(apps, event, user) do
+    apps
+    |> update_app_list(event)
+    |> Livebook.Apps.filter_authorized_apps(user)
+  end
+
+  @doc """
   Updates app list with the given apps event.
   """
   def update_app_list(apps, event)
@@ -166,9 +175,13 @@ defmodule LivebookWeb.AppComponents do
   end
 
   def update_app_list(apps, {:app_updated, app}) do
-    Enum.map(apps, fn other ->
-      if other.slug == app.slug, do: app, else: other
-    end)
+    if Enum.any?(apps, &(&1.slug == app.slug)) do
+      Enum.map(apps, fn other ->
+        if other.slug == app.slug, do: app, else: other
+      end)
+    else
+      [app | apps]
+    end
   end
 
   def update_app_list(apps, {:app_closed, app}) do
