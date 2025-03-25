@@ -440,6 +440,7 @@ defmodule Livebook.Hubs.TeamClient do
     secrets = Enum.map(deployment_group.secrets, &build_secret(state, &1))
     agent_keys = Enum.map(deployment_group.agent_keys, &build_agent_key/1)
     environment_variables = build_environment_variables(state, deployment_group)
+    authorization_groups = build_authorization_groups(deployment_group)
 
     %Teams.DeploymentGroup{
       id: deployment_group.id,
@@ -451,7 +452,8 @@ defmodule Livebook.Hubs.TeamClient do
       environment_variables: environment_variables,
       clustering: nullify(deployment_group.clustering),
       url: nullify(deployment_group.url),
-      teams_auth: deployment_group.teams_auth
+      teams_auth: deployment_group.teams_auth,
+      authorization_groups: authorization_groups
     }
   end
 
@@ -468,7 +470,8 @@ defmodule Livebook.Hubs.TeamClient do
       environment_variables: [],
       clustering: nullify(deployment_group_created.clustering),
       url: nullify(deployment_group_created.url),
-      teams_auth: deployment_group_created.teams_auth
+      teams_auth: deployment_group_created.teams_auth,
+      authorization_groups: []
     }
   end
 
@@ -476,6 +479,7 @@ defmodule Livebook.Hubs.TeamClient do
     secrets = Enum.map(deployment_group_updated.secrets, &build_secret(state, &1))
     agent_keys = Enum.map(deployment_group_updated.agent_keys, &build_agent_key/1)
     environment_variables = build_environment_variables(state, deployment_group_updated)
+    authorization_groups = build_authorization_groups(deployment_group_updated)
 
     {:ok, deployment_group} = fetch_deployment_group(deployment_group_updated.id, state)
 
@@ -487,11 +491,14 @@ defmodule Livebook.Hubs.TeamClient do
         environment_variables: environment_variables,
         clustering: atomize(deployment_group_updated.clustering),
         url: nullify(deployment_group_updated.url),
-        teams_auth: deployment_group_updated.teams_auth
+        teams_auth: deployment_group_updated.teams_auth,
+        authorization_groups: authorization_groups
     }
   end
 
   defp build_app_deployment(state, %LivebookProto.AppDeployment{} = app_deployment) do
+    authorization_groups = build_authorization_groups(app_deployment)
+
     %Teams.AppDeployment{
       id: app_deployment.id,
       slug: app_deployment.slug,
@@ -504,7 +511,8 @@ defmodule Livebook.Hubs.TeamClient do
       deployment_group_id: app_deployment.deployment_group_id,
       file: nil,
       deployed_by: app_deployment.deployed_by,
-      deployed_at: DateTime.from_gregorian_seconds(app_deployment.deployed_at)
+      deployed_at: DateTime.from_gregorian_seconds(app_deployment.deployed_at),
+      authorization_groups: authorization_groups
     }
   end
 
@@ -515,6 +523,15 @@ defmodule Livebook.Hubs.TeamClient do
         value: environment_variable.value,
         hub_id: state.hub.id,
         deployment_group_id: deployment_group_updated.id
+      }
+    end
+  end
+
+  defp build_authorization_groups(%{authorization_groups: authorization_groups}) do
+    for authorization_group <- authorization_groups do
+      %Teams.AuthorizationGroup{
+        oidc_provider_id: authorization_group.oidc_provider_id,
+        group_name: authorization_group.group_name
       }
     end
   end
@@ -662,14 +679,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp handle_event(:app_deployment_started, %Teams.AppDeployment{} = app_deployment, state) do
-    deployment_group_id = app_deployment.deployment_group_id
-
-    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
-      if deployment_group.id == state.deployment_group_id do
-        manager_sync()
-      end
-    end
-
+    manager_sync(app_deployment, state)
     Teams.Broadcasts.app_deployment_started(app_deployment)
     put_app_deployment(state, app_deployment)
   end
@@ -683,14 +693,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp handle_event(:app_deployment_stopped, %Teams.AppDeployment{} = app_deployment, state) do
-    deployment_group_id = app_deployment.deployment_group_id
-
-    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
-      if deployment_group.id == state.deployment_group_id do
-        manager_sync()
-      end
-    end
-
+    manager_sync(app_deployment, state)
     Teams.Broadcasts.app_deployment_stopped(app_deployment)
     remove_app_deployment(state, app_deployment)
   end
@@ -699,6 +702,20 @@ defmodule Livebook.Hubs.TeamClient do
     with {:ok, app_deployment} <- fetch_app_deployment(id, state) do
       handle_event(:app_deployment_stopped, app_deployment, state)
     end
+  end
+
+  defp handle_event(:app_deployment_updated, %Teams.AppDeployment{} = app_deployment, state) do
+    manager_sync(app_deployment, state)
+    Teams.Broadcasts.app_deployment_updated(app_deployment)
+    put_app_deployment(state, app_deployment)
+  end
+
+  defp handle_event(:app_deployment_updated, app_deployment_updated, state) do
+    handle_event(
+      :app_deployment_updated,
+      build_app_deployment(state, app_deployment_updated.app_deployment),
+      state
+    )
   end
 
   defp handle_event(:agent_joined, %Teams.Agent{} = agent, state) do
@@ -938,10 +955,14 @@ defmodule Livebook.Hubs.TeamClient do
   defp nullify(""), do: nil
   defp nullify(value), do: value
 
-  defp manager_sync() do
-    # Each node runs the teams client, but we only need to call sync once
-    if Apps.Manager.local?() do
-      Apps.Manager.sync_permanent_apps()
+  defp manager_sync(%{deployment_group_id: id}, state) do
+    with {:ok, deployment_group} <- fetch_deployment_group(id, state) do
+      if deployment_group.id == state.deployment_group_id do
+        # Each node runs the teams client, but we only need to call sync once
+        if Apps.Manager.local?() do
+          Apps.Manager.sync_permanent_apps()
+        end
+      end
     end
   end
 end
