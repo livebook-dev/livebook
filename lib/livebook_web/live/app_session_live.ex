@@ -140,6 +140,12 @@ defmodule LivebookWeb.AppSessionLive do
                 <span>Debug</span>
               </.link>
             </.menu_item>
+            <.menu_item :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}>
+              <button phx-click="logout" role="menuitem">
+                <.remix_icon icon="logout-box-line" />
+                <span>Logout</span>
+              </button>
+            </.menu_item>
           </.menu>
         </div>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
