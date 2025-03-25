@@ -17,6 +17,7 @@ defmodule Livebook.Users.User do
           name: String.t() | nil,
           email: String.t() | nil,
           avatar_url: String.t() | nil,
+          groups: list(map()) | nil,
           payload: map() | nil,
           hex_color: hex_color()
         }
@@ -28,6 +29,7 @@ defmodule Livebook.Users.User do
     field :name, :string
     field :email, :string
     field :avatar_url, :string
+    field :groups, {:array, :map}
     field :payload, :map
     field :hex_color, Livebook.EctoTypes.HexColor
   end
@@ -42,6 +44,7 @@ defmodule Livebook.Users.User do
       name: nil,
       email: nil,
       avatar_url: nil,
+      groups: nil,
       payload: nil,
       hex_color: Livebook.EctoTypes.HexColor.random()
     }
@@ -49,7 +52,7 @@ defmodule Livebook.Users.User do
 
   def changeset(user, attrs \\ %{}) do
     user
-    |> cast(attrs, [:name, :email, :avatar_url, :hex_color, :payload])
+    |> cast(attrs, [:name, :email, :avatar_url, :groups, :hex_color, :payload])
     |> validate_required([:hex_color])
   end
 end

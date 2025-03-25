@@ -157,12 +157,19 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   defp get_user_info(team, access_token) do
     with {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
-      %{"id" => id, "name" => name, "email" => email, "avatar_url" => avatar_url} = payload
+      %{
+        "id" => id,
+        "name" => name,
+        "email" => email,
+        "groups" => groups,
+        "avatar_url" => avatar_url
+      } = payload
 
       metadata = %{
         id: id,
         name: name,
         avatar_url: avatar_url,
+        groups: groups,
         email: email,
         payload: payload
       }
