@@ -259,7 +259,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
         slug: app_deployment.slug,
         version: app_deployment.version,
         hub_id: app_deployment.hub_id,
-        app_deployment_id: app_deployment.id
+        app_deployment_id: app_deployment.id,
+        authorization_groups: app_deployment.authorization_groups
       }
     end
   end

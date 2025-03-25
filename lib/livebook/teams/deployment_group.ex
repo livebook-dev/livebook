@@ -15,7 +15,8 @@ defmodule Livebook.Teams.DeploymentGroup do
           teams_auth: boolean(),
           secrets: Ecto.Schema.has_many(Secrets.Secret.t()),
           agent_keys: Ecto.Schema.has_many(Teams.AgentKey.t()),
-          environment_variables: Ecto.Schema.has_many(Teams.EnvironmentVariable.t())
+          environment_variables: Ecto.Schema.has_many(Teams.EnvironmentVariable.t()),
+          authorization_groups: Ecto.Schema.has_many(Teams.AuthorizationGroup.t())
         }
 
   @primary_key {:id, :string, autogenerate: false}
@@ -26,6 +27,7 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :clustering, Ecto.Enum, values: [:auto, :dns]
     field :url, :string
     field :teams_auth, :boolean, default: true
+    field :authorization_groups, {:array, :map}
 
     has_many :secrets, Secrets.Secret
     has_many :agent_keys, Teams.AgentKey
