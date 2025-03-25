@@ -701,6 +701,27 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
+  defp handle_event(:app_deployment_updated, %Teams.AppDeployment{} = app_deployment, state) do
+    deployment_group_id = app_deployment.deployment_group_id
+
+    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
+      if deployment_group.id == state.deployment_group_id do
+        manager_sync()
+      end
+    end
+
+    Teams.Broadcasts.app_deployment_updated(app_deployment)
+    put_app_deployment(state, app_deployment)
+  end
+
+  defp handle_event(:app_deployment_updated, app_deployment_updated, state) do
+    handle_event(
+      :app_deployment_updated,
+      build_app_deployment(state, app_deployment_updated.app_deployment),
+      state
+    )
+  end
+
   defp handle_event(:agent_joined, %Teams.Agent{} = agent, state) do
     Teams.Broadcasts.agent_joined(agent)
     put_agent(state, agent)
