@@ -42,7 +42,7 @@ defmodule LivebookWeb.AppAuthHook do
 
   def on_mount(:default, %{"slug" => slug}, session, socket) do
     if connected?(socket) do
-      LivebookWeb.SessionHelpers.subscribe()
+      LivebookWeb.SessionHelpers.subscribe_to_logout()
     end
 
     livebook_authenticated? = livebook_authenticated?(session, socket)

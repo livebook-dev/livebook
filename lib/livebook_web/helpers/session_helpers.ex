@@ -280,8 +280,8 @@ defmodule LivebookWeb.SessionHelpers do
   @doc """
   Subscribes to #{@logout_topic} topic.
   """
-  @spec subscribe() :: :ok | {:error, term()}
-  def subscribe do
+  @spec subscribe_to_logout() :: :ok | {:error, term()}
+  def subscribe_to_logout do
     Phoenix.PubSub.subscribe(Livebook.PubSub, @logout_topic)
   end
 
