@@ -137,6 +137,7 @@ message AppDeployment {
   bool multi_session = 9;
   string access_type = 10;
   string version = 11;
+  repeated string identity_groups = 12;
 }
 
 message AppDeploymentStarted {
@@ -145,6 +146,10 @@ message AppDeploymentStarted {
 
 message AppDeploymentStopped {
   string id = 1;
+}
+
+message AppDeploymentUpdated {
+  AppDeployment app_deployment = 1;
 }
 
 message UserDeleted {
@@ -218,6 +223,7 @@ message Event {
     AgentLeft agent_left = 15;
     AppDeploymentStopped app_deployment_stopped = 16;
     OrgUpdated org_updated = 17;
+    AppDeploymentUpdated app_deployment_updated = 18;
   }
 }
 
