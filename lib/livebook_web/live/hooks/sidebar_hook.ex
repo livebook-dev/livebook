@@ -9,6 +9,7 @@ defmodule LivebookWeb.SidebarHook do
   def on_mount(:default, _params, _session, socket) do
     if connected?(socket) do
       Livebook.Hubs.Broadcasts.subscribe([:crud, :connection])
+      LivebookWeb.SessionHelpers.subscribe()
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sidebar")
     end
 
@@ -67,18 +68,7 @@ defmodule LivebookWeb.SidebarHook do
   end
 
   defp handle_event("logout", _params, socket) do
-    on_confirm = fn socket ->
-      Phoenix.PubSub.broadcast(Livebook.PubSub, "sidebar", :logout)
-      put_flash(socket, :info, "Livebook is logging out. You will be redirected soon.")
-    end
-
-    {:halt,
-     confirm(socket, on_confirm,
-       title: "Log out",
-       description: "Are you sure you want to log out Livebook now?",
-       confirm_text: "Log out",
-       confirm_icon: "logout-box-line"
-     )}
+    {:halt, LivebookWeb.SessionHelpers.confirm_logout(socket)}
   end
 
   defp handle_event(_event, _params, socket), do: {:cont, socket}

@@ -42,7 +42,7 @@ defmodule LivebookWeb.AppAuthHook do
 
   def on_mount(:default, %{"slug" => slug}, session, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "app")
+      LivebookWeb.SessionHelpers.subscribe()
     end
 
     livebook_authenticated? = livebook_authenticated?(session, socket)
@@ -85,18 +85,7 @@ defmodule LivebookWeb.AppAuthHook do
   defp handle_info(_event, socket), do: {:cont, socket}
 
   defp handle_event("logout", %{}, socket) do
-    on_confirm = fn socket ->
-      Phoenix.PubSub.broadcast(Livebook.PubSub, "app", :logout)
-      put_flash(socket, :info, "Livebook is logging out. You will be redirected soon.")
-    end
-
-    {:halt,
-     LivebookWeb.Confirm.confirm(socket, on_confirm,
-       title: "Log out",
-       description: "Are you sure you want to log out Livebook now?",
-       confirm_text: "Log out",
-       confirm_icon: "logout-box-line"
-     )}
+    {:halt, LivebookWeb.SessionHelpers.confirm_logout(socket)}
   end
 
   defp handle_event(_event, _params, socket), do: {:cont, socket}
