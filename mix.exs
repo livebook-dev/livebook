@@ -114,7 +114,7 @@ defmodule Livebook.MixProject do
       {:bandit, "~> 1.0"},
       {:plug, "~> 1.16"},
       {:plug_crypto, "~> 2.0"},
-      {:earmark_parser, "~> 1.4"},
+      {:earmark, "~> 1.4"},
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
       {:aws_credentials, "~> 0.3.0", runtime: false},

@@ -442,17 +442,42 @@ defmodule LivebookWeb.AppSessionLive do
   defp data_to_view(data) do
     changed_input_ids = Session.Data.changed_input_ids(data)
 
-    %{
-      notebook_name: data.notebook.name,
-      cell_views:
-        for {cell, _section} <- Notebook.evaluable_cells_with_section(data.notebook) do
+    shall_render = fn cell ->
+      if data.notebook.app_settings.render_static do
+        Cell.evaluable?(cell) or Cell.static?(cell)
+      else
+        Cell.evaluable?(cell)
+      end
+    end
+
+    cell_views =
+      data.notebook
+      |> Notebook.cells_with_section()
+      |> Enum.filter(fn {cell, _section} -> shall_render.(cell) end)
+      |> Enum.map(fn
+        {%Livebook.Notebook.Cell.Markdown{} = cell, _section} ->
+          out_id = :rand.uniform(31337)
+          output = {out_id, %{type: :markdown_static, text: cell.source, chunk: false}}
+
+          %{
+            id: cell.id,
+            input_views: [],
+            outputs: [output],
+            outputs_batch_number: 0
+          }
+
+        {cell, _section} ->
           %{
             id: cell.id,
             input_views: input_views_for_cell(cell, data, changed_input_ids),
             outputs: filter_outputs(cell.outputs, data.notebook.app_settings.output_type),
             outputs_batch_number: data.cell_infos[cell.id].eval.outputs_batch_number
           }
-        end,
+      end)
+
+    %{
+      notebook_name: data.notebook.name,
+      cell_views: cell_views,
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
