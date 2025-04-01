@@ -91,7 +91,7 @@ defmodule LivebookWeb.Output do
       js_view={@js_view}
       session_id={@session_id}
       client_id={@client_id}
-      timeout_message="Output data no longer available, please reevaluate this cell"
+      unreachable_message="Output data no longer available, please reevaluate this cell"
     />
     """
   end
