@@ -57,6 +57,7 @@ import { ancestorNode, closestNode } from "./live_editor/codemirror/tree_utils";
 import { selectingClass } from "./live_editor/codemirror/selecting_class";
 import { globalPubsub } from "../../lib/pubsub";
 import { hoverDetails } from "./live_editor/codemirror/hover_details";
+import { toggleWith } from "./live_editor/codemirror/toggle_with";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -385,6 +386,7 @@ export default class LiveEditor {
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
         this.languageCompartment.of(this.languageExtensions()),
+        toggleWith("Alt-z", EditorView.lineWrapping),
         EditorView.domEventHandlers({
           click: this.handleEditorClick.bind(this),
           keydown: this.handleEditorKeydown.bind(this),
