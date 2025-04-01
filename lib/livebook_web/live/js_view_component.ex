@@ -6,7 +6,7 @@ defmodule LivebookWeb.JSViewComponent do
     {:ok,
      socket
      |> assign(assigns)
-     |> assign_new(:timeout_message, fn -> "Not available" end)}
+     |> assign_new(:unreachable_message, fn -> "Not available" end)}
   end
 
   @impl true
@@ -26,8 +26,11 @@ defmodule LivebookWeb.JSViewComponent do
       data-p-connect-token={hook_prop(connect_token(@js_view.pid))}
       data-p-iframe-port={hook_prop(LivebookWeb.IframeEndpoint.port())}
       data-p-iframe-url={hook_prop(Livebook.Config.iframe_url())}
-      data-p-timeout-message={hook_prop(@timeout_message)}
+      data-p-unreachable-message={hook_prop(@unreachable_message)}
     >
+      <div class="delay-200 py-2" data-el-skeleton>
+        <.content_skeleton empty={false} />
+      </div>
     </div>
     """
   end
