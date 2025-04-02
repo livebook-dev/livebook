@@ -7,10 +7,17 @@ defmodule Mix.Tasks.Livebook.GenPriv do
 
   @impl true
   def run([]) do
-    app_path = Mix.Project.app_path()
+    # Use absolute paths, instead of relying on the current mix project,
+    # so the task can be invoked by nerves_livebook.
+    app_path = Application.app_dir(:livebook)
+    project_dir = Path.expand("../../..", __DIR__)
 
-    compress_and_copy("static", Path.join(app_path, "priv/static"))
-    compress_and_copy("iframe/priv/static/iframe", Path.join(app_path, "priv/iframe_static"))
+    compress_and_copy(Path.join(project_dir, "static"), Path.join(app_path, "priv/static"))
+
+    compress_and_copy(
+      Path.join(project_dir, "iframe/priv/static/iframe"),
+      Path.join(app_path, "priv/iframe_static")
+    )
   end
 
   defp compress_and_copy(source_dir, target_dir) do
