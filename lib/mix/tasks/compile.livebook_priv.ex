@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Compile.LivebookPriv do
   @gzippable_exts ~w(.js .css .txt .text .html .json .svg .eot .ttf)
 
   @impl true
-  def run([]) do
+  def run(_args) do
     app_path = Mix.Project.app_path()
     manifest_path = Path.join(app_path, "compile.livebook_priv")
 
