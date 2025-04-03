@@ -2,6 +2,18 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.15.5](https://github.com/livebook-dev/livebook/tree/v0.15.5) (2025-04-03)
+
+### Added
+
+* Option to logout from Livebook app ([#2961](https://github.com/livebook-dev/livebook/pull/2961))
+
+### Fixed
+
+* Escript installation on Windows with symlinks disabled ([#2965](https://github.com/livebook-dev/livebook/pull/2965))
+* Escript static files not available after macOS automatic tmpdir cleanup
+* Fixed `mailto:` URLs treated as relative in Markdown cells
+
 ## [v0.15.4](https://github.com/livebook-dev/livebook/tree/v0.15.4) (2025-03-12)
 
 ### Fixed
