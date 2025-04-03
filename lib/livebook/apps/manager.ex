@@ -186,7 +186,11 @@ defmodule Livebook.Apps.Manager do
       {state, up_to_date_app_specs, schedule_sync?} ->
         case fetch_app(app_spec.slug) do
           {:ok, _state, app} when app.app_spec.version == app_spec.version ->
-            {state, [app_spec | up_to_date_app_specs], schedule_sync?}
+            if app.app_spec.identity_groups != app_spec.identity_groups do
+              {state, up_to_date_app_specs, schedule_sync?}
+            else
+              {state, [app_spec | up_to_date_app_specs], schedule_sync?}
+            end
 
           {:ok, :reachable, app} ->
             ref = redeploy(app, app_spec)

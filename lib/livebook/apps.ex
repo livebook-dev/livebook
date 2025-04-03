@@ -67,26 +67,23 @@ defmodule Livebook.Apps do
   """
   @spec list_authorized_apps(Livebook.Users.User.t()) :: list(App.t())
   def list_authorized_apps(user) do
-    filter_authorized_apps(list_apps(), user)
+    for app <- list_apps(),
+        authorized?(app, user) do
+      app
+    end
   end
 
   @doc """
-  Filters all the given running apps authorized to given user.
+  Returns if the given running app is authorized to given user.
   """
-  @spec filter_authorized_apps(list(App.t()), Livebook.Users.User.t()) :: list(App.t())
-  def filter_authorized_apps(apps, user) do
-    apps_without_authorization = Enum.filter(apps, &is_nil(&1.app_spec.identity_groups))
+  @spec authorized?(App.t(), Livebook.Users.User.t()) :: boolean()
+  def authorized?(app, user)
 
-    apps_with_authorization =
-      if groups = user.groups do
-        apps
-        |> Enum.reject(&is_nil(&1.app_spec.identity_groups))
-        |> Enum.filter(&Enum.any?(&1.app_spec.identity_groups, fn group -> group in groups end))
-      else
-        []
-      end
+  def authorized?(%{app_spec: %{identity_groups: nil}}, _user), do: true
+  def authorized?(_app, %{groups: nil}), do: false
 
-    apps_with_authorization ++ apps_without_authorization
+  def authorized?(app, user) do
+    Enum.any?(app.app_spec.identity_groups, fn group -> group in user.groups end)
   end
 
   @doc """

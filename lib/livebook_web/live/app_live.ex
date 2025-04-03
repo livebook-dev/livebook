@@ -5,30 +5,44 @@ defmodule LivebookWeb.AppLive do
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) when socket.assigns.app_authenticated? do
-    if socket.assigns.app_settings.multi_session do
-      {:ok, app} = Livebook.Apps.fetch_app(slug)
+    {:ok, app} = Livebook.Apps.fetch_app(slug)
 
-      if connected?(socket) do
-        Livebook.App.subscribe(slug)
+    if Livebook.Apps.authorized?(app, socket.assigns.current_user) do
+      if socket.assigns.app_settings.multi_session do
+        {:ok, app} = Livebook.Apps.fetch_app(slug)
+
+        if connected?(socket) do
+          Livebook.App.subscribe(slug)
+        end
+
+        {:ok, assign(socket, app: app)}
+      else
+        {:ok, pid} = Livebook.Apps.fetch_pid(slug)
+        session_id = Livebook.App.get_session_id(pid, user: socket.assigns.current_user)
+        {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/sessions/#{session_id}")}
       end
-
-      {:ok, assign(socket, app: app)}
     else
-      {:ok, pid} = Livebook.Apps.fetch_pid(slug)
-      session_id = Livebook.App.get_session_id(pid, user: socket.assigns.current_user)
-      {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/sessions/#{session_id}")}
+      {:ok, assign(socket, unauthorized?: true)}
     end
   end
 
   def mount(%{"slug" => slug}, _session, socket) do
     if connected?(socket) do
-      {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/authenticate")}
+      {:ok, app} = Livebook.Apps.fetch_app(slug)
+
+      if Livebook.Apps.authorized?(app, socket.assigns.current_user) do
+        {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/authenticate")}
+      else
+        {:ok, assign(socket, unauthorized?: true)}
+      end
     else
       {:ok, socket}
     end
   end
 
   @impl true
+  def render(%{unauthorized?: true} = assigns), do: authz_placeholder(assigns)
+
   def render(assigns) when assigns.app_authenticated? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20">
@@ -101,7 +115,13 @@ defmodule LivebookWeb.AppLive do
      push_navigate(socket, to: ~p"/apps/#{socket.assigns.app.slug}/sessions/#{session_id}")}
   end
 
-  def handle_params(_params, _url, socket), do: {:noreply, socket}
+  def handle_params(_params, _url, socket) do
+    if Livebook.Apps.authorized?(socket.assigns.app, socket.assigns.current_user) do
+      {:noreply, socket}
+    else
+      {:noreply, assign(socket, unauthorized?: true)}
+    end
+  end
 
   @impl true
   def handle_info({:app_updated, app}, socket) do

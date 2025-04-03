@@ -13,6 +13,28 @@ defmodule LivebookWeb.AppComponents do
   end
 
   @doc """
+  Renders page placeholder on unauthorized dead render.
+  """
+  def authz_placeholder(assigns) do
+    ~H"""
+    <div class="h-screen flex items-center justify-center">
+      <div class="flex flex-col space-y-4 items-center">
+        <a href={~p"/"}>
+          <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
+        </a>
+        <div class="text-2xl text-gray-800">
+          You are not authorized to access this app
+        </div>
+        <div class="max-w-2xl text-center text-gray-700">
+          <span>Visit the</span>
+          <.link class="border-b border-gray-700 hover:border-none" navigate={~p"/apps"}>apps page</.link>.
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Renders app status with indicator.
   """
   attr :status, :map, required: true
@@ -162,7 +184,7 @@ defmodule LivebookWeb.AppComponents do
   def update_app_list(apps, event, user) do
     apps
     |> update_app_list(event)
-    |> Livebook.Apps.filter_authorized_apps(user)
+    |> Enum.filter(&Livebook.Apps.authorized?(&1, user))
   end
 
   @doc """
