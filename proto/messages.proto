@@ -66,6 +66,7 @@ message DeploymentGroup {
   string url = 9;
   repeated EnvironmentVariable environment_variables = 10;
   bool teams_auth = 11;
+  repeated string authorization_groups = 12;
 }
 
 message DeploymentGroupCreated {
@@ -91,6 +92,7 @@ message DeploymentGroupUpdated {
   string url = 8;
   repeated EnvironmentVariable environment_variables = 9;
   bool teams_auth = 10;
+  repeated string authorization_groups = 11;
 }
 
 message DeploymentGroupDeleted {
