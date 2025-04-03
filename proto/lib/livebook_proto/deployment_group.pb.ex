@@ -17,4 +17,5 @@ defmodule LivebookProto.DeploymentGroup do
     json_name: "environmentVariables"
 
   field :teams_auth, 11, type: :bool, json_name: "teamsAuth"
+  field :authorization_groups, 12, repeated: true, type: :string, json_name: "authorizationGroups"
 end
