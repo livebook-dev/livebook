@@ -18,6 +18,7 @@ defmodule Livebook.MixProject do
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
       test_elixirc_options: [docs: true],
+      compilers: Mix.compilers() ++ [:livebook_priv],
       start_permanent: Mix.env() == :prod,
       listeners: [Phoenix.CodeReloader],
       aliases: aliases(),
@@ -69,10 +70,7 @@ defmodule Livebook.MixProject do
       setup: ["deps.get", "cmd --cd assets npm install"],
       "assets.deploy": ["cmd npm run deploy --prefix assets"],
       "format.all": ["format", "cmd --cd assets npm run --silent format"],
-      "protobuf.generate": ["cmd --cd proto mix protobuf.generate"],
-      "phx.server": ["livebook.gen_priv", "phx.server"],
-      "escript.build": ["livebook.gen_priv", "escript.build"],
-      release: ["livebook.gen_priv", "release"]
+      "protobuf.generate": ["cmd --cd proto mix protobuf.generate"]
     ]
   end
 
