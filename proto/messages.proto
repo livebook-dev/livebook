@@ -66,7 +66,7 @@ message DeploymentGroup {
   string url = 9;
   repeated EnvironmentVariable environment_variables = 10;
   bool teams_auth = 11;
-  repeated string authorization_groups = 12;
+  repeated AuthorizationGroup authorization_groups = 12;
 }
 
 message DeploymentGroupCreated {
@@ -92,7 +92,7 @@ message DeploymentGroupUpdated {
   string url = 8;
   repeated EnvironmentVariable environment_variables = 9;
   bool teams_auth = 10;
-  repeated string authorization_groups = 11;
+  repeated AuthorizationGroup authorization_groups = 11;
 }
 
 message DeploymentGroupDeleted {
@@ -139,7 +139,7 @@ message AppDeployment {
   bool multi_session = 9;
   string access_type = 10;
   string version = 11;
-  repeated string authorization_groups = 12;
+  repeated AuthorizationGroup authorization_groups = 12;
 }
 
 message AppDeploymentStarted {
@@ -204,6 +204,11 @@ message AppDeploymentStatusReport {
 message EnvironmentVariable {
   string name = 1;
   string value = 2;
+}
+
+message AuthorizationGroup {
+  string oidc_provider_id = 1;
+  string group_name = 2;
 }
 
 message Event {

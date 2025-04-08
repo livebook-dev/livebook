@@ -1,5 +1,5 @@
 defmodule LivebookProto.DeploymentGroup do
-  use Protobuf, syntax: :proto3, protoc_gen_elixir_version: "0.13.0"
+  use Protobuf, protoc_gen_elixir_version: "0.14.1", syntax: :proto3
 
   field :id, 1, type: :string
   field :name, 2, type: :string
@@ -17,5 +17,9 @@ defmodule LivebookProto.DeploymentGroup do
     json_name: "environmentVariables"
 
   field :teams_auth, 11, type: :bool, json_name: "teamsAuth"
-  field :authorization_groups, 12, repeated: true, type: :string, json_name: "authorizationGroups"
+
+  field :authorization_groups, 12,
+    repeated: true,
+    type: LivebookProto.AuthorizationGroup,
+    json_name: "authorizationGroups"
 end
