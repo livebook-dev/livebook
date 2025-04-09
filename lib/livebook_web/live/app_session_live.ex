@@ -11,44 +11,48 @@ defmodule LivebookWeb.AppSessionLive do
   def mount(%{"slug" => slug, "id" => session_id}, _session, socket)
       when socket.assigns.app_authenticated? do
     {:ok, app} = Livebook.Apps.fetch_app(slug)
+    user = socket.assigns.current_user
+    socket = assign(socket, :authorized?, Livebook.Apps.authorized?(app, user))
 
     app_session = Enum.find(app.sessions, &(&1.id == session_id))
 
-    if app_session && app_session.app_status.lifecycle == :active do
-      %{pid: session_pid} = app_session
-      session = Session.get_by_pid(session_pid)
+    cond do
+      not Livebook.Apps.authorized?(app, user) ->
+        {:ok, assign(socket, unauthorized?: true)}
 
-      {data, client_id} =
-        if connected?(socket) do
-          {data, client_id} =
-            Session.register_client(session_pid, self(), socket.assigns.current_user)
+      app_session && app_session.app_status.lifecycle == :active ->
+        %{pid: session_pid} = app_session
+        session = Session.get_by_pid(session_pid)
 
-          Session.subscribe(session_id)
+        {data, client_id} =
+          if connected?(socket) do
+            {data, client_id} = Session.register_client(session_pid, self(), user)
+            Session.subscribe(session_id)
+            {data, client_id}
+          else
+            data = Session.get_data(session_pid)
+            {data, nil}
+          end
 
-          {data, client_id}
-        else
-          data = Session.get_data(session_pid)
-          {data, nil}
-        end
+        {:ok,
+         socket
+         |> assign(
+           slug: slug,
+           session: session,
+           page_title: get_page_title(data.notebook.name),
+           client_id: client_id,
+           data_view: data_to_view(data)
+         )
+         |> assign_private(data: data)
+         |> prune_outputs()}
 
-      {:ok,
-       socket
-       |> assign(
-         slug: slug,
-         session: session,
-         page_title: get_page_title(data.notebook.name),
-         client_id: client_id,
-         data_view: data_to_view(data)
-       )
-       |> assign_private(data: data)
-       |> prune_outputs()}
-    else
-      {:ok,
-       assign(socket,
-         nonexistent?: true,
-         slug: slug,
-         page_title: get_page_title(app.notebook_name)
-       )}
+      true ->
+        {:ok,
+         assign(socket,
+           nonexistent?: true,
+           slug: slug,
+           page_title: get_page_title(app.notebook_name)
+         )}
     end
   end
 
@@ -76,6 +80,8 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   @impl true
+  def render(%{unauthorized?: true} = assigns), do: authz_placeholder(assigns)
+
   def render(%{nonexistent?: true} = assigns) when assigns.app_authenticated? do
     ~H"""
     <div class="h-screen flex items-center justify-center">

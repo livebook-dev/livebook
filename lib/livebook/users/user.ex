@@ -17,7 +17,7 @@ defmodule Livebook.Users.User do
           name: String.t() | nil,
           email: String.t() | nil,
           avatar_url: String.t() | nil,
-          groups: list(String.t()) | nil,
+          groups: list(map()) | nil,
           payload: map() | nil,
           hex_color: hex_color()
         }
@@ -29,7 +29,7 @@ defmodule Livebook.Users.User do
     field :name, :string
     field :email, :string
     field :avatar_url, :string
-    field :groups, {:array, :string}
+    field :groups, {:array, :map}
     field :payload, :map
     field :hex_color, Livebook.EctoTypes.HexColor
   end

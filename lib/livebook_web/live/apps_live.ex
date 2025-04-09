@@ -7,7 +7,7 @@ defmodule LivebookWeb.AppsLive do
       Livebook.Apps.subscribe()
     end
 
-    apps = Livebook.Apps.list_apps()
+    apps = Livebook.Apps.list_authorized_apps(socket.assigns.current_user)
     empty_apps_path? = Livebook.Apps.empty_apps_path?()
 
     {:ok, assign(socket, apps: apps, empty_apps_path?: empty_apps_path?)}
@@ -85,8 +85,9 @@ defmodule LivebookWeb.AppsLive do
 
   @impl true
   def handle_info({type, _app} = event, socket)
-      when type in [:app_created, :app_updated, :app_closed] do
-    {:noreply, update(socket, :apps, &LivebookWeb.AppComponents.update_app_list(&1, event))}
+      when type in [:app_created, :app_updated, :app_closed, :app_spec_updated] do
+    user = socket.assigns.current_user
+    {:noreply, update(socket, :apps, &LivebookWeb.AppComponents.update_app_list(&1, event, user))}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

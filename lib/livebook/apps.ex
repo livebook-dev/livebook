@@ -63,6 +63,30 @@ defmodule Livebook.Apps do
   end
 
   @doc """
+  Returns all the running apps authorized to given user.
+  """
+  @spec list_authorized_apps(Livebook.Users.User.t()) :: list(App.t())
+  def list_authorized_apps(user) do
+    for app <- list_apps(),
+        authorized?(app, user) do
+      app
+    end
+  end
+
+  @doc """
+  Returns if the given running app is authorized to given user.
+  """
+  @spec authorized?(App.t(), Livebook.Users.User.t()) :: boolean()
+  def authorized?(app, user)
+
+  def authorized?(%{app_spec: %{authorization_groups: nil}}, _user), do: true
+  def authorized?(_app, %{groups: nil}), do: false
+
+  def authorized?(app, user) do
+    Enum.any?(app.app_spec.authorization_groups, fn group -> group in user.groups end)
+  end
+
+  @doc """
   Updates the given app info across the cluster.
   """
   @spec update_app(App.t()) :: :ok | {:error, any()}

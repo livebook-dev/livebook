@@ -143,6 +143,15 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns if the Team client.
+  """
+  @spec check_user_authorization(String.t(), Livebook.Users.User.t()) ::
+          :app_server | {:apps, list(String.t())} | :error
+  def check_user_authorization(id, user) do
+    GenServer.call(registry_name(id), {:check_user_authorization, user})
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
