@@ -46,7 +46,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
     end
 
     test ":io.setopts", %{io: io} do
-      assert :ok = :io.setopts(io, [encoding: :unicode])
+      assert :ok = :io.setopts(io, encoding: :unicode)
       assert :ok = :io.setopts(io, [:binary])
       assert {:error, :enotsup} = :io.setopts(io, [:unknown_option])
     end
