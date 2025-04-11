@@ -228,12 +228,11 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {{:error, :enotsup}, state}
   end
 
-  defp io_request({:setopts, [encoding: encoding]}, state) when encoding in [:latin1, :unicode] do
-    {:ok, %{state | encoding: encoding}}
-  end
-
-  defp io_request({:setopts, _opts}, state) do
-    {{:error, :enotsup}, state}
+  defp io_request({:setopts, opts}, state) do
+    case setopts(opts, state) do
+      {:ok, state} -> {:ok, state}
+      :error -> {{:error, :enotsup}, state}
+    end
   end
 
   defp io_request(:getopts, state) do
@@ -464,6 +463,17 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   rescue
     ArgumentError -> {{:error, req}, state}
   end
+
+  defp setopts([{:encoding, encoding} | opts], state) when encoding in [:latin1, :unicode] do
+    setopts(opts, %{state | encoding: encoding})
+  end
+
+  defp setopts([opt | opts], state) when opt in [:binary, {:binary, true}] do
+    setopts(opts, state)
+  end
+
+  defp setopts([], state), do: {:ok, state}
+  defp setopts(_opts, _state), do: :error
 
   defp request_input_value(input_id, state) do
     request = {:runtime_evaluation_input_request, state.ref, self(), input_id}
