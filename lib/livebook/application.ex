@@ -92,7 +92,7 @@ defmodule Livebook.Application do
       clear_env_vars()
       Livebook.Hubs.connect_hubs()
 
-      unless serverless?() do
+      if not serverless?() do
         load_apps_dir()
       end
     end
