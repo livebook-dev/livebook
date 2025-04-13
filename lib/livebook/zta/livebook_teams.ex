@@ -79,7 +79,9 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp handle_request(conn, team, _params) do
     case get_session(conn) do
       %{"livebook_teams_access_token" => access_token} ->
-        validate_access_token(conn, team, access_token)
+        conn
+        |> validate_access_token(team, access_token)
+        |> authorize_user(team)
 
       # it means, we couldn't reach to Teams server
       %{"teams_error" => true} ->
@@ -109,6 +111,27 @@ defmodule Livebook.ZTA.LivebookTeams do
       {:ok, metadata} -> {conn, metadata}
       _ -> request_user_authentication(conn, team)
     end
+  end
+
+  defp authorize_user({%{halted: true} = conn, metadata}, _team) do
+    {conn, metadata}
+  end
+
+  defp authorize_user({%{path_info: path_info} = conn, metadata}, _team)
+       when path_info in [[], ["apps"]] do
+    {conn, metadata}
+  end
+
+  defp authorize_user({%{path_info: ["apps", slug | _]} = conn, metadata}, team) do
+    if Livebook.Apps.exists?(slug) do
+      check_app_access(conn, metadata, slug, team)
+    else
+      check_full_access(conn, metadata, team)
+    end
+  end
+
+  defp authorize_user({conn, metadata}, team) do
+    check_full_access(conn, metadata, team)
   end
 
   defp retrieve_access_token(team, code) do
@@ -176,5 +199,36 @@ defmodule Livebook.ZTA.LivebookTeams do
 
       {:ok, metadata}
     end
+  end
+
+  defp check_full_access(conn, metadata, team) do
+    if Livebook.Hubs.TeamClient.user_full_access?(team.id, get_user!(metadata)) do
+      {conn, metadata}
+    else
+      {conn
+       |> put_view(LivebookWeb.ErrorHTML)
+       |> render("401.html", %{details: "You don't have permission to access this server"})
+       |> halt(), nil}
+    end
+  end
+
+  defp check_app_access(conn, metadata, slug, team) do
+    if Livebook.Hubs.TeamClient.user_app_access?(team.id, get_user!(metadata), slug) do
+      {conn, metadata}
+    else
+      {conn
+       |> put_view(LivebookWeb.ErrorHTML)
+       |> render("401.html", %{details: "You don't have permission to access this app"})
+       |> halt(), nil}
+    end
+  end
+
+  defp get_user!(metadata) do
+    {:ok, user} =
+      metadata.id
+      |> Livebook.Users.User.new()
+      |> Livebook.Users.update_user(metadata)
+
+    user
   end
 end
