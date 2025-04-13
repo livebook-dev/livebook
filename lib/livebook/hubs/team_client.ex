@@ -143,6 +143,22 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns if the given user has full access to app server.
+  """
+  @spec user_full_access?(String.t(), Livebook.Users.User.t()) :: boolean()
+  def user_full_access?(id, user) do
+    GenServer.call(registry_name(id), {:check_full_access, user})
+  end
+
+  @doc """
+  Returns if the given user has access to given app.
+  """
+  @spec user_app_access?(String.t(), Livebook.Users.User.t(), String.t()) :: boolean()
+  def user_app_access?(id, user, slug) do
+    GenServer.call(registry_name(id), {:check_app_access, user, slug})
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -276,6 +292,35 @@ defmodule Livebook.Hubs.TeamClient do
   def handle_call(:identity_enabled?, _caller, %{deployment_group_id: id} = state) do
     case fetch_deployment_group(id, state) do
       {:ok, deployment_group} -> {:reply, deployment_group.teams_auth, state}
+      _ -> {:reply, false, state}
+    end
+  end
+
+  def handle_call({:check_full_access, user}, _caller, %{deployment_group_id: id} = state) do
+    case fetch_deployment_group(id, state) do
+      {:ok, deployment_group} ->
+        {:reply, authorized_group?(deployment_group.authorization_groups, user.groups), state}
+
+      _ ->
+        {:reply, false, state}
+    end
+  end
+
+  def handle_call({:check_app_access, user, slug}, _caller, %{deployment_group_id: id} = state) do
+    with {:ok, deployment_group} <- fetch_deployment_group(id, state),
+         {:ok, app_deployment} <- fetch_app_deployment_from_slug(slug, state) do
+      cond do
+        # If the user have full access, it should be verified first
+        authorized_group?(deployment_group.authorization_groups, user.groups) ->
+          {:reply, true, state}
+
+        authorized_group?(app_deployment.authorization_groups, user.groups) ->
+          {:reply, true, state}
+
+        true ->
+          {:reply, false, state}
+      end
+    else
       _ -> {:reply, false, state}
     end
   end
@@ -938,6 +983,9 @@ defmodule Livebook.Hubs.TeamClient do
   defp fetch_app_deployment(id, state),
     do: fetch_entry(state.app_deployments, &(&1.id == id), state)
 
+  defp fetch_app_deployment_from_slug(slug, state),
+    do: fetch_entry(state.app_deployments, &(&1.slug == slug), state)
+
   defp fetch_entry(entries, fun, state) do
     if entry = Enum.find(entries, fun) do
       {:ok, entry}
@@ -964,5 +1012,11 @@ defmodule Livebook.Hubs.TeamClient do
         end
       end
     end
+  end
+
+  defp authorized_group?(authorization_groups, groups) do
+    Enum.any?(authorization_groups, fn %{oidc_provider_id: id, group_name: name} ->
+      %{"oidc_provider_id" => id, "group_name" => name} in groups
+    end)
   end
 end
