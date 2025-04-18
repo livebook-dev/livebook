@@ -23,6 +23,7 @@ defmodule LivebookWeb.AppSessionLive do
           {data, client_id} =
             Session.register_client(session_pid, self(), socket.assigns.current_user)
 
+          Livebook.Teams.Broadcasts.subscribe(:app_deployments)
           Session.subscribe(session_id)
 
           {data, client_id}
@@ -362,6 +363,16 @@ defmodule LivebookWeb.AppSessionLive do
 
   def handle_info(:session_closed, socket) do
     {:noreply, redirect_on_closed(socket)}
+  end
+
+  def handle_info({:app_deployment_updated, %{slug: slug}}, %{assigns: %{slug: slug}} = socket) do
+    # We force the redirection in case of
+    # the current user loses access to this app.
+
+    # With this strategy, we guarantee that unauthorized users
+    # won't be able to keep reading the app which they
+    # should't have access.
+    {:noreply, redirect(socket, to: ~p"/apps/#{slug}/sessions/#{socket.assigns.session.id}")}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

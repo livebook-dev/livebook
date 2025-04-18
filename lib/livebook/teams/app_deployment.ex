@@ -16,7 +16,8 @@ defmodule Livebook.Teams.AppDeployment do
           deployment_group_id: String.t() | nil,
           file: binary() | nil,
           deployed_by: String.t() | nil,
-          deployed_at: DateTime.t() | nil
+          deployed_at: DateTime.t() | nil,
+          authorization_groups: Ecto.Schema.embeds_many(Livebook.Teams.AuthorizationGroup.t())
         }
 
   @access_types Livebook.Notebook.AppSettings.access_types()
@@ -34,6 +35,8 @@ defmodule Livebook.Teams.AppDeployment do
     field :file, :string
     field :deployed_by, :string
     field :deployed_at, :utc_datetime
+
+    embeds_many :authorization_groups, Livebook.Teams.AuthorizationGroup
   end
 
   @doc """

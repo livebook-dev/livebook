@@ -62,7 +62,8 @@ defmodule Livebook.Factory do
       mode: :offline,
       agent_keys: [],
       secrets: [],
-      environment_variables: []
+      environment_variables: [],
+      authorization_groups: []
     }
   end
 
@@ -123,6 +124,7 @@ defmodule Livebook.Factory do
       access_type: :protected,
       hub_id: Livebook.Hubs.Personal.id(),
       deployment_group_id: "1",
+      authorization_groups: [],
       deployed_by: "Ada Lovelace",
       deployed_at: deployed_at
     }

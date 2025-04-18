@@ -690,7 +690,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           revision_id: to_string(teams_app_deployment.app_revision.id),
           deployment_group_id: app_deployment.deployment_group_id,
           multi_session: app_deployment.multi_session,
-          access_type: to_string(app_deployment.access_type)
+          access_type: to_string(app_deployment.access_type),
+          authorization_groups: []
         }
 
       agent_connected = %{agent_connected | app_deployments: [livebook_proto_app_deployment]}
