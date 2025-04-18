@@ -104,7 +104,8 @@ defmodule Livebook.MixProject do
     [
       # {:phoenix, "~> 1.7.8"},
       {:phoenix, github: "phoenixframework/phoenix", override: true},
-      {:phoenix_live_view, "~> 1.0.0"},
+      # {:phoenix_live_view, "~> 1.0.0"},
+      {:phoenix_live_view, github: "phoenixframework/phoenix_live_view", override: true},
       {:phoenix_html, "~> 4.0"},
       {:phoenix_live_dashboard, "~> 0.8.4"},
       {:telemetry_metrics, "~> 1.0"},
@@ -122,7 +123,7 @@ defmodule Livebook.MixProject do
       {:kubereq, "~> 0.3.0"},
       {:yaml_elixir, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:floki, ">= 0.27.0", only: :test},
+      {:lazy_html, "~> 0.1.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
       # So that we can test Python evaluation in the same node
       {:pythonx, "~> 0.4.2", only: :test},

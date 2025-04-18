@@ -229,8 +229,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"app servers\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "0"
 
     simulate_agent_join(hub, deployment_group)
@@ -238,8 +238,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"app servers\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "1"
   end
 
@@ -256,8 +256,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "0"
 
     app_settings = %{Livebook.Notebook.AppSettings.new() | slug: Livebook.Utils.random_short_id()}
@@ -280,8 +280,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "1"
   end
 
@@ -297,8 +297,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"environment variables\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "0"
 
     erpc_call(node, :create_environment_variable, [[deployment_group: deployment_group]])
@@ -307,8 +307,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"environment variables\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "1"
   end
 end
