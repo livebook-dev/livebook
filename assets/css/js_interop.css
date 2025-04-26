@@ -184,50 +184,6 @@ server in solely client-side operations.
     }
   }
 
-  /* Outputs */
-
-  [data-el-cell][data-js-amplified] {
-    [data-el-amplify-outputs-button] > button {
-      @apply bg-gray-100 text-gray-900;
-    }
-
-    [data-el-outputs-container] {
-      @apply bg-white m-0 py-16;
-
-      width: 90vw;
-      position: relative;
-      left: calc(-45vw + 50%);
-    }
-  }
-
-  [data-el-output][data-border] {
-    @apply p-4 border border-t-0 border-gray-200 divide-y divide-gray-200;
-  }
-
-  [data-el-output][data-border]:first-child {
-    @apply rounded-t-lg border-t;
-  }
-
-  [data-el-output]:not([data-border]) + [data-el-output][data-border] {
-    @apply border-t;
-  }
-
-  [data-el-output][data-border]:last-child {
-    @apply rounded-b-lg border-b;
-  }
-
-  [data-el-output]:not(:first-child) {
-    @apply mt-2;
-  }
-
-  [data-el-output][data-border] + [data-el-output][data-border] {
-    @apply mt-0;
-  }
-
-  [data-el-outputs-container] > [data-el-output]:first-child {
-    @apply mt-2;
-  }
-
   /* Side panel */
 
   &:not([data-js-side-panel-content]) [data-el-side-panel] {
@@ -367,5 +323,51 @@ server in solely client-side operations.
     [data-el-toggle-sidebar] {
       @apply hidden;
     }
+  }
+}
+
+[data-el-notebook] {
+  /* Outputs (both session and app) */
+
+  [data-el-cell][data-js-amplified] {
+    [data-el-amplify-outputs-button] > button {
+      @apply bg-gray-100 text-gray-900;
+    }
+
+    [data-el-outputs-container] {
+      @apply bg-white m-0 py-16;
+
+      width: 90vw;
+      position: relative;
+      left: calc(-45vw + 50%);
+    }
+  }
+
+  [data-el-output][data-border] {
+    @apply p-4 border border-t-0 border-gray-200 divide-y divide-gray-200;
+  }
+
+  [data-el-output][data-border]:first-child {
+    @apply rounded-t-lg border-t;
+  }
+
+  [data-el-output]:not([data-border]) + [data-el-output][data-border] {
+    @apply border-t;
+  }
+
+  [data-el-output][data-border]:last-child {
+    @apply rounded-b-lg border-b;
+  }
+
+  [data-el-output]:not(:first-child) {
+    @apply mt-2;
+  }
+
+  [data-el-output][data-border] + [data-el-output][data-border] {
+    @apply mt-0;
+  }
+
+  [data-el-outputs-container] > [data-el-output]:first-child {
+    @apply mt-2;
   }
 }
