@@ -12,7 +12,7 @@ You may set `LIVEBOOK_CLUSTER` to one of the following values.
 
 > #### Attention {: .warning}
 >
-> "auto" is only a valid value if you're running Livebook's Docker image on AWS ECS, Kubernetes, and Fly.io.
+> "auto" is only a valid value if you're running Livebook's Docker image on AWS ECS (including Fargate), Kubernetes, and Fly.io.
 
 Detects the hosting platform and automatically sets up a cluster using DNS configuration. See platform specific notes below.
 
