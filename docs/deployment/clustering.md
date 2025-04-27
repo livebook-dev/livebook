@@ -16,13 +16,21 @@ You may set `LIVEBOOK_CLUSTER` to one of the following values.
 
 Detects the hosting platform and automatically sets up a cluster using DNS configuration. Currently the supported platforms are Fly.io and Kubernetes.
 
+#### AWS ECS & Fargate
+
+If you're running livebook in the **AWS ECS** environment you'll have access to a special `auto` configuration that will automatically handle configuring based on the ECS Container Metadata HTTP API. The cluster's "deployment" name will be based on a SHA checksum of the ECS Container Image ID. Largely you don't need to care about this, but any livebook deployment using the same image ID will be clustered together. Naturally if you want more containers (say in **AWS Fargate**) simply increase the `desiredCount` of the family.
+
+While ECS and Fargate won't need any further configuration to suppor this internally you will need to do network level configuration to allow the containers to talk to other resources (databases, S3, etc), as well as be reached by the public internet, etc. That configuration is outside of the scope of this documentation (mostly because it's complex, but also because it'd be at the whim of AWS's desire for change).
+
+However if you're having issues connecting there's a good chance it's either you haven't setup the standard ports required, you haven't correctly setup or configured the security groups, or you haven't correctly configured the HTTP listeners/loadbalancers.
+
 ### `dns:QUERY`
 
 Sets up a cluster using DNS for queries for A/AAAA records to discover new nodes. Additionally, you must additionally set the following env vars:
 
-  * `LIVEBOOK_NODE=livebook_server@MACHINE_IP`, where `MACHINE_IP` is the machine IP of each deployed node
+- `LIVEBOOK_NODE=livebook_server@MACHINE_IP`, where `MACHINE_IP` is the machine IP of each deployed node
 
-  * If your cloud requires IPv6, also set `ERL_AFLAGS="-proto_dist inet6_tcp"`
+- If your cloud requires IPv6, also set `ERL_AFLAGS="-proto_dist inet6_tcp"`
 
 ## Setting other env vars
 
