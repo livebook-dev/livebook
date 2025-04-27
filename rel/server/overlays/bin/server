@@ -1,11 +1,6 @@
 #!/bin/sh
 set -e
-
 cd -P -- "$(dirname -- "$0")"
-
-# Livebook does not start EPMD automatically, but we want to start it
-# here, becasue we need it for clustering
-epmd -daemon
 
 if [ -n "${FLAME_PARENT}" ]; then
   exec elixir ./start_flame.exs

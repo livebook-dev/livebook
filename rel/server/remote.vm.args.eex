@@ -4,3 +4,6 @@
 
 # Set custom EPMD module and port
 -epmd_module Elixir.Livebook.EPMD -erl_epmd_port 13825
+
+# Disable listening and does not start epmd (due to RELEASE_DISTRIBUTION=name)
+-dist_listen false -start_epmd false
