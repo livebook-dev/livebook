@@ -4,26 +4,25 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
-  alias Livebook.Teams.{AppDeployment, DeploymentGroup, Org}
 
   @error_message "Something went wrong, try again later or please file a bug if it persists"
 
   @doc """
   Send a request to Livebook Team API to create a new org.
   """
-  @spec create_org(Org.t()) ::
+  @spec create_org(Teams.Org.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_org(org) do
-    post("/api/v1/org-request", %{name: org.name, key_hash: Org.key_hash(org)})
+    post("/api/v1/org-request", %{name: org.name, key_hash: Teams.Org.key_hash(org)})
   end
 
   @doc """
   Send a request to Livebook Team API to join an org.
   """
-  @spec join_org(Org.t()) ::
+  @spec join_org(Teams.Org.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def join_org(org) do
-    post("/api/v1/org-request/join", %{name: org.name, key_hash: Org.key_hash(org)})
+    post("/api/v1/org-request/join", %{name: org.name, key_hash: Teams.Org.key_hash(org)})
   end
 
   @doc """
@@ -120,7 +119,7 @@ defmodule Livebook.Teams.Requests do
     type = FileSystems.type(file_system)
     %{name: name} = FileSystem.external_metadata(file_system)
     attrs = FileSystem.dump(file_system)
-    json = Jason.encode!(attrs)
+    json = JSON.encode!(attrs)
 
     params = %{
       name: name,
@@ -142,7 +141,7 @@ defmodule Livebook.Teams.Requests do
     type = FileSystems.type(file_system)
     %{name: name} = FileSystem.external_metadata(file_system)
     attrs = FileSystem.dump(file_system)
-    json = Jason.encode!(attrs)
+    json = JSON.encode!(attrs)
 
     params = %{
       id: file_system.external_id,
@@ -166,16 +165,15 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to create a deployment group.
   """
-  @spec create_deployment_group(Team.t(), DeploymentGroup.t()) ::
+  @spec create_deployment_group(Team.t(), Teams.DeploymentGroup.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_deployment_group(team, deployment_group) do
     params = %{
       name: deployment_group.name,
       mode: deployment_group.mode,
       clustering: deployment_group.clustering,
-      zta_provider: deployment_group.zta_provider,
-      zta_key: deployment_group.zta_key,
-      url: deployment_group.url
+      url: deployment_group.url,
+      teams_auth: deployment_group.teams_auth
     }
 
     post("/api/v1/org/deployment-groups", params, team)
@@ -184,7 +182,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to deploy an app.
   """
-  @spec deploy_app(Team.t(), AppDeployment.t()) ::
+  @spec deploy_app(Team.t(), Teams.AppDeployment.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def deploy_app(team, app_deployment) do
     secret_key = Teams.derive_key(team.teams_key)
@@ -205,11 +203,38 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to download an app revision.
   """
-  @spec download_revision(Team.t(), AppDeployment.t()) ::
+  @spec download_revision(Team.t(), Teams.AppDeployment.t()) ::
           {:ok, binary()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def download_revision(team, app_deployment) do
     params = %{id: app_deployment.id, deployment_group_id: app_deployment.deployment_group_id}
     get("/api/v1/org/apps", params, team)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to create a new auth request.
+  """
+  @spec create_auth_request(Team.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def create_auth_request(team) do
+    post("/api/v1/org/identity", %{}, team)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to get the access token from given auth request code.
+  """
+  @spec retrieve_access_token(Team.t(), String.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def retrieve_access_token(team, code) do
+    post("/api/v1/org/identity/token", %{code: code}, team)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to get the user information from given access token.
+  """
+  @spec get_user_info(Team.t(), String.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def get_user_info(team, access_token) do
+    get("/api/v1/org/identity", %{access_token: access_token}, team)
   end
 
   @doc """
@@ -265,11 +290,22 @@ defmodule Livebook.Teams.Requests do
   end
 
   defp build_req() do
-    Req.new(
-      base_url: Livebook.Config.teams_url(),
-      inet6: String.ends_with?(Livebook.Config.teams_url(), ".flycast"),
-      headers: [{"x-lb-version", Livebook.Config.app_version()}]
-    )
+    base_url = URI.new!(Livebook.Config.teams_url())
+
+    options =
+      if userinfo = base_url.userinfo do
+        [
+          base_url: %{base_url | userinfo: nil},
+          auth: {:basic, userinfo}
+        ]
+      else
+        [
+          base_url: base_url
+        ]
+      end
+
+    Req.new([headers: [{"x-lb-version", Livebook.Config.app_version()}]] ++ options)
+    |> Livebook.Utils.req_attach_defaults()
   end
 
   defp add_team_auth(req, nil), do: req

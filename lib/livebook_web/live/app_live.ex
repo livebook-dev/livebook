@@ -40,7 +40,7 @@ defmodule LivebookWeb.AppLive do
         </div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
-            <%= @app.notebook_name %>
+            {@app.notebook_name}
           </h1>
         </div>
         <div class="pt-4 flex flex-col space-y-16">
@@ -49,10 +49,10 @@ defmodule LivebookWeb.AppLive do
       </div>
     </div>
 
-    <.modal id="sessions-modal" show width={:big} patch={~p"/apps"}>
+    <.modal id="sessions-modal" show width="big" patch={~p"/apps"}>
       <div class="flex flex-col space-y-3">
         <h3 class="text-2xl font-semibold text-gray-800">
-          <%= @app.notebook_name %>
+          {@app.notebook_name}
         </h3>
         <p class="text-gray-700">
           <%= if @app_settings.show_existing_sessions do %>
@@ -76,10 +76,9 @@ defmodule LivebookWeb.AppLive do
             <span>
               Started
               <span :if={app_session.started_by}>
-                by
-                <span class="font-semibold"><%= app_session.started_by.name || "Anonymous" %></span>
+                by <span class="font-semibold">{app_session.started_by.name || "Anonymous"}</span>
               </span>
-              <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(app_session.created_at) %> ago
+              {LivebookWeb.HTMLHelpers.format_datetime_relatively(app_session.created_at)} ago
             </span>
             <div class="mr-0.5 flex">
               <.app_status status={app_session.app_status} show_label={false} />

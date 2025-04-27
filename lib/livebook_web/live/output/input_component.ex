@@ -175,7 +175,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input_output(%{attrs: %{type: :range}} = assigns) do
     ~H"""
     <div class="flex items-center space-x-2">
-      <div><%= @attrs.min %></div>
+      <div>{@attrs.min}</div>
       <input
         type="range"
         data-el-input
@@ -191,7 +191,7 @@ defmodule LivebookWeb.Output.InputComponent do
         max={@attrs.max}
         step={@attrs.step}
       />
-      <div><%= @attrs.max %></div>
+      <div>{@attrs.max}</div>
     </div>
     """
   end
@@ -290,7 +290,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input_output(assigns) do
     ~H"""
     <div class="text-red-600">
-      Unknown input type <%= @input.attrs.type %>
+      Unknown input type {@input.attrs.type}
     </div>
     """
   end
@@ -303,7 +303,7 @@ defmodule LivebookWeb.Output.InputComponent do
     ~H"""
     <.label help={@help}>
       <div class="flex items-center justify-between gap-1">
-        <span><%= @label %></span>
+        <span>{@label}</span>
         <span :if={@changed} class="cursor-pointer tooltip top" data-tooltip="This input has changed.">
           <.remix_icon icon="error-warning-line text-gray-500" />
         </span>

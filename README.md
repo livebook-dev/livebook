@@ -29,7 +29,13 @@ Head out to [the Install section](https://livebook.dev/#install) of Livebook's w
 
 ![Screenshot](https://github.com/livebook-dev/livebook/raw/main/.github/imgs/welcome.png)
 
-For screencasts and news, check out [news.livebook.dev](https://news.livebook.dev/).
+There are more resources for those who are ready to dig deeper:
+
+  * [Our official documentation](https://hexdocs.pm/livebook/) with in-depth guides
+
+  * [Our Integrations page](https://livebook.dev/integrations/) covering the languages, data sources, and libraries that Livebook works with out-of-the-box
+
+  * [Our blog](https://news.livebook.dev/) with news, posts, and screencasts
 
 ## Installation
 
@@ -40,11 +46,11 @@ pick the one that best fits your use case.
 
   * [Download the installer for Mac and Windows from our homepage](https://livebook.dev/#install)
 
-  * Latest stable builds: [Mac (Universal)](https://livebook.dev/releases/latest/LivebookInstall-latest-macos-universal.dmg),
-    [Windows](https://livebook.dev/releases/latest/LivebookInstall-latest-windows-x86_64.exe)
+  * Latest stable builds: [Mac (Universal)](https://github.com/livebook-dev/livebook/releases/latest/download/LivebookInstall-macos-universal.dmg),
+    [Windows](https://github.com/livebook-dev/livebook/releases/latest/download/LivebookInstall-windows-x86_64.exe)
 
-  * Nightly builds: [Mac (Universal)](https://livebook.dev/releases/nightly/LivebookInstall-nightly-macos-universal.dmg),
-    [Windows](https://livebook.dev/releases/nightly/LivebookInstall-nightly-windows-x86_64.exe)
+  * Nightly builds: [Mac (Universal)](https://github.com/livebook-dev/livebook/releases/download/nightly/LivebookInstall-macos-universal.dmg),
+    [Windows](https://github.com/livebook-dev/livebook/releases/download/nightly/LivebookInstall-windows-x86_64.exe)
 
   * Builds for particular Livebook version are available on our
     [GitHub releases](https://github.com/livebook-dev/livebook/releases).
@@ -89,7 +95,7 @@ with [Nerves](https://www.nerves-project.org/).
 ### Direct installation with Elixir
 
 You can run Livebook on your own machine using just Elixir. You will need
-[Elixir v1.16](https://elixir-lang.org/install.html) or later.
+[Elixir v1.18](https://elixir-lang.org/install.html) or later.
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, `ssl` and `xmerl`. Those applications come
 with most Erlang distributions but certain package managers may split
@@ -177,9 +183,6 @@ The following environment variables can be used to configure Livebook on boot:
     is set. When deploying using Livebook's Docker image, consider using
     `LIVEBOOK_APPS_PATH_WARMUP`.
 
-  * `LIVEBOOK_APPS_PATH_HUB_ID` - deploy only the notebooks in
-    `LIVEBOOK_APPS_PATH` that belong to the given Hub ID
-
   * `LIVEBOOK_APPS_PATH_PASSWORD` - the password to use for all protected apps
     deployed from `LIVEBOOK_APPS_PATH`.
 
@@ -217,9 +220,6 @@ The following environment variables can be used to configure Livebook on boot:
     configuration. Defaults to "livebook" under the default user data
     directory.
 
-  * `LIVEBOOK_DEBUG` - enables verbose logging, when set to "true". Disabled
-    by default.
-
   * `LIVEBOOK_DEFAULT_RUNTIME` - sets the runtime type that is used by default
     when none is started explicitly for the given notebook. Must be either
     "standalone" (Standalone), "attached:NODE:COOKIE" (Attached node)
@@ -236,8 +236,8 @@ The following environment variables can be used to configure Livebook on boot:
     user's operating system home.
 
   * `LIVEBOOK_IDENTITY_PROVIDER` - controls whether Zero Trust Authentication
-    must be used as the identity provider. This is useful when deploying
-    Livebook inside a cloud platform, such as Cloudflare and Google.
+    must be used for this Livebook instance. This is useful when deploying
+    Livebook airgapped inside a cloud platform, such as Cloudflare and Google.
     Supported values are:
 
       * `basic_auth:<username>:<password>`
@@ -257,6 +257,14 @@ The following environment variables can be used to configure Livebook on boot:
 
   * `LIVEBOOK_IP` - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
+
+  * `LIVEBOOK_LOG_LEVEL` - sets the logger level, allowing for more verbose
+    logging, either of: error, warning, notice, info, debug. Defaults to warning.
+
+  * `LIVEBOOK_LOG_METADATA` - a comma-separated list of metadata keys that should
+    be included in the log messages. Currently the only Livebook-spcecific key is
+    users (attached to evaluation and request logs). By default includes only
+    request_id.
 
   * `LIVEBOOK_NODE` - sets the node name for running Livebook in a cluster.
     Note that Livebook always runs using long names distribution, so the

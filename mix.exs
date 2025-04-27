@@ -5,8 +5,8 @@ end
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @elixir_requirement "~> 1.16"
-  @version "0.15.0-dev"
+  @elixir_requirement "~> 1.18"
+  @version "0.16.0-dev"
   @description "Automate code & data workflows with interactive notebooks"
 
   def project do
@@ -18,7 +18,9 @@ defmodule Livebook.MixProject do
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
       test_elixirc_options: [docs: true],
+      compilers: Mix.compilers() ++ [:livebook_priv],
       start_permanent: Mix.env() == :prod,
+      listeners: [Phoenix.CodeReloader],
       aliases: aliases(),
       deps: with_lock(target_deps(Mix.target()) ++ deps()),
       escript: escript(),
@@ -67,7 +69,7 @@ defmodule Livebook.MixProject do
     [
       setup: ["deps.get", "cmd --cd assets npm install"],
       "assets.deploy": ["cmd npm run deploy --prefix assets"],
-      "format.all": ["format", "cmd --cd assets npm run format"],
+      "format.all": ["format", "cmd --cd assets npm run --silent format"],
       "protobuf.generate": ["cmd --cd proto mix protobuf.generate"]
     ]
   end
@@ -76,7 +78,8 @@ defmodule Livebook.MixProject do
     [
       main_module: LivebookCLI,
       app: nil,
-      emu_args: "-epmd_module Elixir.Livebook.EPMD"
+      emu_args: "-epmd_module Elixir.Livebook.EPMD",
+      include_priv_for: [:livebook]
     ]
   end
 
@@ -99,13 +102,14 @@ defmodule Livebook.MixProject do
   #
   defp deps do
     [
-      {:phoenix, "~> 1.7.8"},
-      {:phoenix_live_view, "~> 1.0.0-rc.0"},
+      # {:phoenix, "~> 1.7.8"},
+      {:phoenix, github: "phoenixframework/phoenix", override: true},
+      # {:phoenix_live_view, "~> 1.0.0"},
+      {:phoenix_live_view, github: "phoenixframework/phoenix_live_view", override: true},
       {:phoenix_html, "~> 4.0"},
-      {:phoenix_live_dashboard, "~> 0.8.4-rc.0"},
+      {:phoenix_live_dashboard, "~> 0.8.4"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
-      {:jason, "~> 1.0"},
       {:bandit, "~> 1.0"},
       {:plug, "~> 1.16"},
       {:plug_crypto, "~> 2.0"},
@@ -113,18 +117,19 @@ defmodule Livebook.MixProject do
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
       {:aws_credentials, "~> 0.3.0", runtime: false},
-      {:aws_signature, "~> 0.3.0"},
       {:mint_web_socket, "~> 1.0.0"},
-      {:protobuf, "~> 0.12.0"},
+      {:protobuf, "~> 0.13.0"},
       {:dns_cluster, "~> 0.1.2"},
-      {:kubereq, "~> 0.2.0"},
+      {:kubereq, "~> 0.3.0"},
       {:yaml_elixir, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:floki, ">= 0.27.0", only: :test},
+      {:lazy_html, "~> 0.1.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
+      # So that we can test Python evaluation in the same node
+      {:pythonx, "~> 0.4.2", only: :test},
       # ZTA deps
       {:jose, "~> 1.11.5"},
-      {:req, "~> 0.5.2"},
+      {:req, "~> 0.5.8"},
       # Docs
       {:ex_doc, "~> 0.30", only: :dev, runtime: false}
     ]
@@ -184,7 +189,6 @@ defmodule Livebook.MixProject do
   defp remove_cookie(release) do
     # We remove the COOKIE file when assembling the release, because we
     # don't want to share the same cookie across users.
-
     File.rm!(Path.join(release.path, "releases/COOKIE"))
     release
   end
@@ -237,7 +241,7 @@ defmodule Livebook.MixProject do
       groups_for_extras: [
         "Livebook Teams": Path.wildcard("docs/teams/*"),
         Deployment: Path.wildcard("docs/deployment/*"),
-        Authentication: Path.wildcard("docs/authentication/*")
+        "Airgapped Authentication": Path.wildcard("docs/authentication/*")
       ]
     ]
   end
@@ -247,6 +251,7 @@ defmodule Livebook.MixProject do
       {"README.md", title: "Welcome to Livebook"},
       "docs/use_cases.md",
       "docs/authentication.md",
+      "docs/stamping.md",
       "docs/deployment/docker.md",
       "docs/deployment/clustering.md",
       "docs/deployment/fips.md",
@@ -254,6 +259,8 @@ defmodule Livebook.MixProject do
       "docs/teams/intro_to_teams.md",
       "docs/teams/shared_secrets.md",
       "docs/teams/shared_file_storages.md",
+      {"docs/teams/email_domain.md", title: "Email domain auth"},
+      {"docs/teams/oidc_sso.md", title: "OIDC SSO"},
       "docs/authentication/basic_auth.md",
       "docs/authentication/cloudflare.md",
       "docs/authentication/google_iap.md",

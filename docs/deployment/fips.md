@@ -11,7 +11,7 @@ To do this in Docker, you will need to build it differently. Below is an example
 ```docker
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.9-1137
 # Set environment variables for path and language
-ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin 
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Install system dependencies and clean cache in one layer
 RUN microdnf install -y unzip autoconf git ncurses-devel openssl-devel gcc gcc-c++ make automake perl clang wget tar cmake glibc-locale-source glibc-langpack-en && \

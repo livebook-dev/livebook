@@ -17,14 +17,14 @@ defmodule LivebookWeb.NotebookCardsComponent do
           <div class="flex items-center justify-between">
             <span class="tooltip top" data-tooltip={info.file.path}>
               <span class="text-gray-800 font-medium">
-                <%= info.name %>
+                {info.name}
               </span>
             </span>
-            <%= @card_icon && render_slot(@card_icon, {info, idx}) %>
+            {@card_icon && render_slot(@card_icon, {info, idx})}
           </div>
           <div class="mt-1 flex-grow text-gray-600 text-sm">
-            <%= @added_at_label %>
-            <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(info.added_at) %> ago
+            {@added_at_label}
+            {LivebookWeb.HTMLHelpers.format_datetime_relatively(info.added_at)} ago
           </div>
           <div class="mt-2 flex space-x-6">
             <%= if session = session_by_file(info.file, @sessions) do %>

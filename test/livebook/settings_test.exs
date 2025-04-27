@@ -11,30 +11,34 @@ defmodule Livebook.SettingsTest do
     refute env_var in Settings.fetch_env_vars()
   end
 
-  test "fetch_env_var!/1 returns one persisted fly" do
+  test "fetch_env_var!/1 returns one persisted environment variable" do
+    %{name: name} = build(:env_var)
+
     assert_raise Livebook.Storage.NotFoundError,
-                 ~s/could not find entry in \"env_vars\" with ID "123456"/,
+                 ~s/could not find entry in \"env_vars\" with ID "#{name}"/,
                  fn ->
-                   Settings.fetch_env_var!("123456")
+                   Settings.fetch_env_var!(name)
                  end
 
-    env_var = insert_env_var(:env_var, name: "123456")
-    assert Settings.fetch_env_var!("123456") == env_var
+    env_var = insert_env_var(:env_var, name: name)
+    assert Settings.fetch_env_var!(name) == env_var
 
-    Settings.unset_env_var("123456")
+    Settings.unset_env_var(name)
   end
 
   test "env_var_exists?/1" do
-    refute Settings.env_var_exists?("FOO")
-    insert_env_var(:env_var, name: "FOO")
-    assert Settings.env_var_exists?("FOO")
+    %{name: name} = build(:env_var)
 
-    Settings.unset_env_var("FOO")
+    refute Settings.env_var_exists?(name)
+    insert_env_var(:env_var, name: name)
+    assert Settings.env_var_exists?(name)
+
+    Settings.unset_env_var(name)
   end
 
   describe "set_env_var/1" do
     test "creates an environment variable" do
-      attrs = params_for(:env_var, name: "FOO_BAR_BAZ")
+      attrs = params_for(:env_var)
       assert {:ok, env_var} = Settings.set_env_var(attrs)
 
       assert attrs.name == env_var.name

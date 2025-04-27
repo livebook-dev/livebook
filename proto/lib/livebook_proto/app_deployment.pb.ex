@@ -1,5 +1,5 @@
 defmodule LivebookProto.AppDeployment do
-  use Protobuf, syntax: :proto3, protoc_gen_elixir_version: "0.12.0"
+  use Protobuf, protoc_gen_elixir_version: "0.14.1", syntax: :proto3
 
   field :id, 1, type: :string
   field :title, 2, type: :string
@@ -12,4 +12,9 @@ defmodule LivebookProto.AppDeployment do
   field :multi_session, 9, type: :bool, json_name: "multiSession"
   field :access_type, 10, type: :string, json_name: "accessType"
   field :version, 11, type: :string
+
+  field :authorization_groups, 12,
+    repeated: true,
+    type: LivebookProto.AuthorizationGroup,
+    json_name: "authorizationGroups"
 end

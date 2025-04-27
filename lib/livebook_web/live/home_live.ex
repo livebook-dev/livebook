@@ -4,7 +4,6 @@ defmodule LivebookWeb.HomeLive do
   import LivebookWeb.SessionHelpers
 
   alias LivebookWeb.LayoutComponents
-  alias Livebook.{Sessions, Notebook}
 
   on_mount LivebookWeb.SidebarHook
 
@@ -16,8 +15,8 @@ defmodule LivebookWeb.HomeLive do
       Livebook.NotebookManager.subscribe_starred_notebooks()
     end
 
-    sessions = Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
-    notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
+    sessions = Livebook.Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
+    notebook_infos = Livebook.Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
     starred_notebooks = Livebook.NotebookManager.starred_notebooks()
 
     {:ok,
@@ -144,7 +143,7 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </LayoutComponents.layout>
 
-    <.modal :if={@live_action == :import} id="import-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :import} id="import-modal" show width="big" patch={@self_path}>
       <.live_component
         module={LivebookWeb.HomeLive.ImportComponent}
         id="import"
@@ -161,7 +160,7 @@ defmodule LivebookWeb.HomeLive do
     ~H"""
     <LayoutComponents.topbar>
       <span>
-        Livebook v<%= @version %> available!
+        Livebook v{@version} available!
         <%= if @instructions_url do %>
           Check out the news on
           <a
@@ -197,7 +196,7 @@ defmodule LivebookWeb.HomeLive do
 
   defp memory_notification(assigns) do
     ~H"""
-    <LayoutComponents.topbar :if={@app_service_url && @memory.free < 30_000_000} variant={:error}>
+    <LayoutComponents.topbar :if={@app_service_url && @memory.free < 30_000_000} variant="error">
       <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
       Less than 30 MB of memory left, consider
       <a
@@ -225,7 +224,7 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_params(%{}, _url, socket) when socket.assigns.live_action == :public_new_notebook do
-    {:noreply, create_session(socket, queue_setup: true)}
+    {:noreply, create_session(socket, connect_runtime: true)}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}

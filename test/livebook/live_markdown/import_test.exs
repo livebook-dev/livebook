@@ -60,6 +60,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```erlang
     lists:seq(1, 10).
     ```
+
+    ```python
+    range(0, 10)
+    ```
     """
 
     {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
@@ -138,6 +142,12 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      language: :erlang,
                      source: """
                      lists:seq(1, 10).\
+                     """
+                   },
+                   %Cell.Code{
+                     language: :python,
+                     source: """
+                     range(0, 10)\
                      """
                    }
                  ]
@@ -373,7 +383,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert ["line 3 - closing unclosed backquotes ` at end of input"] == messages
   end
 
-  test "imports non-elixir code snippets as part of markdown cells" do
+  test "imports non-code cell snippets as part of markdown cells" do
     markdown = """
     # My Notebook
 
@@ -387,10 +397,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Enum.to_list(1..10)
     ```
 
-    <!-- livebook:{"force_markdown":true} -->
-
-    ```erlang
-    spawn_link(fun() -> io:format("Hiya") end).
+    ```json
+    {"x": 1, "y": 1}
     ```
     """
 
@@ -416,8 +424,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    },
                    %Cell.Markdown{
                      source: """
-                     ```erlang
-                     spawn_link(fun() -> io:format("Hiya") end).
+                     ```json
+                     {"x": 1, "y": 1}
                      ```\
                      """
                    }
@@ -427,7 +435,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
            } = notebook
   end
 
-  test "imports elixir snippets as part of markdown cells if marked as such" do
+  test "imports code cell snippets as part of markdown cells if marked as such" do
     markdown = """
     # My Notebook
 
@@ -445,8 +453,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     <!-- livebook:{"force_markdown":true} -->
 
-    ```elixir
-    [1, 2, 3]
+    ```erlang
+    [1, 2, 3].
     ```
     """
 
@@ -474,8 +482,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      source: """
                      Some markdown.
 
-                     ```elixir
-                     [1, 2, 3]
+                     ```erlang
+                     [1, 2, 3].
                      ```\
                      """
                    }
@@ -1137,6 +1145,56 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                setup_section: %{
                  cells: [
                    %Cell.Code{id: "setup", source: "Mix.install([...])"}
+                 ]
+               },
+               sections: []
+             } = notebook
+    end
+
+    test "imports pyproject setup cell" do
+      markdown = """
+      # My Notebook
+
+      ```elixir
+      Mix.install([
+        {:pythonx, "~> 0.4.2"}
+      ])
+      ```
+
+      ```pyproject.toml
+      [project]
+      name = "project"
+      version = "0.0.0"
+      requires-python = "==3.13.*"
+      dependencies = []
+      ```
+      """
+
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               setup_section: %{
+                 cells: [
+                   %Cell.Code{
+                     id: "setup",
+                     source: """
+                     Mix.install([
+                       {:pythonx, "~> 0.4.2"}
+                     ])\
+                     """
+                   },
+                   %Cell.Code{
+                     id: "setup-pyproject.toml",
+                     language: :"pyproject.toml",
+                     source: """
+                     [project]
+                     name = "project"
+                     version = "0.0.0"
+                     requires-python = "==3.13.*"
+                     dependencies = []\
+                     """
+                   }
                  ]
                },
                sections: []

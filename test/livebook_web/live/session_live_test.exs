@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLiveTest do
   import Livebook.TestHelpers
   import Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session, Settings, Runtime, Users, FileSystem}
+  alias Livebook.{Sessions, Session, Settings, Runtime, FileSystem}
   alias Livebook.Notebook.Cell
 
   setup do
@@ -548,7 +548,8 @@ defmodule LivebookWeb.SessionLiveTest do
               id: "input1",
               destination: test,
               attrs: %{type: :text, default: "initial", label: "Name", debounce: :blur}
-            }
+            },
+            value: nil
           ],
           submit: "Send",
           report_changes: %{},
@@ -575,7 +576,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-outputs-container] button/, "Send")
       |> render_click()
 
-      assert_receive {:event, "control_ref1", %{data: %{name: "sherlock"}, type: :submit}}
+      assert_receive {:event, "control_ref1",
+                      %{data: %{name: "sherlock", value: nil}, type: :submit}}
     end
 
     test "file input", %{conn: conn, session: session, test: test} do
@@ -616,6 +618,72 @@ defmodule LivebookWeb.SessionLiveTest do
       send(session.pid, {:runtime_file_path_request, self(), file_ref})
       assert_receive {:runtime_file_path_reply, {:ok, path}}
       assert File.read!(path) == "content"
+    end
+
+    test "enabling a language", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element("[data-el-language-buttons] button", "Python")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 setup_section: %{cells: [%Cell.Code{}, %Cell.Code{language: :"pyproject.toml"}]},
+                 default_language: :python
+               }
+             } = Session.get_data(session.pid)
+
+      refute view
+             |> element("[data-el-language-buttons] button", "Python")
+             |> has_element?()
+    end
+
+    test "disabling a language", %{conn: conn, session: session} do
+      Session.enable_language(session.pid, :python)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      refute view
+             |> element("[data-el-language-buttons] button", "Python")
+             |> has_element?()
+
+      view
+      |> element(~s/button[phx-click="disable_language"]/)
+      |> render_click()
+
+      assert %{notebook: %{setup_section: %{cells: [%Cell.Code{}]}}} =
+               Session.get_data(session.pid)
+
+      assert view
+             |> element("[data-el-language-buttons] button", "Python")
+             |> has_element?()
+    end
+
+    test "changing cell language", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      view
+      |> element(~s/#cell-#{cell_id} button/, "Erlang")
+      |> render_click()
+
+      assert %{notebook: %{sections: [%{cells: [%Cell.Code{language: :erlang}]}]}} =
+               Session.get_data(session.pid)
+    end
+
+    test "shows an error when a cell langauge is not enabled", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.set_cell_attributes(session.pid, cell_id, %{language: :python})
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert render(view) =~ "Python is not enabled for the current notebook."
+      assert render(view) =~ "Enable Python"
     end
   end
 
@@ -907,8 +975,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       view
-      |> element("#runtime-settings-modal button", "Connect")
-      |> render_click()
+      |> element("#runtime-settings-modal form")
+      |> render_submit(%{data: %{}})
 
       assert_receive {:operation, {:set_runtime, _pid, %Runtime.Standalone{}}}
       assert_receive {:operation, {:runtime_connected, _pid, %Runtime.Standalone{} = runtime}}
@@ -1350,6 +1418,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
 
+      # We load cluster information async, and then run namespace
+      # checks async, so we need to await async twice
+      _ = render_async(view)
       assert render_async(view) =~ "You can fully customize"
 
       assert view
@@ -1439,7 +1510,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # Set a different runtime, so there are no defaults
       Session.set_runtime(session.pid, Runtime.Standalone.new())
 
-      # Open new runtime configuratino
+      # Open new runtime configuration
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
 
       view
@@ -1706,7 +1777,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert render(view) =~ "Jake Peralta"
 
-      Users.broadcast_change(%{user1 | name: "Raymond Holt"})
+      Livebook.Users.broadcast_change(%{user1 | name: "Raymond Holt"})
       assert_receive {:operation, {:update_user, _client_id, _user}}
 
       refute render(view) =~ "Jake Peralta"
@@ -1905,7 +1976,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       # Multi-level path is not available
       Bypass.expect_once(bypass, "GET", "/nested/path/to/notebook.livemd", fn conn ->
-        Plug.Conn.resp(conn, 500, "Error")
+        Plug.Conn.resp(conn, 404, "Error")
       end)
 
       # A flat path is available
@@ -1932,7 +2003,7 @@ defmodule LivebookWeb.SessionLiveTest do
       bypass = Bypass.open()
 
       Bypass.expect_once(bypass, "GET", "/notebook.livemd", fn conn ->
-        Plug.Conn.resp(conn, 500, "Error")
+        Plug.Conn.resp(conn, 404, "Error")
       end)
 
       index_url = bypass_url(bypass.port) <> "/index.livemd"
@@ -2000,12 +2071,12 @@ defmodule LivebookWeb.SessionLiveTest do
       # Search the predefined dependencies in the embedded runtime
       search_view
       |> element(~s{form[phx-change="search"]})
-      |> render_change(%{"search" => "ja"})
+      |> render_change(%{"search" => "re"})
 
       page = render(view)
-      assert page =~ "jason"
-      assert page =~ "A blazing fast JSON parser and generator in pure Elixir"
-      assert page =~ "1.3.0"
+      assert page =~ "req"
+      assert page =~ "Req is a batteries-included HTTP client for Elixir."
+      assert page =~ "0.5.0"
     end
   end
 
@@ -2016,18 +2087,20 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "adds a secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
-      secret = build(:secret, name: "FOO", value: "123", hub_id: nil)
+      secret = build(:secret, hub_id: nil)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}})
+      |> render_submit(%{
+        secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}
+      })
 
       assert_session_secret(view, session.pid, secret)
     end
 
     test "adds a livebook secret from form", %{conn: conn, session: session, hub: hub} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
-      secret = build(:secret, name: "BAR", value: "456")
+      secret = build(:secret)
 
       view
       |> element(~s{form[phx-submit="save"]})
@@ -2039,8 +2112,8 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "syncs secrets", %{conn: conn, session: session, hub: hub} do
-      session_secret = insert_secret(name: "FOO", value: "123")
-      secret = build(:secret, name: "FOO", value: "456")
+      session_secret = insert_secret(value: "123")
+      secret = build(:secret, name: session_secret.name, value: "456")
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
 
@@ -2056,7 +2129,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       Session.set_secret(session.pid, session_secret)
 
-      secret = build(:secret, name: "FOO", value: "789")
+      secret = build(:secret, name: session_secret.name, value: "789")
 
       view
       |> element(~s{form[phx-submit="save"]})
@@ -2070,15 +2143,17 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "never syncs secrets when updating from session",
          %{conn: conn, session: session, hub: hub} do
-      hub_secret = insert_secret(name: "FOO", value: "123")
-      secret = build(:secret, name: "FOO", value: "456", hub_id: nil)
+      hub_secret = insert_secret(value: "123")
+      secret = build(:secret, name: hub_secret.name, value: "456", hub_id: nil)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       Session.set_secret(session.pid, hub_secret)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}})
+      |> render_submit(%{
+        secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}
+      })
 
       assert_session_secret(view, session.pid, secret)
       refute secret in Livebook.Hubs.get_secrets(hub)
@@ -2086,7 +2161,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "shows the 'Add secret' button for missing secrets", %{conn: conn, session: session} do
-      secret = build(:secret, name: "ANOTHER_GREAT_SECRET", value: "123456", hub_id: nil)
+      secret = build(:secret, hub_id: nil)
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
       code = ~s{System.fetch_env!("LB_#{secret.name}")}
@@ -2104,7 +2179,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "adding a missing secret using 'Add secret' button",
          %{conn: conn, session: session, hub: hub} do
-      secret = build(:secret, name: "MYUNAVAILABLESECRET", value: "123456", hub_id: nil)
+      secret = build(:secret, hub_id: nil)
 
       # Subscribe and executes the code to trigger
       # the `System.EnvError` exception and outputs the 'Add secret' button
@@ -2146,7 +2221,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "granting access for unavailable secret using 'Add secret' button",
          %{conn: conn, session: session, hub: hub} do
-      secret = insert_secret(name: "UNAVAILABLESECRET", value: "123456")
+      secret = insert_secret()
 
       # Subscribe and executes the code to trigger
       # the `System.EnvError` exception and outputs the 'Add secret' button
@@ -2191,7 +2266,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "reloading outdated secret value", %{conn: conn, session: session} do
-      hub_secret = insert_secret(name: "FOO", value: "123")
+      hub_secret = insert_secret(value: "123")
       Session.set_secret(session.pid, hub_secret)
 
       {:ok, updated_hub_secret} = Livebook.Secrets.update_secret(hub_secret, %{value: "456"})
@@ -2214,9 +2289,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.subscribe(session.id)
 
       # creates a secret
-      secret_name = "SECRET_TO_BE_UPDATED_OR_DELETED"
-      secret_value = "123"
-      insert_secret(name: secret_name, value: secret_value)
+      %{name: secret_name, value: secret_value} = insert_secret()
 
       # receives the operation event
       assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
@@ -2265,10 +2338,12 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.subscribe(session.id)
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
+      name = "MY_ENV_#{System.unique_integer([:positive])}"
+
       section_id = insert_section(session.pid)
 
       cell_id =
-        insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("MY_AWESOME_ENV")})
+        insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("#{name}")})
 
       view
       |> element(~s{[data-el-session]})
@@ -2278,7 +2353,7 @@ defmodule LivebookWeb.SessionLiveTest do
                       {:add_cell_evaluation_response, _, ^cell_id,
                        terminal_text("\e[35mnil\e[0m"), _}}
 
-      attrs = params_for(:env_var, name: "MY_AWESOME_ENV", value: "MyEnvVarValue")
+      attrs = params_for(:env_var, name: name, value: "MyEnvVarValue")
       Settings.set_env_var(attrs)
 
       view
@@ -2299,7 +2374,7 @@ defmodule LivebookWeb.SessionLiveTest do
                       {:add_cell_evaluation_response, _, ^cell_id,
                        terminal_text("\e[32m\"OTHER_VALUE\"\e[0m"), _}}
 
-      Settings.unset_env_var("MY_AWESOME_ENV")
+      Settings.unset_env_var(name)
 
       view
       |> element(~s{[data-el-session]})
@@ -2338,16 +2413,20 @@ defmodule LivebookWeb.SessionLiveTest do
 
       section_id = insert_section(session.pid)
 
-      cell_id = insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("PATH")})
+      # Note that we use IO.write, to make sure the value is not truncated
+      # (which inspect does)
+      cell_id =
+        insert_text_cell(session.pid, section_id, :code, ~s{IO.write(System.get_env("PATH"))})
 
       view
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
+                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text(output, true)}}
 
-      assert output == "\e[32m\"#{String.replace(expected_path, "\\", "\\\\")}\"\e[0m"
+      assert output == expected_path
+      # assert output == "\e[32m\"#{String.replace(expected_path, "\\", "\\\\")}\"\e[0m"
 
       Settings.unset_env_var("PATH")
 
@@ -2356,9 +2435,9 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
+                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text(output, true)}}
 
-      assert output == "\e[32m\"#{String.replace(initial_os_path, "\\", "\\\\")}\"\e[0m"
+      assert output == initial_os_path
     end
   end
 
@@ -2779,7 +2858,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "shows a warning when any session secrets are defined", %{conn: conn, session: session} do
-      secret = build(:secret, name: "FOO", value: "456", hub_id: nil)
+      secret = build(:secret, hub_id: nil)
       Session.set_secret(session.pid, secret)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -2842,11 +2921,16 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.subscribe(session.id)
 
     {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
-    refute render(view) =~ "LivebookWeb.SessionLiveTest.MyBigModuleName"
+    refute render(view) =~ "LivebookWeb.SessionLiveTest.Module1"
+    refute render(view) =~ "LivebookWeb.SessionLiveTest.Module2"
 
     cell_id =
       insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
-      defmodule LivebookWeb.SessionLiveTest.MyBigModuleName do
+      defmodule LivebookWeb.SessionLiveTest.Module1 do
+        def bar, do: :baz
+      end
+
+      defmodule LivebookWeb.SessionLiveTest.Module2 do
         def bar, do: :baz
       end
       ''')
@@ -2856,45 +2940,44 @@ defmodule LivebookWeb.SessionLiveTest do
 
     assert has_element?(
              view,
-             "[data-el-outline-definition-item] span",
-             "LivebookWeb.SessionLiveTest.MyBigModuleName"
-           )
-
-    assert render(view) =~
-             ~s'data-file="#cell:#{cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.MyBigModuleName"'
-
-    second_cell_id =
-      insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
-      defmodule LivebookWeb.SessionLiveTest.AnotherModule do
-        def bar, do: :baz
-      end
-
-      defmodule LivebookWeb.SessionLiveTest.Foo do
-        def bar, do: :baz
-      end
-      ''')
-
-    Session.queue_cell_evaluation(session.pid, second_cell_id)
-    assert_receive {:operation, {:add_cell_evaluation_response, _, ^second_cell_id, _, _}}
-
-    assert has_element?(
-             view,
-             "[data-el-outline-definition-item] span",
-             "LivebookWeb.SessionLiveTest.AnotherModule"
+             ~s/[data-el-outline-definition-item][data-file="#cell:#{cell_id}"][data-line="1"]/,
+             "LivebookWeb.SessionLiveTest.Module1"
            )
 
     assert has_element?(
              view,
-             "[data-el-outline-definition-item] span",
-             "LivebookWeb.SessionLiveTest.Foo"
+             ~s/[data-el-outline-definition-item][data-file="#cell:#{cell_id}"][data-line="5"]/,
+             "LivebookWeb.SessionLiveTest.Module2"
            )
-
-    assert render(view) =~
-             ~s'data-file="#cell:#{second_cell_id}" data-line="1" title="LivebookWeb.SessionLiveTest.AnotherModule"'
-
-    assert render(view) =~
-             ~s'data-file="#cell:#{second_cell_id}" data-line="5" title="LivebookWeb.SessionLiveTest.Foo"'
   after
     Code.put_compiler_option(:debug_info, false)
+  end
+
+  test "python code evaluation end-to-end", %{conn: conn, session: session} do
+    # Use the standalone runtime, to install Pythonx and setup the interpreter
+    Session.set_runtime(session.pid, Runtime.Standalone.new())
+
+    {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+    Session.subscribe(session.id)
+
+    view
+    |> element("[data-el-language-buttons] button", "Python")
+    |> render_click()
+
+    section_id = insert_section(session.pid)
+
+    cell_id =
+      insert_text_cell(session.pid, section_id, :code, "len([1, 2])", %{language: :python})
+
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+    assert_receive {:operation,
+                    {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}},
+                   40_000
+
+    assert output == "2"
   end
 end

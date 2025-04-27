@@ -2,17 +2,24 @@ defmodule LivebookWeb.UserHook do
   import Phoenix.Component
   import Phoenix.LiveView
 
-  alias Livebook.Users.User
-
-  def on_mount(:default, _params, %{"identity_data" => identity_data} = session, socket) do
-    if connected?(socket) do
-      Livebook.Users.subscribe(identity_data.id)
-    end
-
+  def on_mount(:default, _params, session, socket) do
     socket =
       socket
-      |> assign_new(:current_user, fn -> build_current_user(session, socket) end)
+      |> assign_new(:current_user, fn ->
+        connect_params = get_connect_params(socket) || %{}
+        identity_data = session["identity_data"]
+        # user_data from connect params takes precedence, since the
+        # cookie may have been altered by the client.
+        user_data = connect_params["user_data"] || session["user_data"]
+        LivebookWeb.UserPlug.build_current_user(session, identity_data, user_data)
+      end)
       |> attach_hook(:current_user_subscription, :handle_info, &info/2)
+
+    if connected?(socket) do
+      Livebook.Users.subscribe(socket.assigns.current_user.id)
+    end
+
+    Logger.metadata(Livebook.Utils.logger_users_metadata([socket.assigns.current_user]))
 
     {:cont, socket}
   end
@@ -25,29 +32,4 @@ defmodule LivebookWeb.UserHook do
   end
 
   defp info(_message, socket), do: {:cont, socket}
-
-  # Builds `Livebook.Users.User` using information from
-  # session and socket.
-  #
-  # Uses `user_data` from socket `connect_params` as initial
-  # attributes if the socket is connected. Otherwise uses
-  # `user_data` from session.
-  defp build_current_user(session, socket) do
-    identity_data = Map.new(session["identity_data"], fn {k, v} -> {Atom.to_string(k), v} end)
-    connect_params = get_connect_params(socket) || %{}
-    attrs = connect_params["user_data"] || session["user_data"] || %{}
-
-    attrs =
-      case Map.merge(attrs, identity_data) do
-        %{"name" => nil, "email" => email} = attrs -> %{attrs | "name" => email}
-        attrs -> attrs
-      end
-
-    user = User.new(attrs["id"])
-
-    case Livebook.Users.update_user(user, attrs) do
-      {:ok, user} -> user
-      {:error, _changeset} -> user
-    end
-  end
 end

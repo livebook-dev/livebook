@@ -41,6 +41,7 @@ defmodule Livebook.Hubs.Team do
     field :session_token, :string, redact: true
     field :hub_name, :string
     field :hub_emoji, :string
+    field :billing_status, :map, default: %{disabled: false, type: nil}
 
     embeds_one :offline, Offline
   end
@@ -102,7 +103,8 @@ defmodule Livebook.Hubs.Team do
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
-  alias Livebook.Hubs.{Team, TeamClient}
+  alias Livebook.Hubs.Team
+  alias Livebook.Hubs.TeamClient
   alias Livebook.Teams.Requests
   alias Livebook.FileSystem
   alias Livebook.Secrets.Secret
@@ -141,18 +143,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def disconnect(team), do: TeamClient.stop(team.id)
 
   def connection_status(team) do
-    cond do
-      team.offline ->
-        "You are running an offline Workspace for deployment. You cannot modify its settings."
-
-      team.user_id == nil ->
-        "You are running a Livebook app server. This worksace is in read-only mode."
-
-      reason = TeamClient.get_connection_status(team.id) ->
-        "Cannot connect to Teams: #{reason}.\nWill attempt to reconnect automatically..."
-
-      true ->
-        nil
+    if reason = TeamClient.get_connection_status(team.id) do
+      "Cannot connect to Teams: #{reason}.\nWill attempt to reconnect automatically..."
     end
   end
 

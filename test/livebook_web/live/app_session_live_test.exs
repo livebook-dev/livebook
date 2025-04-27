@@ -5,7 +5,10 @@ defmodule LivebookWeb.AppSessionLiveTest do
   import Livebook.TestHelpers
   import Livebook.AppHelpers
 
-  alias Livebook.{App, Apps, Notebook, Utils}
+  alias Livebook.App
+  alias Livebook.Apps
+  alias Livebook.Notebook
+  alias Livebook.Utils
 
   test "shows a nonexisting message if the session does not exist", %{conn: conn} do
     slug = Utils.random_short_id()
@@ -115,9 +118,11 @@ defmodule LivebookWeb.AppSessionLiveTest do
     Livebook.App.close(app.pid)
   end
 
-  test "shows an error message when session errors", %{conn: conn, test: test} do
+  test "shows an error message when session errors", %{conn: conn} do
     slug = Livebook.Utils.random_short_id()
     app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+
+    id = Livebook.Utils.random_short_id() |> String.to_atom()
 
     notebook = %{
       Livebook.Notebook.new()
@@ -140,8 +145,8 @@ defmodule LivebookWeb.AppSessionLiveTest do
                   | id: "error-cell",
                     source: """
                     # Fail on the first run
-                    unless :persistent_term.get(#{inspect(test)}, false) do
-                      :persistent_term.put(#{inspect(test)}, true)
+                    unless :persistent_term.get(#{inspect(id)}, false) do
+                      :persistent_term.put(#{inspect(id)}, true)
                       raise "oops"
                     end
                     """
@@ -193,6 +198,8 @@ defmodule LivebookWeb.AppSessionLiveTest do
       attrs: %{type: :number, default: 1, label: "Name", debounce: :blur}
     }
 
+    id = Livebook.Utils.random_short_id() |> String.to_atom()
+
     notebook = %{
       Livebook.Notebook.new()
       | app_settings: app_settings,
@@ -213,8 +220,8 @@ defmodule LivebookWeb.AppSessionLiveTest do
                   | id: "error-cell",
                     source: """
                     # Fail on the first run
-                    unless :persistent_term.get(#{inspect(test)}, false) do
-                      :persistent_term.put(#{inspect(test)}, true)
+                    unless :persistent_term.get(#{inspect(id)}, false) do
+                      :persistent_term.put(#{inspect(id)}, true)
                       raise "oops"
                     end
                     """

@@ -4,7 +4,7 @@ defmodule LivebookWeb.SessionLive.CustomViewComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6">
+    <div class="flex flex-col">
       <h3 class="text-2xl font-semibold text-gray-800">
         Custom view
       </h3>
@@ -23,6 +23,7 @@ defmodule LivebookWeb.SessionLive.CustomViewComponent do
       >
         <.switch_field name="show_section" label="Show sections" value={false} />
         <.switch_field name="show_markdown" label="Show markdown" value={false} />
+        <.switch_field name="show_code" label="Show code" value={false} />
         <.switch_field name="show_output" label="Show outputs" value={false} />
         <.switch_field name="spotlight" label="Spotlight focused" value={false} />
       </div>

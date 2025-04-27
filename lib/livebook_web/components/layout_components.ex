@@ -23,6 +23,13 @@ defmodule LivebookWeb.LayoutComponents do
         <.sidebar current_page={@current_page} current_user={@current_user} saved_hubs={@saved_hubs} />
       </div>
       <div class="grow overflow-y-auto">
+        <.topbar :if={Livebook.Config.teams_auth() == :online} variant="warning">
+          This Livebook instance has been configured for notebook deployment and is in read-only mode.
+        </.topbar>
+        <.topbar :if={Livebook.Config.teams_auth() == :offline} variant="warning">
+          You are running an offline Workspace for deployment. You cannot modify its settings.
+        </.topbar>
+
         <div class="md:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-[500] bg-white border-b border-gray-200">
           <div class="pt-1 text-xl text-gray-400 hover:text-gray-600 focus:text-gray-600">
             <button
@@ -39,7 +46,7 @@ defmodule LivebookWeb.LayoutComponents do
 
           <div>
             <%= if @topbar_action do %>
-              <%= render_slot(@topbar_action) %>
+              {render_slot(@topbar_action)}
             <% else %>
               <div class="text-gray-400 hover:text-gray-600 focus:text-gray-600">
                 <.link navigate={~p"/"} class="flex items-center" aria-label="go to home">
@@ -50,7 +57,7 @@ defmodule LivebookWeb.LayoutComponents do
             <% end %>
           </div>
         </div>
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </div>
     </div>
 
@@ -94,7 +101,7 @@ defmodule LivebookWeb.LayoutComponents do
                 </span>
               </.link>
               <span class="text-gray-300 text-xs font-normal font-sans mx-2.5 pt-3 cursor-default">
-                v<%= Livebook.Config.app_version() %>
+                v{Livebook.Config.app_version()}
               </span>
             </div>
             <.sidebar_link title="Home" icon="home-6-line" to={~p"/"} current={@current_page} />
@@ -111,21 +118,39 @@ defmodule LivebookWeb.LayoutComponents do
               to={~p"/settings"}
               current={@current_page}
             />
+            <button
+              :if={Livebook.Config.shutdown_callback()}
+              class="h-7 flex items-center text-gray-400 hover:text-white border-l-4 border-transparent hover:border-white"
+              aria-label="shutdown"
+              phx-click="shutdown"
+            >
+              <.remix_icon
+                icon="shut-down-line"
+                class="text-lg leading-6 w-[56px] flex justify-center"
+              />
+              <span class="text-sm font-medium">
+                Shut Down
+              </span>
+            </button>
           </div>
           <.hub_section hubs={@saved_hubs} current_page={@current_page} />
         </div>
         <div class="flex flex-col">
           <button
-            :if={Livebook.Config.shutdown_callback()}
+            :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}
             class="h-7 flex items-center text-gray-400 hover:text-white border-l-4 border-transparent hover:border-white"
-            aria-label="shutdown"
-            phx-click="shutdown"
+            aria-label="logout"
+            phx-click="logout"
           >
-            <.remix_icon icon="shut-down-line" class="text-lg leading-6 w-[56px] flex justify-center" />
+            <.remix_icon
+              icon="logout-box-line"
+              class="text-lg leading-6 w-[56px] flex justify-center"
+            />
             <span class="text-sm font-medium">
-              Shut Down
+              Logout
             </span>
           </button>
+
           <button
             class="mt-6 flex items-center group border-l-4 border-transparent"
             aria_label="user profile"
@@ -139,7 +164,7 @@ defmodule LivebookWeb.LayoutComponents do
               />
             </div>
             <span class="text-sm text-gray-400 font-medium group-hover:text-white">
-              <%= @current_user.name %>
+              {@current_user.name}
             </span>
           </button>
         </div>
@@ -160,7 +185,7 @@ defmodule LivebookWeb.LayoutComponents do
     >
       <.remix_icon icon={@icon} class="text-lg leading-6 w-[56px] flex justify-center" />
       <span class="text-sm font-medium">
-        <%= @title %>
+        {@title}
       </span>
     </.link>
     """
@@ -179,11 +204,11 @@ defmodule LivebookWeb.LayoutComponents do
     >
       <div class="text-lg leading-6 w-[56px] flex justify-center">
         <span class="relative">
-          <%= @hub.emoji %>
+          {@hub.emoji}
         </span>
       </div>
       <span class="text-sm font-medium">
-        <%= @hub.name %>
+        {@hub.name}
       </span>
     </.link>
     """
@@ -194,7 +219,7 @@ defmodule LivebookWeb.LayoutComponents do
     <.link {hub_connection_link_opts(@hub, @to, @current)}>
       <div class="text-lg leading-6 w-[56px] flex justify-center">
         <span class="relative">
-          <%= @hub.emoji %>
+          {@hub.emoji}
 
           <div class={[
             "absolute w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0",
@@ -203,7 +228,7 @@ defmodule LivebookWeb.LayoutComponents do
         </span>
       </div>
       <span class="text-sm font-medium">
-        <%= @hub.name %>
+        {@hub.name}
       </span>
     </.link>
     """
@@ -286,9 +311,9 @@ defmodule LivebookWeb.LayoutComponents do
       </div>
       <h1 class="text-2xl text-gray-800 font-medium">
         <%= if @inner_block != [] do %>
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         <% else %>
-          <%= @text %>
+          {@text}
         <% end %>
       </h1>
     </div>
@@ -298,20 +323,20 @@ defmodule LivebookWeb.LayoutComponents do
   @doc """
   Topbar for showing pinned, page-specific messages.
   """
-  attr :variant, :atom, default: :info, values: [:warning, :info, :error]
+  attr :variant, :string, default: "info", values: ~w(warning info error)
   slot :inner_block, required: true
 
   def topbar(assigns) do
     ~H"""
     <div class={["px-2 py-2 text-sm text-center", topbar_class(@variant)]}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </div>
     """
   end
 
-  defp topbar_class(:warning), do: "bg-yellow-200 text-gray-900"
-  defp topbar_class(:info), do: "bg-blue-200 text-gray-900"
-  defp topbar_class(:error), do: "bg-red-200 text-gray-900"
+  defp topbar_class("warning"), do: "bg-yellow-200 text-gray-900"
+  defp topbar_class("info"), do: "bg-blue-200 text-gray-900"
+  defp topbar_class("error"), do: "bg-red-200 text-gray-900"
 
   @doc """
   Returns an inline script to inject in dev mode.

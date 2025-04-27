@@ -742,7 +742,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp function_or_macro(_, fun, arity), do: {fun, arity, :function}
 
   defp append_funs_type(funs, type) do
-    Enum.map(funs, &Tuple.append(&1, type))
+    Enum.map(funs, fn {name, arity} -> {name, arity, type} end)
   end
 
   defp match_module_type(mod, hint, ctx) do

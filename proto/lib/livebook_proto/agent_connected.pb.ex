@@ -1,5 +1,5 @@
 defmodule LivebookProto.AgentConnected do
-  use Protobuf, syntax: :proto3, protoc_gen_elixir_version: "0.12.0"
+  use Protobuf, protoc_gen_elixir_version: "0.14.1", syntax: :proto3
 
   field :name, 2, type: :string
   field :public_key, 3, type: :string, json_name: "publicKey"
@@ -18,4 +18,5 @@ defmodule LivebookProto.AgentConnected do
     json_name: "appDeployments"
 
   field :agents, 9, repeated: true, type: LivebookProto.Agent
+  field :billing_status, 10, type: LivebookProto.BillingStatus, json_name: "billingStatus"
 end

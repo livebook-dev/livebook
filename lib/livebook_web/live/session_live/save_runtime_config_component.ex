@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
             role="menuitem"
             phx-click={JS.push("load_config", value: %{name: name}, target: @myself)}
           >
-            <%= name %>
+            {name}
           </button>
         </.menu_item>
       </.menu>
@@ -107,14 +107,14 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
         Store the config in a secret in the <.workspace hub={@hub} /> workspace to reuse it later.
       </div>
       <div :if={error = @save_config.error} class="mt-4">
-        <.message_box kind={:error} message={error} />
+        <.message_box kind="error" message={error} />
       </div>
       <div class="mt-4 grid grid-cols-3">
         <.text_field field={f[:name]} label="Secret name" class="uppercase" autofocus />
       </div>
       <div class="mt-6 flex gap-2">
         <.button type="submit" disabled={not @save_config.changeset.valid? or @save_config.inflight}>
-          <%= if(@save_config.inflight, do: "Saving...", else: "Save") %>
+          {if(@save_config.inflight, do: "Saving...", else: "Save")}
         </.button>
         <.button
           color="gray"
@@ -133,8 +133,8 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
   defp workspace(assigns) do
     ~H"""
     <span class="font-medium">
-      <span class="text-lg"><%= @hub.hub_emoji %></span>
-      <span><%= @hub.hub_name %></span>
+      <span class="text-lg">{@hub.hub_emoji}</span>
+      <span>{@hub.hub_name}</span>
     </span>
     """
   end
@@ -174,7 +174,7 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
   def handle_event("load_config", %{"name" => name}, socket) do
     secret = Enum.find(socket.assigns.hub_secrets, &(&1.name == name))
 
-    case Jason.decode(secret.value) do
+    case JSON.decode(secret.value) do
       {:ok, config_defaults} ->
         send_event(socket.assigns.target, {:load_config, config_defaults})
         {:noreply, socket}
@@ -214,7 +214,7 @@ defmodule LivebookWeb.SessionLive.SaveRuntimeConfigComponent do
   defp config_secret_changeset(socket, attrs) do
     secret_prefix = socket.assigns.secret_prefix
     hub = socket.assigns.hub
-    value = Jason.encode!(socket.assigns.save_config_payload)
+    value = JSON.encode!(socket.assigns.save_config_payload)
     secret = %Livebook.Secrets.Secret{hub_id: hub.id, name: nil, value: value}
 
     secret

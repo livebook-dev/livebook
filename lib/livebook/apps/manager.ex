@@ -268,7 +268,7 @@ defmodule Livebook.Apps.Manager do
   end
 
   defp local_broadcast(message) do
-    Phoenix.PubSub.direct_broadcast!(node(), Livebook.PubSub, "apps_manager", message)
+    Phoenix.PubSub.local_broadcast(Livebook.PubSub, "apps_manager", message)
   end
 
   defp app_definitely_down?(slug) do
@@ -315,13 +315,21 @@ defmodule Livebook.Apps.Manager do
   end
 
   defp retry(state, slug) do
-    if app_definitely_down?(slug) do
-      %{app_spec: app_spec} = state.deployments[slug]
+    %{app_spec: app_spec} = state.deployments[slug]
+
+    permanent_app_specs = Apps.get_permanent_app_specs()
+
+    # Check if the app spec has not been retracted or overridden with
+    # a new version
+    valid? = Enum.any?(permanent_app_specs, &(&1.slug == slug and &1.version == app_spec.version))
+
+    if valid? and app_definitely_down?(slug) do
       ref = deploy(app_spec)
       put_in(state.deployments[slug].ref, ref)
     else
       {_, state} = pop_in(state.deployments[slug])
-      state
+      # If there is a new version, we want to deploy it right away
+      sync_apps(state)
     end
   end
 

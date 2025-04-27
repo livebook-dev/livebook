@@ -31,7 +31,7 @@ FROM base-${VARIANT} AS build
 
 RUN apt-get update && apt-get upgrade -y && \
   apt-get install --no-install-recommends -y \
-    build-essential git && \
+    build-essential ca-certificates git && \
   apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

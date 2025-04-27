@@ -91,8 +91,8 @@ defmodule Livebook.Notebook.AppSettings do
       :show_source,
       :output_type
     ])
-    |> validate_format(:slug, ~r/^[a-zA-Z0-9-]+$/,
-      message: "should only contain alphanumeric characters and dashes"
+    |> validate_format(:slug, ~r/^[a-z0-9-]+$/,
+      message: "should only contain lowercase alphanumeric characters and dashes"
     )
     |> cast_access_attrs(attrs)
     |> cast_mode_specific_attrs(attrs)

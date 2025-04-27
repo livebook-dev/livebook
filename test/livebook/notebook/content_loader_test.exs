@@ -33,7 +33,7 @@ defmodule Livebook.Notebook.ContentLoaderTest do
 
     test "returns an error when the request fails", %{bypass: bypass} do
       Bypass.expect_once(bypass, "GET", "/invalid", fn conn ->
-        Plug.Conn.resp(conn, 500, "Error")
+        Plug.Conn.resp(conn, 404, "Error")
       end)
 
       assert ContentLoader.fetch_content(url(bypass.port) <> "/invalid") ==

@@ -10,11 +10,11 @@ You can deploy Livebook inside your infrastructure using Docker. The Dockerfile 
 FROM ghcr.io/livebook-dev/livebook
 
 # Configure your port accordingly
-ENV LIVEBOOK_PORT 7860
+ENV LIVEBOOK_PORT=7860
 EXPOSE 7860
 
 # If you have a persistent volume, configure it here
-ENV LIVEBOOK_DATA_PATH "/data"
+ENV LIVEBOOK_DATA_PATH="/data"
 USER root
 RUN mkdir -p /data
 RUN chmod 777 /data
@@ -63,7 +63,7 @@ kind: Service
 metadata:
   name: livebook-loadbalancer
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
     - port: 8080
       targetPort: 8080
@@ -77,7 +77,10 @@ kind: Deployment
 metadata:
   name: livebook
 spec:
-  replicas: 3
+  # When deploying Livebook for authoring notebooks to Kubernetes,
+  # the number of replicas must be 1, since Livebook considers you
+  # will assign one instance per user.
+  replicas: 1
   selector:
     matchLabels:
       app: livebook
@@ -134,10 +137,14 @@ data:
   LIVEBOOK_COOKIE: <base64_encoded_password>
 ```
 
+The setup above does not set up a data directory, which means once you restart the instance, any configuration will be lost. If you have a persistent volume, you can point the `LIVEBOOK_DATA_PATH` environment variable to it.
+
 ## Deploy notebooks as applications
 
 It is possible to deploy any notebook as an application in Livebook. Inside the notebook, open up the Application pane on the sidebar (with a rocket icon), click "Manual Docker deployment", and follow the required steps.
 
-If you are using [Livebook Teams](https://livebook.dev/teams/), you can also deploy with the click of a button by running Livebook servers inside your infrastructure. To get started, open up Livebook and click "Add Organization" on the sidebar. Once completed, open up the Application pane on the sidebar (with a rocket icon), click "Deploy with Livebook Teams".
+If you are using [Livebook Teams](https://livebook.dev/teams/), you can also deploy with the click of a button by running Livebook servers inside your infrastructure. To get started, open up Livebook and click "Add Organization" on the sidebar. Once completed, open up the Application pane on the sidebar (with a rocket icon), click "Deploy with Livebook Teams", and follow the deployment steps.
 
-Livebook Teams also support airgapped deployments, pre-configured Zero Trust Authentication, shared team secrets, file storages, and more.
+The deployment steps will show you to deploy your notebooks within Docker, Fly.io, and Kubernetes. This is effectively done by setting the `LIVEBOOK_TEAMS_AUTH`, which configures Livebook to run as a read-only instance connected to Livebook Teams.
+
+Livebook Teams also support airgapped deployments, pre-configured environment variables, shared team secrets, file storages, and more.

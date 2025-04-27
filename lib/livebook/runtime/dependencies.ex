@@ -6,16 +6,8 @@ defmodule Livebook.Runtime.Dependencies do
           {:ok, String.t()} | {:error, String.t()}
   def add_dependencies(code, dependencies) do
     deps = Enum.map(dependencies, & &1.dep)
-    config = Enum.reduce(dependencies, [], &deep_merge(&2, &1.config))
+    config = Enum.reduce(dependencies, [], &Livebook.Utils.keyword_deep_merge(&2, &1.config))
     add_mix_deps(code, deps, config)
-  end
-
-  defp deep_merge(left, right) do
-    if Keyword.keyword?(left) and Keyword.keyword?(right) do
-      Keyword.merge(left, right, fn _key, left, right -> deep_merge(left, right) end)
-    else
-      right
-    end
   end
 
   @doc """
@@ -177,11 +169,11 @@ defmodule Livebook.Runtime.Dependencies do
 
   ## Examples
 
-      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:jason, "~> 1.3.0"}|)
-      {:ok, {:jason, "~> 1.3.0"}}
+      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:req, "~> 0.5.0"}|)
+      {:ok, {:req, "~> 0.5.0"}}
 
-      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:jason, "~> 1.3.0", runtime: false, meta: "data"}|)
-      {:ok, {:jason, "~> 1.3.0", runtime: false, meta: "data"}}
+      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:req, "~> 0.5.0", runtime: false, meta: "data"}|)
+      {:ok, {:req, "~> 0.5.0", runtime: false, meta: "data"}}
 
       iex> Livebook.Runtime.Dependencies.parse_term(~s|%{name: "Jake", numbers: [1, 2, 3.4]}|)
       {:ok, %{name: "Jake", numbers: [1, 2, 3.4]}}
@@ -280,24 +272,24 @@ defmodule Livebook.Runtime.Dependencies do
   def search_hex(search, opts) do
     api_url = opts[:api_url] || "https://hex.pm/api"
 
-    params = %{"search" => "name:#{search}*", "sort" => "recent_downloads"}
-    url = api_url <> "/packages?" <> URI.encode_query(params)
+    req = Req.new(base_url: api_url) |> Livebook.Utils.req_attach_defaults()
 
-    case Livebook.Utils.HTTP.request(:get, url) do
-      {:ok, %{status: status, body: body}} ->
-        with 200 <- status, {:ok, packages} <- Jason.decode(body) do
-          packages =
-            packages
-            |> Enum.map(&parse_package/1)
-            |> reorder_packages(search)
+    params = [search: "name:#{search}*", sort: "recent_downloads"]
 
-          {:ok, packages}
-        else
-          _ -> {:error, "unexpected response"}
-        end
+    case Req.get(req, url: "/packages", params: params) do
+      {:ok, %{status: 200} = resp} ->
+        packages =
+          resp.body
+          |> Enum.map(&parse_package/1)
+          |> reorder_packages(search)
 
-      {:error, reason} ->
-        {:error, "failed to make a request, reason: #{inspect(reason)}"}
+        {:ok, packages}
+
+      {:ok, %{status: status}} ->
+        {:error, "unexpected response, HTTP status #{status}"}
+
+      {:error, exception} ->
+        {:error, "failed to make a request, reason: #{Exception.message(exception)}}"}
     end
   end
 

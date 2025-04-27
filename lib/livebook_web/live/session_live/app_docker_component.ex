@@ -124,8 +124,8 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         <p class="text-gray-700">
           <.label>Workspace</.label>
           <span>
-            <span class="text-lg"><%= @hub.hub_emoji %></span>
-            <span><%= @hub.hub_name %></span>
+            <span class="text-lg">{@hub.hub_emoji}</span>
+            <span>{@hub.hub_name}</span>
           </span>
         </p>
         <%= if @deployment_groups do %>
@@ -167,7 +167,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
 
       <div :if={@messages != []} class="flex flex-col gap-2">
         <.message_box :for={{kind, message} <- @messages} kind={kind}>
-          <%= raw(message) %>
+          {raw(message)}
         </.message_box>
       </div>
 
@@ -299,8 +299,8 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     file_path_message = "File saved at #{dockerfile_file.path}"
 
     case FileSystem.File.write(dockerfile_file, socket.assigns.dockerfile) do
-      :ok -> {:noreply, assign(socket, messages: [{:info, file_path_message}])}
-      {:error, message} -> {:noreply, assign(socket, messages: [{:error, message}])}
+      :ok -> {:noreply, assign(socket, messages: [{"info", file_path_message}])}
+      {:error, message} -> {:noreply, assign(socket, messages: [{"error", message}])}
     end
   end
 
@@ -362,7 +362,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         secrets
       )
 
-    messages = Enum.map(warnings, &{:warning, &1})
+    messages = Enum.map(warnings, &{"warning", &1})
 
     assign(socket, dockerfile: dockerfile, messages: messages)
   end

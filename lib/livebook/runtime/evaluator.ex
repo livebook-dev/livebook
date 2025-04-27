@@ -91,10 +91,7 @@ defmodule Livebook.Runtime.Evaluator do
   """
   @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
   def start_link(opts \\ []) do
-    case :proc_lib.start_link(__MODULE__, :init, [opts]) do
-      {:error, error} -> {:error, error}
-      evaluator -> {:ok, evaluator.pid, evaluator}
-    end
+    :proc_lib.start_link(__MODULE__, :init, [opts])
   end
 
   @doc """
@@ -145,7 +142,7 @@ defmodule Livebook.Runtime.Evaluator do
       as an argument
 
   """
-  @spec evaluate_code(t(), :elixir | :erlang, ref(), list(ref()), keyword()) :: :ok
+  @spec evaluate_code(t(), Livebook.Runtime.language(), ref(), list(ref()), keyword()) :: :ok
   def evaluate_code(evaluator, language, code, ref, parent_refs, opts \\ []) do
     cast(evaluator, {:evaluate_code, language, code, ref, parent_refs, opts})
   end
@@ -318,10 +315,11 @@ defmodule Livebook.Runtime.Evaluator do
       contexts: %{},
       initial_context: context,
       initial_context_version: nil,
-      ignored_pdict_keys: ignored_pdict_keys
+      ignored_pdict_keys: ignored_pdict_keys,
+      tmp_dir: tmp_dir
     }
 
-    :proc_lib.init_ack(evaluator)
+    :proc_lib.init_ack({:ok, evaluator.pid, evaluator})
 
     loop(state)
   end
@@ -434,7 +432,15 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     start_time = System.monotonic_time()
-    {eval_result, code_markers} = eval(language, code, context.binding, context.env)
+
+    {eval_result, code_markers} =
+      case language do
+        :elixir -> eval_elixir(code, context.binding, context.env)
+        :erlang -> eval_erlang(code, context.binding, context.env, state.tmp_dir)
+        :python -> eval_python(code, context.binding, context.env)
+        :"pyproject.toml" -> eval_pyproject_toml(code, context.binding, context.env)
+      end
+
     evaluation_time_ms = time_diff_ms(start_time)
 
     %{tracer_info: tracer_info} = Evaluator.IOProxy.after_evaluation(state.io_proxy)
@@ -468,8 +474,20 @@ defmodule Livebook.Runtime.Evaluator do
           identifiers_used = :unknown
           identifiers_defined = %{}
           identifier_definitions = []
-          # Empty context
-          new_context = initial_context()
+
+          # Mostly empty context, however we keep imports and process
+          # dictionary from the previous context, since these are not
+          # diffed
+          new_context = %{
+            id: random_long_id(),
+            binding: [],
+            env:
+              context.env
+              |> prune_env(%Evaluator.Tracer{})
+              |> Map.replace!(:versioned_vars, %{}),
+            pdict: context.pdict
+          }
+
           {new_context, result, identifiers_used, identifiers_defined, identifier_definitions}
       end
 
@@ -478,7 +496,9 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     state = put_context(state, ref, new_context)
-    output = Evaluator.Formatter.format_result(result, language)
+    output = Evaluator.Formatter.format_result(language, result)
+
+    after_evaluation(language)
 
     metadata = %{
       errored: error_result?(result),
@@ -624,7 +644,7 @@ defmodule Livebook.Runtime.Evaluator do
     |> Map.update!(:context_modules, &(&1 ++ prev_env.context_modules))
   end
 
-  defp eval(:elixir, code, binding, env) do
+  defp eval_elixir(code, binding, env) do
     {{result, extra_diagnostics}, diagnostics} =
       Code.with_diagnostics([log: true], fn ->
         try do
@@ -688,20 +708,99 @@ defmodule Livebook.Runtime.Evaluator do
     {result, code_markers}
   end
 
-  defp eval(:erlang, code, binding, env) do
+  defp extra_diagnostic?(%SyntaxError{}), do: true
+  defp extra_diagnostic?(%TokenMissingError{}), do: true
+  defp extra_diagnostic?(%MismatchedDelimiterError{}), do: true
+
+  defp extra_diagnostic?(%CompileError{description: description}) do
+    not String.contains?(description, "(errors have been logged)")
+  end
+
+  defp extra_diagnostic?(_error), do: false
+
+  # Erlang code is either statements as currently supported, or modules.
+  # In case we want to support modules - it makes sense to allow users to use
+  # includes, defines and thus we use the epp-module first - try to find out
+  #
+  # if in the tokens from erl_scan we find at least 1 module-token we assume
+  # that the user is defining a module, if not the previous code is called.
+
+  defp eval_erlang(code, binding, env, tmp_dir) do
+    case :erl_scan.string(String.to_charlist(code), {1, 1}, [:text]) do
+      {:ok, [{:-, _}, {:atom, _, :module} | _], _} ->
+        eval_erlang_module(code, binding, env, tmp_dir)
+
+      {:ok, tokens, _} ->
+        eval_erlang_statements(code, tokens, binding, env)
+
+      {:error, {location, module, description}, _end_loc} ->
+        process_erlang_error(env, code, location, module, description)
+    end
+  end
+
+  # Explain to user: without tmp_dir to write files, they cannot compile erlang-modules
+  defp eval_erlang_module(_code, _binding, _env, nil) do
+    {{:error, :error, "writing Erlang modules requires a writeable file system", []}, []}
+  end
+
+  defp eval_erlang_module(code, binding, env, tmp_dir) do
+    # Consider using in-memory file, once :ram file supports IO device API.
+    # See https://github.com/erlang/otp/issues/7239
+    filename = Path.join(tmp_dir, "epp.tmp")
+    File.mkdir_p!(tmp_dir)
+    File.write!(filename, code)
+
+    try do
+      {:ok, forms} = :epp.parse_file(filename, source_name: String.to_charlist(env.file))
+
+      case :compile.forms(forms) do
+        {:ok, module, binary} ->
+          file =
+            if ebin_path = ebin_path() do
+              Path.join(ebin_path, "#{module}.beam")
+            else
+              "#{module}.beam"
+            end
+
+          {:module, module} =
+            :code.load_binary(module, String.to_charlist(file), binary)
+
+          # Registration of module
+          Evaluator.Tracer.trace(
+            {:on_module, binary, %{}},
+            %{env | module: module, versioned_vars: %{}}
+          )
+
+          {{:ok, {:ok, module}, binding, env}, []}
+
+        # TODO: deal with errors and reports as diagnostics
+        :error ->
+          {{:error, :error, "compile forms error", []}, []}
+      end
+    catch
+      kind, error ->
+        stacktrace = prune_stacktrace(:erl_eval, __STACKTRACE__)
+        {{:error, kind, error, stacktrace}, []}
+    after
+      # Clean up after ourselves.
+      _ = File.rm(filename)
+    end
+  end
+
+  defp eval_erlang_statements(code, tokens, binding, env) do
     try do
       erl_binding =
         Enum.reduce(binding, %{}, fn {name, value}, erl_binding ->
           :erl_eval.add_binding(elixir_to_erlang_var(name), value, erl_binding)
         end)
 
-      with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(code), {1, 1}, [:text]),
-           {:ok, parsed} <- :erl_parse.parse_exprs(tokens),
+      with {:ok, parsed} <- :erl_parse.parse_exprs(tokens),
            {:value, result, new_erl_binding} <- :erl_eval.exprs(parsed, erl_binding) do
         # Simple heuristic to detect the used variables. We look at
         # the tokens and assume all var tokens are used variables.
         # This will not handle shadowing of variables in fun definitions
         # and will only work well enough for expressions, not for modules.
+
         used_vars =
           for {:var, _anno, name} <- tokens,
               do: {erlang_to_elixir_var(name), nil},
@@ -731,10 +830,6 @@ defmodule Livebook.Runtime.Evaluator do
 
         {{:ok, result, binding, env}, []}
       else
-        # Tokenizer error
-        {:error, {location, module, description}, _end_loc} ->
-          process_erlang_error(env, code, location, module, description)
-
         # Parser error
         {:error, {location, module, description}} ->
           process_erlang_error(env, code, location, module, description)
@@ -785,29 +880,10 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp make_snippet(code, location) do
-    start_line = 1
-    start_column = 1
-    line = :erl_anno.line(location)
-
-    case :erl_anno.column(location) do
-      :undefined ->
-        nil
-
-      column ->
-        lines = :string.split(code, "\n", :all)
-        snippet = :lists.nth(line - start_line + 1, lines)
-
-        offset =
-          if line == start_line do
-            column - start_column
-          else
-            column - 1
-          end
-
-        case :string.trim(code, :leading) do
-          [] -> nil
-          _ -> %{content: snippet, offset: offset}
-        end
+    if :erl_anno.column(location) != :undefined and :string.trim(code, :leading) != [] do
+      line = :erl_anno.line(location)
+      lines = :string.split(code, "\n", :all)
+      :lists.nth(line, lines)
     end
   end
 
@@ -859,15 +935,191 @@ defmodule Livebook.Runtime.Evaluator do
     Enum.reject(code_markers, &(&1.line == 0))
   end
 
-  defp extra_diagnostic?(%SyntaxError{}), do: true
-  defp extra_diagnostic?(%TokenMissingError{}), do: true
-  defp extra_diagnostic?(%MismatchedDelimiterError{}), do: true
+  @compile {:no_warn_undefined, {Pythonx, :eval, 2}}
+  @compile {:no_warn_undefined, {Pythonx, :uv_init, 1}}
+  @compile {:no_warn_undefined, {Pythonx, :decode, 1}}
 
-  defp extra_diagnostic?(%CompileError{description: description}) do
-    not String.contains?(description, "(errors have been logged)")
+  defp eval_python(code, binding, env) do
+    with :ok <- ensure_pythonx() do
+      {result, _diagnostics} =
+        Code.with_diagnostics([log: true], fn ->
+          try do
+            quoted = python_code_to_quoted(code, env)
+
+            {value, binding, env} =
+              Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+
+            result = {:ok, value, binding, env}
+            code_markers = []
+            {result, code_markers}
+          catch
+            kind, error ->
+              code_markers =
+                if is_struct(error, Pythonx.Error) do
+                  Pythonx.eval(
+                    """
+                    import traceback
+
+                    if traceback_ is None:
+                      diagnostic = None
+                    elif isinstance(value, SyntaxError):
+                      diagnostic = (value.lineno, "SyntaxError: invalid syntax")
+                    else:
+                      description = " ".join(traceback.format_exception_only(type, value)).strip()
+                      diagnostic = (traceback_.tb_lineno, description)
+
+                    diagnostic
+                    """,
+                    %{
+                      "type" => error.type,
+                      "value" => error.value,
+                      "traceback_" => error.traceback
+                    }
+                  )
+                  |> elem(0)
+                  |> Pythonx.decode()
+                  |> case do
+                    nil -> []
+                    {line, message} -> [%{line: line, description: message, severity: :error}]
+                  end
+                else
+                  []
+                end
+
+              result = {:error, kind, error, []}
+              {result, code_markers}
+          end
+        end)
+
+      result
+    end
   end
 
-  defp extra_diagnostic?(_error), do: false
+  defp python_code_to_quoted(code, env) do
+    # We expand the sigil upfront, so it is not traced as import usage
+    # during evaluation.
+
+    quoted = {:sigil_PY, [], [{:<<>>, [], [code]}, []]}
+
+    env =
+      env
+      |> Map.replace!(:tracers, [])
+      |> Map.replace!(:requires, [Pythonx])
+      |> Map.replace!(:macros, [{Pythonx, [{:sigil_PY, 2}]}])
+
+    ast = Macro.expand_once(quoted, env)
+
+    # We modify the Pythonx.eval/2 call to specify the :stderr_device
+    # option. We want to Python stderr output to also be send to our
+    # group leader. By default it would be sent to our :standard_error,
+    # which sends it further to sender's group leader, however the
+    # sender is a process in the Pythonx supervision tree and has the
+    # default group leader.mix
+    Macro.prewalk(ast, fn
+      {{:., _, [{:__aliases__, _, [:Pythonx]}, :eval]} = target, meta, [code, globals]} ->
+        opts = [
+          stderr_device: {{:., [], [{:__aliases__, [], [:Process]}, :group_leader]}, [], []}
+        ]
+
+        {target, meta, [code, globals, opts]}
+
+      other ->
+        other
+    end)
+  end
+
+  defp eval_pyproject_toml(code, binding, env) do
+    with :ok <- ensure_pythonx() do
+      {result, _diagnostics} =
+        Code.with_diagnostics([log: true], fn ->
+          try do
+            Pythonx.uv_init(code)
+
+            # The default matplotlib backend relies on OS-specific GUI
+            # and crashes when embedding Python. For this reason, we
+            # configure a non-interactive backend that only allows
+            # exporting figures as images. In general we want to avoid
+            # special casing like this, but given how common matplotlib
+            # is, it does make sense to streamline the experience.
+            # We set the backend using env var, instead of calling
+            # plt.backend(...), because importing the module for the
+            # first time is slow, so we prefer to avoid that as part
+            # of setup.
+            Pythonx.eval(
+              """
+              import os
+              os.environ["MPLBACKEND"] = "Agg"
+              """,
+              %{}
+            )
+
+            value = :ok
+            result = {:ok, value, binding, env}
+            code_markers = []
+            {result, code_markers}
+          catch
+            kind, error ->
+              code_markers = []
+
+              result = {:error, kind, error, []}
+              {result, code_markers}
+          end
+        end)
+
+      result
+    end
+  end
+
+  defp ensure_pythonx() do
+    pythonx_requirement = Livebook.Runtime.Definitions.pythonx_requirement()
+
+    cond do
+      not Code.ensure_loaded?(Pythonx) ->
+        message =
+          """
+          Pythonx is missing, make sure to add it as a dependency:
+
+              #{Macro.to_string(Livebook.Runtime.Definitions.pythonx_dependency().dep)}
+          """
+
+        exception = RuntimeError.exception(message)
+        {{:error, :error, exception, []}, []}
+
+      not Version.match?(pythonx_version(), pythonx_requirement) ->
+        message =
+          "this Livebook version requires Pythonx #{pythonx_requirement}," <>
+            " but #{pythonx_version()} is installed, please update the dependency"
+
+        exception = RuntimeError.exception(message)
+        {{:error, :error, exception, []}, []}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp pythonx_version(), do: List.to_string(Application.spec(:pythonx)[:vsn])
+
+  defp after_evaluation(:python) do
+    if ensure_pythonx() == :ok do
+      # With matplotlib the charts are built imperatively, by modifying
+      # a global figure state. We clear the global state after the
+      # evaluation, otherwise re-evaluating cells draws on top of the
+      # previous figure. We do this only if matplotlib is imported.
+      Pythonx.eval(
+        """
+        import sys
+
+        if "matplotlib" in sys.modules:
+          import matplotlib.pyplot as plt
+          plt.close("all")
+        """,
+        %{}
+      )
+    end
+  end
+
+  defp after_evaluation(_language), do: :ok
 
   defp identifier_dependencies(context, tracer_info, prev_context) do
     identifiers_used = MapSet.new()
@@ -892,11 +1144,11 @@ defmodule Livebook.Runtime.Evaluator do
           do: {:module, module},
           into: identifiers_used
 
+    # Note: `module_info` works for both Erlang and Elixir modules, as opposed to `__info__`
     identifiers_defined =
-      for {module, _line_vars} <- tracer_info.modules_defined,
-          version = module.__info__(:md5),
-          do: {{:module, module}, version},
-          into: identifiers_defined
+      for {module, _line_vars} <- tracer_info.modules_defined, into: identifiers_defined do
+        {{:module, module}, module.module_info(:md5)}
+      end
 
     # Aliases
 

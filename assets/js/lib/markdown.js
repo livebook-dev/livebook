@@ -271,7 +271,7 @@ function rehypeExternalLinks(options) {
 }
 
 function isAbsoluteUrl(url) {
-  return /^(?:[a-z]+:)?\/\//i.test(url);
+  return /^([a-z]+:|\/\/)/i.test(url);
 }
 
 function isPageAnchor(url) {

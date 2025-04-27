@@ -41,10 +41,11 @@ const Cell = {
 
     // Setup action handlers
 
-    if (["code", "smart"].includes(this.props.type)) {
-      const amplifyButton = this.el.querySelector(
-        `[data-el-amplify-outputs-button]`,
-      );
+    const amplifyButton = this.el.querySelector(
+      `[data-el-amplify-outputs-button]`,
+    );
+
+    if (amplifyButton) {
       amplifyButton.addEventListener("click", (event) => {
         this.el.toggleAttribute("data-js-amplified");
       });
@@ -85,13 +86,23 @@ const Cell = {
 
     this.subscriptions = [
       globalPubsub.subscribe(
-        "navigation",
-        this.handleNavigationEvent.bind(this),
+        "navigation:focus_changed",
+        ({ focusableId, scroll }) =>
+          this.handleElementFocused(focusableId, scroll),
       ),
-      globalPubsub.subscribe("cells", this.handleCellsEvent.bind(this)),
+      globalPubsub.subscribe("navigation:insert_mode_changed", ({ enabled }) =>
+        this.handleInsertModeChanged(enabled),
+      ),
+      globalPubsub.subscribe("cells:cell_moved", ({ cellId }) =>
+        this.handleCellMoved(cellId),
+      ),
       globalPubsub.subscribe(
-        `cells:${this.props.cellId}`,
-        this.handleCellEvent.bind(this),
+        `cells:${this.props.cellId}:dispatch_queue_evaluation`,
+        ({ dispatch }) => this.handleDispatchQueueEvaluation(dispatch),
+      ),
+      globalPubsub.subscribe(
+        `cells:${this.props.cellId}:jump_to_line`,
+        ({ line, offset = 0 }) => this.handleJumpToLine(line, offset),
       ),
     ];
 
@@ -138,28 +149,6 @@ const Cell = {
     ]);
   },
 
-  handleNavigationEvent(event) {
-    if (event.type === "element_focused") {
-      this.handleElementFocused(event.focusableId, event.scroll);
-    } else if (event.type === "insert_mode_changed") {
-      this.handleInsertModeChanged(event.enabled);
-    }
-  },
-
-  handleCellsEvent(event) {
-    if (event.type === "cell_moved") {
-      this.handleCellMoved(event.cellId);
-    }
-  },
-
-  handleCellEvent(event) {
-    if (event.type === "dispatch_queue_evaluation") {
-      this.handleDispatchQueueEvaluation(event.dispatch);
-    } else if (event.type === "jump_to_line") {
-      this.handleJumpToLine(event.line);
-    }
-  },
-
   handleElementFocused(focusableId, scroll) {
     if (this.props.cellId === focusableId) {
       this.isFocused = true;
@@ -170,12 +159,6 @@ const Cell = {
     } else if (this.isFocused) {
       this.isFocused = false;
       this.el.removeAttribute("data-js-focused");
-    }
-  },
-
-  handleJumpToLine(line) {
-    if (this.isFocused) {
-      this.currentEditor().moveCursorToLine(line);
     }
   },
 
@@ -211,8 +194,16 @@ const Cell = {
         // gives it focus
         if (!this.isFocused || !this.insertMode) {
           this.currentEditor().blur();
+        } else {
+          this.sendCursorHistory();
         }
       }, 0);
+    });
+
+    liveEditor.onSelectionChange(() => {
+      if (this.isFocused) {
+        this.sendCursorHistory();
+      }
     });
 
     if (tag === "primary") {
@@ -326,6 +317,7 @@ const Cell = {
   handleInsertModeChanged(insertMode) {
     if (this.isFocused && !this.insertMode && insertMode) {
       this.insertMode = insertMode;
+      this.el.setAttribute("data-js-insert-mode", "");
 
       if (this.currentEditor()) {
         this.currentEditor().focus();
@@ -333,6 +325,7 @@ const Cell = {
       }
     } else if (this.insertMode && !insertMode) {
       this.insertMode = insertMode;
+      this.el.removeAttribute("data-js-insert-mode");
 
       if (this.currentEditor()) {
         this.currentEditor().blur();
@@ -349,12 +342,17 @@ const Cell = {
   handleDispatchQueueEvaluation(dispatch) {
     if (this.props.type === "smart" && this.props.smartCellJsViewRef) {
       // Ensure the smart cell UI is reflected on the server, before the evaluation
-      globalPubsub.broadcast(`js_views:${this.props.smartCellJsViewRef}`, {
-        type: "sync",
+      globalPubsub.broadcast(`js_views:${this.props.smartCellJsViewRef}:sync`, {
         callback: dispatch,
       });
     } else {
       dispatch();
+    }
+  },
+
+  handleJumpToLine(line, offset) {
+    if (this.isFocused) {
+      this.currentEditor().moveCursorToLine(line, offset);
     }
   },
 
@@ -368,6 +366,17 @@ const Cell = {
         behavior: "instant",
         block: "start",
       });
+    });
+  },
+
+  sendCursorHistory() {
+    const cursor = this.currentEditor().getCurrentCursorPosition();
+    if (cursor === null) return;
+
+    globalPubsub.broadcast("navigation:cursor_moved", {
+      line: cursor.line,
+      offset: cursor.offset,
+      cellId: this.props.cellId,
     });
   },
 };

@@ -61,8 +61,10 @@ config :livebook, LivebookWeb.Endpoint,
     web_console_logger: true
   ]
 
-# Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+# Do not include timestamps in development logs
+config :logger, :console,
+  format: "$metadata[$level] $message\n",
+  metadata: []
 
 # Include HEEx debug annotations as HTML comments in rendered markup
 config :phoenix_live_view, :debug_heex_annotations, true

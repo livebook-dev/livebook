@@ -10,7 +10,7 @@ defmodule Livebook.Integration.AppsTest do
 
       hub = create_team_hub(user, node)
       hub_id = hub.id
-      secret = insert_secret(name: "APP_DB_PASSWORD", value: "postgres", hub_id: hub.id)
+      secret = insert_secret(hub_id: hub.id)
       secret_name = secret.name
       slug = Livebook.Utils.random_short_id()
 

@@ -43,7 +43,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
         Add deployment group
       </h3>
       <div :if={@error_message} class="error-box">
-        <%= @error_message %>
+        {@error_message}
       </div>
       <div class="flex flex-columns gap-4">
         <.form
@@ -145,10 +145,10 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
       <span class="flex flex-1">
         <span class="flex flex-col">
           <span class="block text-sm font-medium text-gray-900">
-            <%= @title %>
+            {@title}
           </span>
           <span class="mt-1 flex items-center text-sm text-gray-700">
-            <%= render_slot(@inner_block) %>
+            {render_slot(@inner_block)}
           </span>
         </span>
       </span>
@@ -179,9 +179,6 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
         {:noreply, assign_form(socket, changeset)}
 
       {:transport_error, message} ->
-        {:noreply, assign(socket, error_message: message)}
-
-      {:error, message} ->
         {:noreply, assign(socket, error_message: message)}
     end
   end

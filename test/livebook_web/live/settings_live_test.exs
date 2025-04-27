@@ -14,7 +14,7 @@ defmodule LivebookWeb.SettingsLiveTest do
     end
 
     test "adds an environment variable", %{conn: conn} do
-      attrs = params_for(:env_var, name: "JAKE_PERALTA_ENV_VAR")
+      attrs = params_for(:env_var)
 
       {:ok, view, html} = live(conn, ~p"/settings/env-var/new")
 

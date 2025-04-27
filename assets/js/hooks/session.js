@@ -18,6 +18,7 @@ import { leaveChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 import { settingsStore } from "../lib/settings";
 import { LiveStore } from "../lib/live_store";
+import CursorHistory from "./session/cursor_history";
 
 /**
  * A hook managing the whole session.
@@ -81,6 +82,7 @@ const Session = {
     this.viewOptions = null;
     this.keyBuffer = new KeyBuffer();
     this.lastLocationReportByClientId = {};
+    this.cursorHistory = new CursorHistory();
     this.followedClientId = null;
     this.store = LiveStore.create("session");
 
@@ -160,6 +162,11 @@ const Session = {
     this.subscriptions = [
       globalPubsub.subscribe("jump_to_editor", ({ line, file }) =>
         this.jumpToLine(file, line),
+      ),
+      globalPubsub.subscribe(
+        "navigation:cursor_moved",
+        ({ cellId, line, offset }) =>
+          this.cursorHistory.push(cellId, line, offset),
       ),
     ];
 
@@ -304,6 +311,7 @@ const Session = {
     }
 
     const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+    const ctrl = event.ctrlKey;
     const alt = event.altKey;
     const shift = event.shiftKey;
     const key = event.key;
@@ -316,7 +324,16 @@ const Session = {
         event.target.closest(`[data-el-outputs-container]`)
       )
     ) {
-      if (cmd && shift && !alt && key === "Enter") {
+      // On macOS, ctrl+alt+- becomes an em-dash, so we check for the code
+      if (event.code === "Minus" && ctrl && alt) {
+        cancelEvent(event);
+        this.cursorHistoryGoBack();
+        return;
+      } else if (key === "=" && ctrl && alt) {
+        cancelEvent(event);
+        this.cursorHistoryGoForward();
+        return;
+      } else if (cmd && shift && !alt && key === "Enter") {
         cancelEvent(event);
         this.queueFullCellsEvaluation(true);
         return;
@@ -938,10 +955,10 @@ const Session = {
       // If an evaluable cell is focused, we forward the evaluation
       // request to that cell, so it can synchronize itself before
       // sending the request to the server
-      globalPubsub.broadcast(`cells:${this.focusedId}`, {
-        type: "dispatch_queue_evaluation",
-        dispatch,
-      });
+      globalPubsub.broadcast(
+        `cells:${this.focusedId}:dispatch_queue_evaluation`,
+        { dispatch },
+      );
     } else {
       dispatch();
     }
@@ -1072,8 +1089,7 @@ const Session = {
       }
     }
 
-    globalPubsub.broadcast("navigation", {
-      type: "element_focused",
+    globalPubsub.broadcast("navigation:focus_changed", {
       focusableId: focusableId,
       scroll,
     });
@@ -1092,8 +1108,7 @@ const Session = {
       this.el.removeAttribute("data-js-insert-mode");
     }
 
-    globalPubsub.broadcast("navigation", {
-      type: "insert_mode_changed",
+    globalPubsub.broadcast("navigation:insert_mode_changed", {
       enabled: insertModeEnabled,
     });
   },
@@ -1118,6 +1133,7 @@ const Session = {
       this.setView(view, {
         showSection: false,
         showMarkdown: false,
+        showCode: true,
         showOutput: true,
         spotlight: false,
       });
@@ -1125,6 +1141,7 @@ const Session = {
       this.setView(view, {
         showSection: true,
         showMarkdown: true,
+        showCode: true,
         showOutput: true,
         spotlight: true,
       });
@@ -1134,6 +1151,7 @@ const Session = {
           this.setView(view, {
             showSection: settings.custom_view_show_section,
             showMarkdown: settings.custom_view_show_markdown,
+            showCode: settings.custom_view_show_code,
             showOutput: settings.custom_view_show_output,
             spotlight: settings.custom_view_spotlight,
           });
@@ -1167,6 +1185,7 @@ const Session = {
 
     this.el.toggleAttribute("data-js-hide-section", !options.showSection);
     this.el.toggleAttribute("data-js-hide-markdown", !options.showMarkdown);
+    this.el.toggleAttribute("data-js-hide-code", !options.showCode);
     this.el.toggleAttribute("data-js-hide-output", !options.showOutput);
     this.el.toggleAttribute("data-js-spotlight", options.spotlight);
   },
@@ -1179,6 +1198,7 @@ const Session = {
 
     this.el.removeAttribute("data-js-hide-section");
     this.el.removeAttribute("data-js-hide-markdown");
+    this.el.removeAttribute("data-js-hide-code");
     this.el.removeAttribute("data-js-hide-output");
     this.el.removeAttribute("data-js-spotlight");
   },
@@ -1227,6 +1247,8 @@ const Session = {
   },
 
   handleCellDeleted(cellId, siblingCellId) {
+    this.cursorHistory.removeAllFromCell(cellId);
+
     if (this.focusedId === cellId) {
       if (this.view) {
         const visibleSiblingId = this.ensureVisibleFocusableEl(siblingCellId);
@@ -1245,7 +1267,7 @@ const Session = {
     this.repositionJSViews();
 
     if (this.focusedId === cellId) {
-      globalPubsub.broadcast("cells", { type: "cell_moved", cellId });
+      globalPubsub.broadcast("cells:cell_moved", { cellId });
     }
   },
 
@@ -1303,8 +1325,7 @@ const Session = {
   },
 
   handleSecretSelected(select_secret_ref, secretName) {
-    globalPubsub.broadcast(`js_views:${select_secret_ref}`, {
-      type: "secretSelected",
+    globalPubsub.broadcast(`js_views:${select_secret_ref}:secret_selected`, {
       secretName,
     });
   },
@@ -1325,7 +1346,7 @@ const Session = {
   },
 
   repositionJSViews() {
-    globalPubsub.broadcast("js_views", { type: "reposition" });
+    globalPubsub.broadcast("js_views:reposition", {});
   },
 
   /**
@@ -1447,11 +1468,30 @@ const Session = {
 
   jumpToLine(file, line) {
     const [_filename, cellId] = file.split("#cell:");
-
     this.setFocusedEl(cellId, { scroll: false });
     this.setInsertMode(true);
 
-    globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
+    globalPubsub.broadcast(`cells:${cellId}:jump_to_line`, { line });
+  },
+
+  cursorHistoryGoBack() {
+    if (this.cursorHistory.canGoBack()) {
+      const { cellId, line, offset } = this.cursorHistory.goBack();
+      this.setFocusedEl(cellId, { scroll: false });
+      this.setInsertMode(true);
+
+      globalPubsub.broadcast(`cells:${cellId}:jump_to_line`, { line, offset });
+    }
+  },
+
+  cursorHistoryGoForward() {
+    if (this.cursorHistory.canGoForward()) {
+      const { cellId, line, offset } = this.cursorHistory.goForward();
+      this.setFocusedEl(cellId, { scroll: false });
+      this.setInsertMode(true);
+
+      globalPubsub.broadcast(`cells:${cellId}:jump_to_line`, { line, offset });
+    }
   },
 };
 

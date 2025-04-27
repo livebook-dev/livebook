@@ -13,6 +13,12 @@ defmodule LivebookWeb.ErrorHTML do
     """
   end
 
+  def render("error.html", assigns) do
+    ~H"""
+    <.error_page status={@status} title="Something went wrong." details={@details} />
+    """
+  end
+
   def render(_template, assigns) do
     ~H"""
     <.error_page
@@ -35,9 +41,9 @@ defmodule LivebookWeb.ErrorHTML do
         <meta charset="utf-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" type="image/svg+xml" href={~p"/favicon.svg"} />
-        <link rel="alternate icon" type="image/png" href={~p"/favicon.png"} />
-        <title><%= @status %> - Livebook</title>
+        <link rel="icon" type="image/svg+xml" href={~p"/favicons/favicon.svg"} />
+        <link rel="alternate icon" type="image/png" href={~p"/favicons/favicon.png"} />
+        <title>{@status} - Livebook</title>
         <link rel="stylesheet" href={~p"/assets/app.css"} />
       </head>
       <body>
@@ -47,10 +53,10 @@ defmodule LivebookWeb.ErrorHTML do
               <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
             </a>
             <div class="text-2xl text-gray-50">
-              <%= @title %>
+              {@title}
             </div>
             <div :if={@details} class="text-lg text-gray-50">
-              <%= @details %>
+              {@details}
             </div>
           </div>
         </div>

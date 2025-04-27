@@ -10,7 +10,7 @@ import {
   lineNumbers,
   highlightActiveLineGutter,
 } from "@codemirror/view";
-import { EditorState, EditorSelection } from "@codemirror/state";
+import { EditorState, EditorSelection, Compartment } from "@codemirror/state";
 import {
   indentOnInput,
   bracketMatching,
@@ -57,6 +57,7 @@ import { ancestorNode, closestNode } from "./live_editor/codemirror/tree_utils";
 import { selectingClass } from "./live_editor/codemirror/selecting_class";
 import { globalPubsub } from "../../lib/pubsub";
 import { hoverDetails } from "./live_editor/codemirror/hover_details";
+import { toggleWith } from "./live_editor/codemirror/toggle_with";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -98,6 +99,14 @@ export default class LiveEditor {
    * Registers a callback called whenever the editor gains focus.
    */
   onFocus = this._onFocus.event;
+
+  /** @private */
+  _onSelectionChange = new Emitter();
+
+  /**
+   * Registers a callback called whenever the editor changes selection.
+   */
+  onSelectionChange = this._onSelectionChange.event;
 
   constructor(
     container,
@@ -167,6 +176,21 @@ export default class LiveEditor {
   }
 
   /**
+   * Returns the current main cursor position.
+   */
+  getCurrentCursorPosition() {
+    if (!this.isMounted()) {
+      return null;
+    }
+
+    const pos = this.view.state.selection.main.head;
+    const line = this.view.state.doc.lineAt(pos);
+    const offset = pos - line.from;
+
+    return { line: line.number, offset };
+  }
+
+  /**
    * Focuses the editor.
    *
    * Note that this forces the editor to be mounted, if it is not already
@@ -183,11 +207,12 @@ export default class LiveEditor {
   /**
    * Updates editor selection such that cursor points to the given line.
    */
-  moveCursorToLine(lineNumber) {
+  moveCursorToLine(lineNumber, offset) {
     const line = this.view.state.doc.line(lineNumber);
+    const position = line.from + offset;
 
     this.view.dispatch({
-      selection: EditorSelection.single(line.from),
+      selection: EditorSelection.single(position),
     });
   }
 
@@ -210,6 +235,15 @@ export default class LiveEditor {
 
     this.collabClient.destroy();
     this.deltaSubscription.destroy();
+  }
+
+  setLanguage(language, intellisense) {
+    this.language = language;
+    this.intellisense = intellisense;
+
+    this.view.dispatch({
+      effects: this.languageCompartment.reconfigure(this.languageExtensions()),
+    });
   }
 
   /**
@@ -290,23 +324,24 @@ export default class LiveEditor {
       "&": { fontSize: `${settings.editor_font_size}px` },
     });
 
+    const autoCloseBracketsEnabled = settings.editor_auto_close_brackets;
+
     const ligaturesTheme = EditorView.theme({
       "&": {
         fontVariantLigatures: `${settings.editor_ligatures ? "normal" : "none"}`,
       },
     });
 
-    const lineWrappingEnabled =
-      this.language === "markdown" && settings.editor_markdown_word_wrap;
-
-    const language =
-      this.language &&
-      LanguageDescription.matchLanguageName(languages, this.language, false);
-
     const customKeymap = [
       { key: "Escape", run: exitMulticursor },
       { key: "Alt-Enter", run: insertBlankLineAndCloseHints },
     ];
+
+    const selectionChangeListener = EditorView.updateListener.of((update) =>
+      this.handleViewUpdate(update),
+    );
+
+    this.languageCompartment = new Compartment();
 
     this.view = new EditorView({
       parent: this.container,
@@ -326,7 +361,7 @@ export default class LiveEditor {
         crosshairCursor(),
         EditorState.allowMultipleSelections.of(true),
         bracketMatching(),
-        closeBrackets(),
+        autoCloseBracketsEnabled ? closeBrackets() : [],
         indentOnInput(),
         history(),
         EditorState.readOnly.of(this.readOnly),
@@ -335,7 +370,6 @@ export default class LiveEditor {
         keymap.of(vscodeKeymap),
         EditorState.tabSize.of(2),
         EditorState.lineSeparator.of("\n"),
-        lineWrappingEnabled ? EditorView.lineWrapping : [],
         // We bind tab to actions within the editor, which would trap
         // the user if they tabbed into the editor, so we remove it
         // from the tab navigation
@@ -349,19 +383,10 @@ export default class LiveEditor {
           activateOnTyping: settings.editor_auto_completion,
           defaultKeymap: false,
         }),
-        this.intellisense
-          ? [
-              autocompletion({ override: [this.completionSource.bind(this)] }),
-              hoverDetails(this.docsHoverTooltipSource.bind(this)),
-              signature(this.signatureSource.bind(this), {
-                activateOnTyping: settings.editor_auto_signature,
-              }),
-              formatter(this.formatterSource.bind(this)),
-            ]
-          : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
-        language ? language.support : [],
+        this.languageCompartment.of(this.languageExtensions()),
+        toggleWith("Alt-z", EditorView.lineWrapping),
         EditorView.domEventHandlers({
           click: this.handleEditorClick.bind(this),
           keydown: this.handleEditorKeydown.bind(this),
@@ -369,8 +394,36 @@ export default class LiveEditor {
           focus: this.handleEditorFocus.bind(this),
         }),
         EditorView.clickAddsSelectionRange.of((event) => event.altKey),
+        selectionChangeListener,
       ],
     });
+  }
+
+  /** @private */
+  languageExtensions() {
+    const settings = settingsStore.get();
+
+    const lineWrappingEnabled =
+      this.language === "markdown" && settings.editor_markdown_word_wrap;
+
+    const language =
+      this.language &&
+      LanguageDescription.matchLanguageName(languages, this.language, false);
+
+    return [
+      lineWrappingEnabled ? EditorView.lineWrapping : [],
+      language ? language.support : [],
+      this.intellisense
+        ? [
+            autocompletion({ override: [this.completionSource.bind(this)] }),
+            hoverDetails(this.docsHoverTooltipSource.bind(this)),
+            signature(this.signatureSource.bind(this), {
+              activateOnTyping: settings.editor_auto_signature,
+            }),
+            formatter(this.formatterSource.bind(this)),
+          ]
+        : [],
+    ];
   }
 
   /** @private */
@@ -389,7 +442,6 @@ export default class LiveEditor {
     // We dispatch escape event, but only if it is not consumed by any
     // registered handler in the editor, such as closing autocompletion
     // or escaping Vim insert mode
-
     if (event.key === "Escape") {
       this.container.dispatchEvent(
         new CustomEvent("lb:editor_escape", { bubbles: true }),
@@ -413,6 +465,13 @@ export default class LiveEditor {
     this._onFocus.dispatch();
 
     return false;
+  }
+
+  /** @private */
+  handleViewUpdate(update) {
+    if (!update.state.selection.eq(update.startState.selection)) {
+      this._onSelectionChange.dispatch();
+    }
   }
 
   /** @private */

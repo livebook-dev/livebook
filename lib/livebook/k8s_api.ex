@@ -10,7 +10,7 @@ defmodule Livebook.K8sAPI do
   @spec create_pod(kubeconfig(), map()) :: {:ok, data} | error()
         when data: %{name: String.t()}
   def create_pod(kubeconfig, manifest) do
-    req = Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/pods/:name")
+    req = pod_req(kubeconfig)
 
     case Kubereq.create(req, manifest) do
       {:ok, %{status: 201, body: %{"metadata" => %{"name" => name}}}} ->
@@ -27,7 +27,7 @@ defmodule Livebook.K8sAPI do
   @spec get_pod(kubeconfig(), String.t(), String.t()) :: {:ok, data} | error()
         when data: %{ip: String.t()}
   def get_pod(kubeconfig, namespace, name) do
-    req = Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/pods/:name")
+    req = pod_req(kubeconfig)
 
     case Kubereq.get(req, namespace, name) do
       {:ok, %{status: 200, body: pod}} ->
@@ -43,7 +43,7 @@ defmodule Livebook.K8sAPI do
   """
   @spec delete_pod(kubeconfig(), String.t(), String.t()) :: :ok | error()
   def delete_pod(kubeconfig, namespace, name) do
-    req = Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/pods/:name")
+    req = pod_req(kubeconfig)
 
     case Kubereq.delete(req, namespace, name) do
       {:ok, %{status: 200}} -> :ok
@@ -56,7 +56,7 @@ defmodule Livebook.K8sAPI do
   """
   @spec await_pod_ready(kubeconfig(), String.t(), String.t()) :: :ok | error()
   def await_pod_ready(kubeconfig, namespace, name) do
-    req = Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/pods/:name")
+    req = pod_req(kubeconfig)
 
     callback = fn
       :deleted ->
@@ -72,7 +72,7 @@ defmodule Livebook.K8sAPI do
     end
 
     # Wait up to 30 minutes
-    case Kubereq.wait_until(req, namespace, name, callback, 1_800_000) do
+    case Kubereq.wait_until(req, namespace, name, callback, timeout: 1_800_000) do
       {:error, :watch_timeout} ->
         {:error, %{message: "timed out waiting for Pod to become ready", status: nil}}
 
@@ -91,7 +91,7 @@ defmodule Livebook.K8sAPI do
   """
   @spec watch_pod_events(kubeconfig(), String.t(), String.t()) :: {:ok, Enumerable.t()} | error()
   def watch_pod_events(kubeconfig, namespace, name) do
-    req = Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/events/:name")
+    req = build_req() |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "Event")
 
     Kubereq.watch(req, namespace,
       field_selectors: [
@@ -119,7 +119,8 @@ defmodule Livebook.K8sAPI do
   @spec list_namespaces(kubeconfig()) :: {:ok, data} | error()
         when data: list(%{name: String.t()})
   def list_namespaces(kubeconfig) do
-    req = Kubereq.new(kubeconfig, "api/v1/namespaces/:name")
+    req =
+      build_req() |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "Namespace")
 
     case Kubereq.list(req, nil) do
       {:ok, %{status: 200, body: %{"items" => items}}} ->
@@ -141,7 +142,7 @@ defmodule Livebook.K8sAPI do
   @spec create_pvc(kubeconfig(), map()) :: {:ok, data} | error()
         when data: %{name: String.t()}
   def create_pvc(kubeconfig, manifest) do
-    req = Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/persistentvolumeclaims/:name")
+    req = pvc_req(kubeconfig)
 
     case Kubereq.create(req, manifest) do
       {:ok, %{status: 201, body: %{"metadata" => %{"name" => name}}}} ->
@@ -158,7 +159,7 @@ defmodule Livebook.K8sAPI do
   @spec list_pvcs(kubeconfig(), String.t()) :: {:ok, data} | error()
         when data: list(%{name: String.t(), deleted_at: String.t() | nil})
   def list_pvcs(kubeconfig, namespace) do
-    req = Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/persistentvolumeclaims/:name")
+    req = pvc_req(kubeconfig)
 
     case Kubereq.list(req, namespace) do
       {:ok, %{status: 200, body: %{"items" => items}}} ->
@@ -182,7 +183,7 @@ defmodule Livebook.K8sAPI do
   """
   @spec delete_pvc(kubeconfig(), String.t(), String.t()) :: :ok | error()
   def delete_pvc(kubeconfig, namespace, name) do
-    req = Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/persistentvolumeclaims/:name")
+    req = pvc_req(kubeconfig)
 
     case Kubereq.delete(req, namespace, name) do
       {:ok, %{status: 200}} -> :ok
@@ -196,7 +197,13 @@ defmodule Livebook.K8sAPI do
   @spec list_storage_classes(kubeconfig()) :: {:ok, data} | error()
         when data: list(%{name: String.t()})
   def list_storage_classes(kubeconfig) do
-    req = Kubereq.new(kubeconfig, "apis/storage.k8s.io/v1/storageclasses/:name")
+    req =
+      build_req()
+      |> Kubereq.attach(
+        kubeconfig: kubeconfig,
+        api_version: "storage.k8s.io/v1",
+        kind: "StorageClass"
+      )
 
     case Kubereq.list(req, nil) do
       {:ok, %{status: 200, body: %{"items" => items}}} ->
@@ -252,7 +259,13 @@ defmodule Livebook.K8sAPI do
       }
     }
 
-    req = Kubereq.new(kubeconfig, "apis/authorization.k8s.io/v1/selfsubjectaccessreviews")
+    req =
+      build_req()
+      |> Kubereq.attach(
+        kubeconfig: kubeconfig,
+        api_version: "authorization.k8s.io/v1",
+        kind: "SelfSubjectAccessReview"
+      )
 
     case Kubereq.create(req, access_review) do
       {:ok, %Req.Response{status: 201, body: body}} ->
@@ -288,5 +301,18 @@ defmodule Livebook.K8sAPI do
 
   defp result_to_error({:error, exception}) do
     {:error, %{message: "reason: #{Exception.message(exception)}", status: nil}}
+  end
+
+  defp pod_req(kubeconfig) do
+    build_req() |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "Pod")
+  end
+
+  defp pvc_req(kubeconfig) do
+    build_req()
+    |> Kubereq.attach(kubeconfig: kubeconfig, api_version: "v1", kind: "PersistentVolumeClaim")
+  end
+
+  defp build_req() do
+    Req.new() |> Livebook.Utils.req_attach_defaults()
   end
 end

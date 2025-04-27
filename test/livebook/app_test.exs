@@ -1,7 +1,9 @@
 defmodule Livebook.AppTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.{App, Notebook, Utils}
+  alias Livebook.App
+  alias Livebook.Notebook
+  alias Livebook.Utils
 
   describe "startup" do
     test "eagerly starts a session in single-session mode" do
@@ -221,7 +223,7 @@ defmodule Livebook.AppTest do
         Notebook.AppSettings.new()
         | slug: slug,
           multi_session: true,
-          auto_shutdown_ms: 5
+          auto_shutdown_ms: 1
       }
 
       notebook = %{Notebook.new() | app_settings: app_settings}
@@ -245,7 +247,8 @@ defmodule Livebook.AppTest do
       files_tmp_path: Livebook.Apps.generate_files_tmp_path(app_spec.slug),
       app_spec: app_spec,
       permanent: false,
-      warnings: []
+      warnings: [],
+      deployed_by: nil
     }
   end
 

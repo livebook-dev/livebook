@@ -162,9 +162,11 @@ defmodule Livebook.LiveMarkdown.Import do
          [{"pre", _, [{"code", [{"class", language}], [source], %{}}], %{}} | ast],
          elems
        )
-       when language in ["elixir", "erlang"] do
+       when language in ["elixir", "erlang", "python", "pyproject.toml"] do
     {outputs, ast} = take_outputs(ast, [])
+
     language = String.to_atom(language)
+
     group_elements(ast, [{:cell, :code, language, source, outputs} | elems])
   end
 
@@ -177,7 +179,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp livebook_json_to_element(json) do
-    data = Jason.decode!(json)
+    data = JSON.decode!(json)
 
     case data do
       %{"livebook_object" => "cell_input"} ->
@@ -251,7 +253,7 @@ defmodule Livebook.LiveMarkdown.Import do
           attrs
 
         encoded when is_binary(encoded) ->
-          encoded |> Base.decode64!(padding: false) |> Jason.decode!()
+          encoded |> Base.decode64!(padding: false) |> JSON.decode!()
       end
 
     chunks = if(chunks = data["chunks"], do: Enum.map(chunks, &List.to_tuple/1))
@@ -358,13 +360,22 @@ defmodule Livebook.LiveMarkdown.Import do
          messages ++ [@unknown_hub_message]}
       end
 
-    # We identify a single leading cell as the setup cell, in any
-    # other case all extra cells are put in a default section
-    {setup_cell, extra_sections} =
+    # Check if the remaining cells form a valid setup section, otherwise
+    # we put them into a default section instead
+    {setup_cells, extra_sections} =
       case cells do
-        [] -> {nil, []}
-        [%Notebook.Cell.Code{} = setup_cell] when name != nil -> {setup_cell, []}
-        extra_cells -> {nil, [%{Notebook.Section.new() | cells: extra_cells}]}
+        [%Notebook.Cell.Code{language: :elixir}] when name != nil ->
+          {cells, []}
+
+        [%Notebook.Cell.Code{language: :elixir}, %Notebook.Cell.Code{language: :"pyproject.toml"}]
+        when name != nil ->
+          {cells, []}
+
+        [] ->
+          {nil, []}
+
+        extra_cells ->
+          {nil, [%{Notebook.Section.new() | cells: extra_cells}]}
       end
 
     notebook =
@@ -375,7 +386,7 @@ defmodule Livebook.LiveMarkdown.Import do
           output_counter: output_counter
       }
       |> maybe_put_name(name)
-      |> maybe_put_setup_cell(setup_cell)
+      |> maybe_put_setup_cells(setup_cells)
       |> Map.merge(attrs)
 
     {notebook, valid_hub?, messages}
@@ -384,8 +395,8 @@ defmodule Livebook.LiveMarkdown.Import do
   defp maybe_put_name(notebook, nil), do: notebook
   defp maybe_put_name(notebook, name), do: %{notebook | name: name}
 
-  defp maybe_put_setup_cell(notebook, nil), do: notebook
-  defp maybe_put_setup_cell(notebook, cell), do: Notebook.put_setup_cell(notebook, cell)
+  defp maybe_put_setup_cells(notebook, nil), do: notebook
+  defp maybe_put_setup_cells(notebook, cells), do: Notebook.put_setup_cells(notebook, cells)
 
   # Takes optional leading metadata JSON object and returns {metadata, rest}.
   defp grab_metadata([{:metadata, metadata} | elems]) do

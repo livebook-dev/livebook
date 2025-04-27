@@ -4,6 +4,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
 
-## v0.14
+## v0.15
 
-The CHANGELOG for v0.14 releases can be found in the [v0.14](https://github.com/livebook-dev/livebook/tree/v0.14/CHANGELOG.md) branch.
+The CHANGELOG for v0.15 releases can be found in the [v0.15](https://github.com/livebook-dev/livebook/tree/v0.15/CHANGELOG.md) branch.

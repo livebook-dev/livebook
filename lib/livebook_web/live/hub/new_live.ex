@@ -36,7 +36,7 @@ defmodule LivebookWeb.Hub.NewLive do
   def render(assigns) do
     ~H"""
     <LayoutComponents.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
-      <LayoutComponents.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant={:warning}>
+      <LayoutComponents.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant="warning">
         <strong>Beware!</strong>
         You are running Livebook in development but this page communicates with production servers.
       </LayoutComponents.topbar>
@@ -87,33 +87,34 @@ defmodule LivebookWeb.Hub.NewLive do
         <!-- FORMS -->
         <div :if={@selected_option} class="flex flex-col space-y-4">
           <.form
+            :let={f}
+            for={@form}
             id={"#{@selected_option}-form"}
             class="flex flex-col space-y-4"
-            for={@form}
             phx-submit="save"
             phx-change="validate"
           >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <.text_field field={@form[:name]} label="Organization name" />
-              <.emoji_field field={@form[:emoji]} label="Emoji" />
+              <.text_field field={f[:name]} label="Organization name" autofocus />
+              <.emoji_field field={f[:emoji]} label="Emoji" />
             </div>
 
             <.password_field
               :if={@selected_option == "join-org"}
-              field={@form[:teams_key]}
+              field={f[:teams_key]}
               label="Livebook Teams key"
             />
 
             <div>
               <.button :if={!@requested_code} phx-disable-with="Loading...">
-                <%= @button_label %>
+                {@button_label}
               </.button>
             </div>
             <div class="invisible"></div>
             <div :if={@requested_code} class="flex flex-col rounded-xl bg-gray-50 px-10 py-6 mt-10">
               <div class="flex flex-col items-center rounded-xl bg-gray-50">
                 <span class="text-base font-semibold text-center text-gray-900">
-                  <%= @request_code_info %>
+                  {@request_code_info}
                 </span>
                 <div class="text-center mt-4 text-gray-700">
                   <span class="text-sm">
@@ -156,7 +157,7 @@ defmodule LivebookWeb.Hub.NewLive do
         class="mr-4 text-brand-pink font-semibold text-xl leading-none"
         id="clipboard-code"
         phx-no-format
-      ><%= @content %></div>
+      >{@content}</div>
 
       <.icon_button phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")} type="button">
         <.remix_icon icon="clipboard-line" />
@@ -194,7 +195,7 @@ defmodule LivebookWeb.Hub.NewLive do
             ]}
           />
           <span class="truncate text-sm font-medium">
-            <%= @title %>
+            {@title}
           </span>
         </div>
       </button>

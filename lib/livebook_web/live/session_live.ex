@@ -4,7 +4,9 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import LivebookWeb.FileSystemComponents
 
-  alias Livebook.{Session, Text, Notebook, Runtime}
+  alias Livebook.Session
+  alias Livebook.Text
+  alias Livebook.Notebook
   alias Livebook.Notebook.Cell
 
   on_mount LivebookWeb.SidebarHook
@@ -176,6 +178,11 @@ defmodule LivebookWeb.SessionLive do
      %{select_secret_metadata: select_secret_metadata, prefill_secret_name: params["secret_name"]}}
   end
 
+  defp handle_params(:file_settings, _params, _url, socket)
+       when socket.private.data.mode == :app do
+    {redirect_to_self(socket), %{}}
+  end
+
   defp handle_params(live_action, params, _url, socket)
        when live_action in [:app_settings, :file_settings] do
     {socket, %{context: params["context"]}}
@@ -255,6 +262,18 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("enable_language", %{"language" => language}, socket) do
+    language = language_to_string(language)
+    Session.enable_language(socket.assigns.session.pid, language)
+    {:noreply, socket}
+  end
+
+  def handle_event("disable_language", %{"language" => language}, socket) do
+    language = language_to_string(language)
+    Session.disable_language(socket.assigns.session.pid, language)
+    {:noreply, socket}
+  end
+
   def handle_event("insert_cell_below", params, socket) do
     {:noreply, insert_cell_below(socket, params)}
   end
@@ -327,9 +346,8 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("set_default_language", %{"language" => language} = params, socket)
-      when language in ["elixir", "erlang"] do
-    language = String.to_atom(language)
+  def handle_event("set_default_language", %{"language" => language} = params, socket) do
+    language = language_to_string(language)
     Session.set_notebook_attributes(socket.assigns.session.pid, %{default_language: language})
     {:noreply, insert_cell_below(socket, params)}
   end
@@ -445,7 +463,7 @@ defmodule LivebookWeb.SessionLive do
           assigns = %{section_name: section.name}
 
           description = ~H"""
-          Are you sure you want to delete this section - <span class="font-semibold">“<%= @section_name %>”</span>?
+          Are you sure you want to delete this section - <span class="font-semibold">“{@section_name}”</span>?
           """
 
           confirm(socket, on_confirm,
@@ -548,6 +566,12 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("set_cell_language", %{"cell_id" => cell_id, "language" => language}, socket) do
+    language = language_to_string(language)
+    Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{language: language})
+    {:noreply, socket}
+  end
+
   def handle_event("save", %{}, socket) do
     if socket.private.data.file do
       Session.save(socket.assigns.session.pid)
@@ -581,7 +605,7 @@ defmodule LivebookWeb.SessionLive do
     node = Enum.find(socket.private.data.runtime_connected_nodes, &(Atom.to_string(&1) == node))
 
     if node do
-      Runtime.disconnect_node(socket.private.data.runtime, node)
+      Livebook.Runtime.disconnect_node(socket.private.data.runtime, node)
     end
 
     {:noreply, socket}
@@ -630,7 +654,14 @@ defmodule LivebookWeb.SessionLive do
         parent_locators = Session.parent_locators_for_cell(data, cell)
         node = intellisense_node(cell)
 
-        ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators, node)
+        ref =
+          Livebook.Runtime.handle_intellisense(
+            data.runtime,
+            self(),
+            request,
+            parent_locators,
+            node
+          )
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else
@@ -744,12 +775,12 @@ defmodule LivebookWeb.SessionLive do
 
       description = ~H"""
       <div>
-        File <span class="font-semibold">“<%= @name %>“</span>
+        File <span class="font-semibold">“{@name}“</span>
         points to an absolute path, do you want the notebook to access it?
       </div>
       <div class="mt-4 flex flex-col gap-2 border border-gray-200 rounded-lg p-4">
-        <.labeled_text label="Path"><%= @file.path %></.labeled_text>
-        <.labeled_text label="File system"><%= @file_system_label %></.labeled_text>
+        <.labeled_text label="Path">{@file.path}</.labeled_text>
+        <.labeled_text label="File system">{@file_system_label}</.labeled_text>
       </div>
       """
 
@@ -1346,6 +1377,20 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp after_operation(socket, _prev_socket, {:enable_language, client_id, language}) do
+    cell = Notebook.get_extra_setup_cell(socket.private.data.notebook, language)
+
+    socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
+
+    socket = prune_cell_sources(socket)
+
+    if client_id == socket.assigns.client_id do
+      push_event(socket, "cell_inserted", %{cell_id: cell.id})
+    else
+      socket
+    end
+  end
+
   defp after_operation(
          socket,
          _prev_socket,
@@ -1471,12 +1516,10 @@ defmodule LivebookWeb.SessionLive do
 
   defp cell_type_and_attrs_from_params(%{"type" => "code"} = params, socket) do
     language =
-      case params["language"] do
-        language when language in ["elixir", "erlang"] ->
-          String.to_atom(language)
-
-        _ ->
-          socket.private.data.notebook.default_language
+      if language = params["language"] do
+        language_to_string(language)
+      else
+        socket.private.data.notebook.default_language
       end
 
     {:code, %{language: language}}
@@ -1558,7 +1601,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp confirm_setup_runtime(socket, reason) do
     on_confirm = fn socket ->
-      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.main_setup_cell_id())
       socket
     end
 
@@ -1577,7 +1620,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp example_snippet_definition_by_name(data, name) do
     data.runtime
-    |> Runtime.snippet_definitions()
+    |> Livebook.Runtime.snippet_definitions()
     |> Enum.find_value(:error, &(&1.type == :example && &1.name == name && {:ok, &1}))
   end
 
@@ -1590,7 +1633,7 @@ defmodule LivebookWeb.SessionLive do
 
     has_dependencies? =
       dependencies == [] or
-        Runtime.has_dependencies?(socket.private.data.runtime, dependencies)
+        Livebook.Runtime.has_dependencies?(socket.private.data.runtime, dependencies)
 
     cond do
       has_dependencies? ->
@@ -1599,7 +1642,7 @@ defmodule LivebookWeb.SessionLive do
           :error -> socket
         end
 
-      Runtime.fixed_dependencies?(socket.private.data.runtime) ->
+      Livebook.Runtime.fixed_dependencies?(socket.private.data.runtime) ->
         put_flash(socket, :error, "This runtime doesn't support adding dependencies")
 
       true ->
@@ -1616,7 +1659,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp add_dependencies_and_reevaluate(socket, dependencies) do
     Session.add_dependencies(socket.assigns.session.pid, dependencies)
-    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.main_setup_cell_id())
     Session.queue_cells_reevaluation(socket.assigns.session.pid)
     socket
   end
@@ -1625,9 +1668,9 @@ defmodule LivebookWeb.SessionLive do
     assigns = %{packages: packages, target_name: target_name, target_type: target_type}
 
     description = ~H"""
-    The <span class="font-semibold">“<%= @target_name %>“</span> <%= @target_type %> requires the
+    The <span class="font-semibold">“{@target_name}“</span> {@target_type} requires the
     <.listing items={@packages}>
-      <:item :let={package}><code><%= package.name %></code></:item>
+      <:item :let={package}><code>{package.name}</code></:item>
       <:singular_suffix>package. Do you want to add it as a dependency and restart?</:singular_suffix>
       <:plural_suffix>packages. Do you want to add them as dependencies and restart?</:plural_suffix>
     </.listing>
@@ -1717,7 +1760,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp handlers_for_file_entry(file_entry, runtime) do
     handlers =
-      for definition <- Runtime.snippet_definitions(runtime),
+      for definition <- Livebook.Runtime.snippet_definitions(runtime),
           definition.type == :file_action,
           do: %{definition: definition, cell_type: :code}
 
@@ -1762,6 +1805,13 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
+  defp language_to_string(language) do
+    %{language: language} =
+      Enum.find(Cell.Code.languages(), &(Atom.to_string(&1.language) == language))
+
+    language
+  end
+
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
   # We then use `@data_view` in the templates and consequently
@@ -1778,14 +1828,14 @@ defmodule LivebookWeb.SessionLive do
       dirty: data.dirty,
       persistence_warnings: data.persistence_warnings,
       runtime: data.runtime,
-      runtime_metadata: Runtime.describe(data.runtime),
+      runtime_metadata: Livebook.Runtime.describe(data.runtime),
       runtime_status: data.runtime_status,
       runtime_connect_info: data.runtime_connect_info,
       runtime_connected_nodes: Enum.sort(data.runtime_connected_nodes),
       smart_cell_definitions: Enum.sort_by(data.smart_cell_definitions, & &1.name),
       example_snippet_definitions:
         data.runtime
-        |> Runtime.snippet_definitions()
+        |> Livebook.Runtime.snippet_definitions()
         |> Enum.filter(&(&1.type == :example))
         |> Enum.sort_by(& &1.name),
       global_status: global_status(data),
@@ -1804,11 +1854,10 @@ defmodule LivebookWeb.SessionLive do
         data.clients_map
         |> Enum.map(fn {client_id, user_id} -> {client_id, data.users_map[user_id]} end)
         |> Enum.sort_by(fn {_client_id, user} -> user.name || "Anonymous" end),
-      installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
-      setup_cell_view: %{
-        cell_to_view(hd(data.notebook.setup_section.cells), data, changed_input_ids)
-        | type: :setup
-      },
+      enabled_languages: Notebook.enabled_languages(data.notebook),
+      installing?: data.cell_infos[Cell.main_setup_cell_id()].eval.status == :evaluating,
+      setup_cell_views:
+        Enum.map(data.notebook.setup_section.cells, &cell_to_view(&1, data, changed_input_ids)),
       section_views: section_views(data.notebook.sections, data, changed_input_ids),
       bin_entries: data.bin_entries,
       secrets: data.secrets,
@@ -1913,6 +1962,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :code,
+      setup: Cell.setup?(cell),
       language: cell.language,
       empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data, changed_input_ids),
@@ -2070,7 +2120,7 @@ defmodule LivebookWeb.SessionLive do
         :markdown -> LivebookWeb.Output.MarkdownComponent
       end
 
-    send_update(module, id: "outputs-#{idx}-output", event: {:append, output.text})
+    send_update(module, id: "outputs-#{idx}-output", event: {:append, output})
   end
 
   defp prune_outputs(%{private: %{data: data}} = socket) do

@@ -1,0 +1,1 @@
+import{h as g}from"./chunk-KRX7QNR4.js";var b=g(({flowchart:i})=>{var t,p,r,s;let e=(p=(t=i==null?void 0:i.subGraphTitleMargin)==null?void 0:t.top)!=null?p:0,n=(s=(r=i==null?void 0:i.subGraphTitleMargin)==null?void 0:r.bottom)!=null?s:0,T=e+n;return{subGraphTitleTopMargin:e,subGraphTitleBottomMargin:n,subGraphTitleTotalMargin:T}},"getSubGraphTitleMargins");export{b as a};

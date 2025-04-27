@@ -39,6 +39,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert_sidebar_hub(view, id, hub.hub_name, attrs["hub_emoji"])
       refute Hubs.fetch_hub!(hub.id) == hub
+
+      Hubs.save_hub(hub)
     end
 
     test "raises an error if does not exist secret", %{conn: conn, hub: hub} do
@@ -49,7 +51,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
     test "creates secret", %{conn: conn, hub: hub} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-      secret = build(:secret, name: "PERSONAL_ADD_SECRET")
+      secret = build(:secret)
 
       attrs = %{
         secret: %{
@@ -82,13 +84,13 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert_receive {:secret_created, ^secret}
       assert_patch(view, "/hub/#{hub.id}")
-      assert render(view) =~ "Secret PERSONAL_ADD_SECRET added successfully"
+      assert render(view) =~ "Secret #{secret.name} added successfully"
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert secret in Livebook.Hubs.get_secrets(hub)
     end
 
     test "updates secret", %{conn: conn, hub: hub} do
-      secret = insert_secret(name: "PERSONAL_EDIT_SECRET", value: "GetTheBonk")
+      secret = insert_secret()
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -125,13 +127,13 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert_receive {:secret_updated, ^updated_secret}
       assert_patch(view, "/hub/#{hub.id}")
-      assert render(view) =~ "Secret PERSONAL_EDIT_SECRET updated successfully"
+      assert render(view) =~ "Secret #{secret.name} updated successfully"
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert updated_secret in Livebook.Hubs.get_secrets(hub)
     end
 
     test "deletes secret", %{conn: conn, hub: hub} do
-      secret = insert_secret(name: "PERSONAL_DELETE_SECRET", value: "GetTheBonk")
+      secret = insert_secret()
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -147,7 +149,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert_receive {:secret_deleted, ^secret}
       assert_patch(view, "/hub/#{hub.id}")
-      assert render(view) =~ "Secret PERSONAL_DELETE_SECRET deleted successfully"
+      assert render(view) =~ "Secret #{secret.name} deleted successfully"
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
 

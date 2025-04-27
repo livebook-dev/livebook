@@ -37,7 +37,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     ~H"""
     <div class="flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        <%= @title %>
+        {@title}
       </h3>
       <p class="text-gray-700">
         Configure an AWS S3 bucket as a Livebook file storage.
@@ -45,7 +45,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
         those work as well.
       </p>
       <div :if={@error_message} class="error-box">
-        <%= @error_message %>
+        {@error_message}
       </div>
       <.form
         :let={f}
@@ -88,9 +88,9 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
             </p>
           <% end %>
           <div class="flex space-x-2">
-            <.button type="submit" disabled={not @changeset.valid?}>
+            <.button type="submit" disabled={@disabled or not @changeset.valid?}>
               <.remix_icon icon={@button.icon} />
-              <span class="font-normal"><%= @button.label %></span>
+              <span class="font-normal">{@button.label}</span>
             </.button>
             <.button color="gray" outlined patch={@return_to}>
               Cancel

@@ -59,7 +59,8 @@ defmodule LivebookWeb.Router do
   end
 
   live_session :default,
-    on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook, LivebookWeb.Confirm] do
+    on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook, LivebookWeb.Confirm],
+    session: {LivebookWeb.UserPlug, :extra_lv_session, []} do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 
@@ -138,7 +139,8 @@ defmodule LivebookWeb.Router do
   end
 
   live_session :apps,
-    on_mount: [LivebookWeb.AppAuthHook, LivebookWeb.UserHook, LivebookWeb.Confirm] do
+    on_mount: [LivebookWeb.AppAuthHook, LivebookWeb.UserHook, LivebookWeb.Confirm],
+    session: {LivebookWeb.UserPlug, :extra_lv_session, []} do
     scope "/", LivebookWeb do
       pipe_through [:browser, :user]
 
@@ -167,6 +169,11 @@ defmodule LivebookWeb.Router do
 
     get "/", AuthController, :index
     post "/", AuthController, :authenticate
+  end
+
+  scope "/", LivebookWeb do
+    pipe_through [:browser]
+    get "/logout", UserController, :logout
   end
 
   defp within_iframe_secure_headers(conn, _opts) do

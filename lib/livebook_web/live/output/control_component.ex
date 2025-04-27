@@ -38,7 +38,7 @@ defmodule LivebookWeb.Output.ControlComponent do
     ~H"""
     <div class="flex">
       <.button color="gray" type="button" phx-click={JS.push("button_click", target: @myself)}>
-        <%= @control.attrs.label %>
+        {@control.attrs.label}
       </.button>
     </div>
     """
@@ -62,7 +62,7 @@ defmodule LivebookWeb.Output.ControlComponent do
   def render(assigns) do
     ~H"""
     <div class="text-red-600">
-      Unknown control type <%= @control.attrs.type %>
+      Unknown control type {@control.attrs.type}
     </div>
     """
   end

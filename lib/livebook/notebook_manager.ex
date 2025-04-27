@@ -258,7 +258,11 @@ defmodule Livebook.NotebookManager do
     end
   end
 
-  defp load_file(%{file_system_id: file_system_id, file_system_type: file_system_type, path: path}) do
+  defp load_file(%{
+         file_system_id: file_system_id,
+         file_system_type: file_system_type,
+         path: path
+       }) do
     %FileSystem.File{
       file_system_id: file_system_id,
       file_system_module: Livebook.FileSystems.type_to_module(file_system_type),

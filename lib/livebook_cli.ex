@@ -13,6 +13,9 @@ defmodule LivebookCLI do
 
   def main(args) do
     {:ok, _} = Application.ensure_all_started(:elixir)
+
+    extract_priv!()
+
     :ok = Application.load(:livebook)
 
     if unix?() do
@@ -75,5 +78,52 @@ defmodule LivebookCLI do
 
     version = Livebook.Config.app_version()
     IO.puts("\nLivebook #{version}")
+  end
+
+  import Record
+  defrecord(:zip_file, extract(:zip_file, from_lib: "stdlib/include/zip.hrl"))
+
+  defp extract_priv!() do
+    archive_dir = Path.join(Livebook.Config.tmp_path(), "escript")
+    extracted_path = Path.join(archive_dir, "extracted")
+    in_archive_priv_path = ~c"livebook/priv"
+
+    # In dev we want to extract fresh directory on every boot
+    if Livebook.Config.app_version() =~ "-dev" do
+      File.rm_rf!(archive_dir)
+    end
+
+    # When temporary directory is cleaned by the OS, the directories
+    # may be left in place, so we use a regular file (extracted) to
+    # check if the extracted archive is already available
+    if not File.exists?(extracted_path) do
+      {:ok, sections} = :escript.extract(:escript.script_name(), [])
+      archive = Keyword.fetch!(sections, :archive)
+
+      file_filter = fn zip_file(name: name) ->
+        List.starts_with?(name, in_archive_priv_path)
+      end
+
+      case :zip.extract(archive, cwd: String.to_charlist(archive_dir), file_filter: file_filter) do
+        {:ok, _} ->
+          :ok
+
+        {:error, error} ->
+          print_error_and_exit(
+            "Livebook failed to extract archive files, reason: #{inspect(error)}"
+          )
+      end
+
+      File.touch!(extracted_path)
+    end
+
+    priv_dir = Path.join(archive_dir, in_archive_priv_path)
+    Application.put_env(:livebook, :priv_dir, priv_dir, persistent: true)
+  end
+
+  @spec print_error_and_exit(String.t()) :: no_return()
+  defp print_error_and_exit(message) do
+    IO.ANSI.format([:red, message]) |> IO.puts()
+    System.halt(1)
   end
 end

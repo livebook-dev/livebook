@@ -83,11 +83,16 @@ defmodule Livebook.Session do
 
   use GenServer, restart: :temporary
 
-  alias Livebook.NotebookManager
-  alias Livebook.Session.{Data, FileGuard}
-  alias Livebook.{Utils, Notebook, Text, Runtime, LiveMarkdown, FileSystem}
-  alias Livebook.Users.User
-  alias Livebook.Notebook.{Cell, Section}
+  require Logger
+
+  alias Livebook.Session
+  alias Livebook.Session.Data
+  alias Livebook.Notebook
+  alias Livebook.Notebook.Cell
+  alias Livebook.Notebook.Section
+  alias Livebook.Runtime
+  alias Livebook.FileSystem
+  alias Livebook.Users
 
   @timeout :infinity
   @main_container_ref :main_flow
@@ -129,7 +134,8 @@ defmodule Livebook.Session do
           app_pid: pid() | nil,
           auto_shutdown_ms: non_neg_integer() | nil,
           auto_shutdown_timer_ref: reference() | nil,
-          started_by: Livebook.Users.User.t() | nil
+          started_by: Users.User.t() | nil,
+          deployed_by: Users.User.t() | nil
         }
 
   @type memory_usage ::
@@ -144,7 +150,7 @@ defmodule Livebook.Session do
   @typedoc """
   An id assigned to every running session process.
   """
-  @type id :: Utils.id()
+  @type id :: Livebook.Utils.id()
 
   ## API
 
@@ -192,10 +198,17 @@ defmodule Livebook.Session do
       for app sessions using the Teams hub, in which case this information
       is accessible from runtime
 
+    * `:deployed_by` - the user that deployed the app, to which this
+      session belongs to. This is only relevant for app sessions
+
   """
-  @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
+  @spec start_link(keyword()) :: {:ok, pid, t()} | {:error, any()}
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts)
+    with {:ok, pid} <- GenServer.start_link(__MODULE__, {self(), opts}) do
+      receive do
+        {:started, ^pid, session} -> {:ok, pid, session}
+      end
+    end
   end
 
   @doc """
@@ -211,14 +224,14 @@ defmodule Livebook.Session do
 
   The client process is automatically unregistered when it terminates.
 
-  Returns the current session data, which the client can than
-  keep in sync with the server by subscribing to the `sessions:id`
+  Returns the current session data, which the client can then keep
+  in sync with the session server by subscribing to the `sessions:id`
   topic and receiving operations to apply.
 
   Also returns a unique client identifier representing the registered
   client.
   """
-  @spec register_client(pid(), pid(), User.t()) :: {Data.t(), Data.client_id()}
+  @spec register_client(pid(), pid(), Users.User.t()) :: {Data.t(), Data.client_id()}
   def register_client(pid, client_pid, user) do
     GenServer.call(pid, {:register_client, client_pid, user}, @timeout)
   end
@@ -334,7 +347,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends notebook attributes update to the server.
+  Requests notebook attributes to be updated.
   """
   @spec set_notebook_attributes(pid(), map()) :: :ok
   def set_notebook_attributes(pid, attrs) do
@@ -342,7 +355,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section insertion request to the server.
+  Requests a new section to be inserted at the given index.
   """
   @spec insert_section(pid(), non_neg_integer()) :: :ok
   def insert_section(pid, index) do
@@ -350,7 +363,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section insertion request to the server.
+  Requests a new section to be inserted, relative to an existing one.
   """
   @spec insert_section_into(pid(), Section.id(), non_neg_integer()) :: :ok
   def insert_section_into(pid, section_id, index) do
@@ -358,7 +371,8 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends branching section insertion request to the server.
+  Requests a new branching section to be inserted, relative to an
+  existing one.
   """
   @spec insert_branching_section_into(pid(), Section.id(), non_neg_integer()) :: :ok
   def insert_branching_section_into(pid, section_id, index) do
@@ -366,7 +380,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends parent update request to the server.
+  Requests section parent to be set.
+
+  This changes a regular section into a branching section, unless it
+  already is one.
   """
   @spec set_section_parent(pid(), Section.id(), Section.id()) :: :ok
   def set_section_parent(pid, section_id, parent_id) do
@@ -374,7 +391,9 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends parent update request to the server.
+  Requests section parent to be unset.
+
+  This changes a branching section back to a regular section.
   """
   @spec unset_section_parent(pid(), Section.id()) :: :ok
   def unset_section_parent(pid, section_id) do
@@ -382,7 +401,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell insertion request to the server.
+  Requests a new cell to be inserted.
   """
   @spec insert_cell(pid(), Section.id(), non_neg_integer(), Cell.type(), map()) :: :ok
   def insert_cell(pid, section_id, index, type, attrs \\ %{}) do
@@ -390,7 +409,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section deletion request to the server.
+  Requests a section to be deleted.
   """
   @spec delete_section(pid(), Section.id(), boolean()) :: :ok
   def delete_section(pid, section_id, delete_cells) do
@@ -398,7 +417,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell deletion request to the server.
+  Requests a cell to be deleted.
   """
   @spec delete_cell(pid(), Cell.id()) :: :ok
   def delete_cell(pid, cell_id) do
@@ -406,7 +425,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell restoration request to the server.
+  Requests a cell to be restored from bin to its previous location.
   """
   @spec restore_cell(pid(), Cell.id()) :: :ok
   def restore_cell(pid, cell_id) do
@@ -414,7 +433,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell move request to the server.
+  Requests a cell to be moved with respect to other cells.
   """
   @spec move_cell(pid(), Cell.id(), integer()) :: :ok
   def move_cell(pid, cell_id, offset) do
@@ -422,7 +441,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section move request to the server.
+  Requests a section to be moved with respect to other sections.
   """
   @spec move_section(pid(), Section.id(), integer()) :: :ok
   def move_section(pid, section_id, offset) do
@@ -430,7 +449,27 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell recover request to the server.
+  Requests the given langauge to be enabled.
+
+  This inserts extra cells and adds dependencies if applicable.
+  """
+  @spec enable_language(pid(), atom()) :: :ok
+  def enable_language(pid, language) do
+    GenServer.cast(pid, {:enable_language, self(), language})
+  end
+
+  @doc """
+  Requests the given langauge to be disabled.
+  """
+  @spec disable_language(pid(), atom()) :: :ok
+  def disable_language(pid, language) do
+    GenServer.cast(pid, {:disable_language, self(), language})
+  end
+
+  @doc """
+  Requests a smart cell to be recovered.
+
+  This can be used to restart a smart cell that crashed unexpectedly.
   """
   @spec recover_smart_cell(pid(), Cell.id()) :: :ok
   def recover_smart_cell(pid, cell_id) do
@@ -438,7 +477,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell conversion request to the server.
+  Requests a smart cell to be converted into code cell(s).
   """
   @spec convert_smart_cell(pid(), Cell.id()) :: :ok
   def convert_smart_cell(pid, cell_id) do
@@ -446,7 +485,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends dependencies addition request to the server.
+  Requests a dependency to be added to the notebook.
   """
   @spec add_dependencies(pid(), list(Runtime.dependency())) :: :ok
   def add_dependencies(pid, dependencies) do
@@ -454,7 +493,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell evaluation request to the server.
+  Requests a cell to be evaluated.
+
+  Depending on the evaluation state, the cell may start evaluation or
+  be put in a queue, waiting for other cells to finish evaluation.
   """
   @spec queue_cell_evaluation(pid(), Cell.id(), keyword()) :: :ok
   def queue_cell_evaluation(pid, cell_id, evaluation_opts \\ []) do
@@ -462,7 +504,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section evaluation request to the server.
+  Requests all cells in the given section to be evaluated.
   """
   @spec queue_section_evaluation(pid(), Section.id()) :: :ok
   def queue_section_evaluation(pid, section_id) do
@@ -470,7 +512,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends input bound cells evaluation request to the server.
+  Requests all cells bound to the given input to be evaluated.
+
+  A cell is bound to an input if it read it value during its last
+  evaluation.
   """
   @spec queue_bound_cells_evaluation(pid(), Data.input_id()) :: :ok
   def queue_bound_cells_evaluation(pid, input_id) do
@@ -478,10 +523,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends full evaluation request to the server.
+  Requests full notebook evaluation.
 
-  All outdated (new/stale/changed) cells, as well as cells given
-  as `forced_cell_ids` are scheduled for evaluation.
+  All outdated (new/stale/changed) cells, as well as cells specified
+  by `forced_cell_ids` are queued for evaluation.
   """
   @spec queue_full_evaluation(pid(), list(Cell.id())) :: :ok
   def queue_full_evaluation(pid, forced_cell_ids) do
@@ -489,10 +534,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends reevaluation request to the server.
+  Requests cells reevaluation.
 
-  Schedules evaluation of all cells that have been evaluated
-  previously, until the first fresh cell.
+  Queues evaluation of all cells that have been evaluated previously,
+  until the first fresh cell.
   """
   @spec queue_cells_reevaluation(pid()) :: :ok
   def queue_cells_reevaluation(pid) do
@@ -500,7 +545,10 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell evaluation cancellation request to the server.
+  Requests cell evaluation to be canceled.
+
+  Depending on the evaluation state, this may simply remove the cell
+  from evaluation queue, or stop the current evaluation altogether.
   """
   @spec cancel_cell_evaluation(pid(), Cell.id()) :: :ok
   def cancel_cell_evaluation(pid, cell_id) do
@@ -508,7 +556,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends erase outputs request to the server.
+  Requests all notebook outputs to be removed.
   """
   @spec erase_outputs(pid()) :: :ok
   def erase_outputs(pid) do
@@ -516,7 +564,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends notebook name update request to the server.
+  Requests the notebook name to be changed.
   """
   @spec set_notebook_name(pid(), String.t()) :: :ok
   def set_notebook_name(pid, name) do
@@ -524,7 +572,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends section name update request to the server.
+  Requests a section name to be changed.
   """
   @spec set_section_name(pid(), Section.id(), String.t()) :: :ok
   def set_section_name(pid, section_id, name) do
@@ -532,13 +580,16 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a cell delta to apply to the server.
+  Requests a cell content diff to be applied.
+
+  The diff comes from a specific client and conflicts are resolved
+  using Operational Transformation.
   """
   @spec apply_cell_delta(
           pid(),
           Cell.id(),
           Data.cell_source_tag(),
-          Text.Delta.t(),
+          Livebook.Text.Delta.t(),
           Selection.t() | nil,
           Data.cell_revision()
         ) :: :ok
@@ -562,7 +613,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a cell attributes update to the server.
+  Requests cell attributes to be updated.
   """
   @spec set_cell_attributes(pid(), Cell.id(), map()) :: :ok
   def set_cell_attributes(pid, cell_id, attrs) do
@@ -570,7 +621,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a input value update to the server.
+  Requests an input value to be changed.
   """
   @spec set_input_value(pid(), Data.input_id(), term()) :: :ok
   def set_input_value(pid, input_id, value) do
@@ -578,7 +629,9 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends runtime update to the server.
+  Requests a new runtime to be set.
+
+  If the current runtime is connected, it will get disconnected first.
   """
   @spec set_runtime(pid(), Runtime.t()) :: :ok
   def set_runtime(pid, runtime) do
@@ -586,9 +639,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends request to connect to the configured runtime.
-
-  Once the runtime is connected, the session takes the ownership.
+  Requests the session to connect the current runtime.
   """
   @spec connect_runtime(pid()) :: :ok
   def connect_runtime(pid) do
@@ -596,7 +647,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends file location update request to the server.
+  Requests a new file location to be used for persisting the notebook.
   """
   @spec set_file(pid(), FileSystem.File.t() | nil) :: :ok
   def set_file(pid, file) do
@@ -604,7 +655,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a secret addition request to the server.
+  Requests the given secret to be set.
   """
   @spec set_secret(pid(), Livebook.Secrets.Secret.t()) :: :ok
   def set_secret(pid, secret) do
@@ -612,7 +663,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a secret deletion request to the server.
+  Requests secret with the given name to be unset.
   """
   @spec unset_secret(pid(), String.t()) :: :ok
   def unset_secret(pid, secret_name) do
@@ -620,7 +671,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a hub selection request to the server.
+  Requests the notebook hub to be changed.
   """
   @spec set_notebook_hub(pid(), String.t()) :: :ok
   def set_notebook_hub(pid, id) do
@@ -628,7 +679,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a deployment group selection request to the server.
+  Requests the notebook deployment group to be changed.
   """
   @spec set_notebook_deployment_group(pid(), String.t()) :: :ok
   def set_notebook_deployment_group(pid, id) do
@@ -645,7 +696,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a file entries addition request to the server.
+  Requests a new file entry to be added to the notebook.
 
   Note that if file entries with any of the given names already exist
   they are replaced.
@@ -656,7 +707,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a file entry rename request to the server.
+  Requests a notebook file entry to be renamed.
   """
   @spec rename_file_entry(pid(), String.t(), String.t()) :: :ok
   def rename_file_entry(pid, name, new_name) do
@@ -664,7 +715,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a file entry deletion request to the server.
+  Requests a notebook file entry to be deleted.
   """
   @spec delete_file_entry(pid(), String.t()) :: :ok
   def delete_file_entry(pid, name) do
@@ -672,7 +723,11 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a file entry unquarantine request to the server.
+  Requests a notebook file entry to be removed from quarantine.
+
+  File entries may end up in quarantine when a notebook is open and
+  its stamp cannot be verified. Once this happens, the user needs to
+  explicitly allow each file entry to be accessible.
   """
   @spec allow_file_entry(pid(), String.t()) :: :ok
   def allow_file_entry(pid, name) do
@@ -707,7 +762,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends save request to the server.
+  Requests the session to save the current version of the notebook.
 
   If there's a file set and the notebook changed since the last save,
   it will be persisted to said file.
@@ -772,8 +827,8 @@ defmodule Livebook.Session do
   @doc """
   Closes one or more sessions.
 
-  This results in saving the file and broadcasting
-  a :closed message to the session topic.
+  This results in saving the file and broadcasting a :closed message
+  to the session topic.
   """
   @spec close(pid() | [pid()]) :: :ok
   def close(pid) do
@@ -783,7 +838,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Disconnects one or more sessions from the current runtime.
+  Requests one or more sessions to disconnect the current runtime.
 
   Note that this results in clearing the evaluation state.
   """
@@ -801,7 +856,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a app settings update request to the server.
+  Requests the notebook app settings to be changed.
   """
   @spec set_app_settings(pid(), Notebook.AppSettings.t()) :: :ok
   def set_app_settings(pid, app_settings) do
@@ -809,7 +864,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a app deployment request to the server.
+  Requests the session to deploy the notebook as an app.
   """
   @spec deploy_app(pid()) :: :ok
   def deploy_app(pid) do
@@ -817,7 +872,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends an app deactivation request to the server.
+  Requests an app session to deactivate.
 
   When an app is deactivated, the session is still running, but the
   app is no longer accessible (and connected clients should be
@@ -829,7 +884,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends an app shutdown request to the server.
+  Requests an app session to shut down.
 
   The shutdown is graceful, the app is no longer accessible, but
   connected clients should not be impacted. Once all clients
@@ -843,7 +898,7 @@ defmodule Livebook.Session do
   ## Callbacks
 
   @impl true
-  def init(opts) do
+  def init({caller_pid, opts}) do
     Livebook.Settings.subscribe()
     Livebook.Hubs.Broadcasts.subscribe([:crud, :secrets])
 
@@ -871,6 +926,8 @@ defmodule Livebook.Session do
       session = self_from_state(state)
 
       with :ok <- Livebook.Tracker.track_session(session) do
+        send(caller_pid, {:started, self(), session})
+
         if state.data.mode == :app do
           {:ok, state, {:continue, :app_init}}
         else
@@ -907,7 +964,8 @@ defmodule Livebook.Session do
         app_pid: opts[:app_pid],
         auto_shutdown_ms: opts[:auto_shutdown_ms],
         auto_shutdown_timer_ref: nil,
-        started_by: opts[:started_by]
+        started_by: opts[:started_by],
+        deployed_by: opts[:deployed_by]
       }
 
       {:ok, state}
@@ -923,7 +981,7 @@ defmodule Livebook.Session do
     data = Data.new(notebook: notebook, origin: origin, mode: mode)
 
     if file do
-      case FileGuard.lock(file, self()) do
+      case Session.FileGuard.lock(file, self()) do
         :ok ->
           {:ok, %{data | file: file}}
 
@@ -1014,7 +1072,7 @@ defmodule Livebook.Session do
         {state, client_id}
       else
         Process.monitor(client_pid)
-        client_id = Utils.random_id()
+        client_id = Livebook.Utils.random_id()
         state = handle_operation(state, {:client_join, client_id, user})
         state = put_in(state.client_pids_with_id[client_pid], client_id)
         {state, client_id}
@@ -1061,7 +1119,7 @@ defmodule Livebook.Session do
   end
 
   def handle_call(:register_file_init, _from, state) do
-    file_id = Utils.random_id()
+    file_id = Livebook.Utils.random_id()
     file_ref = {:file, file_id}
     path = registered_file_path(state.session_id, file_ref)
     reply = %{file_ref: file_ref, path: path}
@@ -1113,34 +1171,34 @@ defmodule Livebook.Session do
   def handle_cast({:insert_section, client_pid, index}, state) do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_section, client_id, index, Utils.random_id()}
+    operation = {:insert_section, client_id, index, Livebook.Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:insert_section_into, client_pid, section_id, index}, state) do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_section_into, client_id, section_id, index, Utils.random_id()}
+    operation = {:insert_section_into, client_id, section_id, index, Livebook.Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:insert_branching_section_into, client_pid, section_id, index}, state) do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_branching_section_into, client_id, section_id, index, Utils.random_id()}
+    operation =
+      {:insert_branching_section_into, client_id, section_id, index, Livebook.Utils.random_id()}
+
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:set_section_parent, client_pid, section_id, parent_id}, state) do
     client_id = client_id(state, client_pid)
-    # Include new id in the operation, so it's reproducible
     operation = {:set_section_parent, client_id, section_id, parent_id}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:unset_section_parent, client_pid, section_id}, state) do
     client_id = client_id(state, client_pid)
-    # Include new id in the operation, so it's reproducible
     operation = {:unset_section_parent, client_id, section_id}
     {:noreply, handle_operation(state, operation)}
   end
@@ -1148,7 +1206,9 @@ defmodule Livebook.Session do
   def handle_cast({:insert_cell, client_pid, section_id, index, type, attrs}, state) do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_cell, client_id, section_id, index, type, Utils.random_id(), attrs}
+    operation =
+      {:insert_cell, client_id, section_id, index, type, Livebook.Utils.random_id(), attrs}
+
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1182,6 +1242,44 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:enable_language, client_pid, language}, state) do
+    dependencies = [
+      Livebook.Runtime.Definitions.pythonx_dependency(),
+      Livebook.Runtime.Definitions.kino_pythonx_dependency()
+    ]
+
+    case do_add_dependencies(state, dependencies) do
+      {:ok, state} ->
+        client_id = client_id(state, client_pid)
+
+        # If there is a single empty cell (new notebook), change its
+        # language automatically. Note that we cannot do it as part of
+        # the :enable_language operation, because clients prune the
+        # source.
+        state =
+          case state.data.notebook.sections do
+            [%{cells: [%{source: ""} = cell]}] ->
+              operation = {:set_cell_attributes, client_id, cell.id, %{language: language}}
+              handle_operation(state, operation)
+
+            _ ->
+              state
+          end
+
+        operation = {:enable_language, client_id, language}
+        {:noreply, handle_operation(state, operation)}
+
+      {:error, state} ->
+        {:noreply, state}
+    end
+  end
+
+  def handle_cast({:disable_language, client_pid, language}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:disable_language, client_id, language}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:recover_smart_cell, client_pid, cell_id}, state) do
     client_id = client_id(state, client_pid)
     operation = {:recover_smart_cell, client_id, cell_id}
@@ -1203,7 +1301,7 @@ defmodule Livebook.Session do
               source = binary_part(cell.source, offset, size)
               attrs = %{source: source}
               cell_idx = index + chunk_idx
-              cell_id = Utils.random_id()
+              cell_id = Livebook.Utils.random_id()
 
               handle_operation(
                 state,
@@ -1220,7 +1318,8 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:add_dependencies, dependencies}, state) do
-    {:noreply, do_add_dependencies(state, dependencies)}
+    {_ok_error, state} = do_add_dependencies(state, dependencies)
+    {:noreply, state}
   end
 
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id, evaluation_opts}, state) do
@@ -1337,14 +1436,14 @@ defmodule Livebook.Session do
     client_id = client_id(state, client_pid)
 
     if file do
-      FileGuard.lock(file, self())
+      Session.FileGuard.lock(file, self())
     else
       :ok
     end
     |> case do
       :ok ->
         if state.data.file do
-          FileGuard.unlock(state.data.file)
+          Session.FileGuard.unlock(state.data.file)
         end
 
         {:noreply, handle_operation(state, {:set_file, client_id, file})}
@@ -1398,7 +1497,14 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:deploy_app, _client_pid}, state) do
+  def handle_cast({:deploy_app, client_pid}, state) do
+    client_id = client_id(state, client_pid)
+
+    deployed_by =
+      if user_id = state.data.clients_map[client_id] do
+        state.data.users_map[user_id]
+      end
+
     # In the initial state app settings are empty, hence not valid,
     # so we double-check that we can actually deploy
     if Notebook.AppSettings.valid?(state.data.notebook.app_settings) and
@@ -1409,7 +1515,9 @@ defmodule Livebook.Session do
       }
 
       deployer_pid = Livebook.Apps.Deployer.local_deployer()
-      deployment_ref = Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
+
+      deployment_ref =
+        Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec, deployed_by: deployed_by)
 
       {:noreply, %{state | deployment_ref: deployment_ref}}
     else
@@ -2174,21 +2282,26 @@ defmodule Livebook.Session do
   end
 
   defp do_add_dependencies(state, dependencies) do
-    {:ok, cell, _} = Notebook.fetch_cell_and_section(state.data.notebook, Cell.setup_cell_id())
+    {:ok, cell, _} =
+      Notebook.fetch_cell_and_section(state.data.notebook, Cell.main_setup_cell_id())
+
     source = cell.source
 
     case Runtime.add_dependencies(state.data.runtime, source, dependencies) do
       {:ok, ^source} ->
-        state
+        {:ok, state}
 
       {:ok, new_source} ->
         delta = Livebook.Text.Delta.diff(cell.source, new_source)
         revision = state.data.cell_infos[cell.id].sources.primary.revision
 
-        handle_operation(
-          state,
-          {:apply_cell_delta, @client_id, cell.id, :primary, delta, nil, revision}
-        )
+        state =
+          handle_operation(
+            state,
+            {:apply_cell_delta, @client_id, cell.id, :primary, delta, nil, revision}
+          )
+
+        {:ok, state}
 
       {:error, message} ->
         broadcast_error(
@@ -2196,7 +2309,7 @@ defmodule Livebook.Session do
           "failed to add dependencies to the setup cell, reason:\n\n#{message}"
         )
 
-        state
+        {:error, state}
     end
   end
 
@@ -2227,7 +2340,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_notebook_name, _client_id, _name}) do
     if file = state.data.file do
-      NotebookManager.update_notebook_name(file, state.data.notebook.name)
+      Livebook.NotebookManager.update_notebook_name(file, state.data.notebook.name)
     end
 
     notify_update(state)
@@ -2275,7 +2388,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, prev_state, {:client_join, client_id, user}) do
     unless Map.has_key?(prev_state.data.users_map, user.id) do
-      Livebook.Users.subscribe(user.id)
+      Users.subscribe(user.id)
     end
 
     state = put_in(state.client_id_with_assets[client_id], %{})
@@ -2293,7 +2406,7 @@ defmodule Livebook.Session do
     user_id = prev_state.data.clients_map[client_id]
 
     unless Map.has_key?(state.data.users_map, user_id) do
-      Livebook.Users.unsubscribe(user_id)
+      Users.unsubscribe(user_id)
     end
 
     state = delete_client_files(state, client_id)
@@ -2347,7 +2460,7 @@ defmodule Livebook.Session do
          _prev_state,
          {:smart_cell_started, _client_id, cell_id, delta, _chunks, _js_view, _editor}
        ) do
-    unless Text.Delta.empty?(delta) do
+    unless Livebook.Text.Delta.empty?(delta) do
       hydrate_cell_source_digest(state, cell_id, :primary)
     end
 
@@ -2525,6 +2638,24 @@ defmodule Livebook.Session do
   defp handle_action(state, _action), do: state
 
   defp start_evaluation(state, cell, section, evaluation_opts) do
+    evaluation_users =
+      case state.data.mode do
+        :default -> Map.values(state.data.users_map)
+        :app -> if(state.deployed_by, do: [state.deployed_by], else: [])
+      end
+
+    Logger.info(
+      [
+        """
+        Evaluating code
+          Session mode: #{state.data.mode}
+          Code: \
+        """,
+        inspect(cell.source, printable_limit: :infinity)
+      ],
+      Livebook.Utils.logger_users_metadata(evaluation_users)
+    )
+
     path =
       case state.data.file || default_notebook_file(state) do
         nil -> ""
@@ -2627,7 +2758,7 @@ defmodule Livebook.Session do
 
       %{ref: ref} =
         Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
-          {content, warnings} = LiveMarkdown.notebook_to_livemd(notebook)
+          {content, warnings} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
           result = FileSystem.File.write(file, content)
           {:save_finished, result, warnings, file, default?}
         end)
@@ -2644,7 +2775,7 @@ defmodule Livebook.Session do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
-      {content, warnings} = LiveMarkdown.notebook_to_livemd(state.data.notebook)
+      {content, warnings} = Livebook.LiveMarkdown.notebook_to_livemd(state.data.notebook)
       result = FileSystem.File.write(file, content)
       handle_save_finished(state, result, warnings, file, default?)
     else
@@ -3075,12 +3206,19 @@ defmodule Livebook.Session do
   end
 
   defp download_content(url, file) do
-    case Livebook.Utils.HTTP.download(url, file) do
-      {:ok, _file} ->
+    # Given the URL has arbitrary user-specified host, we specify
+    # :pool_max_idle_time, so the Finch pool terminates eventually
+    req = Req.new(pool_max_idle_time: 60_000) |> Livebook.Utils.req_attach_defaults()
+
+    case Req.get(req, url: url, into: file) do
+      {:ok, %{status: 200}} ->
         :ok
 
-      {:error, message, status} ->
-        {:error, "download failed, " <> message, status}
+      {:ok, %{status: status}} ->
+        {:error, "download failed, HTTP status #{status}", status}
+
+      {:error, exception} ->
+        {:error, "download failed, reason: #{Exception.message(exception)}}", nil}
     end
   end
 
@@ -3098,18 +3236,27 @@ defmodule Livebook.Session do
   # attributes that are missing.
   defp normalize_runtime_output(output)
 
+  defp normalize_runtime_output(%{type: :plain_text} = plain_text) do
+    Map.put_new(plain_text, :style, [])
+  end
+
   # Traverse composite outputs
 
-  # defp normalize_runtime_output(output) when output.type in [:frame, :tabs, :grid] do
-  #   outputs = Enum.map(output.outputs, &normalize_runtime_output/1)
-  #   %{output | outputs: outputs}
-  # end
+  defp normalize_runtime_output(%{type: :grid} = grid) do
+    grid
+    |> Map.update!(:outputs, fn outputs -> Enum.map(outputs, &normalize_runtime_output/1) end)
+    |> Map.put_new(:max_height, nil)
+  end
 
-  # defp normalize_runtime_output(%{type: :frame_update} = output) do
-  #   {update_type, new_outputs} = output.update
-  #   new_outputs = Enum.map(new_outputs, &normalize_runtime_output/1)
-  #   %{output | update: {update_type, new_outputs}}
-  # end
+  defp normalize_runtime_output(%{type: type} = output) when type in [:frame, :tabs] do
+    Map.update!(output, :outputs, fn outputs -> Enum.map(outputs, &normalize_runtime_output/1) end)
+  end
+
+  defp normalize_runtime_output(%{type: :frame_update} = output) do
+    {update_type, new_outputs} = output.update
+    new_outputs = Enum.map(new_outputs, &normalize_runtime_output/1)
+    %{output | update: {update_type, new_outputs}}
+  end
 
   defp normalize_runtime_output(output) when is_map(output), do: output
 
@@ -3191,7 +3338,8 @@ defmodule Livebook.Session do
       outputs: Enum.map(outputs, &normalize_runtime_output/1),
       columns: Map.get(info, :columns, 1),
       gap: Map.get(info, :gap, 8),
-      boxed: Map.get(info, :boxed, false)
+      boxed: Map.get(info, :boxed, false),
+      max_height: Map.get(info, :max_height)
     }
     |> normalize_runtime_output()
   end
@@ -3230,8 +3378,9 @@ defmodule Livebook.Session do
 
         :form ->
           Map.update!(attrs, :fields, fn fields ->
-            Enum.map(fields, fn {field, attrs} ->
-              {field, normalize_runtime_output({:input, attrs})}
+            Enum.map(fields, fn
+              {field, nil} -> {field, nil}
+              {field, attrs} -> {field, normalize_runtime_output({:input, attrs})}
             end)
           end)
 

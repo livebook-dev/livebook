@@ -25,10 +25,10 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         App settings
       </h3>
-      <.message_box :if={@context == "preview"} kind={:info}>
+      <.message_box :if={@context == "preview"} kind="info">
         You must configure your app before previewing it.
       </.message_box>
-      <.message_box :if={@context && @context != "preview"} kind={:info}>
+      <.message_box :if={@context && @context != "preview"} kind="info">
         You must configure your app before deploying it.
       </.message_box>
 
@@ -134,7 +134,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
         </div>
         <div class="mt-8 flex space-x-2">
           <.button disabled={not @changeset.valid?}>
-            <%= if @context == "preview", do: "Launch", else: "Save" %>
+            {if @context == "preview", do: "Launch", else: "Save"}
           </.button>
 
           <.button color="gray" outlined type="reset" name="reset">

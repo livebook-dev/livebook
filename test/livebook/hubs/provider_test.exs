@@ -25,19 +25,19 @@ defmodule Livebook.Hubs.ProviderTest do
     end
 
     test "get_secrets/1 without startup secrets", %{hub: hub} do
-      secret = insert_secret(name: "GET_PERSONAL_SECRET")
+      secret = insert_secret()
       assert secret in Provider.get_secrets(hub)
     end
 
     test "create_secret/1", %{hub: hub} do
-      secret = build(:secret, name: "CREATE_PERSONAL_SECRET")
+      secret = build(:secret)
 
       assert Provider.create_secret(hub, secret) == :ok
       assert secret in Provider.get_secrets(hub)
     end
 
     test "update_secret/1", %{hub: hub} do
-      secret = insert_secret(name: "UPDATE_PERSONAL_SECRET")
+      secret = insert_secret()
       assert secret in Provider.get_secrets(hub)
 
       updated_secret = %{secret | value: "123321"}
@@ -48,7 +48,7 @@ defmodule Livebook.Hubs.ProviderTest do
     end
 
     test "delete_secret/1", %{hub: hub} do
-      secret = insert_secret(name: "DELETE_PERSONAL_SECRET")
+      secret = insert_secret()
       assert secret in Provider.get_secrets(hub)
 
       assert Provider.delete_secret(hub, secret) == :ok

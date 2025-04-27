@@ -4,7 +4,8 @@ defmodule Livebook.NotebookTest do
   import Livebook.TestHelpers
 
   alias Livebook.Notebook
-  alias Livebook.Notebook.{Section, Cell}
+  alias Livebook.Notebook.Section
+  alias Livebook.Notebook.Cell
 
   describe "fetch_cell_sibling/3" do
     test "returns error given invalid cell id" do

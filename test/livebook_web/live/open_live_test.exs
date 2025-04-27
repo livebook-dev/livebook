@@ -3,7 +3,9 @@ defmodule LivebookWeb.OpenLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session, FileSystem}
+  alias Livebook.Sessions
+  alias Livebook.Session
+  alias Livebook.FileSystem
 
   describe "file selection" do
     test "does not mention autosaving if disabled", %{conn: conn} do
@@ -232,13 +234,23 @@ defmodule LivebookWeb.OpenLiveTest do
   end
 
   describe "public import endpoint" do
-    test "imports notebook from the given url and redirects to the new session", %{conn: conn} do
+    test "imports notebook from the given url and downloads its files", %{conn: conn} do
       bypass = Bypass.open()
 
       Bypass.expect_once(bypass, "GET", "/notebook", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("text/plain")
-        |> Plug.Conn.resp(200, "# My notebook")
+        |> Plug.Conn.resp(200, """
+        <!-- livebook:{"file_entries":[{"name":"image.jpg","type":"attachment"}]} -->
+
+        # My notebook
+        """)
+      end)
+
+      Bypass.expect_once(bypass, "GET", "/files/image.jpg", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("text/plain")
+        |> Plug.Conn.resp(200, "content")
       end)
 
       notebook_url = "http://localhost:#{bypass.port}/notebook"
@@ -247,6 +259,12 @@ defmodule LivebookWeb.OpenLiveTest do
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook"
+
+      "/sessions/" <> session_id = to
+      {:ok, session} = Sessions.fetch_session(session_id)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
 
       close_session_by_path(to)
     end
@@ -269,7 +287,7 @@ defmodule LivebookWeb.OpenLiveTest do
       bypass = Bypass.open()
 
       Bypass.expect(bypass, "GET", "/notebook", fn conn ->
-        Plug.Conn.resp(conn, 500, "Error")
+        Plug.Conn.resp(conn, 404, "Not found")
       end)
 
       notebook_url = "http://localhost:#{bypass.port}/notebook"

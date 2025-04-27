@@ -80,7 +80,7 @@ defmodule LivebookWeb.FormComponents do
           @class
         ]}
         {@rest}
-      ><%= Phoenix.HTML.Form.normalize_value("textarea", @value) %></textarea>
+      >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
     </.field_wrapper>
     """
   end
@@ -237,7 +237,7 @@ defmodule LivebookWeb.FormComponents do
     <div>
       <div class="flex items-center gap-1 sm:gap-3 justify-between">
         <span :if={@label} class="text-gray-700 flex gap-1 items-center">
-          <%= @label %>
+          {@label}
           <.help :if={@help} text={@help} />
         </span>
         <label class={[
@@ -264,7 +264,7 @@ defmodule LivebookWeb.FormComponents do
           </div>
         </label>
       </div>
-      <.error :for={msg <- @errors}><%= msg %></.error>
+      <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
   end
@@ -312,11 +312,11 @@ defmodule LivebookWeb.FormComponents do
           </svg>
         </div>
         <span :if={@label} class={["text-gray-700 flex gap-1 items-center", @small && "text-sm"]}>
-          <%= @label %>
+          {@label}
           <.help :if={@help} text={@help} />
         </span>
       </label>
-      <.error :for={msg <- @errors}><%= msg %></.error>
+      <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
   end
@@ -341,7 +341,7 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <div>
-      <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
+      <.label :if={@label} for={@id} help={@help}>{@label}</.label>
       <div class="flex gap-4 text-gray-600">
         <label :for={{value, description} <- @options} class="flex items-center gap-2 cursor-pointer">
           <input
@@ -355,10 +355,10 @@ defmodule LivebookWeb.FormComponents do
           <div class="w-5 h-5 flex items-center justify-center border border-gray-300 peer-checked:border-blue-600 text-white peer-checked:text-blue-600 bg-white rounded-full">
             <div class="w-3 h-3 rounded-full bg-current"></div>
           </div>
-          <span><%= description %></span>
+          <span>{description}</span>
         </label>
       </div>
-      <.error :for={msg <- @errors}><%= msg %></.error>
+      <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
   end
@@ -385,7 +385,7 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <div>
-      <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
+      <.label :if={@label} for={@id} help={@help}>{@label}</.label>
       <div class="flex">
         <label
           :for={{value, description} <- @options}
@@ -407,10 +407,10 @@ defmodule LivebookWeb.FormComponents do
             checked={to_string(@value) == value}
             {@rest}
           />
-          <span><%= description %></span>
+          <span>{description}</span>
         </label>
       </div>
-      <.error :for={msg <- @errors}><%= msg %></.error>
+      <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
   end
@@ -436,7 +436,7 @@ defmodule LivebookWeb.FormComponents do
       <div class="flex border bg-gray-50 rounded-lg space-x-4 items-center">
         <div id={"#{@id}-picker"} class="flex w-full" phx-hook="EmojiPicker">
           <div class="grow p-1 pl-3">
-            <span id={"#{@id}-preview"} data-emoji-preview><%= @value %></span>
+            <span id={"#{@id}-preview"} data-emoji-preview>{@value}</span>
           </div>
           <button
             id={"#{@id}-button"}
@@ -496,10 +496,9 @@ defmodule LivebookWeb.FormComponents do
           ]}
           {@rest}
         >
-          <option :if={@prompt} value=""><%= @prompt %></option>
-          <%!-- TODO: we use to_string to normalize nil and "", remove
-                this once fixed upstream https://github.com/phoenixframework/phoenix_html/issues/444 --%>
-          <%= Phoenix.HTML.Form.options_for_select(@options, to_string(@value)) %>
+          <option :if={@prompt} value="">{@prompt}</option>
+          <%!-- TODO: remove to_string/1 when fixed upstream, see https://github.com/phoenixframework/phoenix_html/issues/444#issuecomment-2713061480 --%>
+          {Phoenix.HTML.Form.options_for_select(@options, to_string(@value))}
         </select>
         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
           <.remix_icon icon="arrow-down-s-line" />
@@ -542,9 +541,9 @@ defmodule LivebookWeb.FormComponents do
   defp field_wrapper(assigns) do
     ~H"""
     <div>
-      <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
-      <%= render_slot(@inner_block) %>
-      <.error :for={msg <- @errors}><%= msg %></.error>
+      <.label :if={@label} for={@id} help={@help}>{@label}</.label>
+      {render_slot(@inner_block)}
+      <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
   end
@@ -559,7 +558,7 @@ defmodule LivebookWeb.FormComponents do
   def label(assigns) do
     ~H"""
     <label for={@for} class="mb-1 flex items-center gap-1 text-sm text-gray-800 font-medium">
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
       <.help :if={@help} text={@help} />
     </label>
     """
@@ -573,7 +572,7 @@ defmodule LivebookWeb.FormComponents do
   def error(assigns) do
     ~H"""
     <p class="mt-0.5 text-red-600 text-sm">
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </p>
     """
   end
@@ -627,7 +626,7 @@ defmodule LivebookWeb.FormComponents do
     ~H"""
     <div>
       <.live_file_input upload={@upload} class="hidden" />
-      <.label><%= @label %></.label>
+      <.label>{@label}</.label>
       <div :for={entry <- @upload.entries} class="flex flex-col gap-1">
         <.file_entry entry={entry} on_clear={@on_clear} />
       </div>
@@ -654,7 +653,7 @@ defmodule LivebookWeb.FormComponents do
     ~H"""
     <div class="flex flex-col gap-0.5">
       <div class="flex items-center justify-between gap-1 text-gray-700">
-        <span><%= @name || @entry.client_name %></span>
+        <span>{@name || @entry.client_name}</span>
         <button
           type="button"
           class="text-gray-500 hover:text-gray-900"
@@ -666,7 +665,7 @@ defmodule LivebookWeb.FormComponents do
         </button>
         <span class="flex-grow"></span>
         <span :if={@entry.preflighted?} class="text-sm font-medium">
-          <%= @entry.progress %>%
+          {@entry.progress}%
         </span>
       </div>
       <div :if={@entry.preflighted?} class="w-full h-2 rounded-lg bg-blue-200">

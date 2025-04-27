@@ -46,7 +46,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
     ~H"""
     <div class="flex flex-col">
       <div :if={@error_message} class="mb-6 error-box">
-        <%= @error_message %>
+        {@error_message}
       </div>
       <div class="h-80" role="region" aria-label="file storage">
         <.live_component

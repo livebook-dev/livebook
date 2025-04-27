@@ -30,7 +30,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
         <div class="flex justify-between items-start">
           <div>
             <div class="flex gap-2 items-center text-gray-700">
-              <h3 class="font-semibold"><%= @deployment_group.name %></h3>
+              <h3 class="font-semibold">{@deployment_group.name}</h3>
               <%= if @deployment_group.mode == :online do %>
                 <div class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
                   Online
@@ -47,11 +47,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
               class="text-xs font-medium text-blue-600 mt-1"
               target="_blank"
             >
-              <%= DeploymentGroup.url_without_scheme(@deployment_group) %>
+              {DeploymentGroup.url_without_scheme(@deployment_group)}
             </.link>
           </div>
           <.link
-            href={Livebook.Config.teams_url() <> "/orgs/#{@hub.org_id}/deployments/groups/#{@deployment_group.id}"}
+            href={org_url(@hub, "/deployments/groups/#{@deployment_group.id}")}
             class="text-sm font-medium text-blue-600"
             target="_blank"
           >
@@ -62,7 +62,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
         <div :if={@deployment_group.mode == :online} class="flex flex-col lg:flex-row justify-center">
           <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="App servers">
             <span class="text-lg font-normal" aria-label="app servers">
-              <%= @agents_count %>
+              {@agents_count}
             </span>
             <.link
               patch={~p"/hub/#{@hub.id}/groups/#{@deployment_group.id}/agents/new"}
@@ -73,7 +73,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           </.labeled_text>
           <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="Apps deployed">
             <span class="text-lg font-normal" aria-label="apps deployed">
-              <%= @app_deployments_count %>
+              {@app_deployments_count}
             </span>
             <.link
               patch={~p"/hub/#{@hub.id}/groups/#{@deployment_group.id}/apps/new"}
@@ -82,10 +82,22 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
               + Add new
             </.link>
           </.labeled_text>
-          <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="Authentication">
-            <span class="text-lg font-normal">
-              <%= Livebook.ZTA.provider_name(@deployment_group.zta_provider) %>
+          <.labeled_text
+            class="grow mt-6 lg:border-l border-gray-200 lg:pl-4"
+            label="Environment variables"
+          >
+            <span class="text-lg font-normal" aria-label="environment variables">
+              {@environment_variables_count}
             </span>
+            <.link
+              href={
+                org_url(@hub, "/deployments/groups/#{@deployment_group.id}/environment-variables")
+              }
+              target="_blank"
+              class="pl-2 text-blue-600 font-medium"
+            >
+              + Manage
+            </.link>
           </.labeled_text>
         </div>
         <!-- Additional Secrets -->
@@ -134,7 +146,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           :if={@live_action in [:new_deployment_group_secret, :edit_deployment_group_secret]}
           id="deployment-group-secrets-modal"
           show
-          width={:medium}
+          width="medium"
           patch={~p"/hub/#{@hub.id}"}
         >
           <.live_component
@@ -145,6 +157,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             secret_name={@secret_name}
             secret_value={@secret_value}
             return_to={~p"/hub/#{@hub.id}"}
+            disabled={@hub.billing_status.disabled}
           />
         </.modal>
 
@@ -152,7 +165,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           :if={@live_action == :new_deployment_group_agent}
           id="deployment-group-agent-modal"
           show
-          width={:big}
+          width="big"
           patch={~p"/hub/#{@hub.id}"}
         >
           <.live_component
@@ -168,7 +181,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           :if={@live_action == :new_deployment_group_app}
           id="deployment-group-app-modal"
           show
-          width={:medium}
+          width="medium"
           patch={~p"/hub/#{@hub.id}"}
         >
           <div class="flex flex-col space-y-3">
@@ -186,5 +199,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
       <% end %>
     </div>
     """
+  end
+
+  defp org_url(hub, path) do
+    Livebook.Config.teams_url() <> "/orgs/#{hub.org_id}" <> path
   end
 end

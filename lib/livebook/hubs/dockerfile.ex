@@ -9,9 +9,14 @@ defmodule Livebook.Hubs.Dockerfile do
           deploy_all: boolean(),
           docker_tag: String.t(),
           clustering: nil | :auto | :dns,
-          zta_provider: atom() | nil,
-          zta_key: String.t() | nil
+          environment_variables: list({String.t(), String.t()})
         }
+
+  @types %{
+    deploy_all: :boolean,
+    docker_tag: :string,
+    clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:auto, :dns])
+  }
 
   @doc """
   Builds the default Dockerfile configuration.
@@ -24,8 +29,7 @@ defmodule Livebook.Hubs.Dockerfile do
       deploy_all: false,
       docker_tag: default_image.tag,
       clustering: nil,
-      zta_provider: nil,
-      zta_key: nil
+      environment_variables: []
     }
   end
 
@@ -34,11 +38,14 @@ defmodule Livebook.Hubs.Dockerfile do
   """
   @spec from_deployment_group(Livebook.Teams.DeploymentGroup.t()) :: config()
   def from_deployment_group(deployment_group) do
+    environment_variables =
+      for environment_variable <- deployment_group.environment_variables,
+          do: {environment_variable.name, environment_variable.value}
+
     %{
       config_new()
       | clustering: deployment_group.clustering,
-        zta_provider: deployment_group.zta_provider,
-        zta_key: deployment_group.zta_key
+        environment_variables: environment_variables
     }
   end
 
@@ -47,19 +54,8 @@ defmodule Livebook.Hubs.Dockerfile do
   """
   @spec config_changeset(config(), map()) :: Ecto.Changeset.t()
   def config_changeset(config, attrs \\ %{}) do
-    zta_types =
-      for provider <- Livebook.Config.identity_providers(),
-          do: provider.type
-
-    types = %{
-      deploy_all: :boolean,
-      docker_tag: :string,
-      clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:auto, :dns]),
-      zta_provider: Ecto.ParameterizedType.init(Ecto.Enum, values: zta_types),
-      zta_key: :string
-    }
-
-    cast({config, types}, attrs, [:deploy_all, :docker_tag, :clustering, :zta_provider, :zta_key])
+    {config, @types}
+    |> cast(attrs, [:deploy_all, :docker_tag, :clustering])
     |> validate_required([:deploy_all, :docker_tag])
   end
 
@@ -96,11 +92,51 @@ defmodule Livebook.Hubs.Dockerfile do
     used_secrets = used_hub_secrets(config, hub_secrets, secrets) |> Enum.sort_by(& &1.name)
     hub_config = format_hub_config(hub_type, config, hub, hub_file_systems, used_secrets)
 
+    environment_variables =
+      if config.environment_variables != [] do
+        envs = config.environment_variables |> Enum.sort() |> format_envs()
+
+        """
+        # Deployment group environment variables
+        #{envs}\
+        """
+      end
+
+    secret_key =
+      case hub_type do
+        "team" -> hub.teams_key
+        "personal" -> hub.secret_key
+      end
+
+    {secret_key_base, cookie} = deterministic_skb_and_cookie(secret_key)
+
+    clustering_config =
+      case to_string(config.clustering) do
+        "auto" ->
+          """
+          # Clustering configuration (note that we need the same Livebook secrets across all nodes)
+          ENV LIVEBOOK_CLUSTER="auto"
+          ENV LIVEBOOK_SECRET_KEY_BASE="#{secret_key_base}"
+          ENV LIVEBOOK_COOKIE="#{cookie}"
+          """
+
+        "dns" ->
+          """
+          # Clustering configuration (note that we need the same Livebook secrets across all nodes)
+          ENV LIVEBOOK_NODE="livebook_server@MACHINE_IP"
+          ENV LIVEBOOK_CLUSTER="dns:QUERY"
+          ENV LIVEBOOK_SECRET_KEY_BASE="#{secret_key_base}"
+          ENV LIVEBOOK_COOKIE="#{cookie}"
+          """
+
+        _ ->
+          nil
+      end
+
     apps_config = """
     # Apps configuration
-    ENV LIVEBOOK_APPS_PATH "/apps"
-    ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
-    ENV LIVEBOOK_APPS_PATH_HUB_ID "#{hub.id}"
+    ENV LIVEBOOK_APPS_PATH="/apps"
+    ENV LIVEBOOK_APPS_PATH_WARMUP="manual"
     """
 
     notebook =
@@ -142,49 +178,15 @@ defmodule Livebook.Hubs.Dockerfile do
     RUN /app/bin/warmup_apps
     """
 
-    secret_key =
-      case hub_type do
-        "team" -> hub.teams_key
-        "personal" -> hub.secret_key
-      end
-
-    {secret_key_base, cookie} = deterministic_skb_and_cookie(secret_key)
-
-    startup =
-      case to_string(config.clustering) do
-        "auto" ->
-          """
-          # --- Clustering ---
-
-          # Set the same Livebook secrets across all nodes
-          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
-          ENV LIVEBOOK_COOKIE "#{cookie}"
-          ENV LIVEBOOK_CLUSTER "auto"
-          """
-
-        "dns" ->
-          """
-          # --- Clustering ---
-
-          # Set the same Livebook secrets across all nodes
-          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
-          ENV LIVEBOOK_COOKIE "#{cookie}"
-          ENV LIVEBOOK_CLUSTER "dns:QUERY"
-          ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"
-          """
-
-        _ ->
-          nil
-      end
-
     [
       image,
       image_envs,
       hub_config,
+      environment_variables,
+      clustering_config,
       apps_config,
       notebook,
-      apps_warmup,
-      startup
+      apps_warmup
     ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join("\n")
@@ -202,38 +204,31 @@ defmodule Livebook.Hubs.Dockerfile do
     {Base.url_encode64(left, padding: false), "c_" <> Base.url_encode64(right, padding: false)}
   end
 
-  defp format_hub_config("team", config, hub, hub_file_systems, used_secrets) do
+  defp format_hub_config("team", _config, hub, hub_file_systems, used_secrets) do
     base_env =
       """
       ARG TEAMS_KEY="#{hub.teams_key}"
 
       # Teams Hub configuration for airgapped deployment
-      ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
-      ENV LIVEBOOK_TEAMS_AUTH "offline:#{hub.hub_name}:#{hub.org_public_key}"
+      ENV LIVEBOOK_TEAMS_KEY=${TEAMS_KEY}
+      ENV LIVEBOOK_TEAMS_AUTH="offline:#{hub.hub_name}:#{hub.org_public_key}"
       """
 
     secrets =
       if used_secrets != [] do
         """
-        ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(used_secrets, hub)}"
+        ENV LIVEBOOK_TEAMS_SECRETS="#{encrypt_secrets_to_dockerfile(used_secrets, hub)}"
         """
       end
 
     file_systems =
       if hub_file_systems != [] do
         """
-        ENV LIVEBOOK_TEAMS_FS "#{encrypt_file_systems_to_dockerfile(hub_file_systems, hub)}"
+        ENV LIVEBOOK_TEAMS_FS="#{encrypt_file_systems_to_dockerfile(hub_file_systems, hub)}"
         """
       end
 
-    zta =
-      if zta_configured?(config) do
-        """
-        ENV LIVEBOOK_IDENTITY_PROVIDER "#{config.zta_provider}:#{config.zta_key}"
-        """
-      end
-
-    [base_env, secrets, file_systems, zta]
+    [base_env, secrets, file_systems]
     |> Enum.reject(&is_nil/1)
     |> Enum.join()
   end
@@ -252,7 +247,9 @@ defmodule Livebook.Hubs.Dockerfile do
   defp format_envs([]), do: nil
 
   defp format_envs(list) do
-    Enum.map_join(list, fn {key, value} -> ~s/ENV #{key} "#{value}"\n/ end)
+    Enum.map_join(list, fn {key, value} ->
+      ~s/ENV #{key}="#{String.replace(value, ~S["], ~S[\"])}"\n/
+    end)
   end
 
   defp encrypt_secrets_to_dockerfile(secrets, hub) do
@@ -279,7 +276,7 @@ defmodule Livebook.Hubs.Dockerfile do
     secret_key = Livebook.Teams.derive_key(hub.teams_key)
 
     data
-    |> Jason.encode!()
+    |> JSON.encode!()
     |> Livebook.Teams.encrypt(secret_key)
   end
 
@@ -309,10 +306,6 @@ defmodule Livebook.Hubs.Dockerfile do
     end
   end
 
-  defp zta_configured?(config) do
-    config.zta_provider != nil and config.zta_key != nil
-  end
-
   @doc """
   Returns information for deploying Livebook Agent using Docker.
   """
@@ -331,13 +324,6 @@ defmodule Livebook.Hubs.Dockerfile do
       {"LIVEBOOK_TEAMS_AUTH",
        "online:#{hub.hub_name}:#{hub.org_id}:#{hub.org_key_id}:#{agent_key.key}"}
     ]
-
-    hub_env =
-      if zta_configured?(config) do
-        [{"LIVEBOOK_IDENTITY_PROVIDER", "#{config.zta_provider}:#{config.zta_key}"}]
-      else
-        []
-      end
 
     {secret_key_base, cookie} = deterministic_skb_and_cookie(hub.teams_key)
 
@@ -362,7 +348,9 @@ defmodule Livebook.Hubs.Dockerfile do
           []
       end
 
-    %{image: image, env: base_image.env ++ env ++ hub_env ++ clustering_env}
+    deployment_group_env = Enum.sort(config.environment_variables)
+
+    %{image: image, env: base_image.env ++ env ++ deployment_group_env ++ clustering_env}
   end
 
   @doc """
@@ -419,19 +407,18 @@ defmodule Livebook.Hubs.Dockerfile do
             end,
             if app_settings.access_type == :public do
               teams_link =
-                ~s{<a class="font-medium underline text-gray-900 hover:no-underline" href="https://livebook.dev/teams?ref=LivebookApp" target="_blank">Livebook Teams</a>}
+                ~s{<a class="font-medium underline text-gray-900 hover:no-underline" href="https://hexdocs.pm/livebook/authentication.html" target="_blank">Authentication</a>}
 
               "This app has no password configuration and anyone with access to the server will be able" <>
-                " to use it. You may either configure a password or use #{teams_link} to add Zero Trust Authentication" <>
-                " to your deployed notebooks."
+                " to use it. See the documentation on #{teams_link} for more information."
             end
           ]
 
         "team" ->
           [
-            if app_settings.access_type == :public and not zta_configured?(config) do
+            if app_settings.access_type == :public do
               "This app has no password configuration and anyone with access to the server will be able" <>
-                " to use it. You may either configure a password or configure Zero Trust Authentication."
+                " to use it. You may either configure a password or configure an Identity Provider."
             end
           ]
       end

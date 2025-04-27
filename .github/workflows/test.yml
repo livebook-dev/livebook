@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MIX_ENV: test
-      ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD"
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v4
@@ -65,7 +64,6 @@ jobs:
     if: github.event_name == 'push'
     env:
       MIX_ENV: test
-      ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD"
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
@@ -101,6 +99,8 @@ jobs:
           # Reinstalling deps fails on Windows in rare cases, so we always use a new cache
           # restore-keys: |
           #   ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
+      # Setup nmake, in case we need to compile Pythonx from source
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: Install mix dependencies
         run: mix deps.get
       - name: Run tests

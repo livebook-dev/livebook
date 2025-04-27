@@ -47,7 +47,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           data-el-heading
           spellcheck="false"
           phx-no-format
-        ><%= @section_view.name %></h2>
+        >{@section_view.name}</h2>
         <div
           class="ml-4 flex space-x-2 items-center"
           data-el-section-actions
@@ -57,7 +57,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <.branching_menu
             section_view={@section_view}
             scope="actions"
-            position={:bottom_right}
+            position="bottom-right"
             disabled={cannot_branch_out_reason(@section_view) != nil}
           >
             <span
@@ -126,9 +126,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             class="text-lg font-normal flip-horizontally leading-none"
           />
         </div>
-        <.branching_menu section_view={@section_view} scope="subheading" position={:bottom_left}>
+        <.branching_menu section_view={@section_view} scope="subheading" position="bottom-left">
           <div class="text-sm leading-none cursor-pointer">
-            from ”<%= @section_view.parent.name %>”
+            from ”{@section_view.parent.name}”
           </div>
         </.branching_menu>
       </h3>
@@ -137,7 +137,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         class="mt-2 text-sm text-gray-500 cursor-default select-none"
         data-el-section-subheadline-collapsed
       >
-        <%= LivebookWeb.HTMLHelpers.pluralize(length(@section_view.cell_views), "cell", "cells") %> collapsed
+        {LivebookWeb.HTMLHelpers.pluralize(length(@section_view.cell_views), "cell", "cells")} collapsed
       </h3>
       <div class="container" data-el-section-content>
         <div class="flex flex-col space-y-1">
@@ -163,6 +163,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               runtime_status={@runtime_status}
               installing?={@installing?}
               allowed_uri_schemes={@allowed_uri_schemes}
+              enabled_languages={@enabled_languages}
               cell_view={cell_view}
             />
             <.live_component
@@ -186,7 +187,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
 
   attr :section_view, :map, required: true
   attr :scope, :string, required: true
-  attr :position, :atom, required: true
+  attr :position, :string, required: true
   attr :disabled, :boolean, default: false
 
   slot :inner_block, required: true
@@ -199,7 +200,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       disabled={@disabled}
     >
       <:toggle>
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </:toggle>
       <%= if @section_view.parent do %>
         <.menu_item>
@@ -226,7 +227,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             icon="arrow-right-s-line"
             class={[(@section_view.parent && @section_view.parent.id == parent.id) || "invisible"]}
           />
-          <span><%= parent.name %></span>
+          <span>{parent.name}</span>
         </button>
       </.menu_item>
     </.menu>

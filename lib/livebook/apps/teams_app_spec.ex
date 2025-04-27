@@ -58,6 +58,8 @@ defimpl Livebook.Apps.AppSpec, for: Livebook.Apps.TeamsAppSpec do
   end
 
   defp unzip(archive_binary, files_tmp_path) do
+    File.mkdir_p!(files_tmp_path)
+
     case :zip.extract(archive_binary, [:memory]) do
       {:ok, entries} ->
         Enum.reduce_while(entries, {:error, "notebook file missing in the app archive"}, fn

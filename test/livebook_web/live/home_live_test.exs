@@ -5,7 +5,8 @@ defmodule LivebookWeb.HomeLiveTest do
   import Livebook.SessionHelpers
   import Livebook.TestHelpers
 
-  alias Livebook.{Sessions, Session}
+  alias Livebook.Sessions
+  alias Livebook.Session
 
   test "disconnected and connected render", %{conn: conn} do
     {:ok, view, disconnected_html} = live(conn, ~p"/")

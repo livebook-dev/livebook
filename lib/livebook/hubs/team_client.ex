@@ -127,6 +127,22 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns if the Team client uses Livebook Teams identity provider.
+  """
+  @spec identity_enabled?(String.t()) :: boolean()
+  def identity_enabled?(id) do
+    GenServer.call(registry_name(id), :identity_enabled?)
+  end
+
+  @doc """
+  Returns a list of cached environment variables.
+  """
+  @spec get_environment_variables(String.t()) :: list(Teams.Agent.t())
+  def get_environment_variables(id) do
+    GenServer.call(registry_name(id), :get_environment_variables)
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -248,6 +264,22 @@ defmodule Livebook.Hubs.TeamClient do
     {:reply, state.agents, state}
   end
 
+  def handle_call(:get_environment_variables, _caller, state) do
+    environment_variables = Enum.flat_map(state.deployment_groups, & &1.environment_variables)
+    {:reply, environment_variables, state}
+  end
+
+  def handle_call(:identity_enabled?, _caller, %{deployment_group_id: nil} = state) do
+    {:reply, false, state}
+  end
+
+  def handle_call(:identity_enabled?, _caller, %{deployment_group_id: id} = state) do
+    case fetch_deployment_group(id, state) do
+      {:ok, deployment_group} -> {:reply, deployment_group.teams_auth, state}
+      _ -> {:reply, false, state}
+    end
+  end
+
   @impl true
   def handle_info(:connected, state) do
     Hubs.Broadcasts.hub_connected(state.hub.id)
@@ -364,7 +396,7 @@ defmodule Livebook.Hubs.TeamClient do
 
     dumped_data =
       decrypted_value
-      |> Jason.decode!()
+      |> JSON.decode!()
       |> Map.put("external_id", file_system.id)
 
     FileSystems.load(file_system.type, dumped_data)
@@ -407,6 +439,7 @@ defmodule Livebook.Hubs.TeamClient do
   defp build_deployment_group(state, %LivebookProto.DeploymentGroup{} = deployment_group) do
     secrets = Enum.map(deployment_group.secrets, &build_secret(state, &1))
     agent_keys = Enum.map(deployment_group.agent_keys, &build_agent_key/1)
+    environment_variables = build_environment_variables(state, deployment_group)
 
     %Teams.DeploymentGroup{
       id: deployment_group.id,
@@ -415,10 +448,10 @@ defmodule Livebook.Hubs.TeamClient do
       hub_id: state.hub.id,
       secrets: secrets,
       agent_keys: agent_keys,
+      environment_variables: environment_variables,
       clustering: nullify(deployment_group.clustering),
-      zta_provider: atomize(deployment_group.zta_provider),
-      zta_key: nullify(deployment_group.zta_key),
-      url: nullify(deployment_group.url)
+      url: nullify(deployment_group.url),
+      teams_auth: deployment_group.teams_auth
     }
   end
 
@@ -432,16 +465,18 @@ defmodule Livebook.Hubs.TeamClient do
       hub_id: state.hub.id,
       secrets: [],
       agent_keys: agent_keys,
+      environment_variables: [],
       clustering: nullify(deployment_group_created.clustering),
-      zta_provider: atomize(deployment_group_created.zta_provider),
-      zta_key: nullify(deployment_group_created.zta_key),
-      url: nullify(deployment_group_created.url)
+      url: nullify(deployment_group_created.url),
+      teams_auth: deployment_group_created.teams_auth
     }
   end
 
   defp build_deployment_group(state, deployment_group_updated) do
     secrets = Enum.map(deployment_group_updated.secrets, &build_secret(state, &1))
     agent_keys = Enum.map(deployment_group_updated.agent_keys, &build_agent_key/1)
+    environment_variables = build_environment_variables(state, deployment_group_updated)
+
     {:ok, deployment_group} = fetch_deployment_group(deployment_group_updated.id, state)
 
     %{
@@ -449,10 +484,10 @@ defmodule Livebook.Hubs.TeamClient do
       | name: deployment_group_updated.name,
         secrets: secrets,
         agent_keys: agent_keys,
+        environment_variables: environment_variables,
         clustering: atomize(deployment_group_updated.clustering),
-        zta_provider: atomize(deployment_group_updated.zta_provider),
-        zta_key: nullify(deployment_group_updated.zta_key),
-        url: nullify(deployment_group_updated.url)
+        url: nullify(deployment_group_updated.url),
+        teams_auth: deployment_group_updated.teams_auth
     }
   end
 
@@ -471,6 +506,17 @@ defmodule Livebook.Hubs.TeamClient do
       deployed_by: app_deployment.deployed_by,
       deployed_at: DateTime.from_gregorian_seconds(app_deployment.deployed_at)
     }
+  end
+
+  defp build_environment_variables(state, deployment_group_updated) do
+    for environment_variable <- deployment_group_updated.environment_variables do
+      %Teams.EnvironmentVariable{
+        name: environment_variable.name,
+        value: environment_variable.value,
+        hub_id: state.hub.id,
+        deployment_group_id: deployment_group_updated.id
+      }
+    end
   end
 
   defp put_agent(state, agent) do
@@ -595,6 +641,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:user_connected, user_connected, state) do
     state
+    |> update_hub(user_connected)
     |> dispatch_secrets(user_connected)
     |> dispatch_file_systems(user_connected)
     |> dispatch_deployment_groups(user_connected)
@@ -682,6 +729,10 @@ defmodule Livebook.Hubs.TeamClient do
     state
   end
 
+  defp handle_event(:org_updated, org_updated, state) do
+    update_hub(state, org_updated)
+  end
+
   defp dispatch_secrets(state, %{secrets: secrets}) do
     decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
 
@@ -750,14 +801,90 @@ defmodule Livebook.Hubs.TeamClient do
     state
   end
 
-  defp update_hub(state, %{public_key: org_public_key}) do
-    hub = %{state.hub | org_public_key: org_public_key}
+  defp update_hub(state, %LivebookProto.UserConnected{billing_status: billing_status}) do
+    update_hub(
+      state,
+      &put_billing_status(&1, billing_status)
+    )
+  end
 
-    if Livebook.Hubs.hub_exists?(hub.id) do
+  defp update_hub(state, %LivebookProto.AgentConnected{
+         public_key: org_public_key,
+         billing_status: billing_status
+       }) do
+    update_hub(
+      state,
+      &(&1
+        |> struct!(org_public_key: org_public_key)
+        |> put_billing_status(billing_status))
+    )
+  end
+
+  defp update_hub(state, %LivebookProto.OrgUpdated{billing_status: billing_status}) do
+    update_hub(
+      state,
+      &put_billing_status(&1, billing_status)
+    )
+  end
+
+  defp update_hub(state, fun) when is_function(fun, 1) do
+    hub = fun.(state.hub)
+
+    if Hubs.hub_exists?(hub.id) do
       Hubs.save_hub(hub)
     end
 
-    %{state | hub: hub}
+    put_in(state.hub, hub)
+  end
+
+  # TODO: Remove when Billing is public
+  defp put_billing_status(hub, nil = _status) do
+    put_in(
+      hub.billing_status,
+      %{disabled: false, type: nil}
+    )
+  end
+
+  defp put_billing_status(hub, %LivebookProto.BillingStatus{} = status) do
+    put_in(
+      hub.billing_status,
+      Map.merge(%{disabled: status.disabled}, put_billing_status(status.type))
+    )
+  end
+
+  defp put_billing_status(
+         {:trialing,
+          %LivebookProto.BillingStatusTrialing{
+            trial_ends_at: trial_ends_at
+          }}
+       ) do
+    %{type: :trialing, trial_ends_at: DateTime.from_unix!(trial_ends_at)}
+  end
+
+  defp put_billing_status(
+         {:trial_ended,
+          %LivebookProto.BillingStatusTrialEnded{
+            trial_ends_at: trial_ends_at
+          }}
+       ) do
+    %{type: :trial_ended, trial_ends_at: DateTime.from_unix!(trial_ends_at)}
+  end
+
+  defp put_billing_status(
+         {:canceling,
+          %LivebookProto.BillingStatusCanceling{
+            cancel_at: cancel_at
+          }}
+       ) do
+    %{type: :canceling, cancel_at: DateTime.from_unix!(cancel_at)}
+  end
+
+  defp put_billing_status({:canceled, %LivebookProto.BillingStatusCanceled{}}) do
+    %{type: :canceled}
+  end
+
+  defp put_billing_status(_other) do
+    %{type: nil}
   end
 
   defp diff(old_list, new_list, fun, deleted_fun \\ nil, updated_fun \\ nil) do

@@ -22,19 +22,9 @@ defmodule Livebook.Teams.WebSocket do
     {http_scheme, ws_scheme} = parse_scheme(uri)
     state = %{status: nil, headers: [], body: []}
 
-    transport_opts =
-      if http_scheme == :https do
-        [cacerts: :public_key.cacerts_get()]
-      else
-        []
-      end
+    opts = Livebook.Utils.mint_connect_options_for_uri(uri)
 
-    transport_opts =
-      if String.ends_with?(Livebook.Config.teams_url(), ".flycast"),
-        do: Keyword.put(transport_opts, :inet6, true),
-        else: transport_opts
-
-    opts = [protocols: [:http1], transport_opts: transport_opts]
+    opts = Keyword.merge(opts, protocols: [:http1])
 
     with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port, opts),
          {:ok, conn, ref} <- Mint.WebSocket.upgrade(ws_scheme, conn, @ws_path, headers) do
@@ -144,6 +134,7 @@ defmodule Livebook.Teams.WebSocket do
   """
   @spec receive(conn(), ref(), websocket(), term()) ::
           {:ok, conn(), websocket(), list(binary())}
+          | {:closed, conn(), websocket(), list(binary())}
           | {:error, conn(), websocket(), String.t()}
   def receive(conn, ref, websocket, message \\ receive(do: (message -> message))) do
     with {:ok, conn, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, message),
@@ -152,19 +143,21 @@ defmodule Livebook.Teams.WebSocket do
       {:ok, conn, websocket, response}
     else
       {:close, response} ->
-        handle_disconnect(conn, websocket, ref, response)
+        with {:ok, conn, websocket} <- disconnect(conn, websocket, ref) do
+          {:closed, conn, websocket, response}
+        end
 
       {:error, conn, exception} when is_exception(exception) ->
         {:error, conn, websocket, Exception.message(exception)}
 
       {:error, conn, exception, []} when is_exception(exception) ->
         {:error, conn, websocket, Exception.message(exception)}
-    end
-  end
 
-  defp handle_disconnect(conn, websocket, ref, response) do
-    with {:ok, conn, websocket} <- disconnect(conn, websocket, ref) do
-      {:ok, conn, websocket, response}
+      :unknown ->
+        # Message does not belong to this socket. For example, this
+        # can be a leftover :tcp_close or :ssl_close from a previously
+        # gracefully closed socket.
+        {:ok, conn, websocket, []}
     end
   end
 

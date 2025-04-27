@@ -1,8 +1,10 @@
 defmodule Livebook.TeamsTest do
   use Livebook.TeamsIntegrationCase, async: true
 
-  alias Livebook.{FileSystem, Notebook, Teams, Utils}
-  alias Livebook.Teams.Org
+  alias Livebook.FileSystem
+  alias Livebook.Notebook
+  alias Livebook.Teams
+  alias Livebook.Utils
 
   setup do
     Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
@@ -36,7 +38,7 @@ defmodule Livebook.TeamsTest do
   describe "join_org/1" do
     test "returns the device flow data to confirm the org creation", %{user: user, node: node} do
       org = build(:org)
-      key_hash = Org.key_hash(org)
+      key_hash = Teams.Org.key_hash(org)
 
       teams_org = :erpc.call(node, TeamsRPC, :create_org, [[name: org.name]])
 
@@ -74,7 +76,7 @@ defmodule Livebook.TeamsTest do
 
   describe "get_org_request_completion_data/1" do
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
-      teams_key = Org.teams_key()
+      teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request =
@@ -117,7 +119,7 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns the org request awaiting confirmation", %{node: node} do
-      teams_key = Org.teams_key()
+      teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request =
@@ -145,7 +147,7 @@ defmodule Livebook.TeamsTest do
     test "returns error when org request expired", %{node: node} do
       now = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
       expires_at = NaiveDateTime.add(now, -5000)
-      teams_key = Org.teams_key()
+      teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request =
@@ -169,7 +171,6 @@ defmodule Livebook.TeamsTest do
   describe "create_deployment_group/2" do
     test "creates a new deployment group when the data is valid", %{user: user, node: node} do
       team = connect_to_teams(user, node)
-
       attrs = params_for(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
       assert {:ok, deployment_group} = Teams.create_deployment_group(team, attrs)
@@ -181,6 +182,18 @@ defmodule Livebook.TeamsTest do
       # Guarantee uniqueness
       assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
       assert "has already been taken" in errors_on(changeset).name
+    end
+
+    test "creates a new deployment group with Livebook Teams authentication",
+         %{user: user, node: node} do
+      team = connect_to_teams(user, node)
+      attrs = params_for(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
+
+      assert {:ok, %{id: id, name: name, mode: mode, teams_auth: true}} =
+               Teams.create_deployment_group(team, attrs)
+
+      assert_receive {:deployment_group_created,
+                      %{id: ^id, name: ^name, mode: ^mode, teams_auth: true}}
     end
 
     test "returns changeset errors when the name is invalid", %{user: user, node: node} do

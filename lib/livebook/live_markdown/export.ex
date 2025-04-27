@@ -56,7 +56,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_notebook(notebook, ctx) do
-    %{setup_section: %{cells: [setup_cell]}} = notebook
+    %{setup_section: %{cells: setup_cells}} = notebook
 
     comments =
       Enum.map(notebook.leading_comments, fn
@@ -65,13 +65,13 @@ defmodule Livebook.LiveMarkdown.Export do
       end)
 
     name = ["# ", notebook.name]
-    setup_cell = render_setup_cell(setup_cell, %{ctx | include_outputs?: false})
+    setup_cells = render_setup_cells(setup_cells, %{ctx | include_outputs?: false})
     sections = Enum.map(notebook.sections, &render_section(&1, notebook, ctx))
 
     metadata = notebook_metadata(notebook)
 
     notebook_with_metadata =
-      [name, setup_cell | sections]
+      [name | setup_cells ++ sections]
       |> Enum.reject(&is_nil/1)
       |> Enum.intersperse("\n\n")
       |> prepend_metadata(metadata)
@@ -175,8 +175,13 @@ defmodule Livebook.LiveMarkdown.Export do
     %{"branch_parent_index" => parent_idx}
   end
 
-  defp render_setup_cell(%{source: ""}, _ctx), do: nil
-  defp render_setup_cell(cell, ctx), do: render_cell(cell, ctx)
+  defp render_setup_cells([%{source: ""}], _ctx), do: []
+
+  defp render_setup_cells(cells, ctx) do
+    Enum.map(cells, fn cell ->
+      render_cell(cell, ctx)
+    end)
+  end
 
   defp render_cell(%Cell.Markdown{} = cell, _ctx) do
     metadata = cell_metadata(cell)
@@ -212,7 +217,7 @@ defmodule Livebook.LiveMarkdown.Export do
       "kind" => cell.kind,
       # Attributes may include arbitrary values, including sequences
       # like "-->" that would mess our format, so we always encode them
-      "attrs" => cell.attrs |> ensure_order() |> Jason.encode!() |> Base.encode64(padding: false),
+      "attrs" => cell.attrs |> JSON.encode!(&encode_sorting/2) |> Base.encode64(padding: false),
       "chunks" => cell.chunks && Enum.map(cell.chunks, &Tuple.to_list/1)
     })
   end
@@ -275,10 +280,17 @@ defmodule Livebook.LiveMarkdown.Export do
   defp render_output(_output, _ctx), do: :ignored
 
   defp encode_js_data(data) when is_binary(data), do: {:ok, data}
-  defp encode_js_data(data), do: data |> ensure_order() |> Jason.encode()
+
+  defp encode_js_data(data) do
+    try do
+      {:ok, JSON.encode!(data, &encode_sorting/2)}
+    rescue
+      _error -> :error
+    end
+  end
 
   defp render_metadata(metadata) do
-    metadata_json = metadata |> ensure_order() |> Jason.encode!()
+    metadata_json = JSON.encode_to_iodata!(metadata, &encode_sorting/2)
     ["<!-- livebook:", metadata_json, " -->"]
   end
 
@@ -314,7 +326,8 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp add_markdown_annotation_before_elixir_block(ast) do
     Enum.flat_map(ast, fn
-      {"pre", _, [{"code", [{"class", "elixir"}], [_source], %{}}], %{}} = ast_node ->
+      {"pre", _, [{"code", [{"class", language}], [_source], %{}}], %{}} = ast_node
+      when language in ["elixir", "erlang", "python", "pyproject.toml"] ->
         [{:comment, [], [~s/livebook:{"force_markdown":true}/], %{comment: true}}, ast_node]
 
       ast_node ->
@@ -349,7 +362,11 @@ defmodule Livebook.LiveMarkdown.Export do
         case Livebook.Hubs.notebook_stamp(hub, notebook_source, metadata) do
           {:ok, stamp} ->
             offset = IO.iodata_length(notebook_source)
-            json = %{"offset" => offset, "stamp" => stamp} |> ensure_order() |> Jason.encode!()
+
+            json =
+              %{"offset" => offset, "stamp" => stamp}
+              |> JSON.encode_to_iodata!(&encode_sorting/2)
+
             footer = ["\n", "<!-- livebook:", json, " -->", "\n"]
             {footer, []}
 
@@ -391,16 +408,27 @@ defmodule Livebook.LiveMarkdown.Export do
     end
   end
 
-  defp ensure_order(%{} = map) when not is_struct(map) do
-    map
+  # Wraps JSON.protocol_encode/2 to encode maps as sorted objects
+  defp encode_sorting(term, encoder) when is_non_struct_map(term) do
+    term
     |> Enum.sort()
-    |> Enum.map(fn {key, value} -> {key, ensure_order(value)} end)
-    |> Jason.OrderedObject.new()
+    |> encode_object(encoder)
   end
 
-  defp ensure_order(list) when is_list(list) do
-    Enum.map(list, &ensure_order/1)
+  defp encode_sorting(term, encoder), do: JSON.protocol_encode(term, encoder)
+
+  defp encode_object([], _encoder), do: "{}"
+
+  defp encode_object(pairs, encoder) do
+    [[_comma | entry] | entries] =
+      Enum.map(pairs, fn {key, value} ->
+        [?,, encode_key(key, encoder), ?:, encoder.(value, encoder)]
+      end)
+
+    [?{, entry, entries, ?}]
   end
 
-  defp ensure_order(term), do: term
+  defp encode_key(key, encoder) when is_binary(key) or is_atom(key), do: encoder.(key, encoder)
+  defp encode_key(key, _encoder) when is_integer(key), do: [?", Integer.to_string(key), ?"]
+  defp encode_key(key, _encoder) when is_float(key), do: [?", Float.to_string(key), ?"]
 end

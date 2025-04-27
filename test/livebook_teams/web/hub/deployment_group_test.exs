@@ -30,7 +30,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
         name: deployment_group.name,
         value: deployment_group.mode,
         hub_id: deployment_group.hub_id,
-        url: url
+        url: url,
+        teams_auth: true
       }
     }
 
@@ -228,8 +229,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"app servers\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "0"
 
     simulate_agent_join(hub, deployment_group)
@@ -237,8 +238,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"app servers\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "1"
   end
 
@@ -255,8 +256,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "0"
 
     app_settings = %{Livebook.Notebook.AppSettings.new() | slug: Livebook.Utils.random_short_id()}
@@ -279,8 +280,35 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
            |> render()
-           |> Floki.parse_fragment!()
-           |> Floki.text()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
+           |> String.trim() == "1"
+  end
+
+  test "shows the environment variables count", %{conn: conn, node: node, hub: hub} do
+    %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
+    deployment_group = erpc_call(node, :get_deployment_group!, [id])
+    id = to_string(deployment_group.id)
+
+    assert_receive {:deployment_group_created, %{id: ^id, environment_variables: []}}
+
+    {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"environment variables\"]")
+           |> render()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
+           |> String.trim() == "0"
+
+    erpc_call(node, :create_environment_variable, [[deployment_group: deployment_group]])
+    assert_receive {:deployment_group_updated, %{id: ^id, environment_variables: [_]}}
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"environment variables\"]")
+           |> render()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
            |> String.trim() == "1"
   end
 end

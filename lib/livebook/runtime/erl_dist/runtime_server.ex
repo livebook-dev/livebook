@@ -83,7 +83,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   """
   @spec evaluate_code(
           pid(),
-          :elixir | :erlang,
+          Runtime.language(),
           String.t(),
           Runtime.locator(),
           Runtime.parent_locators(),
@@ -855,7 +855,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     # We propagate Mix.install/2 project dir in the transient state,
     # so that future runtimes can set it as the starting point for
     # Mix.install/2
-    if dir = state.mix_install_project_dir == nil && install_project_dir() do
+    if dir = state.mix_install_project_dir == nil && mix_install_project_dir() do
       send(state.owner, {:runtime_transient_state, %{mix_install_project_dir: dir}})
       %{state | mix_install_project_dir: dir}
     else
@@ -863,9 +863,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
-  defp install_project_dir() do
-    # TODO: remove the check once we require Elixir v1.16.2
-    if Code.ensure_loaded?(Mix) && function_exported?(Mix, :install_project_dir, 0) do
+  defp mix_install_project_dir() do
+    # Make sure Mix is loaded (for attached runtime it may not)
+    if Code.ensure_loaded?(Mix) do
       Mix.install_project_dir()
     end
   end

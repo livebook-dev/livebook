@@ -37,6 +37,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-el-cell
       id={"cell-#{@cell_view.id}"}
       data-type={@cell_view.type}
+      data-setup={@cell_view[:setup]}
       data-focusable-id={@cell_view.id}
       data-js-empty={@cell_view.empty}
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
@@ -49,7 +50,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-p-smart-cell-js-view-ref={hook_prop(smart_cell_js_view_ref(@cell_view))}
       data-p-allowed-uri-schemes={hook_prop(@allowed_uri_schemes)}
     >
-      <%= render_cell(assigns) %>
+      {render_cell(assigns)}
     </div>
     """
   end
@@ -86,57 +87,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell(%{cell_view: %{type: :code}} = assigns) do
-    ~H"""
-    <.cell_actions>
-      <:primary>
-        <.cell_evaluation_button
-          session_id={@session_id}
-          cell_id={@cell_view.id}
-          validity={@cell_view.eval.validity}
-          status={@cell_view.eval.status}
-          reevaluate_automatically={@cell_view.reevaluate_automatically}
-          reevaluates_automatically={@cell_view.eval.reevaluates_automatically}
-        />
-      </:primary>
-      <:secondary>
-        <div :if={@cell_view.language == :erlang} class="grayscale">
-          <.cell_icon cell_type={:code} language={:erlang} />
-        </div>
-        <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
-        <.amplify_output_button />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
-      </:secondary>
-    </.cell_actions>
-    <.cell_body>
-      <div class="relative">
-        <.cell_editor
-          cell_id={@cell_view.id}
-          tag="primary"
-          empty={@cell_view.empty}
-          language={@cell_view.language}
-          intellisense
-        />
-        <div class="absolute bottom-2 right-2">
-          <.cell_status id={@cell_view.id} cell_view={@cell_view} />
-        </div>
-      </div>
-      <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
-      <.evaluation_outputs
-        outputs={@streams.outputs}
-        cell_view={@cell_view}
-        session_id={@session_id}
-        session_pid={@session_pid}
-        client_id={@client_id}
-      />
-    </.cell_body>
-    """
-  end
-
-  defp render_cell(%{cell_view: %{type: :setup}} = assigns) do
+  defp render_cell(%{cell_view: %{type: :code, setup: true, language: :elixir}} = assigns) do
     ~H"""
     <.cell_actions>
       <:primary>
@@ -154,14 +105,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:secondary>
     </.cell_actions>
     <.cell_body>
-      <div data-el-info-box>
-        <div class="p-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 font-medium rounded-lg">
-          <span>Notebook dependencies and setup</span>
-          <.cell_status id={"#{@cell_view.id}-1"} cell_view={@cell_view} />
+      <div class="relative" data-el-cell-body-root>
+        <div data-el-info-box>
+          <div class="py-2 px-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 rounded-lg">
+            <span class="font-medium">Notebook dependencies and setup</span>
+          </div>
         </div>
-      </div>
-      <div data-el-editor-box>
-        <div class="relative">
+        <div data-el-editor-box>
           <.cell_editor
             cell_id={@cell_view.id}
             tag="primary"
@@ -169,18 +119,123 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             language="elixir"
             intellisense
           />
-          <div class="absolute bottom-2 right-2">
-            <.cell_status id={"#{@cell_view.id}-2"} cell_view={@cell_view} />
-          </div>
         </div>
-        <.evaluation_outputs
-          outputs={@streams.outputs}
-          cell_view={@cell_view}
-          session_id={@session_id}
-          session_pid={@session_pid}
-          client_id={@client_id}
-        />
+        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} />
+        </div>
       </div>
+      <.evaluation_outputs
+        outputs={@streams.outputs}
+        cell_view={@cell_view}
+        session_id={@session_id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+      />
+    </.cell_body>
+    """
+  end
+
+  defp render_cell(
+         %{cell_view: %{type: :code, setup: true, language: :"pyproject.toml"}} = assigns
+       ) do
+    ~H"""
+    <.cell_actions>
+      <:primary>
+        <div class="flex gap-1 items-center text-gray-500 text-sm">
+          <.language_icon language="python" class="w-4 h-4" />
+          <span>Python (pyproject.toml)</span>
+        </div>
+      </:primary>
+      <:secondary>
+        <.cell_link_button cell_id={@cell_view.id} />
+        <.disable_language_button language={:python} />
+        <.pyproject_toml_cell_info />
+      </:secondary>
+    </.cell_actions>
+    <.cell_body>
+      <div class="relative" data-el-cell-body-root>
+        <div data-el-editor-box>
+          <.cell_editor
+            cell_id={@cell_view.id}
+            tag="primary"
+            empty={@cell_view.empty}
+            language="pyproject.toml"
+          />
+        </div>
+        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} />
+        </div>
+      </div>
+      <.evaluation_outputs
+        outputs={@streams.outputs}
+        cell_view={@cell_view}
+        session_id={@session_id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+      />
+    </.cell_body>
+    """
+  end
+
+  defp render_cell(%{cell_view: %{type: :code}} = assigns) do
+    ~H"""
+    <.cell_actions>
+      <:primary>
+        <.cell_evaluation_button
+          session_id={@session_id}
+          cell_id={@cell_view.id}
+          validity={@cell_view.eval.validity}
+          status={@cell_view.eval.status}
+          reevaluate_automatically={@cell_view.reevaluate_automatically}
+          reevaluates_automatically={@cell_view.eval.reevaluates_automatically}
+        />
+      </:primary>
+      <:secondary>
+        <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
+        <.amplify_output_button />
+        <.cell_link_button cell_id={@cell_view.id} />
+        <.move_cell_up_button cell_id={@cell_view.id} />
+        <.move_cell_down_button cell_id={@cell_view.id} />
+        <.delete_cell_button cell_id={@cell_view.id} />
+      </:secondary>
+    </.cell_actions>
+    <.cell_body>
+      <div class="relative" data-el-cell-body-root>
+        <div class="relative" data-el-editor-box>
+          <.cell_editor
+            cell_id={@cell_view.id}
+            tag="primary"
+            empty={@cell_view.empty}
+            language={@cell_view.language}
+            intellisense={@cell_view.language == :elixir}
+          />
+        </div>
+        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} langauge_toggle />
+        </div>
+      </div>
+      <div :if={@cell_view.language not in @enabled_languages} class="mt-2">
+        <.message_box kind="error">
+          <div class="flex items-center justify-between">
+            {language_name(@cell_view.language)} is not enabled for the current notebook.
+            <button
+              class="flex gap-1 items-center font-medium text-blue-600"
+              phx-click="enable_language"
+              phx-value-language="python"
+            >
+              Enable Python
+            </button>
+          </div>
+        </.message_box>
+      </div>
+      <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
+      <.evaluation_outputs
+        outputs={@streams.outputs}
+        cell_view={@cell_view}
+        session_id={@session_id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+      />
     </.cell_body>
     """
   end
@@ -209,73 +264,71 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:secondary>
     </.cell_actions>
     <.cell_body>
-      <div data-el-ui-box>
-        <%= case @cell_view.status do %>
-          <% :started -> %>
-            <div class={
+      <div class="relative" data-el-cell-body-root>
+        <div data-el-ui-box>
+          <%= case @cell_view.status do %>
+            <% :started -> %>
+              <div class={
               "flex #{if(@cell_view.editor && @cell_view.editor.placement == :top, do: "flex-col-reverse", else: "flex-col")}"
             }>
-              <.live_component
-                module={LivebookWeb.JSViewComponent}
-                id={@cell_view.id}
-                js_view={@cell_view.js_view}
-                session_id={@session_id}
-                client_id={@client_id}
-              />
-              <.cell_editor
-                :if={@cell_view.editor}
-                cell_id={@cell_view.id}
-                tag="secondary"
-                empty={@cell_view.editor.empty}
-                language={@cell_view.editor.language}
-                rounded={@cell_view.editor.placement}
-                intellisense={@cell_view.editor.language == "elixir"}
-                hidden={not @cell_view.editor.visible}
-              />
-            </div>
-          <% :dead -> %>
-            <div class="info-box">
-              <%= if @installing? do %>
-                Waiting for dependency installation to complete...
-              <% else %>
-                Run the notebook setup to show the contents of this Smart cell.
-              <% end %>
-            </div>
-          <% :down -> %>
-            <div class="info-box flex justify-between items-center">
-              <span>
-                The Smart cell crashed unexpectedly, this is most likely a bug.
-              </span>
-              <.button
-                color="gray"
-                phx-click={JS.push("recover_smart_cell", value: %{cell_id: @cell_view.id})}
-              >
-                Restart Smart cell
-              </.button>
-            </div>
-          <% :starting -> %>
-            <div class="delay-200">
-              <.content_skeleton empty={false} />
-            </div>
-        <% end %>
-        <div class="flex flex-col items-end space-y-2">
-          <div></div>
-          <.cell_status id={"#{@cell_view.id}-1"} cell_view={@cell_view} />
+                <.live_component
+                  module={LivebookWeb.JSViewComponent}
+                  id={@cell_view.id}
+                  js_view={@cell_view.js_view}
+                  session_id={@session_id}
+                  client_id={@client_id}
+                />
+                <.cell_editor
+                  :if={@cell_view.editor}
+                  cell_id={@cell_view.id}
+                  tag="secondary"
+                  empty={@cell_view.editor.empty}
+                  language={@cell_view.editor.language}
+                  rounded={@cell_view.editor.placement}
+                  intellisense={@cell_view.editor.language == "elixir"}
+                  hidden={not @cell_view.editor.visible}
+                />
+              </div>
+            <% :dead -> %>
+              <div class="info-box">
+                <%= if @installing? do %>
+                  Waiting for dependency installation to complete...
+                <% else %>
+                  Run the notebook setup to show the contents of this Smart cell.
+                <% end %>
+              </div>
+            <% :down -> %>
+              <div class="info-box flex justify-between items-center">
+                <span>
+                  The Smart cell crashed unexpectedly, this is most likely a bug.
+                </span>
+                <.button
+                  color="gray"
+                  phx-click={JS.push("recover_smart_cell", value: %{cell_id: @cell_view.id})}
+                >
+                  Restart Smart cell
+                </.button>
+              </div>
+            <% :starting -> %>
+              <div class="delay-200">
+                <.content_skeleton empty={false} />
+              </div>
+          <% end %>
         </div>
-      </div>
-      <div data-el-editor-box>
-        <div class="relative">
-          <.cell_editor
-            cell_id={@cell_view.id}
-            tag="primary"
-            empty={@cell_view.empty}
-            language="elixir"
-            intellisense
-            read_only
-          />
-          <div class="absolute bottom-2 right-2">
-            <.cell_status id={"#{@cell_view.id}-2"} cell_view={@cell_view} />
+        <div data-el-editor-box>
+          <div class="relative">
+            <.cell_editor
+              cell_id={@cell_view.id}
+              tag="primary"
+              empty={@cell_view.empty}
+              language="elixir"
+              intellisense
+              read_only
+            />
           </div>
+        </div>
+        <div class="absolute bottom-2 right-2" data-el-cell-indicators>
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} />
         </div>
       </div>
       <.evaluation_outputs
@@ -298,15 +351,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-el-actions data-primary>
-        <%= render_slot(@primary) %>
+        {render_slot(@primary)}
       </div>
       <div
         class="relative z-20 flex items-center justify-end md:space-x-2"
         role="toolbar"
         aria-label="cell actions"
         data-el-actions
+        data-secondary
       >
-        <%= render_slot(@secondary) %>
+        {render_slot(@secondary)}
       </div>
     </div>
     """
@@ -319,7 +373,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="flex relative focus-visible:outline-none" data-el-cell-body tabindex="0">
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator></div>
       <div class="w-full">
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </div>
     </div>
     """
@@ -345,13 +399,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <span class="text-sm font-medium">Evaluate</span>
         <% end %>
       </button>
-      <.menu id={"cell-#{@cell_id}-evaluation-menu"} position={:bottom_left} distant>
+      <.menu id={"cell-#{@cell_id}-evaluation-menu"} position="bottom-left" distant>
         <:toggle>
           <button class="flex text-gray-600 hover:text-gray-800">
             <.remix_icon icon="arrow-down-s-line" class="text-xl" />
           </button>
         </:toggle>
-        <.menu_item variant={if(not @reevaluate_automatically, do: :selected, else: :default)}>
+        <.menu_item variant={if(not @reevaluate_automatically, do: "selected", else: "default")}>
           <button
             role="menuitem"
             phx-click={
@@ -362,7 +416,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <span>Evaluate on demand</span>
           </button>
         </.menu_item>
-        <.menu_item variant={if(@reevaluate_automatically, do: :selected, else: :default)}>
+        <.menu_item variant={if(@reevaluate_automatically, do: "selected", else: "default")}>
           <button
             role="menuitem"
             phx-click={
@@ -410,7 +464,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <% end %>
       </button>
       <%= unless Livebook.Runtime.fixed_dependencies?(@runtime) do %>
-        <.menu id="setup-menu" position={:bottom_left} distant>
+        <.menu id="setup-menu" position="bottom-left" distant>
           <:toggle>
             <button class="flex text-gray-600 hover:text-gray-800">
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
@@ -584,6 +638,20 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  defp disable_language_button(assigns) do
+    ~H"""
+    <span class="tooltip top" data-tooltip="Delete">
+      <.icon_button
+        aria-label="delete cell"
+        phx-click="disable_language"
+        phx-value-language={@language}
+      >
+        <.remix_icon icon="delete-bin-6-line" />
+      </.icon_button>
+    </span>
+    """
+  end
+
   defp setup_cell_info(assigns) do
     ~H"""
     <span
@@ -593,6 +661,25 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         The setup cell includes code that initializes the notebook
         and should run only once. This is the best place to install
         dependencies and set global configuration.\
+        '''
+      }
+    >
+      <.icon_button>
+        <.remix_icon icon="question-line" />
+      </.icon_button>
+    </span>
+    """
+  end
+
+  defp pyproject_toml_cell_info(assigns) do
+    ~H"""
+    <span
+      class="tooltip left"
+      data-tooltip={
+        ~s'''
+        This cell specifies the Python environment using pyproject.toml
+        configuration. While standardized to a certain extent, this
+        configuration is used specifically with the uv package manager.\
         '''
       }
     >
@@ -648,7 +735,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div :if={@doctest_summary.failures_count > 0} class="pt-2" id={"doctest-summary-#{@cell_id}"}>
       <div class="error-box py-3">
-        <%= doctest_summary_message(@doctest_summary) %>
+        {doctest_summary_message(@doctest_summary)}
       </div>
     </div>
     """
@@ -683,9 +770,70 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  attr :id, :string, required: true
+  attr :cell_view, :map, required: true
+  attr :langauge_toggle, :boolean, default: false
+
+  defp cell_indicators(assigns) do
+    ~H"""
+    <div class="flex gap-1">
+      <.cell_indicator :if={has_status?(@cell_view)}>
+        <.cell_status id={@id} cell_view={@cell_view} />
+      </.cell_indicator>
+      <%= if @langauge_toggle do %>
+        <.menu id={"cell-#{@id}-language-menu"} position="bottom-right">
+          <:toggle>
+            <.cell_indicator class="cursor-pointer">
+              <.language_icon language={cell_language(@cell_view)} class="w-3 h-3" />
+            </.cell_indicator>
+          </:toggle>
+          <.menu_item :for={language <- Livebook.Notebook.Cell.Code.languages()}>
+            <button
+              role="menuitem"
+              phx-click="set_cell_language"
+              phx-value-language={language.language}
+              phx-value-cell_id={@id}
+            >
+              <.cell_icon cell_type={:code} language={language.language} />
+              <span>{language.name}</span>
+            </button>
+          </.menu_item>
+        </.menu>
+      <% else %>
+        <.cell_indicator>
+          <.language_icon language={cell_language(@cell_view)} class="w-3 h-3" />
+        </.cell_indicator>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :class, :string, default: nil
+  slot :inner_block, required: true
+
+  defp cell_indicator(assigns) do
+    ~H"""
+    <div
+      data-el-cell-indicator
+      class={[
+        "px-1.5 h-[22px] rounded-lg flex items-center border bg-editor-lighter border-editor text-editor",
+        @class
+      ]}
+    >
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  defp cell_language(%{language: language}), do: Atom.to_string(language)
+  defp cell_language(%{type: :smart}), do: "elixir"
+
+  defp has_status?(%{eval: %{status: :ready, validity: :fresh}}), do: false
+  defp has_status?(_cell_view), do: true
+
   defp cell_status(%{cell_view: %{eval: %{status: :evaluating}}} = assigns) do
     ~H"""
-    <.cell_status_indicator variant={:progressing} change_indicator={true}>
+    <.cell_status_indicator variant="progressing" change_indicator={true}>
       <span
         class="font-mono"
         id={"#{@id}-cell-timer"}
@@ -700,7 +848,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{eval: %{status: :queued}}} = assigns) do
     ~H"""
-    <.cell_status_indicator variant={:waiting}>
+    <.cell_status_indicator variant="waiting">
       Queued
     </.cell_status_indicator>
     """
@@ -709,7 +857,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{eval: %{validity: :evaluated}}} = assigns) do
     ~H"""
     <.cell_status_indicator
-      variant={if(@cell_view.eval.errored, do: :error, else: :success)}
+      variant={if(@cell_view.eval.errored, do: "error", else: "success")}
       change_indicator={true}
       tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
     >
@@ -721,7 +869,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{eval: %{validity: :stale}}} = assigns) do
     ~H"""
     <.cell_status_indicator
-      variant={:warning}
+      variant="warning"
       change_indicator={true}
       tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
     >
@@ -733,7 +881,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{eval: %{validity: :aborted}}} = assigns) do
     ~H"""
     <.cell_status_indicator
-      variant={:inactive}
+      variant="inactive"
       tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
     >
       Aborted
@@ -743,7 +891,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(assigns), do: ~H""
 
-  attr :variant, :atom, required: true
+  attr :variant, :string, required: true
   attr :tooltip, :string, default: nil
   attr :change_indicator, :boolean, default: false
 
@@ -753,8 +901,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class={[@tooltip && "tooltip", "bottom distant-medium"]} data-tooltip={@tooltip}>
       <div class="flex items-center space-x-1">
-        <div class="flex text-xs text-gray-400" data-el-cell-status>
-          <%= render_slot(@inner_block) %>
+        <div class="flex text-[11px]" data-el-cell-status>
+          {render_slot(@inner_block)}
           <span :if={@change_indicator} data-el-change-indicator>*</span>
         </div>
         <.status_indicator variant={@variant} />
@@ -779,4 +927,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp smart_cell_js_view_ref(%{type: :smart, status: :started, js_view: %{ref: ref}}), do: ref
   defp smart_cell_js_view_ref(_cell_view), do: nil
+
+  defp language_name(language) do
+    Enum.find_value(
+      Livebook.Notebook.Cell.Code.languages(),
+      &(&1.language == language && &1.name)
+    )
+  end
 end

@@ -16,6 +16,9 @@ defmodule Livebook.Notebook.Cell do
 
   @type indexed_output :: {non_neg_integer(), Livebook.Runtime.output()}
 
+  @setup_cell_id_prefix "setup"
+  @setup_cell_id "setup"
+
   @doc """
   Returns an empty cell of the given type.
   """
@@ -57,7 +60,7 @@ defmodule Livebook.Notebook.Cell do
   end
 
   def find_inputs_in_output({_idx, %{type: :control, attrs: %{type: :form, fields: fields}}}) do
-    Keyword.values(fields)
+    for {_field, input} <- fields, input != nil, do: input
   end
 
   def find_inputs_in_output({_idx, output}) when output.type in [:frame, :tabs, :grid] do
@@ -88,20 +91,24 @@ defmodule Livebook.Notebook.Cell do
 
   def find_assets_in_output(_output), do: []
 
-  @setup_cell_id "setup"
-
   @doc """
-  Checks if the given cell is the setup code cell.
+  Checks if the given cell is any of the setup code cells.
   """
   @spec setup?(t()) :: boolean()
   def setup?(cell)
 
-  def setup?(%Cell.Code{id: @setup_cell_id}), do: true
+  def setup?(%Cell.Code{id: @setup_cell_id_prefix <> _}), do: true
   def setup?(_cell), do: false
 
   @doc """
-  The fixed identifier of the setup cell.
+  The fixed identifier of the main setup cell.
   """
-  @spec setup_cell_id() :: id()
-  def setup_cell_id(), do: @setup_cell_id
+  @spec main_setup_cell_id() :: id()
+  def main_setup_cell_id(), do: @setup_cell_id
+
+  @doc """
+  The identifier of extra setup cell for the given language.
+  """
+  @spec extra_setup_cell_id(atom()) :: id()
+  def extra_setup_cell_id(language), do: "#{@setup_cell_id_prefix}-#{language}"
 end

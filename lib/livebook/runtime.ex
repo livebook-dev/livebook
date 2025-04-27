@@ -35,6 +35,11 @@ defprotocol Livebook.Runtime do
   # reply is `{:ok, info}` and `info` is a details map.
 
   @typedoc """
+  A language accepted for code evaluation.
+  """
+  @type language :: :elixir | :erlang | :python | :"pyproject.toml"
+
+  @typedoc """
   An arbitrary term identifying an evaluation container.
 
   A container is an abstraction of an isolated group of evaluations.
@@ -104,7 +109,12 @@ defprotocol Livebook.Runtime do
 
   Similar to `t:markdown/0`, but with no special markup.
   """
-  @type plain_text_output :: %{type: :plain_text, text: String.t(), chunk: boolean()}
+  @type plain_text_output :: %{
+          type: :plain_text,
+          text: String.t(),
+          chunk: boolean(),
+          style: [{:color | :font_weight | :font_size, String.Chars.t()}]
+        }
 
   @typedoc """
   Markdown content.
@@ -265,6 +275,7 @@ defprotocol Livebook.Runtime do
           outputs: list(t()),
           columns: pos_integer() | tuple(),
           gap: non_neg_integer(),
+          max_height: pos_integer() | nil,
           boxed: boolean()
         }
 
@@ -431,7 +442,7 @@ defprotocol Livebook.Runtime do
             }
           | %{
               type: :form,
-              fields: list({field :: atom(), input_output()}),
+              fields: list({field :: atom(), input_output() | nil}),
               submit: String.t() | nil,
               # Currently we always use true, but we can support
               # other tracking modes in the future
@@ -860,7 +871,7 @@ defprotocol Livebook.Runtime do
   any information added by `connect/1`. It should not have any side
   effects.
   """
-  @spec duplicate(Runtime.t()) :: Runtime.t()
+  @spec duplicate(t()) :: t()
   def duplicate(runtime)
 
   @doc """
@@ -921,7 +932,7 @@ defprotocol Livebook.Runtime do
       they are fetched and compiled from scratch
 
   """
-  @spec evaluate_code(t(), atom(), String.t(), locator(), parent_locators(), keyword()) :: :ok
+  @spec evaluate_code(t(), language(), String.t(), locator(), parent_locators(), keyword()) :: :ok
   def evaluate_code(runtime, language, code, locator, parent_locators, opts \\ [])
 
   @doc """
@@ -967,7 +978,7 @@ defprotocol Livebook.Runtime do
   @doc """
   Reads file at the given absolute path within the runtime file system.
   """
-  @spec read_file(Runtime.t(), String.t()) :: {:ok, binary()} | {:error, String.t()}
+  @spec read_file(t(), String.t()) :: {:ok, binary()} | {:error, String.t()}
   def read_file(runtime, path)
 
   @doc """

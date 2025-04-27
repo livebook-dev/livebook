@@ -13,7 +13,7 @@ defmodule Livebook.ZTA.TailscaleTest do
     |> put_resp_content_type("application/json")
     |> send_resp(
       200,
-      Jason.encode!(%{
+      JSON.encode!(%{
         UserProfile: %{
           ID: 1_234_567_890,
           DisplayName: "John",
@@ -47,13 +47,13 @@ defmodule Livebook.ZTA.TailscaleTest do
     assert %{id: "1234567890", email: "john@example.org", name: "John"} = user
   end
 
+  defmodule TestPlug do
+    def init(options), do: options
+    def call(conn, _opts), do: Livebook.ZTA.TailscaleTest.valid_user_response(conn)
+  end
+
   @tag :tmp_dir
   test "returns valid user via unix socket", %{options: options, conn: conn, tmp_dir: tmp_dir} do
-    defmodule TestPlug do
-      def init(options), do: options
-      def call(conn, _opts), do: Livebook.ZTA.TailscaleTest.valid_user_response(conn)
-    end
-
     socket = Path.relative_to_cwd("#{tmp_dir}/bandit.sock")
     options = Keyword.put(options, :identity_key, socket)
     start_supervised!({Bandit, plug: TestPlug, ip: {:local, socket}, port: 0})

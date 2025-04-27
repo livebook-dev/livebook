@@ -6,7 +6,9 @@ defmodule LivebookWeb.ProxyPlugTest do
   require Phoenix.LiveViewTest
   import Livebook.AppHelpers
 
-  alias Livebook.{Notebook, Session, Sessions}
+  alias Livebook.Notebook
+  alias Livebook.Session
+  alias Livebook.Sessions
 
   describe "session" do
     test "returns error when session doesn't exist", %{conn: conn} do

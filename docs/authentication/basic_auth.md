@@ -4,18 +4,11 @@ Setting up Basic Authentication is a simple mechanism for protecting all routes 
 
 ## How to
 
-To integrate Basic Authentication with Livebook, set the `LIVEBOOK_IDENTITY_PROVIDER` environment variable to `basic_auth:<username>:<password>`.
-
-To do it, run:
-
-```bash
-LIVEBOOK_IDENTITY_PROVIDER=basic_auth:user:pass \
-livebook server
-```
+To integrate Basic Authentication with Livebook, set the `LIVEBOOK_IDENTITY_PROVIDER` environment variable to `basic_auth:<username>:<password>`, and then deploy or directly run your Livebook instance.
 
 ## Livebook Teams
 
-[Livebook Teams](https://livebook.dev/teams/) users can deploy notebooks with the click of a button with pre-configured Zero Trust Authentication, shared team secrets, and file storages. Both online and airgapped deployment mechanisms are supported.
+[Livebook Teams](https://livebook.dev/teams/) users can deploy notebooks with the click of a button with built-in authentication via Livebook Teams. You can also pre-configure environment variables (such as `LIVEBOOK_IDENTITY_PROVIDER`), share team secrets, and file storages. Both online and airgapped deployment mechanisms are supported.
 
 Furthermore, if you are deploying multi-session apps via [Livebook Teams](https://livebook.dev/teams/), you can programmatically access data from the authenticated user by calling [`Kino.Workspace.app_info/0`](https://hexdocs.pm/kino/Kino.Workspace.html#app_info/0).
 

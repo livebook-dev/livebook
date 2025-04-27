@@ -20,7 +20,7 @@ defmodule LivebookWeb.JSViewChannelTest do
     assert_receive {:connect, from, %{}}
     send(from, {:connect_reply, [1, 2, 3], %{ref: "1"}})
 
-    assert_push "init:1:id1", %{"root" => [nil, [1, 2, 3]]}
+    assert_push "init:1:id1", %{"root" => [[true], [1, 2, 3]]}
   end
 
   test "loads initial data for multiple connections separately", %{socket: socket} do
@@ -29,11 +29,31 @@ defmodule LivebookWeb.JSViewChannelTest do
 
     assert_receive {:connect, from, %{}}
     send(from, {:connect_reply, [1, 2, 3], %{ref: "1"}})
-    assert_push "init:1:id1", %{"root" => [nil, [1, 2, 3]]}
+    assert_push "init:1:id1", %{"root" => [[true], [1, 2, 3]]}
 
     assert_receive {:connect, from, %{}}
     send(from, {:connect_reply, [1, 2, 3], %{ref: "1"}})
-    assert_push "init:1:id2", %{"root" => [nil, [1, 2, 3]]}
+    assert_push "init:1:id2", %{"root" => [[true], [1, 2, 3]]}
+  end
+
+  test "sends init failure when the widget server terminates", %{socket: socket} do
+    widget_server_pid =
+      spawn(fn ->
+        # Respond only to the first one and terminate
+        receive do
+          {:connect, from, %{}} ->
+            send(from, {:connect_reply, [1, 2, 3], %{ref: "1"}})
+        end
+      end)
+
+    connect_token = connect_token(widget_server_pid)
+
+    push(socket, "connect", %{"connect_token" => connect_token, "ref" => "1", "id" => "id1"})
+    push(socket, "connect", %{"connect_token" => connect_token, "ref" => "1", "id" => "id2"})
+
+    assert_push "init:1:id1", %{"root" => [[true], [1, 2, 3]]}
+
+    assert_push "init:1:id2", %{"root" => [[false], nil]}
   end
 
   test "sends client events to the corresponding widget server", %{socket: socket} do
@@ -74,7 +94,7 @@ defmodule LivebookWeb.JSViewChannelTest do
       send(from, {:connect_reply, payload, %{ref: "1"}})
 
       assert_push "init:1:id1",
-                  {:binary, <<24::size(32), "[null,{\"message\":\"hey\"}]", 1, 2, 3>>}
+                  {:binary, <<26::size(32), "[[true],{\"message\":\"hey\"}]", 1, 2, 3>>}
     end
 
     test "form client to server", %{socket: socket} do
@@ -98,7 +118,7 @@ defmodule LivebookWeb.JSViewChannelTest do
     })
   end
 
-  defp connect_token() do
-    Phoenix.Token.sign(LivebookWeb.Endpoint, "js-view-connect", %{pid: self()})
+  defp connect_token(pid \\ self()) do
+    Phoenix.Token.sign(LivebookWeb.Endpoint, "js-view-connect", %{pid: pid})
   end
 end

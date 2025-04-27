@@ -10,20 +10,22 @@ defmodule LivebookWeb.Output.MarkdownComponent do
   end
 
   @impl true
-  def update(%{event: {:append, text}}, socket) do
-    {:ok, append_text(socket, text)}
+  def update(%{event: {:append, output}}, socket) do
+    {:ok, append_text(socket, output.text)}
   end
 
   def update(assigns, socket) do
-    {text, assigns} = Map.pop(assigns, :text)
+    {output, assigns} = Map.pop(assigns, :output)
     socket = assign(socket, assigns)
 
     if socket.assigns.initialized do
+      # After initialization, output text may be pruned and updates
+      # are sent as events instead
       {:ok, socket}
     else
       {:ok,
        socket
-       |> append_text(text)
+       |> append_text(output.text)
        |> assign(:initialized, true)}
     end
   end
@@ -48,7 +50,7 @@ defmodule LivebookWeb.Output.MarkdownComponent do
         class="text-gray-700 whitespace-pre-wrap hidden"
         phx-update="stream"
         phx-no-format
-      ><span :for={{dom_id, chunk}<- @streams.chunks} id={dom_id}><%= chunk.text %></span></div>
+      ><span :for={{dom_id, chunk}<- @streams.chunks} id={dom_id}>{chunk.text}</span></div>
       <div data-content class="markdown" id={"#{@id}-content"} phx-update="ignore"></div>
     </div>
     """

@@ -28,13 +28,13 @@ defmodule LivebookWeb.CoreComponents do
 
   ## Examples
 
-      <.flash kind={:info} flash={@flash} />
+      <.flash kind="info" flash={@flash} />
 
   """
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
 
-  attr :kind, :atom,
-    values: [:info, :success, :warning, :error],
+  attr :kind, :string,
+    values: ~w(info success warning error),
     doc: "used for styling and flash lookup"
 
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
@@ -54,15 +54,15 @@ defmodule LivebookWeb.CoreComponents do
       >
         <.remix_icon icon="close-line" />
       </div>
-      <.remix_icon :if={@kind == :info} icon="information-fill" class="text-xl text-blue-500" />
+      <.remix_icon :if={@kind == "info"} icon="information-fill" class="text-xl text-blue-500" />
       <.remix_icon
-        :if={@kind == :success}
+        :if={@kind == "success"}
         icon="checkbox-circle-fill"
         class="text-xl text-green-bright-400"
       />
-      <.remix_icon :if={@kind == :warning} icon="alert-fill" class="text-xl text-yellow-500" />
-      <.remix_icon :if={@kind == :error} icon="error-warning-fill" class="text-xl text-red-500" />
-      <span class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format><%= message %></span>
+      <.remix_icon :if={@kind == "warning"} icon="alert-fill" class="text-xl text-yellow-500" />
+      <.remix_icon :if={@kind == "error"} icon="error-warning-fill" class="text-xl text-red-500" />
+      <span class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format>{message}</span>
     </div>
     """
   end
@@ -80,10 +80,10 @@ defmodule LivebookWeb.CoreComponents do
   def flash_group(assigns) do
     ~H"""
     <div class="fixed right-8 top-5 z-[1000] flex flex-col space-y-3">
-      <.flash kind={:info} flash={@flash} />
-      <.flash kind={:success} flash={@flash} />
-      <.flash kind={:warning} flash={@flash} />
-      <.flash kind={:error} flash={@flash} />
+      <.flash kind="info" flash={@flash} />
+      <.flash kind="success" flash={@flash} />
+      <.flash kind="warning" flash={@flash} />
+      <.flash kind="error" flash={@flash} />
     </div>
     """
   end
@@ -95,16 +95,16 @@ defmodule LivebookWeb.CoreComponents do
 
   ## Examples
 
-      <.message_box kind={:info} message="🦊 in a 📦" />
+      <.message_box kind="info" message="🦊 in a 📦" />
 
-      <.message_box kind={:info}>
+      <.message_box kind="info">
         <span>🦊</span> in a <span>📦</span>
       </.message_box>
 
   """
 
   attr :message, :string, default: nil
-  attr :kind, :atom, values: [:info, :success, :warning, :error]
+  attr :kind, :string, values: ~w(info success warning error)
 
   slot :inner_block
 
@@ -116,18 +116,18 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div class={[
       "shadow text-sm rounded-lg px-4 py-2 border-l-4 rounded-l-none bg-white text-gray-700",
-      @kind == :info && "border-blue-500",
-      @kind == :success && "border-green-bright-400",
-      @kind == :warning && "border-yellow-300",
-      @kind == :error && "border-red-500"
+      @kind == "info" && "border-blue-500",
+      @kind == "success" && "border-green-bright-400",
+      @kind == "warning" && "border-yellow-300",
+      @kind == "error" && "border-red-500"
     ]}>
       <div
         :if={@message}
         class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar"
         phx-no-format
-      ><%= @message %></div>
+      >{@message}</div>
       <%= if @inner_block != [] do %>
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       <% end %>
     </div>
     """
@@ -170,7 +170,7 @@ defmodule LivebookWeb.CoreComponents do
   attr :patch, :string, default: nil
   attr :navigate, :string, default: nil
   attr :class, :string, default: nil
-  attr :width, :atom, values: [:small, :medium, :big, :large], required: true
+  attr :width, :string, values: ~w(small medium big large), required: true
   attr :rest, :global
 
   slot :inner_block, required: true
@@ -213,17 +213,17 @@ defmodule LivebookWeb.CoreComponents do
             <span class="text-sm">(esc)</span>
             <.remix_icon icon="close-line" class="text-2xl" />
           </button>
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </.focus_wrap>
       </div>
     </div>
     """
   end
 
-  defp modal_width_class(:small), do: "max-w-sm"
-  defp modal_width_class(:medium), do: "max-w-xl"
-  defp modal_width_class(:big), do: "max-w-4xl"
-  defp modal_width_class(:large), do: "max-w-6xl"
+  defp modal_width_class("small"), do: "max-w-sm"
+  defp modal_width_class("medium"), do: "max-w-xl"
+  defp modal_width_class("big"), do: "max-w-4xl"
+  defp modal_width_class("large"), do: "max-w-6xl"
 
   defp modal_on_cancel(nil, nil), do: JS.exec("phx-remove")
   defp modal_on_cancel(nil, navigate), do: JS.patch(navigate)
@@ -275,17 +275,17 @@ defmodule LivebookWeb.CoreComponents do
   attr :id, :string, required: true
   attr :disabled, :boolean, default: false, doc: "whether the menu is active"
 
-  attr :position, :atom,
-    default: :bottom_right,
-    values: [:top_left, :top_right, :bottom_left, :bottom_right]
+  attr :position, :string,
+    default: "bottom-right",
+    values: ~w(top-left top-right bottom-left bottom-right)
 
-  attr :sm_position, :atom,
+  attr :sm_position, :string,
     default: nil,
-    values: [nil, :top_left, :top_right, :bottom_left, :bottom_right]
+    values: [nil, "top-left", "top-right", "bottom-left", "bottom-right"]
 
-  attr :md_position, :atom,
+  attr :md_position, :string,
     default: nil,
-    values: [nil, :top_left, :top_right, :bottom_left, :bottom_right]
+    values: [nil, "top-left", "top-right", "bottom-left", "bottom-right"]
 
   attr :distant, :boolean,
     default: false,
@@ -308,7 +308,7 @@ defmodule LivebookWeb.CoreComponents do
         phx-window-keydown={hide_menu(@id)}
         phx-key="escape"
       >
-        <%= render_slot(@toggle) %>
+        {render_slot(@toggle)}
       </div>
       <div id={"#{@id}-overlay"} class="fixed z-[90] inset-0 hidden" phx-click-away={hide_menu(@id)}>
       </div>
@@ -328,7 +328,7 @@ defmodule LivebookWeb.CoreComponents do
           id={"#{@id}-content-inner"}
           class="rounded-lg bg-white flex flex-col py-2 shadow-[0_15px_99px_-0px_rgba(12,24,41,0.15)]"
         >
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </div>
       </menu>
     </div>
@@ -370,45 +370,47 @@ defmodule LivebookWeb.CoreComponents do
     |> JS.remove_class("animate-shake", to: "##{id}-content-inner")
   end
 
-  defp menu_position_class(:top_left), do: "top-0 left-0 transform -translate-y-full -mt-1"
-  defp menu_position_class(:top_right), do: "top-0 right-0 transform -translate-y-full -mt-1"
-  defp menu_position_class(:bottom_left), do: "bottom-0 left-0 transform translate-y-full -mb-1"
-  defp menu_position_class(:bottom_right), do: "bottom-0 right-0 transform translate-y-full -mb-1"
+  defp menu_position_class("top-left"), do: "top-0 left-0 transform -translate-y-full -mt-1"
+  defp menu_position_class("top-right"), do: "top-0 right-0 transform -translate-y-full -mt-1"
+  defp menu_position_class("bottom-left"), do: "bottom-0 left-0 transform translate-y-full -mb-1"
 
-  defp menu_md_position_class(:top_left) do
+  defp menu_position_class("bottom-right"),
+    do: "bottom-0 right-0 transform translate-y-full -mb-1"
+
+  defp menu_md_position_class("top-left") do
     "md:top-0 md:left-0 md:bottom-auto md:right-auto md:transform md:-translate-y-full md:-mt-1 md:mb-0"
   end
 
-  defp menu_md_position_class(:top_right) do
+  defp menu_md_position_class("top-right") do
     "md:top-0 md:right-0 md:bottom-auto md:left-auto md:transform md:-translate-y-full md:-mt-1 md:mb-0"
   end
 
-  defp menu_md_position_class(:bottom_left) do
+  defp menu_md_position_class("bottom-left") do
     "md:bottom-0 md:left-0 md:top-auto md:right-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
   end
 
-  defp menu_md_position_class(:bottom_right) do
+  defp menu_md_position_class("bottom-right") do
     "md:bottom-0 md:right-0 md:top-auto md:left-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
   end
 
-  defp menu_sm_position_class(:top_left) do
+  defp menu_sm_position_class("top-left") do
     "sm:top-0 sm:left-0 sm:bottom-auto sm:right-auto sm:transform sm:-translate-y-full sm:-mt-1 sm:mb-0"
   end
 
-  defp menu_sm_position_class(:top_right) do
+  defp menu_sm_position_class("top-right") do
     "sm:top-0 sm:right-0 sm:bottom-auto sm:left-auto sm:transform sm:-translate-y-full sm:-mt-1 sm:mb-0"
   end
 
-  defp menu_sm_position_class(:bottom_left) do
+  defp menu_sm_position_class("bottom-left") do
     "sm:bottom-0 sm:left-0 sm:top-auto sm:right-auto sm:transform sm:translate-y-full sm:-mb-1 sm:mt-0"
   end
 
-  defp menu_sm_position_class(:bottom_right) do
+  defp menu_sm_position_class("bottom-right") do
     "sm:bottom-0 sm:right-0 sm:top-auto sm:left-auto sm:transform sm:translate-y-full sm:-mb-1 sm:mt-0"
   end
 
-  defp menu_distant_class(position) when position in [:top_left, :top_right], do: "-mt-2"
-  defp menu_distant_class(position) when position in [:bottom_left, :bottom_right], do: "-mb-2"
+  defp menu_distant_class(position) when position in ["top-left", "top-right"], do: "-mt-2"
+  defp menu_distant_class(position) when position in ["bottom-left", "bottom-right"], do: "-mb-2"
 
   @doc """
   Wraps a menu item that shows a submenu on hover.
@@ -433,10 +435,10 @@ defmodule LivebookWeb.CoreComponents do
   def submenu(assigns) do
     ~H"""
     <div class="group relative">
-      <%= render_slot(@primary) %>
+      {render_slot(@primary)}
       <div class="absolute -top-2 right-0 translate-x-full pl-2 hidden group-hover:flex group-focus-within:flex">
         <menu class="relative mt-0 z-[100] rounded-lg bg-white flex flex-col py-2 shadow-[0_15px_99px_-0px_rgba(12,24,41,0.15)]">
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </menu>
       </div>
     </div>
@@ -447,7 +449,7 @@ defmodule LivebookWeb.CoreComponents do
   Renders a menu item used in `menu/1` and `submenu/1`.
   """
   attr :disabled, :boolean, default: false
-  attr :variant, :atom, default: :default, values: [:default, :selected, :danger]
+  attr :variant, :string, default: "default", values: ~w(default selected danger)
 
   slot :inner_block, required: true
 
@@ -459,14 +461,14 @@ defmodule LivebookWeb.CoreComponents do
       menu_item_class(@variant),
       @disabled && "pointer-events-none opacity-50"
     ]}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </li>
     """
   end
 
-  defp menu_item_class(:default), do: "text-gray-500"
-  defp menu_item_class(:selected), do: "text-gray-900"
-  defp menu_item_class(:danger), do: "text-red-600"
+  defp menu_item_class("default"), do: "text-gray-500"
+  defp menu_item_class("selected"), do: "text-gray-900"
+  defp menu_item_class("danger"), do: "text-red-600"
 
   @doc """
   Renders a text content skeleton.
@@ -514,7 +516,7 @@ defmodule LivebookWeb.CoreComponents do
       id={"#{@source_id}-highlight"}
       phx-hook="Highlight"
       data-p-language={hook_prop(@language)}
-    ><div id={@source_id} data-source><%= @source %></div><div data-target></div></code></pre>
+    ><div id={@source_id} data-source>{@source}</div><div data-target></div></code></pre>
     </div>
     """
   end
@@ -540,7 +542,7 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div>
       <div class="flex justify-between items-center">
-        <span class="text-sm text-gray-700 font-semibold"><%= @title %></span>
+        <span class="text-sm text-gray-700 font-semibold">{@title}</span>
         <div class="flex justify-end space-x-2">
           <span class="tooltip left" data-tooltip="Copy source">
             <.icon_button
@@ -582,14 +584,14 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div class={["flex flex-col space-y-1", @class]}>
       <span class="text-sm text-gray-500">
-        <%= @label %>
+        {@label}
       </span>
       <span class={[
         "text-gray-800 text-sm font-semibold",
         @one_line &&
           "whitespace-nowrap overflow-hidden text-ellipsis hover:text-clip hover:overflow-auto hover:tiny-scrollbar"
       ]}>
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </span>
     </div>
     """
@@ -627,7 +629,7 @@ defmodule LivebookWeb.CoreComponents do
       disabled={@disabled}
       {@rest}
     >
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
@@ -635,13 +637,13 @@ defmodule LivebookWeb.CoreComponents do
   @doc """
   Renders an status indicator circle.
   """
-  attr :variant, :atom,
+  attr :variant, :string,
     required: true,
-    values: [:success, :warning, :error, :inactive, :waiting, :progressing]
+    values: ~w(success warning error inactive waiting progressing)
 
   def status_indicator(assigns) do
     ~H"""
-    <span class="relative flex h-3 w-3">
+    <span class="relative flex h-2.5 w-2.5">
       <span
         :if={animated_status_circle_class(@variant)}
         class={[
@@ -650,7 +652,7 @@ defmodule LivebookWeb.CoreComponents do
         ]}
       >
       </span>
-      <span class={[status_circle_class(@variant), "relative inline-flex rounded-full h-3 w-3"]}>
+      <span class={[status_circle_class(@variant), "relative inline-flex rounded-full h-2.5 w-2.5"]}>
       </span>
     </span>
     """
@@ -663,15 +665,15 @@ defmodule LivebookWeb.CoreComponents do
   """
   def status_circle_class(variant)
 
-  def status_circle_class(:success), do: "bg-green-bright-400"
-  def status_circle_class(:warning), do: "bg-yellow-bright-200"
-  def status_circle_class(:error), do: "bg-red-400"
-  def status_circle_class(:inactive), do: "bg-gray-500"
-  def status_circle_class(:waiting), do: "bg-gray-400"
-  def status_circle_class(:progressing), do: "bg-blue-500"
+  def status_circle_class("success"), do: "bg-green-bright-400"
+  def status_circle_class("warning"), do: "bg-yellow-bright-200"
+  def status_circle_class("error"), do: "bg-red-400"
+  def status_circle_class("inactive"), do: "bg-gray-500"
+  def status_circle_class("waiting"), do: "bg-gray-400"
+  def status_circle_class("progressing"), do: "bg-blue-500"
 
-  defp animated_status_circle_class(:waiting), do: "bg-gray-300"
-  defp animated_status_circle_class(:progressing), do: "bg-blue-400"
+  defp animated_status_circle_class("waiting"), do: "bg-gray-300"
+  defp animated_status_circle_class("progressing"), do: "bg-blue-400"
   defp animated_status_circle_class(_other), do: nil
 
   @doc """
@@ -689,9 +691,9 @@ defmodule LivebookWeb.CoreComponents do
       </div>
       <div class="grow flex items-center justify-between">
         <div class="text-gray-600">
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </div>
-        <%= render_slot(@actions) %>
+        {render_slot(@actions)}
       </div>
     </div>
     """
@@ -732,7 +734,7 @@ defmodule LivebookWeb.CoreComponents do
   ## Examples
 
     <.listing items={@packages}>
-      <:item :let={package}><code><%= package.name %></code></:item>
+      <:item :let={package}><code>{package.name}</code></:item>
       <:singular_suffix>package</:singular_suffix>
       <:plural_suffix>packages</:plural_suffix>
     </.listing>
@@ -747,8 +749,8 @@ defmodule LivebookWeb.CoreComponents do
 
   def listing(%{items: [_]} = assigns) do
     ~H"""
-    <%= render_slot(@item, hd(@items)) %>
-    <%= render_slot(@singular_suffix) %>
+    {render_slot(@item, hd(@items))}
+    {render_slot(@singular_suffix)}
     """
   end
 
@@ -759,10 +761,10 @@ defmodule LivebookWeb.CoreComponents do
 
     ~H"""
     <%= for item <- @leading do %>
-      <%= render_slot(@item, item) %>,
+      {render_slot(@item, item)},
     <% end %>
-    <%= render_slot(@item, @second_to_last) %> and <%= render_slot(@item, @last) %>
-    <%= render_slot(@plural_suffix) %>
+    {render_slot(@item, @second_to_last)} and {render_slot(@item, @last)}
+    {render_slot(@plural_suffix)}
     """
   end
 
@@ -772,8 +774,8 @@ defmodule LivebookWeb.CoreComponents do
   ## Examples
 
       <.table id="users" rows={@users}>
-        <:col :let={user} label="id"><%= user.id %></:col>
-        <:col :let={user} label="username"><%= user.username %></:col>
+        <:col :let={user} label="id">{user.id}</:col>
+        <:col :let={user} label="username">{user.username}</:col>
       </.table>
 
   """
@@ -803,7 +805,7 @@ defmodule LivebookWeb.CoreComponents do
       <thead class="text-sm text-left font-semibold leading-6 text-gray-900">
         <tr>
           <th :for={col <- @col} class="py-3.5 pl-4 pr-3 sm:pl-6">
-            <%= col[:label] %>
+            {col[:label]}
           </th>
           <th :if={@action != []} class="py-3.5 pl-3 pr-5 text-right sm:pr-7">
             <span>Actions</span>
@@ -822,13 +824,13 @@ defmodule LivebookWeb.CoreComponents do
             class={["relative p-0", @row_click && "hover:cursor-pointer"]}
           >
             <div class="relative block p-4 sm:px-6">
-              <%= render_slot(col, @row_item.(row)) %>
+              {render_slot(col, @row_item.(row))}
             </div>
           </td>
           <td :if={@action != []} class="relative p-0">
             <div class="relative whitespace-nowrap py-4 pl-3 pr-4 sm:pr-6 flex justify-end items-center">
               <span :for={action <- @action} class="ml-4">
-                <%= render_slot(action, @row_item.(row)) %>
+                {render_slot(action, @row_item.(row))}
               </span>
             </div>
           </td>
@@ -865,7 +867,7 @@ defmodule LivebookWeb.CoreComponents do
              is_map_key(assigns.rest, :navigate) do
     ~H"""
     <.link class={[button_classes(@small, @disabled, @color, @outlined), @class]} {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </.link>
     """
   end
@@ -877,7 +879,7 @@ defmodule LivebookWeb.CoreComponents do
       disabled={@disabled}
       {@rest}
     >
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
@@ -885,11 +887,11 @@ defmodule LivebookWeb.CoreComponents do
   defp button_classes(small, disabled, color, outlined) do
     [
       if small do
-        "px-2 py-1 font-normal text-xs"
+        "px-2 py-1 font-normal text-xs gap-1"
       else
-        "px-5 py-2 font-medium text-sm"
+        "px-5 py-2 font-medium text-sm gap-1.5"
       end,
-      "inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1.5 focus-visible:outline-none",
+      "inline-flex rounded-lg border whitespace-nowrap items-center justify-center focus-visible:outline-none",
       if disabled do
         "cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400"
       else
@@ -939,7 +941,7 @@ defmodule LivebookWeb.CoreComponents do
              is_map_key(assigns.rest, :navigate) do
     ~H"""
     <.link class={[icon_button_classes(@small, @disabled), @class]} {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </.link>
     """
   end
@@ -947,7 +949,7 @@ defmodule LivebookWeb.CoreComponents do
   def icon_button(assigns) do
     ~H"""
     <button class={[icon_button_classes(@small, @disabled), @class]} disabled={@disabled} {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
@@ -1005,13 +1007,13 @@ defmodule LivebookWeb.CoreComponents do
           }
         >
           <span class="font-medium">
-            <%= tab.label %>
+            {tab.label}
           </span>
         </button>
       </div>
 
       <div :for={tab <- @tab} data-tab={tab.id} class={@default == tab.id || "hidden"}>
-        <%= render_slot(tab) %>
+        {render_slot(tab)}
       </div>
     </div>
     """
@@ -1059,7 +1061,7 @@ defmodule LivebookWeb.CoreComponents do
   def exec_js(socket, js, opts \\ []) do
     opts = Keyword.validate!(opts, [:to])
 
-    Phoenix.LiveView.push_event(socket, "lb:exec_js", %{js: Jason.encode!(js.ops), to: opts[:to]})
+    Phoenix.LiveView.push_event(socket, "lb:exec_js", %{js: JSON.encode!(js.ops), to: opts[:to]})
   end
 
   @doc """
@@ -1078,6 +1080,6 @@ defmodule LivebookWeb.CoreComponents do
   end
 
   def hook_prop(value) do
-    Jason.encode!(value)
+    JSON.encode!(value)
   end
 end

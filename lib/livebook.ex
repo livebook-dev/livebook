@@ -97,8 +97,12 @@ defmodule Livebook do
         Livebook.Config.secret!("LIVEBOOK_SECRET_KEY_BASE") ||
           Livebook.Utils.random_secret_key_base()
 
-    if Livebook.Config.debug!("LIVEBOOK_DEBUG") do
-      config :logger, level: :debug
+    if level = Livebook.Config.log_level!("LIVEBOOK_LOG_LEVEL") do
+      config :logger, level: level
+    end
+
+    if metadata = Livebook.Config.log_metadata!("LIVEBOOK_LOG_METADATA") do
+      config :logger, :console, metadata: metadata
     end
 
     if port = Livebook.Config.port!("LIVEBOOK_PORT") do
@@ -182,10 +186,6 @@ defmodule Livebook do
       config :livebook, :apps_path, apps_path
     end
 
-    if apps_path_hub_id = System.get_env("LIVEBOOK_APPS_PATH_HUB_ID") do
-      config :livebook, :apps_path_hub_id, apps_path_hub_id
-    end
-
     if apps_path_password = Livebook.Config.password!("LIVEBOOK_APPS_PATH_PASSWORD") do
       config :livebook, :apps_path_password, apps_path_password
     end
@@ -237,9 +237,9 @@ defmodule Livebook do
       config :livebook, :allowed_uri_schemes, allowed_uri_schemes
     end
 
-    config :livebook,
-           :identity_provider,
-           Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER")
+    if identity_provider = Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER") do
+      config :livebook, :identity_provider, identity_provider
+    end
 
     if dns_cluster_query = Livebook.Config.dns_cluster_query!("LIVEBOOK_CLUSTER") do
       config :livebook, :dns_cluster_query, dns_cluster_query

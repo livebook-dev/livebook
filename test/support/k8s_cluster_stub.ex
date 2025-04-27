@@ -7,7 +7,7 @@ defmodule Livebook.K8sClusterStub do
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :json],
-    json_decoder: Jason
+    json_decoder: JSON
 
   plug :dispatch
 

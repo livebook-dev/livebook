@@ -110,7 +110,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         for url in urls {
-            ElixirKit.API.publish("open", url.absoluteString)
+            ElixirKit.API.publish("open", "file://\(url.path)")       
         }
     }
 
@@ -128,7 +128,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func copyURL() {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setData(url!.data(using: .utf8), forType: NSPasteboard.PasteboardType.URL)
+        pasteboard.setString(url!, forType: .URL)
+        pasteboard.setString(url!, forType: .string)
     }
 
     @objc

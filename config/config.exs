@@ -11,11 +11,10 @@ config :livebook, LivebookWeb.Endpoint,
 
 # Configures Elixir's Logger
 config :logger, :console,
-  format: "$time $metadata[$level] $message\n",
+  format: "$date $time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-# Use Jason for JSON parsing in Phoenix
-config :phoenix, :json_library, Jason
+config :phoenix, :json_library, JSON
 
 # Additional mime types
 config :mime, :types, %{
@@ -36,7 +35,7 @@ config :livebook,
   plugs: [],
   rewrite_on: [],
   shutdown_callback: nil,
-  teams_auth?: false,
+  teams_auth: nil,
   teams_url: "https://teams.livebook.dev",
   github_release_info: %{repo: "livebook-dev/livebook", version: Mix.Project.config()[:version]},
   update_instructions_url: nil,

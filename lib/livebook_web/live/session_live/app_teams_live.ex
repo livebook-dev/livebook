@@ -61,7 +61,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
           App deployment with Livebook Teams
         </h3>
         <h4 :if={subtitle = subtitle(@action)} class="text-gray-600">
-          <.remix_icon icon="corner-down-right-line" /> <%= subtitle %>
+          <.remix_icon icon="corner-down-right-line" /> {subtitle}
         </h4>
       </div>
 
@@ -111,7 +111,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   defp content(%{action: :add_deployment_group} = assigns) do
     ~H"""
     <div class="flex flex-col gap-8">
-      <.message_box kind={:info}>
+      <.message_box kind="info">
         You must create a deployment group before deploying the app.
       </.message_box>
       <.live_component
@@ -130,7 +130,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   defp content(%{action: :add_agent} = assigns) do
     ~H"""
     <div class="flex flex-col gap-8">
-      <.message_box :if={@initial?} kind={:info}>
+      <.message_box :if={@initial?} kind="info">
         You must set up an app server for the app to run on.
       </.message_box>
       <div>
@@ -147,11 +147,11 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
             Status
           </h4>
           <%= if @num_agents[@deployment_group.id] do %>
-            <.message_box kind={:success}>
+            <.message_box kind="success">
               An app server is running, click "Deploy" to ship the app!
             </.message_box>
           <% else %>
-            <.message_box kind={:info}>
+            <.message_box kind="info">
               Awaiting an app server to be set up. If you click "Deploy anyway",
               the app will only start once there is an app server.
             </.message_box>
@@ -208,7 +208,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
           <.app_deployment_card app_deployment={@app_deployment} deployment_group={@deployment_group} />
         </div>
 
-        <.message_box :if={@num_agents[@deployment_group.id] == nil} kind={:warning}>
+        <.message_box :if={@num_agents[@deployment_group.id] == nil} kind="warning">
           The selected deployment group has no app servers. If you click "Deploy anyway",
           the app will only start once there is an app server.
         </.message_box>
@@ -262,7 +262,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   defp content(%{action: :success} = assigns) do
     ~H"""
     <div class="flex flex-col gap-8">
-      <.message_box kind={:success}>
+      <.message_box kind="success">
         <div class="flex items-center justify-between">
           <span>App deployment created successfully.</span>
 
@@ -293,8 +293,8 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   defp workspace(assigns) do
     ~H"""
     <span class="font-medium">
-      <span class="text-lg"><%= @hub.hub_emoji %></span>
-      <span><%= @hub.hub_name %></span>
+      <span class="text-lg">{@hub.hub_emoji}</span>
+      <span>{@hub.hub_name}</span>
     </span>
     """
   end
@@ -324,16 +324,16 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
       <div class="flex justify-between items-center">
         <div class="flex gap-2 items-center text-gray-700">
           <h3 class="text-sm">
-            <span class="font-semibold"><%= @deployment_group.name %></span>
-            <span :if={url = @deployment_group.url}>(<%= url %>)</span>
+            <span class="font-semibold">{@deployment_group.name}</span>
+            <span :if={url = @deployment_group.url}>({url})</span>
           </h3>
         </div>
         <div class="flex gap-2">
           <div class="text-sm text-gray-700 border-l border-gray-300 pl-2">
-            App servers: <%= @num_agents[@deployment_group.id] || 0 %>
+            App servers: {@num_agents[@deployment_group.id] || 0}
           </div>
           <div class="text-sm text-gray-700 border-l border-gray-300 pl-2">
-            Apps deployed: <%= @num_app_deployments[@deployment_group.id] || 0 %>
+            Apps deployed: {@num_app_deployments[@deployment_group.id] || 0}
           </div>
         </div>
       </div>
@@ -351,22 +351,22 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
             target="_blank"
             class="text-blue-600 font-medium"
           >
-            /<%= @app_deployment.slug %>
+            /{@app_deployment.slug}
           </.link>
         <% else %>
           <span>
-            /<%= @app_deployment.slug %>
+            /{@app_deployment.slug}
           </span>
         <% end %>
       </.labeled_text>
       <.labeled_text label="Title">
-        <%= @app_deployment.title %>
+        {@app_deployment.title}
       </.labeled_text>
       <.labeled_text label="Deployed by">
-        <%= @app_deployment.deployed_by %>
+        {@app_deployment.deployed_by}
       </.labeled_text>
       <.labeled_text label="Deployed">
-        <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(@app_deployment.deployed_at) %> ago
+        {LivebookWeb.HTMLHelpers.format_datetime_relatively(@app_deployment.deployed_at)} ago
       </.labeled_text>
     </div>
     """
@@ -521,12 +521,12 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         {:ok, app_deployment}
 
       {:warning, warnings} ->
-        messages = Enum.map(warnings, &{:error, &1})
+        messages = Enum.map(warnings, &{"error", &1})
         {:noreply, assign(socket, messages: messages)}
 
       {:error, error} ->
         error = "Failed to pack files: #{error}"
-        {:noreply, assign(socket, messages: [{:error, error}])}
+        {:noreply, assign(socket, messages: [{"error", error}])}
     end
   end
 
@@ -536,11 +536,13 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         :ok
 
       {:error, %{errors: errors}} ->
-        errors = Enum.map(errors, fn {key, error} -> "#{key}: #{normalize_error(error)}" end)
+        errors =
+          Enum.map(errors, fn {key, error} -> {"error", "#{key}: #{normalize_error(error)}"} end)
+
         {:noreply, assign(socket, messages: errors)}
 
       {:transport_error, error} ->
-        {:noreply, assign(socket, messages: [{:error, error}])}
+        {:noreply, assign(socket, messages: [{"error", error}])}
     end
   end
 

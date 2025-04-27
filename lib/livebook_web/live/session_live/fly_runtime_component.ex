@@ -3,8 +3,6 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
 
   import Ecto.Changeset
 
-  alias Livebook.{Session, Runtime}
-
   @impl true
   def mount(socket) do
     unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Fly) do
@@ -52,7 +50,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
         is_map_key(socket.assigns, :config_defaults) ->
           socket
 
-        is_struct(assigns.runtime, Runtime.Fly) ->
+        is_struct(assigns.runtime, Livebook.Runtime.Fly) ->
           %{config: config} = assigns.runtime
 
           config_defaults =
@@ -98,7 +96,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           phx-target={@myself}
         >
           <.password_field name="token" value={@token} label="Token" />
-          <.message_box :if={@token == nil} kind={:info}>
+          <.message_box :if={@token == nil} kind="info">
             Go to <a
               class="text-blue-600 hover:text-blue-700"
               href="https://fly.io/dashboard"
@@ -113,7 +111,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           <.loader :if={@token_check.status == :inflight} />
           <.message_box
             :if={error = @token_check.error}
-            kind={:error}
+            kind="error"
             message={"Error: " <> error.message}
           />
         </form>
@@ -150,7 +148,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
                     volume_errors(@volume_id, @volumes, @region) != []
                 }
               >
-                <%= label(@app_name, @runtime, @runtime_status) %>
+                {label(@app_name, @runtime, @runtime_status)}
               </.button>
               <.button
                 :if={@runtime_status == :connecting}
@@ -167,10 +165,10 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
               class="mt-4 scroll-mb-8"
               phx-mounted={JS.dispatch("lb:scroll_into_view", detail: %{behavior: "instant"})}
             >
-              <.message_box kind={:info}>
+              <.message_box kind="info">
                 <div class="flex items-center gap-2">
                   <.spinner />
-                  <span>Step: <%= @runtime_connect_info %></span>
+                  <span>Step: {@runtime_connect_info}</span>
                 </div>
               </.message_box>
             </div>
@@ -215,7 +213,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
       </div>
       <.message_box
         :if={@app_name == nil}
-        kind={:info}
+        kind="info"
         message="Specify the app where machines should be created."
       />
       <.loader :if={@app_check.status == :inflight} />
@@ -231,10 +229,10 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
 
   defp app_check_error(%{error: %{status: 404}} = assigns) do
     ~H"""
-    <.message_box kind={:info}>
+    <.message_box kind="info">
       <div class="flex items-center justify-between">
         <div>
-          App <span class="font-semibold"><%= @app_name %></span> does not exist yet.
+          App <span class="font-semibold">{@app_name}</span> does not exist yet.
         </div>
         <.button phx-click="create_app" phx-target={@myself}>
           Create
@@ -247,7 +245,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
   defp app_check_error(%{error: %{status: 403}} = assigns) do
     ~H"""
     <.message_box
-      kind={:error}
+      kind="error"
       message={
         "This app name is already taken, pick a different name." <>
           " If this is an app you own, enter a token for the corresponding organization."
@@ -258,7 +256,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
 
   defp app_check_error(assigns) do
     ~H"""
-    <.message_box kind={:error} message={"Error: " <> @error.message} />
+    <.message_box kind="error" message={"Error: " <> @error.message} />
     """
   end
 
@@ -375,7 +373,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           class="px-4 py-3 flex space-x-4 items-center border border-gray-200 rounded-lg"
         >
           <p class="grow text-gray-700 text-sm">
-            Are you sure you want to irreversibly delete <span class="font-semibold"><%= @volume_id %></span>?
+            Are you sure you want to irreversibly delete <span class="font-semibold">{@volume_id}</span>?
           </p>
           <div class="flex space-x-4">
             <button
@@ -419,7 +417,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
             type="submit"
             disabled={not @volume_action.changeset.valid? or @volume_action.status == :inflight}
           >
-            <%= if(@volume_action.status == :inflight, do: "Creating...", else: "Create") %>
+            {if(@volume_action.status == :inflight, do: "Creating...", else: "Create")}
           </.button>
           <.button
             type="button"
@@ -433,7 +431,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           </.button>
         </.form>
         <div :if={@volume_action[:status] == :error}>
-          <.message_box kind={:error} message={"Error: " <> @volume_action.error.message} />
+          <.message_box kind="error" message={"Error: " <> @volume_action.error.message} />
         </div>
       </div>
     </div>
@@ -516,14 +514,14 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
 
   def handle_event("init", %{}, socket) do
     config = build_config(socket)
-    runtime = Runtime.Fly.new(config)
-    Session.set_runtime(socket.assigns.session.pid, runtime)
-    Session.connect_runtime(socket.assigns.session.pid)
+    runtime = Livebook.Runtime.Fly.new(config)
+    Livebook.Session.set_runtime(socket.assigns.session.pid, runtime)
+    Livebook.Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
   def handle_event("disconnect", %{}, socket) do
-    Session.disconnect_runtime(socket.assigns.session.pid)
+    Livebook.Session.disconnect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
@@ -628,7 +626,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
   end
 
   defp reconnecting?(app_name, runtime) do
-    match?(%Runtime.Fly{config: %{app_name: ^app_name}}, runtime)
+    match?(%Livebook.Runtime.Fly{config: %{app_name: ^app_name}}, runtime)
   end
 
   defp cpu_kind_options() do

@@ -2,18 +2,37 @@ defmodule Livebook.Runtime.EvaluatorTest do
   use ExUnit.Case, async: true
 
   import Livebook.TestHelpers
-
   alias Livebook.Runtime.Evaluator
+
+  @moduletag :tmp_dir
+
+  setup_all do
+    # We setup Pythonx in the current process, so we can test Python
+    # code evaluation. Testing pyproject.toml evaluation is tricky
+    # because it requires a separate VM, so we only rely on the LV
+    # integration tests.
+
+    ExUnit.CaptureIO.capture_io(fn ->
+      Pythonx.uv_init("""
+      [project]
+      name = "project"
+      version = "0.0.0"
+      requires-python = "==3.13.*"
+      dependencies = []
+      """)
+    end)
+
+    :ok
+  end
 
   setup ctx do
     ebin_path =
       if ctx[:with_ebin_path] do
-        hash = ctx.test |> to_string() |> :erlang.md5() |> Base.encode32(padding: false)
-        path = ["tmp", inspect(ctx.module), hash, "ebin"] |> Path.join() |> Path.expand()
-        File.rm_rf!(path)
-        File.mkdir_p!(path)
-        Code.append_path(path)
-        path
+        ebin_path = Path.join(ctx.tmp_dir, "ebin")
+        File.rm_rf!(ebin_path)
+        File.mkdir_p!(ebin_path)
+        Code.append_path(ebin_path)
+        ebin_path
       end
 
     {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
@@ -23,6 +42,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       send_to: self(),
       object_tracker: object_tracker,
       client_tracker: client_tracker,
+      tmp_dir: ctx.tmp_dir || nil,
       ebin_path: ebin_path
     ]
 
@@ -696,7 +716,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       %{
                         column: 6,
                         details:
-                          "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented for 1 of type Integer. " <>
+                          "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented for type Integer. " <>
                             _,
                         end_line: 10,
                         line: 9,
@@ -811,7 +831,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       ref = eval_idx
       parent_refs = Enum.to_list((eval_idx - 1)..0//-1)
       Evaluator.evaluate_code(evaluator, :elixir, code, ref, parent_refs)
-      assert_receive {:runtime_evaluation_response, ^ref, terminal_text(_), metadata}
+      assert_receive {:runtime_evaluation_response, ^ref, _output, metadata}
       %{used: metadata.identifiers_used, defined: metadata.identifiers_defined}
     end
 
@@ -1191,6 +1211,94 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       assert context.pdict == %{x: 1, y: 2}
     end
+
+    test "context merging with errored evaluation", %{evaluator: evaluator} do
+      # This test is similar to the above, but the second evaluation
+      # fails with an error
+
+      """
+      x = 1
+      y = 1
+
+      alias Enum, as: E
+      alias Map, as: M
+
+      require Enum
+
+      import Integer, only: [is_odd: 1, is_even: 1, to_string: 2, to_charlist: 2]
+
+      Process.put(:x, 1)
+      Process.put(:y, 1)
+      Process.put(:z, 1)
+
+      defmodule Livebook.Runtime.EvaluatorTest.Identifiers.ErrorContextMergingOne do
+      end
+      """
+      |> eval(evaluator, 0)
+
+      """
+      y = 2
+
+      alias MapSet, as: M
+
+      require Map
+
+      import Integer, except: [is_even: 1, to_string: 2]
+
+      Process.put(:y, 2)
+      Process.delete(:z)
+
+      defmodule Livebook.Runtime.EvaluatorTest.Identifiers.ErrorContextMergingTwo do
+      end
+
+      raise "oops"
+      """
+      |> eval(evaluator, 1)
+
+      # Evaluation 1 context
+      #
+      # Should be empty, except for imports and process dictionary,
+      # which are not diffed and should be kept from evaluation 0.
+
+      context = Evaluator.get_evaluation_context(evaluator, [1])
+
+      assert Enum.sort(context.binding) == []
+
+      assert Enum.sort(context.env.aliases) == []
+
+      assert Map not in context.env.requires
+      assert Enum not in context.env.requires
+
+      assert [_, _ | _] = context.env.functions[Integer]
+      assert [_, _ | _] = context.env.macros[Integer]
+
+      assert context.env.versioned_vars == %{}
+
+      assert context.env.context_modules == []
+
+      assert context.pdict == %{x: 1, y: 1, z: 1}
+
+      # Merged context
+
+      context = Evaluator.get_evaluation_context(evaluator, [1, 0])
+
+      assert Enum.sort(context.binding) == [x: 1, y: 1]
+
+      assert Enum.sort(context.env.aliases) == [{E, Enum}, {M, Map}]
+
+      assert Enum in context.env.requires
+
+      assert [_, _ | _] = context.env.functions[Integer]
+      assert [_, _ | _] = context.env.macros[Integer]
+
+      assert context.env.versioned_vars == %{{:x, nil} => 0, {:y, nil} => 1}
+
+      assert context.env.context_modules == [
+               Livebook.Runtime.EvaluatorTest.Identifiers.ErrorContextMergingOne
+             ]
+
+      assert context.pdict == %{x: 1, y: 1, z: 1}
+    end
   end
 
   describe "forget_evaluation/2" do
@@ -1288,7 +1396,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
   end
 
   describe "erlang evaluation" do
-    test "evaluate erlang code", %{evaluator: evaluator} do
+    test "evaluates erlang code", %{evaluator: evaluator} do
       Evaluator.evaluate_code(
         evaluator,
         :erlang,
@@ -1298,6 +1406,61 @@ defmodule Livebook.Runtime.EvaluatorTest do
       )
 
       assert_receive {:runtime_evaluation_response, :code_1, terminal_text("6"), metadata()}
+    end
+
+    @tag :with_ebin_path
+    test "evaluates erlang-module code", %{evaluator: evaluator} do
+      code = """
+      -module(tryme).
+
+      -export([go/0, macros/0]).
+
+      go() -> {ok,went}.
+      macros() -> {?MODULE, ?FILE}.
+      """
+
+      Evaluator.evaluate_code(evaluator, :erlang, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(_), metadata()}
+
+      Evaluator.evaluate_code(evaluator, :erlang, "tryme:macros().", :code_2, [:code_1])
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(output), metadata()}
+      assert output == "{tryme,\"nofile\"}"
+    end
+
+    @tag tmp_dir: false
+    test "evaluates erlang-module code without filesystem", %{evaluator: evaluator} do
+      code = """
+      -module(tryme).
+
+      -export([go/0]).
+
+      go() -> {ok,went}.
+      """
+
+      Evaluator.evaluate_code(evaluator, :erlang, code, :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()}
+      assert message =~ "writing Erlang modules requires a writeable file system"
+    end
+
+    @tag :with_ebin_path
+    test "evaluates erlang-module error", %{
+      evaluator: evaluator
+    } do
+      code = """
+      -module(tryme).
+
+      -export([go/0]).
+
+      go() ->{ok,went}.
+      go() ->{ok,went}.
+      """
+
+      Evaluator.evaluate_code(evaluator, :erlang, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()}
+
+      assert message =~ "compile forms error"
     end
 
     test "mixed erlang/elixir bindings", %{evaluator: evaluator} do
@@ -1373,22 +1536,172 @@ defmodule Livebook.Runtime.EvaluatorTest do
       # Incomplete input
       Evaluator.evaluate_code(evaluator, :erlang, "X =", :code_1, [])
       assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()}
-      assert "\e[31m** (TokenMissingError)" <> _ = message
+
+      assert clean_message(message) === """
+             ** (TokenMissingError) token missing on nofile:1:4:
+                 error: syntax error before:
+                 │
+               1 │ X =
+                 │    ^
+                 │
+                 └─ nofile:1:4\
+             """
 
       # Parser error
       Evaluator.evaluate_code(evaluator, :erlang, "X ==/== a.", :code_2, [])
       assert_receive {:runtime_evaluation_response, :code_2, error(message), metadata()}
-      assert "\e[31m** (SyntaxError)" <> _ = message
+
+      assert clean_message(message) === """
+             ** (SyntaxError) invalid syntax found on nofile:1:5:
+                 error: syntax error before: /=
+                 │
+               1 │ X ==/== a.
+                 │     ^
+                 │
+                 └─ nofile:1:5\
+             """
 
       # Tokenizer error
       Evaluator.evaluate_code(evaluator, :erlang, "$a$", :code_3, [])
       assert_receive {:runtime_evaluation_response, :code_3, error(message), metadata()}
-      assert "\e[31m** (SyntaxError)" <> _ = message
+
+      assert clean_message(message) === """
+             ** (SyntaxError) invalid syntax found on nofile:1:3:
+                 error: unterminated character
+                 │
+               1 │ $a$
+                 │   ^
+                 │
+                 └─ nofile:1:3\
+             """
 
       # Erlang exception
       Evaluator.evaluate_code(evaluator, :erlang, "list_to_binary(1).", :code_4, [])
       assert_receive {:runtime_evaluation_response, :code_4, error(message), metadata()}
-      assert "\e[31mexception error: bad argument" <> _ = message
+
+      assert clean_message(message) =~ """
+             exception error: bad argument
+               in function  list_to_binary/1
+                  called as list_to_binary(1)
+                  *** argument 1: not an iolist term
+               in call from erl_eval:do_apply/7 (erl_eval.erl, line\
+             """
+    end
+  end
+
+  describe "python evaluation" do
+    test "evaluates python code", %{evaluator: evaluator} do
+      code = """
+      x = [1, 2, 3]
+      sum(x)
+      """
+
+      Evaluator.evaluate_code(evaluator, :python, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text("6"), metadata()}
+    end
+
+    test "uses and defines binding", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :elixir, "x = 1", :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
+
+      Evaluator.evaluate_code(evaluator, :python, "y = x", :code_2, [:code_1])
+      assert_receive {:runtime_evaluation_response, :code_2, _, metadata()}
+
+      Evaluator.evaluate_code(evaluator, :elixir, "z = y", :code_3, [:code_2, :code_1])
+      assert_receive {:runtime_evaluation_response, :code_3, _, metadata()}
+
+      %{binding: binding} =
+        Evaluator.get_evaluation_context(evaluator, [:code_3, :code_2, :code_1])
+
+      assert [{:z, %Pythonx.Object{}}, {:y, %Pythonx.Object{}}, {:x, 1}] = binding
+    end
+
+    test "undefined variable error", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :python, "x + 1", :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, error(message),
+                      %{
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: "NameError: name 'x' is not defined",
+                            severity: :error
+                          }
+                        ]
+                      }}
+
+      assert clean_message(message) == """
+             Traceback (most recent call last):
+               File "<string>", line 1, in <module>
+             NameError: name 'x' is not defined
+             """
+    end
+
+    test "syntax error", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :python, "1 +", :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, error(message),
+                      %{
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: "SyntaxError: invalid syntax",
+                            severity: :error
+                          }
+                        ]
+                      }}
+
+      assert clean_message(message) == """
+               File "<unknown>", line 1
+                 1 +
+                    ^
+             SyntaxError: invalid syntax
+             """
+    end
+
+    test "runtime error", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :python, "import unknown", :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, error(message),
+                      %{
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: "ModuleNotFoundError: No module named 'unknown'",
+                            severity: :error
+                          }
+                        ]
+                      }}
+
+      assert clean_message(message) == """
+             Traceback (most recent call last):
+               File "<string>", line 1, in <module>
+             ModuleNotFoundError: No module named 'unknown'
+             """
+    end
+
+    test "captures standard output and sends it to the caller", %{evaluator: evaluator} do
+      code = """
+      print("hello from Python")
+      """
+
+      Evaluator.evaluate_code(evaluator, :python, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      terminal_text("hello from Python\n", true)}
+    end
+
+    test "captures standard error and sends it to the caller", %{evaluator: evaluator} do
+      code = """
+      import sys
+      print("error from Python", file=sys.stderr)
+      """
+
+      Evaluator.evaluate_code(evaluator, :python, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      terminal_text("error from Python\n", true)}
     end
   end
 

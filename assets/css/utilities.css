@@ -5,12 +5,32 @@
     background-color: #282c34;
   }
 
-  body[data-editor-theme="light"] .bg-editor {
-    background-color: #fafafa;
+  .bg-editor-lighter {
+    background-color: #2f343e;
+  }
+
+  .border-editor {
+    border-color: #363c46;
   }
 
   .text-editor {
     color: #c4cad6;
+  }
+
+  body[data-editor-theme="light"] .bg-editor {
+    background-color: #fafafa;
+  }
+
+  body[data-editor-theme="light"] .bg-editor-lighter {
+    background-color: #ebebec;
+  }
+
+  body[data-editor-theme="light"] .border-editor {
+    border-color: #dfdfe0;
+  }
+
+  body[data-editor-theme="light"] .text-editor {
+    color: #383a41;
   }
 
   .font-editor {

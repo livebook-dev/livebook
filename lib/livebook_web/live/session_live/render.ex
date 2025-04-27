@@ -28,6 +28,7 @@ defmodule LivebookWeb.SessionLive.Render do
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <.indicators
           session_id={@session.id}
+          mode={@session.mode}
           file={@data_view.file}
           dirty={@data_view.dirty}
           persistence_warnings={@data_view.persistence_warnings}
@@ -52,7 +53,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :runtime_settings}
       id="runtime-settings-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.live_component
@@ -72,7 +73,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :file_settings}
       id="persistence-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.live_component
@@ -91,7 +92,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :app_settings}
       id="app-settings-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -108,7 +109,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :app_docker}
       id="app-docker-modal"
       show
-      width={:large}
+      width="large"
       patch={@self_path}
     >
       <.live_component
@@ -125,20 +126,20 @@ defmodule LivebookWeb.SessionLive.Render do
       />
     </.modal>
 
-    <.modal :if={@live_action == :app_teams} id="app-teams-modal" show width={:big} patch={@self_path}>
-      <%= live_render(@socket, LivebookWeb.SessionLive.AppTeamsLive,
+    <.modal :if={@live_action == :app_teams} id="app-teams-modal" show width="big" patch={@self_path}>
+      {live_render(@socket, LivebookWeb.SessionLive.AppTeamsLive,
         id: "app-teams",
         session: %{
           "session_pid" => @session.pid
         }
-      ) %>
+      )}
     </.modal>
 
     <.modal
       :if={@live_action == :app_teams_hub_info}
       id="app-teams-hub-info-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.app_teams_hub_info_content
@@ -151,7 +152,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :add_file_entry}
       id="add-file-entry-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.add_file_entry_content
@@ -166,7 +167,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :rename_file_entry}
       id="rename-file-entry-modal"
       show
-      width={:big}
+      width="big"
       patch={@self_path}
     >
       <.live_component
@@ -181,7 +182,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :shortcuts}
       id="shortcuts-modal"
       show
-      width={:large}
+      width="large"
       patch={@self_path}
     >
       <.live_component
@@ -195,7 +196,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :cell_settings}
       id="cell-settings-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -211,7 +212,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :insert_image}
       id="insert-image-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -227,7 +228,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :insert_file}
       id="insert-file-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -239,7 +240,7 @@ defmodule LivebookWeb.SessionLive.Render do
       />
     </.modal>
 
-    <.modal :if={@live_action == :bin} id="bin-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :bin} id="bin-modal" show width="big" patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.BinComponent}
         id="bin"
@@ -249,7 +250,7 @@ defmodule LivebookWeb.SessionLive.Render do
       />
     </.modal>
 
-    <.modal :if={@live_action == :export} id="export-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :export} id="export-modal" show width="big" patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.ExportComponent}
         id="export"
@@ -263,23 +264,23 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :package_search}
       id="package-search-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
-      <%= live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
+      {live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
         id: "package-search",
         session: %{
           "session_pid" => @session.pid,
           "runtime" => @data_view.runtime
         }
-      ) %>
+      )}
     </.modal>
 
     <.modal
       :if={@live_action == :secrets}
       id="secrets-modal"
       show
-      width={if(@action_assigns.select_secret_metadata, do: :large, else: :medium)}
+      width={if(@action_assigns.select_secret_metadata, do: "large", else: "medium")}
       patch={@self_path}
     >
       <.live_component
@@ -299,7 +300,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :custom_view_settings}
       id="custom-view-modal"
       show
-      width={:medium}
+      width="medium"
       patch={@self_path}
     >
       <.live_component
@@ -500,7 +501,7 @@ defmodule LivebookWeb.SessionLive.Render do
               data-section-id={section_item.id}
             >
               <.remix_icon icon="h-2" class="text-lg font-normal leading-none opacity-50" />
-              <span><%= section_item.name %></span>
+              <span>{section_item.name}</span>
               <%!--
                 Note: the container has overflow-y auto, so we cannot set overflow-x visible,
                 consequently we show the tooltip wrapped to a fixed number of characters
@@ -525,15 +526,14 @@ defmodule LivebookWeb.SessionLive.Render do
           <ul :if={section_item.identifier_definitions != []} class="mt-2 ml-5 list-none items-center">
             <li :for={definition <- section_item.identifier_definitions}>
               <button
-                class="flex items-center max-w-full text-gray-600 hover:text-gray-900 text-sm gap-1"
+                class="flex items-baseline max-w-full text-gray-600 hover:text-gray-900 text-sm gap-1"
                 data-el-outline-definition-item
                 data-file={definition.file}
                 data-line={definition.line}
-                title={definition.label}
               >
                 <.remix_icon icon="braces-line" class="font-normal opacity-50" />
-                <span class="font-mono truncate">
-                  <%= definition.label %>
+                <span class="font-mono break-all text-left">
+                  {definition.label}
                 </span>
               </button>
             </li>
@@ -577,7 +577,7 @@ defmodule LivebookWeb.SessionLive.Render do
         </h3>
         <span class="flex items-center px-2 py-1 space-x-2 text-sm bg-gray-200 rounded-lg">
           <span class="inline-flex w-3 h-3 bg-green-600 rounded-full"></span>
-          <span><%= length(@data_view.clients) %> connected</span>
+          <span>{length(@data_view.clients)} connected</span>
         </span>
       </div>
       <div class="flex flex-col mt-5 space-y-4">
@@ -595,8 +595,8 @@ defmodule LivebookWeb.SessionLive.Render do
           >
             <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
             <span class="text-left">
-              <%= user.name || "Anonymous" %>
-              <%= if(client_id == @client_id, do: "(you)") %>
+              {user.name || "Anonymous"}
+              {if(client_id == @client_id, do: "(you)")}
             </span>
           </button>
           <%= if client_id == @client_id do %>
@@ -655,7 +655,7 @@ defmodule LivebookWeb.SessionLive.Render do
       <div class="flex flex-col mt-2">
         <div class="flex flex-col space-y-3">
           <.labeled_text :for={{label, value} <- @data_view.runtime_metadata} label={label} one_line>
-            <%= value %>
+            {value}
           </.labeled_text>
         </div>
         <div class="mt-4 grid grid-cols-2 gap-2">
@@ -688,10 +688,10 @@ defmodule LivebookWeb.SessionLive.Render do
         </div>
 
         <div :if={@data_view.runtime_connect_info} class="mt-4">
-          <.message_box kind={:info}>
+          <.message_box kind="info">
             <div class="flex items-center gap-2">
               <.spinner />
-              <span>Step: <%= @data_view.runtime_connect_info %></span>
+              <span>Step: {@data_view.runtime_connect_info}</span>
             </div>
           </.message_box>
         </div>
@@ -729,9 +729,9 @@ defmodule LivebookWeb.SessionLive.Render do
         <.runtime_memory_info memory_usage={@memory_usage} />
       <% else %>
         <p class="text-sm text-gray-800">
-          <%= format_bytes(@memory_usage.system.free) %> available out of <%= format_bytes(
+          {format_bytes(@memory_usage.system.free)} available out of {format_bytes(
             @memory_usage.system.total
-          ) %>
+          )}
         </p>
       <% end %>
     </div>
@@ -758,12 +758,12 @@ defmodule LivebookWeb.SessionLive.Render do
       <div class="flex flex-col">
         <div :for={{type, memory} <- @runtime_memory} class="flex flex-row items-center">
           <span class={["w-4 h-4 mr-2 rounded", memory_color(type)]}></span>
-          <span class="capitalize text-gray-700"><%= type %></span>
-          <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
+          <span class="capitalize text-gray-700">{type}</span>
+          <span class="text-gray-500 ml-auto">{memory.unit}</span>
         </div>
       </div>
       <div class="flex rounded justify-center py-0.5 text-sm text-gray-800 bg-gray-200">
-        Total: <%= format_bytes(@memory_usage.runtime.total) %>
+        Total: {format_bytes(@memory_usage.runtime.total)}
       </div>
     </div>
     """
@@ -795,7 +795,7 @@ defmodule LivebookWeb.SessionLive.Render do
       <span class="text-sm text-gray-500 font-semibold uppercase">
         Connected nodes
         <%= if @runtime_connected_nodes != [] do %>
-          (<%= length(@runtime_connected_nodes) %>)
+          ({length(@runtime_connected_nodes)})
         <% end %>
       </span>
       <%= if @runtime_connected_nodes == [] do %>
@@ -813,7 +813,7 @@ defmodule LivebookWeb.SessionLive.Render do
               "flex-grow text-sm text-gray-700 text-medium whitespace-nowrap text-ellipsis overflow-hidden",
               "group-hover:overflow-visible group-hover:whitespace-normal group-hover:break-all"
             ]}>
-              <%= node %>
+              {node}
             </div>
             <span class="tooltip left" data-tooltip="Disconnect">
               <.icon_button phx-click="runtime_disconnect_node" phx-value-node={node} small>
@@ -830,7 +830,7 @@ defmodule LivebookWeb.SessionLive.Render do
   defp section_status(%{status: :evaluating} = assigns) do
     ~H"""
     <button data-el-focus-cell-button data-target={@cell_id}>
-      <.status_indicator variant={:progressing} />
+      <.status_indicator variant="progressing" />
     </button>
     """
   end
@@ -838,7 +838,7 @@ defmodule LivebookWeb.SessionLive.Render do
   defp section_status(%{status: :stale} = assigns) do
     ~H"""
     <button data-el-focus-cell-button data-target={@cell_id}>
-      <.status_indicator variant={:warning} />
+      <.status_indicator variant="warning" />
     </button>
     """
   end
@@ -881,7 +881,7 @@ defmodule LivebookWeb.SessionLive.Render do
           <span>See on Dashboard</span>
         </a>
       </.menu_item>
-      <.menu_item variant={:danger}>
+      <.menu_item variant="danger">
         <button role="menuitem" phx-click="close_session">
           <.remix_icon icon="close-circle-line" />
           <span>Close</span>
@@ -899,7 +899,7 @@ defmodule LivebookWeb.SessionLive.Render do
       </h3>
 
       <%= if @any_team_hub? do %>
-        <.message_box kind={:info}>
+        <.message_box kind="info">
           In order to deploy your app using Livebook Teams, you need to select a Livebook Teams
           workspace. To change the workspace, use the dropdown right below the notebook title.
           <.link
@@ -912,7 +912,7 @@ defmodule LivebookWeb.SessionLive.Render do
           </.link>
         </.message_box>
       <% else %>
-        <.message_box kind={:info}>
+        <.message_box kind="info">
           In order to deploy your app using Livebook Teams, you need to create an organization.
           <.link class="text-blue-600 font-medium" patch={~p"/hub"}>
             <span>Add organization</span>
@@ -1030,6 +1030,7 @@ defmodule LivebookWeb.SessionLive.Render do
         >
           <.view_indicator />
           <.persistence_indicator
+            mode={@mode}
             file={@file}
             dirty={@dirty}
             persistence_warnings={@persistence_warnings}
@@ -1051,7 +1052,7 @@ defmodule LivebookWeb.SessionLive.Render do
   defp view_indicator(assigns) do
     ~H"""
     <div class="tooltip left" data-tooltip="Choose views to activate" data-el-views>
-      <.menu id="views-menu" position={:bottom_right} sm_position={:top_right}>
+      <.menu id="views-menu" position="bottom-right" sm_position="top-right">
         <:toggle>
           <button
             class={status_button_classes(:gray)}
@@ -1065,7 +1066,7 @@ defmodule LivebookWeb.SessionLive.Render do
             aria-label="choose views to activate"
             data-el-views-enabled
           >
-            <.remix_icon icon="layout-5-line" class="text-xl text-green-bright-400" />
+            <.remix_icon icon="layout-5-line" />
           </button>
         </:toggle>
         <.menu_item>
@@ -1088,6 +1089,24 @@ defmodule LivebookWeb.SessionLive.Render do
         </.menu_item>
       </.menu>
     </div>
+    """
+  end
+
+  defp persistence_indicator(%{mode: :app} = assigns) do
+    ~H"""
+    <span
+      class="tooltip left"
+      data-tooltip={
+        ~S'''
+        This session is a deployed app. You can use it
+        for debugging, but changes are not persisted.
+        '''
+      }
+    >
+      <button class={[status_button_classes(:gray), "opacity-60"]} disabled>
+        <.remix_icon icon="save-line" />
+      </button>
+    </span>
     """
   end
 
@@ -1311,20 +1330,20 @@ defmodule LivebookWeb.SessionLive.Render do
               data-el-heading
               spellcheck="false"
               phx-no-format
-            ><%= @data_view.notebook_name %></h1>
+            >{@data_view.notebook_name}</h1>
           </div>
           <.session_menu session={@session} />
         </div>
         <div class="flex flex-nowrap place-content-between items-center gap-2">
-          <.menu position={:bottom_left} id="notebook-hub-menu">
+          <.menu position="bottom-left" id="notebook-hub-menu">
             <:toggle>
               <div
                 class="inline-flex items-center cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
                 aria-label={@data_view.hub.hub_name}
               >
                 <span>Using</span>
-                <span class="pl-1"><%= @data_view.hub.hub_emoji %></span>
-                <span><%= @data_view.hub.hub_name %></span>
+                <span class="pl-1">{@data_view.hub.hub_emoji}</span>
+                <span>{@data_view.hub.hub_name}</span>
                 <.remix_icon icon="arrow-down-s-line" class="-ml-1" />
                 <span>workspace</span>
               </div>
@@ -1336,8 +1355,8 @@ defmodule LivebookWeb.SessionLive.Render do
                 aria-label={hub.name}
                 role="menuitem"
               >
-                <%= hub.emoji %>
-                <span class="ml-2"><%= hub.name %></span>
+                {hub.emoji}
+                <span class="ml-2">{hub.name}</span>
               </button>
             </.menu_item>
             <.menu_item>
@@ -1351,18 +1370,39 @@ defmodule LivebookWeb.SessionLive.Render do
           </div>
         </div>
       </div>
-      <div>
-        <.live_component
-          module={LivebookWeb.SessionLive.CellComponent}
-          id={@data_view.setup_cell_view.id}
-          session_id={@session.id}
-          session_pid={@session.pid}
-          client_id={@client_id}
-          runtime={@data_view.runtime}
-          installing?={@data_view.installing?}
-          allowed_uri_schemes={@allowed_uri_schemes}
-          cell_view={@data_view.setup_cell_view}
-        />
+      <div data-el-setup-section>
+        <div class="flex flex-col gap-2">
+          <.live_component
+            :for={setup_cell_view <- @data_view.setup_cell_views}
+            module={LivebookWeb.SessionLive.CellComponent}
+            id={setup_cell_view.id}
+            session_id={@session.id}
+            session_pid={@session.pid}
+            client_id={@client_id}
+            runtime={@data_view.runtime}
+            installing?={@data_view.installing?}
+            allowed_uri_schemes={@allowed_uri_schemes}
+            enabled_languages={@data_view.enabled_languages}
+            cell_view={setup_cell_view}
+          />
+        </div>
+        <div
+          :if={:python not in @data_view.enabled_languages}
+          class="flex mt-2"
+          data-el-language-buttons
+        >
+          <.button
+            color="gray"
+            outlined
+            small
+            phx-click="enable_language"
+            phx-value-language="python"
+            disabled={Livebook.Runtime.fixed_dependencies?(@data_view.runtime)}
+          >
+            <.remix_icon icon="add-line" class="text-sm -mx-0.5 leading-none" />
+            <span>Python</span>
+          </.button>
+        </div>
       </div>
       <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
         <div :if={@data_view.section_views == []} class="flex justify-center">
@@ -1385,6 +1425,7 @@ defmodule LivebookWeb.SessionLive.Render do
           allowed_uri_schemes={@allowed_uri_schemes}
           section_view={section_view}
           default_language={@data_view.default_language}
+          enabled_languages={@data_view.enabled_languages}
         />
         <div style="height: 80vh"></div>
       </div>

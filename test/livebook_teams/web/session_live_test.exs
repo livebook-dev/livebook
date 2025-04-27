@@ -4,7 +4,9 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   import Phoenix.LiveViewTest
   import Livebook.SessionHelpers
 
-  alias Livebook.{FileSystem, Sessions, Session}
+  alias Livebook.FileSystem
+  alias Livebook.Sessions
+  alias Livebook.Session
 
   setup do
     {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
@@ -90,12 +92,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # render the secret modal
       assert_patch(view, ~p"/sessions/#{session.id}/secrets")
 
-      secret =
-        build(:secret,
-          name: "BIG_IMPORTANT_SECRET",
-          value: "123",
-          hub_id: team.id
-        )
+      secret = build(:secret, hub_id: team.id)
 
       attrs = %{
         secret: %{
@@ -157,12 +154,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       Session.set_notebook_hub(session.pid, team.id)
 
       # creates a new secret
-      secret =
-        build(:secret,
-          name: "POSTGRES_PASSWORD",
-          value: "123456789",
-          hub_id: team.id
-        )
+      secret = build(:secret, hub_id: team.id)
 
       assert Livebook.Hubs.create_secret(team, secret) == :ok
 
@@ -179,12 +171,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
          %{conn: conn, user: user, node: node, session: session} do
       team = create_team_hub(user, node)
 
-      secret =
-        build(:secret,
-          name: "MYSQL_PASS",
-          value: "admin",
-          hub_id: team.id
-        )
+      secret = build(:secret, hub_id: team.id)
 
       # selects the notebook's hub with team hub id
       Session.set_notebook_hub(session.pid, team.id)
@@ -233,12 +220,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
          %{conn: conn, user: user, node: node, session: session} do
       team = create_team_hub(user, node)
 
-      secret =
-        build(:secret,
-          name: "PGPASS",
-          value: "admin",
-          hub_id: team.id
-        )
+      secret = build(:secret, hub_id: team.id)
 
       # selects the notebook's hub with team hub id
       Session.set_notebook_hub(session.pid, team.id)

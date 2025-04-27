@@ -1,5 +1,5 @@
 defmodule Livebook.Teams.Broadcasts do
-  alias Livebook.Teams.{Agent, AppDeployment, DeploymentGroup}
+  alias Livebook.Teams
 
   @type broadcast :: :ok | {:error, term()}
 
@@ -70,56 +70,56 @@ defmodule Livebook.Teams.Broadcasts do
   @doc """
   Broadcasts under `#{@deployment_groups_topic}` topic when hub received a new deployment group.
   """
-  @spec deployment_group_created(DeploymentGroup.t()) :: broadcast()
-  def deployment_group_created(%DeploymentGroup{} = deployment_group) do
+  @spec deployment_group_created(Teams.DeploymentGroup.t()) :: broadcast()
+  def deployment_group_created(%Teams.DeploymentGroup{} = deployment_group) do
     broadcast(@deployment_groups_topic, {:deployment_group_created, deployment_group})
   end
 
   @doc """
   Broadcasts under `#{@deployment_groups_topic}` topic when hub received an updated deployment group.
   """
-  @spec deployment_group_updated(DeploymentGroup.t()) :: broadcast()
-  def deployment_group_updated(%DeploymentGroup{} = deployment_group) do
+  @spec deployment_group_updated(Teams.DeploymentGroup.t()) :: broadcast()
+  def deployment_group_updated(%Teams.DeploymentGroup{} = deployment_group) do
     broadcast(@deployment_groups_topic, {:deployment_group_updated, deployment_group})
   end
 
   @doc """
   Broadcasts under `#{@deployment_groups_topic}` topic when hub received a deleted deployment group.
   """
-  @spec deployment_group_deleted(DeploymentGroup.t()) :: broadcast()
-  def deployment_group_deleted(%DeploymentGroup{} = deployment_group) do
+  @spec deployment_group_deleted(Teams.DeploymentGroup.t()) :: broadcast()
+  def deployment_group_deleted(%Teams.DeploymentGroup{} = deployment_group) do
     broadcast(@deployment_groups_topic, {:deployment_group_deleted, deployment_group})
   end
 
   @doc """
   Broadcasts under `#{@app_deployments_topic}` topic when hub received to start a new app deployment.
   """
-  @spec app_deployment_started(AppDeployment.t()) :: broadcast()
-  def app_deployment_started(%AppDeployment{} = app_deployment) do
+  @spec app_deployment_started(Teams.AppDeployment.t()) :: broadcast()
+  def app_deployment_started(%Teams.AppDeployment{} = app_deployment) do
     broadcast(@app_deployments_topic, {:app_deployment_started, app_deployment})
   end
 
   @doc """
   Broadcasts under `#{@app_deployments_topic}` topic when hub received to stop an app deployment.
   """
-  @spec app_deployment_stopped(AppDeployment.t()) :: broadcast()
-  def app_deployment_stopped(%AppDeployment{} = app_deployment) do
+  @spec app_deployment_stopped(Teams.AppDeployment.t()) :: broadcast()
+  def app_deployment_stopped(%Teams.AppDeployment{} = app_deployment) do
     broadcast(@app_deployments_topic, {:app_deployment_stopped, app_deployment})
   end
 
   @doc """
   Broadcasts under `#{@agents_topic}` topic when hub received a new agent.
   """
-  @spec agent_joined(Agent.t()) :: broadcast()
-  def agent_joined(%Agent{} = agent) do
+  @spec agent_joined(Teams.Agent.t()) :: broadcast()
+  def agent_joined(%Teams.Agent{} = agent) do
     broadcast(@agents_topic, {:agent_joined, agent})
   end
 
   @doc """
   Broadcasts under `#{@agents_topic}` topic when hub received a deleted agent.
   """
-  @spec agent_left(Agent.t()) :: broadcast()
-  def agent_left(%Agent{} = agent) do
+  @spec agent_left(Teams.Agent.t()) :: broadcast()
+  def agent_left(%Teams.Agent{} = agent) do
     broadcast(@agents_topic, {:agent_left, agent})
   end
 

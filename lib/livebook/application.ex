@@ -1,13 +1,16 @@
 defmodule Livebook.Application do
   use Application
 
+  require Logger
+
   def start(_type, _args) do
     Livebook.ZTA.init()
+    create_teams_hub = parse_teams_hub()
     setup_optional_dependencies()
     ensure_directories!()
     set_local_file_system!()
 
-    validate_epmd_module!()
+    set_epmd_module!()
     start_distribution!()
     set_cookie()
 
@@ -51,7 +54,7 @@ defmodule Livebook.Application do
           # Start the supervisor dynamically managing connections
           {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
           # Run startup logic relying on the supervision tree
-          {Livebook.Utils.SupervisionStep, {:boot, &boot/0}},
+          {Livebook.Utils.SupervisionStep, {:boot, boot(create_teams_hub)}},
           # App manager supervision tree. We do it after boot, because
           # permanent apps are going to be started right away and this
           # depends on hubs being started
@@ -66,7 +69,7 @@ defmodule Livebook.Application do
             [
               {module, name: LivebookWeb.ZTA, identity_key: key},
               # We skip the access url as we do our own logging below
-              {LivebookWeb.Endpoint, log_access_url: false}
+              endpoint_childspec(log_access_url: false)
             ] ++ app_specs()
         end
 
@@ -82,14 +85,16 @@ defmodule Livebook.Application do
     end
   end
 
-  def boot() do
-    load_lb_env_vars()
-    create_teams_hub()
-    clear_env_vars()
-    Livebook.Hubs.connect_hubs()
+  def boot(create_teams_hub) do
+    fn ->
+      load_lb_env_vars()
+      create_teams_hub.()
+      clear_env_vars()
+      Livebook.Hubs.connect_hubs()
 
-    unless serverless?() do
-      load_apps_dir()
+      if not serverless?() do
+        load_apps_dir()
+      end
     end
   end
 
@@ -120,19 +125,28 @@ defmodule Livebook.Application do
     :persistent_term.put(:livebook_local_file_system, local_file_system)
   end
 
-  defp validate_epmd_module!() do
+  defp set_epmd_module!() do
     # We use a custom EPMD module. In releases and Escript, we make
     # sure the necessary erl flags are set. When running from source,
-    # those need to be passed explicitly.
+    # we try to use the new :kernel configuration available in OTP 27.2,
+    # otherwise it needs to be set explicitly.
+
+    # TODO: always rely on :kernel configuration once we require OTP 27.2
+
     case :init.get_argument(:epmd_module) do
       {:ok, [[~c"Elixir.Livebook.EPMD"]]} ->
         :ok
 
       _ ->
-        Livebook.Config.abort!("""
-        You must set the environment variable ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD" \
-        before the command (and exclusively before the command)
-        """)
+        Application.put_env(:kernel, :epmd_module, Livebook.EPMD, persistent: true)
+
+        # Note: this is a private API
+        if :net_kernel.epmd_module() != Livebook.EPMD do
+          Livebook.Config.abort!("""
+          You must set the environment variable ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD" \
+          before the command (and exclusively before the command)
+          """)
+        end
     end
   end
 
@@ -175,10 +189,40 @@ defmodule Livebook.Application do
     end
   end
 
-  if Mix.target() == :app do
+  @app? Mix.target() == :app
+
+  if @app? do
     defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
+  end
+
+  # In order to provide good first experience with the desktop app,
+  # in case the endpoint or iframe port is taken, we automatically
+  # fallback to a random port.
+
+  if @app? do
+    defp endpoint_childspec(opts) do
+      %{start: start} = childspec = LivebookWeb.Endpoint.child_spec(opts)
+      %{childspec | start: {__MODULE__, :endpoint_start, [start]}}
+    end
+  else
+    defp endpoint_childspec(opts), do: LivebookWeb.Endpoint.child_spec(opts)
+  end
+
+  @doc false
+  def endpoint_start({mod, fun, args}) do
+    with {:error,
+          {:shutdown,
+           {:failed_to_start_child, {LivebookWeb.Endpoint, :http},
+            {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}}}} <-
+           apply(mod, fun, args) do
+      config = Application.get_env(:livebook, LivebookWeb.Endpoint)
+      config = put_in(config[:http][:port], 0)
+      Application.put_env(:livebook, LivebookWeb.Endpoint, config, persistent: true)
+      Logger.warning("Starting server using a random port")
+      endpoint_start({mod, fun, args})
+    end
   end
 
   defp iframe_server_specs() do
@@ -188,7 +232,7 @@ defmodule Livebook.Application do
     if server? do
       http = Application.fetch_env!(:livebook, LivebookWeb.Endpoint)[:http]
 
-      iframe_opts =
+      opts =
         [
           scheme: :http,
           plug: LivebookWeb.IframeEndpoint,
@@ -196,9 +240,29 @@ defmodule Livebook.Application do
           thousand_island_options: [supervisor_options: [name: LivebookWeb.IframeEndpoint]]
         ] ++ Keyword.take(http, [:ip])
 
-      [{Bandit, iframe_opts}]
+      [iframe_endpoint_childspec(opts)]
     else
       []
+    end
+  end
+
+  if @app? do
+    defp iframe_endpoint_childspec(opts) do
+      %{start: start} = childspec = Bandit.child_spec(opts)
+      %{childspec | start: {__MODULE__, :iframe_endpoint_start, [start]}}
+    end
+  else
+    defp iframe_endpoint_childspec(opts), do: Bandit.child_spec(opts)
+  end
+
+  @doc false
+  def iframe_endpoint_start({mod, fun, [opts]}) do
+    with {:error, {:shutdown, {:failed_to_start_child, :listener, :eaddrinuse}}} <-
+           apply(mod, fun, [opts]) do
+      Application.put_env(:livebook, :iframe_port, 0, persistent: true)
+      opts = Keyword.replace!(opts, :port, 0)
+      Logger.warning("Starting iframe server using a random port")
+      iframe_endpoint_start({mod, fun, [opts]})
     end
   end
 
@@ -223,24 +287,41 @@ defmodule Livebook.Application do
     end
   end
 
-  defp create_teams_hub() do
+  defp parse_teams_hub() do
     teams_key = System.get_env("LIVEBOOK_TEAMS_KEY")
     auth = System.get_env("LIVEBOOK_TEAMS_AUTH")
 
     cond do
       teams_key && auth ->
-        Application.put_env(:livebook, :teams_auth?, true)
+        {hub_id, fun} =
+          case String.split(auth, ":") do
+            ["offline", name, public_key] ->
+              Application.put_env(:livebook, :teams_auth, :offline)
+              hub_id = "team-#{name}"
 
-        case String.split(auth, ":") do
-          ["offline", name, public_key] ->
-            create_offline_hub(teams_key, name, public_key)
+              {hub_id, fn -> create_offline_hub(teams_key, hub_id, name, public_key) end}
 
-          ["online", name, org_id, org_key_id, agent_key] ->
-            create_online_hub(teams_key, name, org_id, org_key_id, agent_key)
+            ["online", name, org_id, org_key_id, agent_key] ->
+              Application.put_env(:livebook, :teams_auth, :online)
+              hub_id = "team-" <> name
 
-          _ ->
-            Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
-        end
+              with :error <- Application.fetch_env(:livebook, :identity_provider) do
+                Application.put_env(
+                  :livebook,
+                  :identity_provider,
+                  {:zta, Livebook.ZTA.LivebookTeams, hub_id}
+                )
+              end
+
+              {hub_id,
+               fn -> create_online_hub(teams_key, hub_id, name, org_id, org_key_id, agent_key) end}
+
+            _ ->
+              Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
+          end
+
+        Application.put_env(:livebook, :apps_path_hub_id, hub_id)
+        fun
 
       teams_key || auth ->
         Livebook.Config.abort!(
@@ -248,26 +329,22 @@ defmodule Livebook.Application do
         )
 
       true ->
-        :ok
+        fn -> :ok end
     end
   end
 
-  defp create_offline_hub(teams_key, name, public_key) do
+  defp create_offline_hub(teams_key, id, name, public_key) do
     encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS")
     encrypted_file_systems = System.get_env("LIVEBOOK_TEAMS_FS")
     secret_key = Livebook.Teams.derive_key(teams_key)
-    id = "team-#{name}"
 
     secrets =
       if encrypted_secrets do
         case Livebook.Teams.decrypt(encrypted_secrets, secret_key) do
           {:ok, json} ->
-            for {name, value} <- Jason.decode!(json),
-                do: %Livebook.Secrets.Secret{
-                  name: name,
-                  value: value,
-                  hub_id: id
-                }
+            for {name, value} <- JSON.decode!(json) do
+              %Livebook.Secrets.Secret{name: name, value: value, hub_id: id}
+            end
 
           :error ->
             Livebook.Config.abort!(
@@ -282,7 +359,7 @@ defmodule Livebook.Application do
       if encrypted_file_systems do
         case Livebook.Teams.decrypt(encrypted_file_systems, secret_key) do
           {:ok, json} ->
-            for %{"type" => type} = dumped_data <- Jason.decode!(json),
+            for %{"type" => type} = dumped_data <- JSON.decode!(json),
                 do: Livebook.FileSystems.load(type, dumped_data)
 
           :error ->
@@ -295,7 +372,7 @@ defmodule Livebook.Application do
       end
 
     Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
-      id: "team-#{name}",
+      id: id,
       hub_name: name,
       hub_emoji: "⭐️",
       user_id: nil,
@@ -311,9 +388,9 @@ defmodule Livebook.Application do
     })
   end
 
-  defp create_online_hub(teams_key, name, org_id, org_key_id, agent_key) do
+  defp create_online_hub(teams_key, id, name, org_id, org_key_id, agent_key) do
     Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
-      id: "team-#{name}",
+      id: id,
       hub_name: name,
       hub_emoji: "💡",
       user_id: nil,

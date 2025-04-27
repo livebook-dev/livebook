@@ -53,17 +53,17 @@ defmodule LivebookWeb.SettingsLive do
                 <.labeled_text :if={app_name = Livebook.Config.app_service_name()} label="Application">
                   <%= if app_url = Livebook.Config.app_service_url() do %>
                     <a href={app_url} class="underline hover:no-underline" target="_blank">
-                      <%= app_name %>
+                      {app_name}
                     </a>
                   <% else %>
-                    <%= app_name %>
+                    {app_name}
                   <% end %>
                 </.labeled_text>
                 <.labeled_text label="Livebook">
-                  v<%= Livebook.Config.app_version() %>
+                  v{Livebook.Config.app_version()}
                 </.labeled_text>
                 <.labeled_text label="Elixir">
-                  v<%= System.version() %>
+                  v{System.version()}
                 </.labeled_text>
               </div>
 
@@ -155,6 +155,11 @@ defmodule LivebookWeb.SettingsLive do
                 label="Show function signature while typing"
                 value={false}
               />
+              <.switch_field
+                name="editor_auto_close_brackets"
+                label="Automatically close brackets"
+                value={false}
+              />
               <.switch_field name="editor_font_size" label="Increase font size" value={false} />
               <.switch_field name="editor_ligatures" label="Render ligatures" value={false} />
               <.switch_field name="editor_light_theme" label="Use light theme" value={false} />
@@ -189,7 +194,7 @@ defmodule LivebookWeb.SettingsLive do
       :if={@live_action in [:add_env_var, :edit_env_var]}
       id="env-var-modal"
       show
-      width={:medium}
+      width="medium"
       patch={~p"/settings"}
     >
       <.live_component

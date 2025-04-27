@@ -1,5 +1,5 @@
 defmodule LivebookProto.Event do
-  use Protobuf, syntax: :proto3, protoc_gen_elixir_version: "0.12.0"
+  use Protobuf, protoc_gen_elixir_version: "0.14.1", syntax: :proto3
 
   oneof :type, 0
 
@@ -70,5 +70,12 @@ defmodule LivebookProto.Event do
   field :app_deployment_stopped, 16,
     type: LivebookProto.AppDeploymentStopped,
     json_name: "appDeploymentStopped",
+    oneof: 0
+
+  field :org_updated, 17, type: LivebookProto.OrgUpdated, json_name: "orgUpdated", oneof: 0
+
+  field :app_deployment_updated, 18,
+    type: LivebookProto.AppDeploymentUpdated,
+    json_name: "appDeploymentUpdated",
     oneof: 0
 end

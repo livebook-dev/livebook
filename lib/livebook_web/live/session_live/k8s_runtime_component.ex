@@ -3,8 +3,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   import Ecto.Changeset
 
-  alias Livebook.{Session, Runtime}
-  alias Livebook.K8s.{Pod, PVC}
+  alias Livebook.K8s
 
   @kubeconfig_pipeline Application.compile_env(:livebook, :k8s_kubeconfig_pipeline)
 
@@ -31,7 +30,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        pvc_action: nil,
        pvc_name: nil,
        docker_tag: hd(Livebook.Config.docker_images()).tag,
-       pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil},
+       pod_template: %{template: K8s.Pod.default_pod_template(), error_message: nil},
        save_config_payload: nil
      )}
   end
@@ -62,7 +61,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         is_map_key(socket.assigns, :config_defaults) ->
           socket
 
-        is_struct(assigns.runtime, Runtime.K8s) ->
+        is_struct(assigns.runtime, Livebook.Runtime.K8s) ->
           %{config: config} = assigns.runtime
 
           config_defaults =
@@ -88,7 +87,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     ~H"""
     <div>
       <div :if={warning = kubectl_warning()} class="mb-2">
-        <.message_box kind={:warning} message={warning} />
+        <.message_box kind="warning" message={warning} />
       </div>
 
       <p class="text-gray-700">
@@ -107,7 +106,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       />
 
       <div :if={@save_config_payload == nil}>
-        <.message_box :if={@kubeconfig.current_cluster == nil} kind={:error}>
+        <.message_box :if={@kubeconfig.current_cluster == nil} kind="error">
           In order to use the Kubernetes context, you need to set the <code>KUBECONFIG</code>
           environment variable to a path pointing to a <a
             class="text-blue-600 hover:text-blue-700"
@@ -150,7 +149,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           </div>
         </form>
 
-        <.message_box :if={@rbac.status == :errors} kind={:error}>
+        <.message_box :if={@rbac.status == :errors} kind="error">
           <%= for error <- @rbac.errors do %>
             <.rbac_error error={error} />
           <% end %>
@@ -194,11 +193,11 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               phx-hook="TextareaAutosize"
             />
 
-            <.message_box :if={@pod_template.status != :valid} kind={@pod_template.status}>
-              <div class="flex items-center gap-2">
-                <span><%= @pod_template.message %></span>
-              </div>
-            </.message_box>
+            <.message_box
+              :if={@pod_template.error_message}
+              kind="error"
+              message={@pod_template.error_message}
+            />
           </form>
         </div>
 
@@ -214,7 +213,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         <div :if={@rbac.status == :ok} class="mt-8">
           <div class="flex gap-2">
             <.button phx-click="init" phx-target={@myself} disabled={@runtime_status == :connecting}>
-              <%= label(@namespace, @runtime, @runtime_status) %>
+              {label(@namespace, @runtime, @runtime_status)}
             </.button>
             <.button
               :if={@runtime_status == :connecting}
@@ -231,10 +230,10 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             class="mt-4 scroll-mb-8"
             phx-mounted={JS.dispatch("lb:scroll_into_view", detail: %{behavior: "instant"})}
           >
-            <.message_box kind={:info}>
+            <.message_box kind="info">
               <div class="flex items-center gap-2">
                 <.spinner />
-                <span>Step: <%= @runtime_connect_info %></span>
+                <span>Step: {@runtime_connect_info}</span>
               </div>
             </.message_box>
           </div>
@@ -307,7 +306,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           class="px-4 py-3 mt-4 flex space-x-4 items-center border border-gray-200 rounded-lg"
         >
           <p class="grow text-gray-700 text-sm">
-            Are you sure you want to irreversibly delete Persistent Volume Claim <span class="font-semibold"><%= @pvc_name %></span>?
+            Are you sure you want to irreversibly delete Persistent Volume Claim <span class="font-semibold">{@pvc_name}</span>?
           </p>
           <div class="flex space-x-4">
             <button
@@ -317,7 +316,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               disabled={@pvc_action.status == :inflight}
             >
               <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" />
-              <%= if @pvc_action[:type] == :delete, do: "Delete", else: "Deleting..." %>
+              {if @pvc_action[:type] == :delete, do: "Delete", else: "Deleting..."}
             </button>
             <button
               class="text-gray-600 font-medium text-sm"
@@ -358,7 +357,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
             type="submit"
             disabled={not @pvc_action.changeset.valid? or @pvc_action.status == :inflight}
           >
-            <%= if(@pvc_action.status == :inflight, do: "Creating...", else: "Create") %>
+            {if(@pvc_action.status == :inflight, do: "Creating...", else: "Create")}
           </.button>
           <.button
             type="button"
@@ -373,7 +372,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         </.form>
         <.message_box
           :if={@pvc_action[:status] == :error}
-          kind={:error}
+          kind="error"
           message={"Error: " <> @pvc_action.error.message}
         />
       </div>
@@ -392,13 +391,13 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   defp cluster_check_error(%{error: %{status: 401}} = assigns) do
     ~H"""
-    <.message_box kind={:error} message="Authentication with cluster failed." />
+    <.message_box kind="error" message="Authentication with cluster failed." />
     """
   end
 
   defp cluster_check_error(assigns) do
     ~H"""
-    <.message_box kind={:error} message={"Connection to cluster failed, reason: " <> @error.message} />
+    <.message_box kind="error" message={"Connection to cluster failed, reason: " <> @error.message} />
     """
   end
 
@@ -417,9 +416,9 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     ~H"""
     <div class="flex items-center justify-between">
       <div>
-        Authenticated user has no permission to <span class="font-semibold"><%= @verb %></span>
-        <code><%= @path %></code>
-        <span :if={@namespace}> in namespace <code><%= @namespace %></code> (or the namespace doesn't exist)</span>.
+        Authenticated user has no permission to <span class="font-semibold">{@verb}</span>
+        <code>{@path}</code>
+        <span :if={@namespace}> in namespace <code>{@namespace}</code> (or the namespace doesn't exist)</span>.
       </div>
     </div>
     """
@@ -429,7 +428,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     assigns = assign(assigns, :message, message)
 
     ~H"""
-    <div><%= @message %></div>
+    <div>{@message}</div>
     """
   end
 
@@ -457,7 +456,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   def handle_event("new_pvc", %{}, socket) do
     pvc_action = %{
       type: :new,
-      changeset: PVC.changeset(),
+      changeset: K8s.PVC.changeset(),
       storage_classes: storage_classes(socket.assigns),
       status: :initial,
       error: nil
@@ -469,7 +468,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   def handle_event("validate_pvc", %{"pvc" => pvc}, socket) do
     changeset =
       pvc
-      |> PVC.changeset()
+      |> K8s.PVC.changeset()
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign_nested(socket, :pvc_action, changeset: changeset)}
@@ -481,7 +480,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_event("create_pvc", %{"pvc" => pvc}, socket) do
     pvc
-    |> PVC.changeset()
+    |> K8s.PVC.changeset()
     |> apply_action(:insert)
     |> case do
       {:ok, applied_pvc} ->
@@ -517,14 +516,14 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_event("init", %{}, socket) do
     config = build_config(socket)
-    runtime = Runtime.K8s.new(config)
-    Session.set_runtime(socket.assigns.session.pid, runtime)
-    Session.connect_runtime(socket.assigns.session.pid)
+    runtime = Livebook.Runtime.K8s.new(config)
+    Livebook.Session.set_runtime(socket.assigns.session.pid, runtime)
+    Livebook.Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
   def handle_event("disconnect", %{}, socket) do
-    Session.disconnect_runtime(socket.assigns.session.pid)
+    Livebook.Session.disconnect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
@@ -548,7 +547,15 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       case namespaces_result do
         {:ok, namespaces} ->
           namespace_options = Enum.map(namespaces, & &1.name)
-          {:ok, namespace_options, List.first(namespace_options)}
+
+          default_namespace =
+            if socket.assigns.context == socket.assigns.config_defaults["context"] do
+              socket.assigns.config_defaults["namespace"]
+            end
+
+          context_namespace = socket.assigns.kubeconfig.current_namespace
+          namespace = default_namespace || context_namespace || List.first(namespace_options)
+          {:ok, namespace_options, namespace}
 
         {:error, %{status: 403}} ->
           # No access to list namespaces, we will show an input instead
@@ -616,12 +623,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp reconnecting?(namespace, runtime) do
-    match?(%Runtime.K8s{config: %{namespace: ^namespace}}, runtime)
+    match?(%Livebook.Runtime.K8s{config: %{namespace: ^namespace}}, runtime)
   end
 
   defp create_pvc(socket, pvc) do
     namespace = socket.assigns.namespace
-    manifest = PVC.manifest(pvc, namespace)
+    manifest = K8s.PVC.manifest(pvc, namespace)
     kubeconfig = socket.assigns.kubeconfig
 
     socket
@@ -711,21 +718,19 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
     with {:parse, {:ok, pod_template}} <-
            {:parse, YamlElixir.read_from_string(pod_template_yaml)},
-         {:validate, :ok} <- {:validate, Pod.validate_pod_template(pod_template, namespace)} do
-      assign(socket, :pod_template, %{template: pod_template_yaml, status: :valid, message: nil})
+         {:validate, :ok} <- {:validate, K8s.Pod.validate_pod_template(pod_template, namespace)} do
+      assign(socket, :pod_template, %{template: pod_template_yaml, error_message: nil})
     else
       {:parse, {:error, error}} ->
         assign(socket, :pod_template, %{
           template: pod_template_yaml,
-          status: :error,
-          message: Exception.message(error)
+          error_message: Exception.message(error)
         })
 
       {:validate, {:error, message}} ->
         assign(socket, :pod_template, %{
           template: pod_template_yaml,
-          status: :error,
-          message: message
+          error_message: message
         })
     end
   end
@@ -767,9 +772,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       pvc_name: config_defaults["pvc_name"],
       docker_tag: config_defaults["docker_tag"]
     )
-    |> set_context(config_defaults["context"])
-    |> set_namespace(config_defaults["namespace"])
     |> set_pod_template(config_defaults["pod_template"])
+    |> set_context(config_defaults["context"])
   end
 
   defp build_config(socket) do

@@ -23,9 +23,8 @@ defmodule Livebook.Hubs.DockerfileTest do
              FROM ghcr.io/livebook-dev/livebook:#{@version}
 
              # Apps configuration
-             ENV LIVEBOOK_APPS_PATH "/apps"
-             ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
-             ENV LIVEBOOK_APPS_PATH_HUB_ID "personal-hub"
+             ENV LIVEBOOK_APPS_PATH="/apps"
+             ENV LIVEBOOK_APPS_PATH_WARMUP="manual"
 
              # Notebook
              COPY notebook.livemd /apps/
@@ -49,7 +48,7 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert dockerfile =~
                """
                # Personal Hub secrets
-               ENV LB_TEST "test"
+               ENV LB_TEST="test"
                """
 
       refute dockerfile =~ "ENV LB_SESSION"
@@ -82,8 +81,8 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert dockerfile =~
                """
                # Personal Hub secrets
-               ENV LB_TEST "test"
-               ENV LB_TEST2 "test"
+               ENV LB_TEST="test"
+               ENV LB_TEST2="test"
                """
 
       refute dockerfile =~ "ENV LB_SESSION"
@@ -102,13 +101,12 @@ defmodule Livebook.Hubs.DockerfileTest do
              ARG TEAMS_KEY="lb_tk_fn0pL3YLWzPoPFWuHeV3kd0o7_SFuIOoU4C_k6OWDYg"
 
              # Teams Hub configuration for airgapped deployment
-             ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
-             ENV LIVEBOOK_TEAMS_AUTH "offline:org-name-387:lb_opk_fpxnp3r5djwxnmirx3tu276hialoivf3"
+             ENV LIVEBOOK_TEAMS_KEY=${TEAMS_KEY}
+             ENV LIVEBOOK_TEAMS_AUTH="offline:org-name-387:lb_opk_fpxnp3r5djwxnmirx3tu276hialoivf3"
 
              # Apps configuration
-             ENV LIVEBOOK_APPS_PATH "/apps"
-             ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
-             ENV LIVEBOOK_APPS_PATH_HUB_ID "team-org-name-387"
+             ENV LIVEBOOK_APPS_PATH="/apps"
+             ENV LIVEBOOK_APPS_PATH_WARMUP="manual"
 
              # Notebook
              COPY notebook.livemd /apps/
@@ -140,16 +138,6 @@ defmodule Livebook.Hubs.DockerfileTest do
       dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], file_systems, file, [], %{})
 
       assert dockerfile =~ "ENV LIVEBOOK_TEAMS_FS"
-    end
-
-    test "deploying with ZTA in teams hub" do
-      config = dockerfile_config(%{zta_provider: :cloudflare, zta_key: "cloudflare_key"})
-      hub = team_hub()
-      file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
-
-      dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
-
-      assert dockerfile =~ ~S/ENV LIVEBOOK_IDENTITY_PROVIDER "cloudflare:cloudflare_key"/
     end
 
     test "deploying a directory in teams hub" do
@@ -203,7 +191,7 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
 
-      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "auto"/
+      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER="auto"/
     end
 
     test "deploying with dns cluster setup" do
@@ -213,8 +201,31 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
 
-      assert dockerfile =~ ~s/ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"/
-      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "dns:QUERY"/
+      assert dockerfile =~ ~s/ENV LIVEBOOK_NODE="livebook_server@MACHINE_IP"/
+      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER="dns:QUERY"/
+    end
+
+    test "deploying with deployment group environment variables" do
+      config = %{
+        dockerfile_config()
+        | environment_variables: [
+            {"LIVEBOOK_IDENTITY_PROVIDER", "cloudflare:foobar"},
+            {"LIVEBOOK_TEAMS_URL", "http://localhost:8000"},
+            {"MY_JSON", ~S|{"foo": "bar"}|}
+          ]
+      }
+
+      hub = team_hub()
+      file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
+
+      dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
+
+      assert dockerfile =~ """
+             # Deployment group environment variables
+             ENV LIVEBOOK_IDENTITY_PROVIDER="cloudflare:foobar"
+             ENV LIVEBOOK_TEAMS_URL="http://localhost:8000"
+             ENV MY_JSON="{\\"foo\\": \\"bar\\"}"\
+             """
     end
   end
 
@@ -232,16 +243,6 @@ defmodule Livebook.Hubs.DockerfileTest do
                {"LIVEBOOK_TEAMS_AUTH",
                 "online:org-name-387:1:1:lb_ak_zj9tWM1rEVeweYR7DbH_2VK5_aKtWfptcL07dBncqg"}
              ]
-    end
-
-    test "deploying with zta" do
-      config = dockerfile_config(%{zta_provider: :cloudflare, zta_key: "cloudflare_key"})
-      hub = team_hub()
-      agent_key = Livebook.Factory.build(:agent_key)
-
-      %{env: env} = Dockerfile.online_docker_info(config, hub, agent_key)
-
-      assert {"LIVEBOOK_IDENTITY_PROVIDER", "cloudflare:cloudflare_key"} in env
     end
 
     test "deploying with different base image" do
@@ -273,6 +274,24 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       assert {"LIVEBOOK_NODE", "livebook_server@MACHINE_IP"} in env
       assert {"LIVEBOOK_CLUSTER", "dns:QUERY"} in env
+    end
+
+    test "deploying with deployment group environment variables" do
+      config = %{
+        dockerfile_config()
+        | environment_variables: %{
+            "LIVEBOOK_IDENTITY_PROVIDER" => "cloudflare:foobar",
+            "LIVEBOOK_TEAMS_URL" => "http://localhost:8000"
+          }
+      }
+
+      hub = team_hub()
+      agent_key = Livebook.Factory.build(:agent_key)
+
+      %{env: env} = Dockerfile.online_docker_info(config, hub, agent_key)
+
+      assert {"LIVEBOOK_IDENTITY_PROVIDER", "cloudflare:foobar"} in env
+      assert {"LIVEBOOK_TEAMS_URL", "http://localhost:8000"} in env
     end
   end
 
@@ -366,23 +385,10 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert warning =~ "This app has no password configuration"
     end
 
-    test "warns when the app has no password and no ZTA in teams hub" do
-      config = dockerfile_config(%{clustering: :auto})
-      hub = team_hub()
-      app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
-
-      assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
-      assert warning =~ "This app has no password configuration"
-
-      config = %{config | zta_provider: :cloudflare, zta_key: "key"}
-
-      assert [] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
-    end
-
     test "warns when no clustering is configured" do
-      config = dockerfile_config(%{})
+      config = dockerfile_config()
       hub = team_hub()
-      app_settings = Livebook.Notebook.AppSettings.new()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :private}
 
       assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
       assert warning =~ "Clustering has not been configured for this deployment"

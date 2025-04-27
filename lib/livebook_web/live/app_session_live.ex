@@ -100,7 +100,7 @@ defmodule LivebookWeb.AppSessionLive do
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
       <div class="w-full max-w-screen-lg py-4 mx-auto" data-el-notebook-content>
         <div class="absolute md:fixed right-4 md:left-4 md:right-auto top-3">
-          <.menu id="app-menu" position={:bottom_right} md_position={:bottom_left}>
+          <.menu id="app-menu" position="bottom-right" md_position="bottom-left">
             <:toggle>
               <button class="flex items-center text-gray-900">
                 <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
@@ -140,12 +140,18 @@ defmodule LivebookWeb.AppSessionLive do
                 <span>Debug</span>
               </.link>
             </.menu_item>
+            <.menu_item :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}>
+              <button phx-click="logout" role="menuitem">
+                <.remix_icon icon="logout-box-line" />
+                <span>Logout</span>
+              </button>
+            </.menu_item>
           </.menu>
         </div>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
-            <%= @data_view.notebook_name %>
+            {@data_view.notebook_name}
           </h1>
         </div>
         <div class="pt-4 flex flex-col gap-6">
@@ -213,7 +219,7 @@ defmodule LivebookWeb.AppSessionLive do
       :if={@live_action == :source and @data_view.show_source}
       id="source-modal"
       show
-      width={:big}
+      width="big"
       patch={~p"/apps/#{@data_view.slug}/sessions/#{@session.id}"}
     >
       <.live_component
@@ -231,42 +237,42 @@ defmodule LivebookWeb.AppSessionLive do
 
   defp app_status_circle(%{status: %{lifecycle: :shutting_down}} = assigns) do
     ~H"""
-    <.app_status_indicator text="Shutting down" variant={:inactive} icon="stop-line" />
+    <.app_status_indicator text="Shutting down" variant="inactive" icon="stop-line" />
     """
   end
 
   defp app_status_circle(%{status: %{lifecycle: :deactivated}} = assigns) do
     ~H"""
-    <.app_status_indicator text="Deactivated" variant={:inactive} icon="stop-line" />
+    <.app_status_indicator text="Deactivated" variant="inactive" icon="stop-line" />
     """
   end
 
   defp app_status_circle(%{status: %{execution: :executing}} = assigns) do
     ~H"""
-    <.app_status_indicator text="Executing" variant={:progressing} icon="loader-3-line" spinning />
+    <.app_status_indicator text="Executing" variant="progressing" icon="loader-3-line" spinning />
     """
   end
 
   defp app_status_circle(%{status: %{execution: :executed}} = assigns) do
     ~H"""
-    <.app_status_indicator text="Executed" variant={:success} icon="check-line" />
+    <.app_status_indicator text="Executed" variant="success" icon="check-line" />
     """
   end
 
   defp app_status_circle(%{status: %{execution: :error}} = assigns) do
     ~H"""
-    <.app_status_indicator text="Error" variant={:error} icon="close-line" />
+    <.app_status_indicator text="Error" variant="error" icon="close-line" />
     """
   end
 
   defp app_status_circle(%{status: %{execution: :interrupted}} = assigns) do
     ~H"""
-    <.app_status_indicator text="Interrupted" variant={:waiting} icon="pause-line" />
+    <.app_status_indicator text="Interrupted" variant="waiting" icon="pause-line" />
     """
   end
 
   attr :text, :string, required: true
-  attr :variant, :atom, required: true
+  attr :variant, :string, required: true
   attr :icon, :string, required: true
   attr :spinning, :boolean, default: false
 

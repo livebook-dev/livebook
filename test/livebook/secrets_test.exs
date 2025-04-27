@@ -6,7 +6,7 @@ defmodule Livebook.SecretsTest do
 
   describe "update_secret/2" do
     test "returns a valid secret" do
-      attrs = params_for(:secret, name: "FOO", value: "111")
+      attrs = params_for(:secret)
 
       assert {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
       assert attrs.name == secret.name

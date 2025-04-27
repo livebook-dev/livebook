@@ -92,6 +92,18 @@ const CellEditor = {
     this.el.querySelector(`[data-el-editor-container]`).removeAttribute("id");
   },
 
+  updated() {
+    const prevProps = this.props;
+    this.props = this.getProps();
+
+    if (
+      this.props.language !== prevProps.language ||
+      this.props.intellisense !== prevProps.intellisense
+    ) {
+      this.liveEditor.setLanguage(this.props.language, this.props.intellisense);
+    }
+  },
+
   destroyed() {
     if (this.connection) {
       this.connection.destroy();

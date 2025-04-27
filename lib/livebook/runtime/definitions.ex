@@ -1,5 +1,5 @@
 defmodule Livebook.Runtime.Definitions do
-  @kino_requirement "~> 0.14.0"
+  @kino_requirement "~> 0.15.0"
 
   def kino_requirement do
     @kino_requirement
@@ -17,7 +17,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.10"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.3.0"}, config: []}
   }
 
   exqlite = %{
@@ -65,9 +65,9 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:flame_k8s_backend, "~> 0.5"}, config: []}
   }
 
-  jason = %{
-    name: "jason",
-    dependency: %{dep: {:jason, "~> 1.4"}, config: []}
+  explorer = %{
+    name: "explorer",
+    dependency: %{dep: {:explorer, "~> 0.10.0"}, config: []}
   }
 
   stb_image = %{
@@ -100,16 +100,29 @@ defmodule Livebook.Runtime.Definitions do
             %{
               name: "req_athena",
               dependency: %{dep: {:req_athena, ">= 0.0.0"}, config: []}
-            }
+            },
+            explorer
+          ]
+        },
+        %{
+          name: "Clickhouse",
+          packages: [
+            kino_db,
+            %{
+              name: "req_ch",
+              dependency: %{dep: {:req_ch, ">= 0.0.0"}, config: []}
+            },
+            explorer
           ]
         },
         %{
           name: "DuckDB",
           packages: [
             kino_db,
+            kino_explorer,
             %{
               name: "adbc",
-              dependency: %{dep: {:adbc, ">= 0.0.0"}, config: []}
+              dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:duckdb]]]}
             }
           ]
         },
@@ -117,9 +130,10 @@ defmodule Livebook.Runtime.Definitions do
           name: "Google BigQuery",
           packages: [
             kino_db,
+            kino_explorer,
             %{
-              name: "req_bigquery",
-              dependency: %{dep: {:req_bigquery, ">= 0.0.0"}, config: []}
+              name: "adbc",
+              dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:bigquery]]]}
             }
           ]
         },
@@ -142,7 +156,10 @@ defmodule Livebook.Runtime.Definitions do
           packages: [
             kino_db,
             kino_explorer,
-            %{name: "adbc", dependency: %{dep: {:adbc, ">= 0.0.0"}, config: []}}
+            %{
+              name: "adbc",
+              dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:snowflake]]]}
+            }
           ]
         },
         %{
@@ -292,11 +309,11 @@ defmodule Livebook.Runtime.Definitions do
       data =
         Kino.FS.file_path("{{NAME}}")
         |> File.read!()
-        |> Jason.decode!()
+        |> JSON.decode!()
 
       Kino.Tree.new(data)\
       """,
-      packages: [kino, jason]
+      packages: [kino]
     },
     %{
       type: :file_action,
@@ -487,4 +504,14 @@ defmodule Livebook.Runtime.Definitions do
   def smart_cell_definitions(), do: @smart_cell_definitions
 
   def snippet_definitions(), do: @snippet_definitions
+
+  def pythonx_dependency() do
+    %{dep: {:pythonx, "~> 0.4.2"}, config: []}
+  end
+
+  def kino_pythonx_dependency() do
+    %{dep: {:kino_pythonx, github: "livebook-dev/kino_pythonx"}, config: []}
+  end
+
+  def pythonx_requirement(), do: "~> 0.4.0"
 end

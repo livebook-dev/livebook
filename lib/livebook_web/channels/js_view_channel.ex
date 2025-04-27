@@ -28,8 +28,12 @@ defmodule LivebookWeb.JSViewChannel do
 
     socket =
       update_in(socket.assigns.ref_with_info[ref], fn
-        nil -> %{pid: pid, count: 1, connect_queue: [id]}
-        info -> %{info | count: info.count + 1, connect_queue: info.connect_queue ++ [id]}
+        nil ->
+          monitor_ref = Process.monitor(pid, tag: {:connect_down, ref})
+          %{pid: pid, monitor_ref: monitor_ref, count: 1, connect_queue: [id]}
+
+        info ->
+          %{info | count: info.count + 1, connect_queue: info.connect_queue ++ [id]}
       end)
 
     if socket.assigns.ref_with_info[ref].count == 1 do
@@ -66,13 +70,10 @@ defmodule LivebookWeb.JSViewChannel do
   def handle_in("disconnect", %{"ref" => ref}, socket) do
     socket =
       case socket.assigns.ref_with_info do
-        %{^ref => %{count: 1}} ->
-          Livebook.Session.unsubscribe_from_runtime_events(
-            socket.assigns.session_id,
-            "js_live",
-            ref
-          )
-
+        %{^ref => %{count: 1, monitor_ref: monitor_ref}} ->
+          Process.demonitor(monitor_ref, [:flush])
+          session_id = socket.assigns.session_id
+          Livebook.Session.unsubscribe_from_runtime_events(session_id, "js_live", ref)
           {_, socket} = pop_in(socket.assigns.ref_with_info[ref])
           socket
 
@@ -97,9 +98,20 @@ defmodule LivebookWeb.JSViewChannel do
         {id, queue}
       end)
 
-    with {:error, error} <- try_push(socket, "init:#{ref}:#{id}", nil, payload) do
+    with {:error, error} <- try_push(socket, "init:#{ref}:#{id}", [true], payload) do
       message = "Failed to serialize initial widget data, " <> error
       push(socket, "error:#{ref}", %{"message" => message, "init" => true})
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_info({{:connect_down, ref}, _ref, :process, _pid, _reason}, socket) do
+    Livebook.Session.unsubscribe_from_runtime_events(socket.assigns.session_id, "js_live", ref)
+    {%{connect_queue: ids}, socket} = pop_in(socket.assigns.ref_with_info[ref])
+
+    for id <- ids do
+      :ok = try_push(socket, "init:#{ref}:#{id}", [false], nil)
     end
 
     {:noreply, socket}
@@ -140,7 +152,7 @@ defmodule LivebookWeb.JSViewChannel do
     rescue
       error ->
         case error do
-          %Protocol.UndefinedError{protocol: Jason.Encoder, value: value} ->
+          %Protocol.UndefinedError{protocol: JSON.Encoder, value: value} ->
             {:error, "value #{inspect(value)} is not JSON-serializable, use another data type"}
 
           error ->

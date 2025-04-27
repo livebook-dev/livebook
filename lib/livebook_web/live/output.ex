@@ -17,14 +17,14 @@ defmodule LivebookWeb.Output do
   def output(assigns) do
     ~H"""
     <div id={@id} class="max-w-full" data-el-output data-border={border?(@output)}>
-      <%= render_output(@output, %{
+      {render_output(@output, %{
         id: "#{@id}-output",
         session_id: @session_id,
         session_pid: @session_pid,
         input_views: @input_views,
         client_id: @client_id,
         cell_id: @cell_id
-      }) %>
+      })}
     </div>
     """
   end
@@ -35,30 +35,32 @@ defmodule LivebookWeb.Output do
   defp border?(%{type: :grid, boxed: boxed}), do: boxed
   defp border?(_output), do: false
 
-  defp render_output(%{type: :terminal_text, text: text}, %{id: id}) do
-    text = if(text == :__pruned__, do: nil, else: text)
-    assigns = %{id: id, text: text}
+  defp render_output(%{type: :terminal_text} = output, %{id: id}) do
+    assigns = %{id: id, output: output}
 
     ~H"""
-    <.live_component module={Output.TerminalTextComponent} id={@id} text={@text} />
+    <.live_component module={Output.TerminalTextComponent} id={@id} output={@output} />
     """
   end
 
-  defp render_output(%{type: :plain_text, text: text}, %{id: id}) do
-    text = if(text == :__pruned__, do: nil, else: text)
-    assigns = %{id: id, text: text}
+  defp render_output(%{type: :plain_text} = output, %{id: id}) do
+    assigns = %{id: id, output: output}
 
     ~H"""
-    <.live_component module={Output.PlainTextComponent} id={@id} text={@text} />
+    <.live_component module={Output.PlainTextComponent} id={@id} output={@output} />
     """
   end
 
-  defp render_output(%{type: :markdown, text: text}, %{id: id, session_id: session_id}) do
-    text = if(text == :__pruned__, do: nil, else: text)
-    assigns = %{id: id, session_id: session_id, text: text}
+  defp render_output(%{type: :markdown} = output, %{id: id, session_id: session_id}) do
+    assigns = %{id: id, session_id: session_id, output: output}
 
     ~H"""
-    <.live_component module={Output.MarkdownComponent} id={@id} session_id={@session_id} text={@text} />
+    <.live_component
+      module={Output.MarkdownComponent}
+      id={@id}
+      session_id={@session_id}
+      output={@output}
+    />
     """
   end
 
@@ -89,7 +91,7 @@ defmodule LivebookWeb.Output do
       js_view={@js_view}
       session_id={@session_id}
       client_id={@client_id}
-      timeout_message="Output data no longer available, please reevaluate this cell"
+      unreachable_message="Output data no longer available, please reevaluate this cell"
     />
     """
   end
@@ -174,6 +176,7 @@ defmodule LivebookWeb.Output do
       id: id,
       columns: grid.columns,
       gap: grid.gap,
+      max_height: grid.max_height,
       outputs: grid.outputs,
       session_id: session_id,
       session_pid: session_pid,
@@ -189,6 +192,7 @@ defmodule LivebookWeb.Output do
       outputs={@outputs}
       columns={@columns}
       gap={@gap}
+      max_height={@max_height}
       session_id={@session_id}
       session_pid={@session_pid}
       input_views={@input_views}
@@ -264,14 +268,14 @@ defmodule LivebookWeb.Output do
       <div class="flex items-center justify-between gap-2" style="color: var(--ansi-color-red);">
         <div class="flex space-x-2 font-editor">
           <.remix_icon icon="close-circle-line" />
-          <span>Missing secret <%= inspect(@secret_name) %></span>
+          <span>Missing secret {inspect(@secret_name)}</span>
         </div>
         <.button color="gray" patch={~p"/sessions/#{@session_id}/secrets?secret_name=#{@secret_name}"}>
           Add secret
         </.button>
       </div>
       <div class="border-t border-gray-200 -mx-4" />
-      <%= render_formatted_error_message(@id, @message) %>
+      {render_formatted_error_message(@id, @message)}
     </div>
     """
   end
@@ -292,7 +296,7 @@ defmodule LivebookWeb.Output do
       <div class="flex items-center justify-between gap-2" style="color: var(--ansi-color-red);">
         <div class="flex space-x-2 font-editor">
           <.remix_icon icon="close-circle-line" />
-          <span>Forbidden access to file <%= inspect(@file_entry_name) %></span>
+          <span>Forbidden access to file {inspect(@file_entry_name)}</span>
         </div>
         <.button
           color="gray"
@@ -302,7 +306,7 @@ defmodule LivebookWeb.Output do
         </.button>
       </div>
       <div class="border-t border-gray-200 -mx-4" />
-      <%= render_formatted_error_message(@id, @message) %>
+      {render_formatted_error_message(@id, @message)}
     </div>
     """
   end
@@ -322,7 +326,7 @@ defmodule LivebookWeb.Output do
       end
     ]}>
       <div>
-        <%= @message %>
+        {@message}
       </div>
       <button
         class={[
@@ -345,7 +349,7 @@ defmodule LivebookWeb.Output do
   defp render_output(%{type: :error, context: :dependencies} = output, %{id: id, cell_id: cell_id}) do
     assigns = %{message: output.message, id: id, cell_id: cell_id}
 
-    if cell_id == Livebook.Notebook.Cell.setup_cell_id() do
+    if cell_id == Livebook.Notebook.Cell.main_setup_cell_id() do
       ~H"""
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between gap-2" style="color: var(--ansi-color-red);">
@@ -367,7 +371,7 @@ defmodule LivebookWeb.Output do
           </.button>
         </div>
         <div class="border-t border-gray-200 -mx-4" />
-        <%= render_formatted_error_message(@id, @message) %>
+        {render_formatted_error_message(@id, @message)}
       </div>
       """
     else
@@ -398,7 +402,7 @@ defmodule LivebookWeb.Output do
       role="complementary"
       aria-label="error message"
       phx-no-format
-    ><%= @message %></div>
+    >{@message}</div>
     """
   end
 
@@ -413,7 +417,7 @@ defmodule LivebookWeb.Output do
         role="complementary"
         aria-label="error"
         phx-no-format
-      ><%= LivebookWeb.ANSIHelpers.ansi_string_to_html(@message) %></div>
+      >{LivebookWeb.ANSIHelpers.ansi_string_to_html(@message)}</div>
       <div class="absolute right-2 top-0 z-10 invisible group-hover/error:visible">
         <.icon_button phx-click={JS.dispatch("lb:clipcopy", to: "##{@id}-message")}>
           <.remix_icon icon="clipboard-line" />

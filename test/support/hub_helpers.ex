@@ -27,8 +27,8 @@ defmodule Livebook.HubHelpers do
     Livebook.Hubs.save_hub(hub)
   end
 
-  def create_agent_team_hub(node) do
-    {agent_key, org, deployment_group, hub} = build_agent_team_hub(node)
+  def create_agent_team_hub(node, opts \\ []) do
+    {agent_key, org, deployment_group, hub} = build_agent_team_hub(node, opts)
     erpc_call(node, :create_org_key_pair, [[org: org]])
     ^hub = Livebook.Hubs.save_hub(hub)
 
@@ -57,6 +57,7 @@ defmodule Livebook.HubHelpers do
     org_key = erpc_call(node, :create_org_key, [[org: org, key_hash: key_hash]])
     org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org]])
     token = erpc_call(node, :associate_user_with_org, [user, org])
+    erpc_call(node, :create_billing_subscription, [org])
 
     build(:team,
       id: "team-#{org.name}",
@@ -66,11 +67,12 @@ defmodule Livebook.HubHelpers do
       org_key_id: org_key.id,
       org_public_key: org_key_pair.public_key,
       session_token: token,
-      teams_key: teams_key
+      teams_key: teams_key,
+      billing_status: %{disabled: false, type: nil}
     )
   end
 
-  def build_agent_team_hub(node) do
+  def build_agent_team_hub(node, opts \\ []) do
     teams_org = build(:org)
     teams_key = teams_org.teams_key
     key_hash = Livebook.Teams.Org.key_hash(teams_org)
@@ -78,14 +80,16 @@ defmodule Livebook.HubHelpers do
     org = erpc_call(node, :create_org, [])
     org_key = erpc_call(node, :create_org_key, [[org: org, key_hash: key_hash]])
 
-    deployment_group =
-      erpc_call(node, :create_deployment_group, [
-        [
-          name: "sleepy-cat-#{Ecto.UUID.generate()}",
-          mode: :online,
-          org: org
-        ]
-      ])
+    deployment_group_attrs =
+      opts
+      |> Keyword.get(:deployment_group, [])
+      |> Keyword.merge(
+        name: "sleepy-cat-#{Ecto.UUID.generate()}",
+        mode: :online,
+        org: org
+      )
+
+    deployment_group = erpc_call(node, :create_deployment_group, [deployment_group_attrs])
 
     agent_key = erpc_call(node, :create_agent_key, [[deployment_group: deployment_group]])
 
@@ -204,7 +208,7 @@ defmodule Livebook.HubHelpers do
     secret_key = Livebook.Teams.derive_key(hub.teams_key)
     %{name: name} = Livebook.FileSystem.external_metadata(file_system)
     attrs = Livebook.FileSystem.dump(file_system)
-    json = Jason.encode!(attrs)
+    json = JSON.encode!(attrs)
     value = Livebook.Teams.encrypt(json, secret_key)
 
     file_system_created =
@@ -300,7 +304,7 @@ defmodule Livebook.HubHelpers do
   end
 
   defp hub_pid(hub) do
-    if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
+    if pid = Livebook.Hubs.TeamClient.get_pid(hub.id) do
       {:ok, pid}
     end
   end

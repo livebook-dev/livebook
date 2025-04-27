@@ -20,6 +20,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:client_connected, ^id}
     end
 
+    @tag capture_log: true
     test "rejects the web socket connection with invalid credentials", %{user: user, token: token} do
       team =
         build(:team,
@@ -119,7 +120,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
       attrs = Livebook.FileSystem.dump(file_system)
-      credentials = Jason.encode!(attrs)
+      credentials = JSON.encode!(attrs)
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       value = Livebook.Teams.encrypt(credentials, secret_key)
@@ -148,7 +149,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       }
 
       updated_attrs = Livebook.FileSystem.dump(updated_file_system)
-      updated_credentials = Jason.encode!(updated_attrs)
+      updated_credentials = JSON.encode!(updated_attrs)
       updated_value = Livebook.Teams.encrypt(updated_credentials, secret_key)
 
       updated_livebook_proto_file_system = %{
@@ -176,7 +177,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           id: "1",
           name: "sleepy-cat-#{System.unique_integer([:positive])}",
           mode: :offline,
-          hub_id: team.id
+          hub_id: team.id,
+          teams_auth: false
         )
 
       livebook_proto_deployment_group =
@@ -185,7 +187,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           secrets: [],
-          agent_keys: []
+          agent_keys: [],
+          teams_auth: deployment_group.teams_auth
         }
 
       # creates the deployment group
@@ -384,7 +387,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
       attrs = Livebook.FileSystem.dump(file_system)
-      credentials = Jason.encode!(attrs)
+      credentials = JSON.encode!(attrs)
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       value = Livebook.Teams.encrypt(credentials, secret_key)
@@ -413,7 +416,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       }
 
       updated_attrs = Livebook.FileSystem.dump(updated_file_system)
-      updated_credentials = Jason.encode!(updated_attrs)
+      updated_credentials = JSON.encode!(updated_attrs)
       updated_value = Livebook.Teams.encrypt(updated_credentials, secret_key)
 
       updated_livebook_proto_file_system = %{
@@ -471,7 +474,9 @@ defmodule Livebook.Hubs.TeamClientTest do
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           agent_keys: [livebook_proto_agent_key],
-          secrets: []
+          teams_auth: deployment_group.teams_auth,
+          secrets: [],
+          environment_variables: []
         }
 
       # creates the deployment group
@@ -563,7 +568,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
-          secrets: [livebook_proto_deployment_group_secret]
+          secrets: [livebook_proto_deployment_group_secret],
+          teams_auth: deployment_group.teams_auth
         }
 
       agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
@@ -613,7 +619,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           secrets: [],
-          agent_keys: [livebook_proto_agent_key]
+          agent_keys: [livebook_proto_agent_key],
+          teams_auth: deployment_group.teams_auth
         }
 
       agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
@@ -633,12 +640,15 @@ defmodule Livebook.Hubs.TeamClientTest do
       notebook = %{
         Livebook.Notebook.new()
         | app_settings: %{Livebook.Notebook.AppSettings.new() | slug: slug},
+          file_entries: [%{type: :attachment, name: "image.jpg"}],
           name: title,
           hub_id: team.id,
           deployment_group_id: deployment_group_id
       }
 
       files_dir = Livebook.FileSystem.File.local(tmp_dir)
+      image_file = Livebook.FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = Livebook.FileSystem.File.write(image_file, "content")
 
       {:ok, %Livebook.Teams.AppDeployment{file: zip_content} = app_deployment} =
         Livebook.Teams.AppDeployment.new(notebook, files_dir)

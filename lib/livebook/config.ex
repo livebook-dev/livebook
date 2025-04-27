@@ -1,53 +1,22 @@
 defmodule Livebook.Config do
   alias Livebook.FileSystem
 
-  @type authentication_mode :: :token | :password | :disabled
-
   @type authentication ::
           %{mode: :password, secret: String.t()}
           | %{mode: :token, secret: String.t()}
           | %{mode: :disabled}
 
-  # Those are the public identity providers.
-  #
-  # There are still a :session and :custom identity providers,
-  # but those are handled internally.
-  #
-  # IMPORTANT: this list must be in sync with Livebook Teams.
-  @identity_providers [
-    %{
-      type: :basic_auth,
-      name: "Basic Auth",
-      value: "Credentials (username:password)",
-      module: Livebook.ZTA.BasicAuth,
-      placeholder: "username:password",
-      input: "password"
-    },
-    %{
-      type: :cloudflare,
-      name: "Cloudflare",
-      value: "Team name (domain)",
-      module: Livebook.ZTA.Cloudflare
-    },
-    %{
-      type: :google_iap,
-      name: "Google IAP",
-      value: "Audience (aud)",
-      module: Livebook.ZTA.GoogleIAP
-    },
-    %{
-      type: :tailscale,
-      name: "Tailscale",
-      value: "Tailscale CLI socket path",
-      module: Livebook.ZTA.Tailscale
-    }
-  ]
+  @doc """
+  Returns path to Livebook priv directory.
 
-  @identity_provider_no_id [Livebook.ZTA.BasicAuth, Livebook.ZTA.PassThrough]
-
-  @identity_provider_type_to_module Map.new(@identity_providers, fn provider ->
-                                      {Atom.to_string(provider.type), provider.module}
-                                    end)
+  This returns the usual priv directory, however in case of Escript,
+  the priv files are extracted into a temporary directory and that is
+  the path returned.
+  """
+  @spec priv_path() :: String.t()
+  def priv_path() do
+    Application.get_env(:livebook, :priv_dir) || Application.app_dir(:livebook, "priv")
+  end
 
   @doc """
   Returns docker images to be used when generating sample Dockerfiles.
@@ -97,7 +66,7 @@ defmodule Livebook.Config do
   @doc """
   Returns the authentication configuration.
   """
-  @spec authentication() :: authentication_mode()
+  @spec authentication() :: authentication()
   def authentication() do
     case Application.fetch_env!(:livebook, :authentication) do
       {:password, password} -> %{mode: :password, secret: password}
@@ -226,9 +195,9 @@ defmodule Livebook.Config do
   Returns if this instance is running with teams auth,
   i.e. if there an online or offline hub created on boot.
   """
-  @spec teams_auth?() :: boolean()
-  def teams_auth?() do
-    Application.fetch_env!(:livebook, :teams_auth?)
+  @spec teams_auth() :: :online | :offline | nil
+  def teams_auth() do
+    Application.fetch_env!(:livebook, :teams_auth)
   end
 
   @doc """
@@ -278,22 +247,17 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns all identity providers.
-
-  Internal identity providers, such as session and custom,
-  are not included.
-  """
-  def identity_providers do
-    @identity_providers
-  end
-
-  @doc """
   Returns the identity provider.
   """
   @spec identity_provider() :: {atom(), module, binary}
   def identity_provider() do
-    Application.fetch_env!(:livebook, :identity_provider)
+    case Application.fetch_env(:livebook, :identity_provider) do
+      {:ok, result} -> result
+      :error -> {:session, Livebook.ZTA.PassThrough, :unused}
+    end
   end
+
+  @identity_provider_no_id [Livebook.ZTA.BasicAuth, Livebook.ZTA.PassThrough]
 
   @doc """
   Returns if the identity data is readonly.
@@ -305,11 +269,13 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns metadata of a ZTA provider
+  Returns if the identity provider supports logout.
   """
-  @spec zta_metadata(atom()) :: map()
-  def zta_metadata(zta_provider) do
-    Enum.find(Livebook.Config.identity_providers(), &(&1.type == zta_provider))
+  @spec logout_enabled?() :: boolean()
+  def logout_enabled?() do
+    {_type, module, _key} = Livebook.Config.identity_provider()
+
+    Code.ensure_loaded?(module) and function_exported?(module, :logout, 2)
   end
 
   @doc """
@@ -361,6 +327,7 @@ defmodule Livebook.Config do
   @doc """
   Returns the application cacertfile if any.
   """
+  # TODO: Remove env var once support is added either to Erlang/OTP 28 or Elixir v1.18
   @spec cacertfile() :: String.t() | nil
   def cacertfile() do
     Application.get_env(:livebook, :cacertfile)
@@ -485,15 +452,28 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Parses and validates debug mode from env.
+  Parses and validates log level from env.
   """
-  def debug!(env) do
-    if debug = System.get_env(env) do
-      cond do
-        debug in ["1", "true"] -> true
-        debug in ["0", "false"] -> false
-        true -> abort!("expected #{env} to be a boolean, got: #{inspect(debug)}")
+  def log_level!(env) do
+    levels = ~w(error warning notice info debug)
+
+    if level = System.get_env(env) do
+      if level in levels do
+        String.to_atom(level)
+      else
+        abort!("expected #{env} to be one of #{Enum.join(levels, ", ")}, got: #{inspect(levels)}")
       end
+    end
+  end
+
+  @doc """
+  Parses and validates log metadata keys from env.
+  """
+  def log_metadata!(env) do
+    if metadata = System.get_env(env) do
+      for item <- String.split(metadata, ","),
+          key = String.trim(item),
+          do: String.to_atom(key)
     end
   end
 
@@ -741,13 +721,20 @@ defmodule Livebook.Config do
     end
   end
 
+  @identity_providers %{
+    "basic_auth" => Livebook.ZTA.BasicAuth,
+    "cloudflare" => Livebook.ZTA.Cloudflare,
+    "google_iap" => Livebook.ZTA.GoogleIAP,
+    "tailscale" => Livebook.ZTA.Tailscale
+  }
+
   @doc """
   Parses zero trust identity provider from env.
   """
   def identity_provider!(env) do
     case System.get_env(env) do
       nil ->
-        {:session, Livebook.ZTA.PassThrough, :unused}
+        nil
 
       "custom:" <> module_key ->
         destructure [module, key], String.split(module_key, ":", parts: 2)
@@ -761,13 +748,11 @@ defmodule Livebook.Config do
 
       provider ->
         with [type, key] <- String.split(provider, ":", parts: 2),
-             %{^type => module} <- identity_provider_type_to_module() do
+             %{^type => module} <- @identity_providers do
           {:zta, module, key}
         else
           _ -> abort!("invalid configuration for identity provider given in #{env}")
         end
     end
   end
-
-  defp identity_provider_type_to_module, do: @identity_provider_type_to_module
 end

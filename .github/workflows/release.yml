@@ -9,24 +9,43 @@ on:
   # Workflow dispatch always builds as nightly
   workflow_dispatch:
 jobs:
-  create_draft_release:
-    if: github.ref_type == 'tag' && github.repository == 'livebook-dev/livebook'
-    name: "Create draft release"
+  create_release:
+    if: github.repository == 'livebook-dev/livebook'
+    name: "Create release"
     permissions:
       contents: write
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
     steps:
-      - name: Create draft release
+      - name: Checkout git repo
+        uses: actions/checkout@v4
+      - name: Create release
         run: |
-          gh release create \
-            --repo ${{ github.repository }} \
-            --title ${{ github.ref_name }} \
-            --draft \
-            ${{ github.ref_name }}
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            gh release create \
+              --repo ${{ github.repository }} \
+              --title ${{ github.ref_name }} \
+              --draft \
+              ${{ github.ref_name }}
+          else
+            ref_name="nightly"
+
+            if ! gh release view $ref_name; then
+              gh release create \
+                --repo ${{ github.repository }} \
+                --title $ref_name \
+                --notes "Automated nightly release." \
+                --latest=false \
+                $ref_name
+            fi
+
+            git tag $ref_name --force
+            git push origin $ref_name --force
+          fi
 
   desktop:
+    if: github.repository == 'livebook-dev/livebook'
     name: "Desktop"
     runs-on: ubuntu-latest
     env:
@@ -35,12 +54,13 @@ jobs:
       - name: Trigger desktop builds
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.ref_name }}
+            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref=${{ github.ref_name }} -f release_name=${{ github.ref_name }}
           else
-            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.sha }} -f release_name=nightly
+            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref=${{ github.sha }} -f release_name=nightly
           fi
 
   docker:
+    if: github.repository == 'livebook-dev/livebook'
     name: Docker (${{ matrix.name }})
     runs-on: ubuntu-latest
     strategy:

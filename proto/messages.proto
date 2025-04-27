@@ -60,10 +60,13 @@ message DeploymentGroup {
   string mode = 3;
   repeated DeploymentGroupSecret secrets = 4;
   string clustering = 5;
-  string zta_provider = 6;
-  string zta_key = 7;
+  string zta_provider = 6 [deprecated = true];
+  string zta_key = 7 [deprecated = true];
   repeated AgentKey agent_keys = 8;
   string url = 9;
+  repeated EnvironmentVariable environment_variables = 10;
+  bool teams_auth = 11;
+  repeated AuthorizationGroup authorization_groups = 12;
 }
 
 message DeploymentGroupCreated {
@@ -71,10 +74,11 @@ message DeploymentGroupCreated {
   string name = 2;
   string mode = 3;
   string clustering = 5;
-  string zta_provider = 6;
-  string zta_key = 7;
+  string zta_provider = 6 [deprecated = true];
+  string zta_key = 7 [deprecated = true];
   repeated AgentKey agent_keys = 8;
   string url = 9;
+  bool teams_auth = 10;
 }
 
 message DeploymentGroupUpdated {
@@ -82,10 +86,13 @@ message DeploymentGroupUpdated {
   string name = 2;
   repeated DeploymentGroupSecret secrets = 3;
   string clustering = 4;
-  string zta_provider = 5;
-  string zta_key = 6;
+  string zta_provider = 5 [deprecated = true];
+  string zta_key = 6 [deprecated = true];
   repeated AgentKey agent_keys = 7;
   string url = 8;
+  repeated EnvironmentVariable environment_variables = 9;
+  bool teams_auth = 10;
+  repeated AuthorizationGroup authorization_groups = 11;
 }
 
 message DeploymentGroupDeleted {
@@ -105,6 +112,7 @@ message UserConnected {
   repeated DeploymentGroup deployment_groups = 4;
   repeated AppDeployment app_deployments = 5;
   repeated Agent agents = 6;
+  BillingStatus billing_status = 7;
 }
 
 message AgentConnected {
@@ -116,6 +124,7 @@ message AgentConnected {
   repeated DeploymentGroup deployment_groups = 7;
   repeated AppDeployment app_deployments = 8;
   repeated Agent agents = 9;
+  BillingStatus billing_status = 10;
 }
 
 message AppDeployment {
@@ -130,6 +139,7 @@ message AppDeployment {
   bool multi_session = 9;
   string access_type = 10;
   string version = 11;
+  repeated AuthorizationGroup authorization_groups = 12;
 }
 
 message AppDeploymentStarted {
@@ -138,6 +148,10 @@ message AppDeploymentStarted {
 
 message AppDeploymentStopped {
   string id = 1;
+}
+
+message AppDeploymentUpdated {
+  AppDeployment app_deployment = 1;
 }
 
 message UserDeleted {
@@ -150,6 +164,11 @@ message AgentJoined {
 
 message AgentLeft {
   string id = 1;
+}
+
+message OrgUpdated {
+  string id = 1;
+  BillingStatus billing_status = 3;
 }
 
 message Agent {
@@ -182,6 +201,16 @@ message AppDeploymentStatusReport {
   repeated AppDeploymentStatus app_deployment_statuses = 1;
 }
 
+message EnvironmentVariable {
+  string name = 1;
+  string value = 2;
+}
+
+message AuthorizationGroup {
+  string oidc_provider_id = 1;
+  string group_name = 2;
+}
+
 message Event {
   oneof type {
     SecretCreated secret_created = 1;
@@ -200,5 +229,32 @@ message Event {
     AgentJoined agent_joined = 14;
     AgentLeft agent_left = 15;
     AppDeploymentStopped app_deployment_stopped = 16;
+    OrgUpdated org_updated = 17;
+    AppDeploymentUpdated app_deployment_updated = 18;
   }
+}
+
+message BillingStatus {
+  bool disabled = 1;
+  oneof type {
+    BillingStatusTrialing trialing = 2;
+    BillingStatusTrialEnded trial_ended = 3;
+    BillingStatusCanceling canceling = 4;
+    BillingStatusCanceled canceled = 5;
+  }
+}
+
+message BillingStatusTrialing {
+  int64 trial_ends_at = 1;
+}
+
+message BillingStatusTrialEnded {
+  int64 trial_ends_at = 1;
+}
+
+message BillingStatusCanceling {
+  int64 cancel_at = 1;
+}
+
+message BillingStatusCanceled {
 }

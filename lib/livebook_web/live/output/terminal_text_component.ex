@@ -10,20 +10,22 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
   end
 
   @impl true
-  def update(%{event: {:append, text}}, socket) do
-    {:ok, append_text(socket, text)}
+  def update(%{event: {:append, output}}, socket) do
+    {:ok, append_text(socket, output.text)}
   end
 
   def update(assigns, socket) do
-    {text, assigns} = Map.pop(assigns, :text)
+    {output, assigns} = Map.pop(assigns, :output)
     socket = assign(socket, assigns)
 
     if socket.assigns.initialized do
+      # After initialization, output text may be pruned and updates
+      # are sent as events instead
       {:ok, socket}
     else
       {:ok,
        socket
-       |> append_text(text)
+       |> append_text(output.text)
        |> assign(:initialized, true)}
     end
   end
@@ -75,10 +77,10 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
       <div data-template class="hidden" id={"#{@id}-template"} phx-no-format><div
         id={"#{@id}-template-append"}
         phx-update="stream"
-      ><div :for={{dom_id, html_line} <- @streams.html_lines} id={dom_id} data-line><%= [
+      ><div :for={{dom_id, html_line} <- @streams.html_lines} id={dom_id} data-line>{[
         html_line.html,
         "\n"
-      ] %></div></div><div data-line><%= @last_html_line %></div></div>
+      ]}</div></div><div data-line>{@last_html_line}</div></div>
       <div
         data-content
         class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"

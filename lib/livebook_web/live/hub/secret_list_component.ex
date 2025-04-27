@@ -15,7 +15,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
         </.no_entries>
         <div :if={@secrets != []}>
           <.table rows={@secrets} id={@id}>
-            <:col :let={secret} label="Name"><%= secret.name %></:col>
+            <:col :let={secret} label="Name">{secret.name}</:col>
             <:action :let={secret}>
               <span class="tooltip left" data-tooltip="Edit">
                 <.icon_button
@@ -78,7 +78,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
     assigns = %{name: attrs["name"]}
 
     description = ~H"""
-    Are you sure you want to delete this secret - <span class="font-semibold"><%= @name %></span>?
+    Are you sure you want to delete this secret - <span class="font-semibold">{@name}</span>?
     """
 
     {:noreply,

@@ -120,7 +120,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <.menu
           id={"#{@id}-new-item-menu"}
           disabled={@file_system_select_disabled}
-          position={:bottom_right}
+          position="bottom-right"
         >
           <:toggle>
             <.icon_button tabindex="-1" aria-label="add">
@@ -150,12 +150,12 @@ defmodule LivebookWeb.FileSelectComponent do
           </.menu_item>
         </.menu>
         <div :if={@inner_block}>
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </div>
       </div>
       <div class="flex flex-col space-y-2">
         <div :if={@error_message} class="error-box flex justify-between items-center">
-          <span><%= @error_message %></span>
+          <span>{@error_message}</span>
           <button phx-click="clear_error" phx-target={@myself}>
             <.remix_icon icon="delete-bin-6-line" class="text-lg align-middle" />
           </button>
@@ -165,7 +165,7 @@ defmodule LivebookWeb.FileSelectComponent do
           class="mb-4 px-4 py-3 flex space-x-4 items-center border border-gray-200 rounded-lg"
         >
           <p class="grow text-gray-700 text-sm">
-            Are you sure you want to irreversibly delete <span class="font-semibold"><%= @deleting_file.path %></span>?
+            Are you sure you want to irreversibly delete <span class="font-semibold">{@deleting_file.path}</span>?
           </p>
           <div class="flex space-x-4">
             <button
@@ -218,7 +218,7 @@ defmodule LivebookWeb.FileSelectComponent do
           >
             <div :for={file <- @uploads.folder.entries} class="p-2 flex gap-2 items-center">
               <.spinner />
-              <span class="font-medium text-gray-500"><%= file.client_name %></span>
+              <span class="font-medium text-gray-500">{file.client_name}</span>
               <div class="grow" />
               <.icon_button type="button" phx-click="clear-file" phx-target={@myself} tabindex="-1">
                 <.remix_icon icon="close-line" />
@@ -228,7 +228,7 @@ defmodule LivebookWeb.FileSelectComponent do
 
           <div
             :if={@highlighted_file_infos != []}
-            class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+            class="grid grid-cols-2 lg:grid-cols-3 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
           >
             <%= for file_info <- Enum.take(@highlighted_file_infos, visible_files_limit()) do %>
               <.file
@@ -242,7 +242,7 @@ defmodule LivebookWeb.FileSelectComponent do
             <.more_files_indicator length={length(@highlighted_file_infos)} />
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div class="grid grid-cols-2 lg:grid-cols-3 gap-2">
             <%= for file_info <- Enum.take(@unhighlighted_file_infos, visible_files_limit()) do %>
               <.file
                 id={"#{@id}-file-#{file_info.id}"}
@@ -263,7 +263,7 @@ defmodule LivebookWeb.FileSelectComponent do
   defp new_item_section(assigns) do
     ~H"""
     <div
-      class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+      class="hidden grid grid-cols-2 lg:grid-cols-3 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
       id={@id}
     >
       <form
@@ -292,7 +292,7 @@ defmodule LivebookWeb.FileSelectComponent do
 
   defp file_system_menu_button(assigns) do
     ~H"""
-    <.menu id={@id} disabled={@file_system_select_disabled} position={:bottom_left}>
+    <.menu id={@id} disabled={@file_system_select_disabled} position="bottom-left">
       <:toggle>
         <.button
           color="gray"
@@ -301,7 +301,7 @@ defmodule LivebookWeb.FileSelectComponent do
           aria-label="switch file storage"
           disabled={@file_system_select_disabled}
         >
-          <span><%= file_system_name(@file.file_system_module) %></span>
+          <span>{file_system_name(@file.file_system_module)}</span>
           <div class="pl-0.5 flex items-center">
             <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
           </div>
@@ -309,10 +309,10 @@ defmodule LivebookWeb.FileSelectComponent do
       </:toggle>
       <%= for file_system <- @file_systems do %>
         <%= if file_system.id == @file.file_system_id do %>
-          <.menu_item variant={:selected}>
+          <.menu_item variant="selected">
             <button id={"#{@id}-file-system-#{file_system.id}"} role="menuitem">
               <.file_system_icon file_system={file_system} />
-              <span><%= file_system_label(file_system) %></span>
+              <span>{file_system_label(file_system)}</span>
             </button>
           </.menu_item>
         <% else %>
@@ -325,7 +325,7 @@ defmodule LivebookWeb.FileSelectComponent do
               phx-value-id={file_system.id}
             >
               <.file_system_icon file_system={file_system} />
-              <span><%= file_system_label(file_system) %></span>
+              <span>{file_system_label(file_system)}</span>
             </button>
           </.menu_item>
         <% end %>
@@ -399,18 +399,21 @@ defmodule LivebookWeb.FileSelectComponent do
           <span class={
             "flex font-medium overflow-hidden whitespace-nowrap #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-500")}"
           }>
+            <span>
+              {@file_info.unhighlighted_before}
+            </span>
             <span
               :if={@file_info.highlighted != ""}
               class={[
                 "font-medium",
-                @file_info.unhighlighted == "" && "overflow-hidden text-ellipsis",
+                @file_info.unhighlighted_after == "" && "overflow-hidden text-ellipsis",
                 if(@file_info.is_running, do: "text-green-400", else: "text-gray-900")
               ]}
             >
-              <%= @file_info.highlighted %>
+              {@file_info.highlighted}
             </span>
             <span class="overflow-hidden text-ellipsis">
-              <%= @file_info.unhighlighted %>
+              {@file_info.unhighlighted_after}
             </span>
           </span>
         </button>
@@ -428,7 +431,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <span>Rename</span>
         </button>
       </.menu_item>
-      <.menu_item :if={@file_info.editable} variant={:danger}>
+      <.menu_item :if={@file_info.editable} variant="danger">
         <button
           type="button"
           role="menuitem"
@@ -452,7 +455,7 @@ defmodule LivebookWeb.FileSelectComponent do
       class="col-span-full text-sm text-medium text-gray-500 flex flex-col items-center gap-1"
     >
       <.remix_icon icon="more-line" class="text-lg" />
-      <%= @length - visible_files_limit() %> more files (search to see)
+      {@length - visible_files_limit()} more files (search to see)
     </div>
     """
   end
@@ -628,6 +631,10 @@ defmodule LivebookWeb.FileSelectComponent do
     {unhighlighted_file_infos, highlighted_file_infos} =
       Enum.split_with(file_infos, &(&1.highlighted == ""))
 
+    # List files with prefix matching first
+    highlighted_file_infos =
+      Enum.sort_by(highlighted_file_infos, &if(&1.unhighlighted_before == "", do: 1, else: 2))
+
     assign(socket,
       file_infos: file_infos,
       unhighlighted_file_infos: unhighlighted_file_infos,
@@ -637,10 +644,17 @@ defmodule LivebookWeb.FileSelectComponent do
 
   defp annotate_matching(file_infos, prefix) do
     for %{name: name} = info <- file_infos do
-      if String.starts_with?(name, prefix) do
-        %{info | highlighted: prefix, unhighlighted: String.replace_prefix(name, prefix, "")}
-      else
-        %{info | highlighted: "", unhighlighted: name}
+      case String.split(name, prefix, parts: 2) do
+        [unhighlighted_before, unhighlighted_after] ->
+          %{
+            info
+            | unhighlighted_before: unhighlighted_before,
+              highlighted: prefix,
+              unhighlighted_after: unhighlighted_after
+          }
+
+        [^name] ->
+          %{info | unhighlighted_before: "", highlighted: "", unhighlighted_after: name}
       end
     end
   end
@@ -685,8 +699,9 @@ defmodule LivebookWeb.FileSelectComponent do
     %{
       id: Base.url_encode64(file.path, padding: false),
       name: name,
+      unhighlighted_before: "",
       highlighted: "",
-      unhighlighted: name,
+      unhighlighted_after: name,
       file: file,
       is_dir: FileSystem.File.dir?(file),
       is_running: running?(file, running_files),

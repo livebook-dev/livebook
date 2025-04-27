@@ -4,7 +4,9 @@ defmodule Livebook.Teams do
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
   alias Livebook.Hubs.TeamClient
-  alias Livebook.Teams.{Agent, AppDeployment, DeploymentGroup, Org, Requests}
+  alias Livebook.Teams
+  alias Livebook.Teams.Org
+  alias Livebook.Teams.Requests
 
   import Ecto.Changeset,
     only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
@@ -154,22 +156,22 @@ defmodule Livebook.Teams do
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking deployment group changes.
   """
-  @spec change_deployment_group(DeploymentGroup.t(), map()) :: Ecto.Changeset.t()
-  def change_deployment_group(%DeploymentGroup{} = deployment_group, attrs \\ %{}) do
-    DeploymentGroup.changeset(deployment_group, attrs)
+  @spec change_deployment_group(Teams.DeploymentGroup.t(), map()) :: Ecto.Changeset.t()
+  def change_deployment_group(%Teams.DeploymentGroup{} = deployment_group, attrs \\ %{}) do
+    Teams.DeploymentGroup.changeset(deployment_group, attrs)
   end
 
   @doc """
   Creates a Deployment Group.
   """
   @spec create_deployment_group(Team.t(), map()) ::
-          {:ok, DeploymentGroup.t()}
+          {:ok, Teams.DeploymentGroup.t()}
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def create_deployment_group(%Team{} = team, attrs) do
-    changeset = DeploymentGroup.changeset(%DeploymentGroup{}, attrs)
+    changeset = Teams.DeploymentGroup.changeset(%Teams.DeploymentGroup{}, attrs)
 
-    with {:ok, %DeploymentGroup{} = deployment_group} <- apply_action(changeset, :insert) do
+    with {:ok, %Teams.DeploymentGroup{} = deployment_group} <- apply_action(changeset, :insert) do
       case Requests.create_deployment_group(team, deployment_group) do
         {:ok, %{"id" => id}} ->
           {:ok, %{deployment_group | id: to_string(id)}}
@@ -189,7 +191,7 @@ defmodule Livebook.Teams do
   @doc """
   Gets a list of deployment groups for a given Hub.
   """
-  @spec get_deployment_groups(Team.t()) :: list(DeploymentGroup.t())
+  @spec get_deployment_groups(Team.t()) :: list(Teams.DeploymentGroup.t())
   def get_deployment_groups(team) do
     TeamClient.get_deployment_groups(team.id)
   end
@@ -197,11 +199,11 @@ defmodule Livebook.Teams do
   @doc """
   Creates a new app deployment.
   """
-  @spec deploy_app(Team.t(), AppDeployment.t()) ::
+  @spec deploy_app(Team.t(), Teams.AppDeployment.t()) ::
           :ok
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
-  def deploy_app(%Team{} = team, %AppDeployment{} = app_deployment) do
+  def deploy_app(%Team{} = team, %Teams.AppDeployment{} = app_deployment) do
     case Requests.deploy_app(team, app_deployment) do
       {:ok, %{"id" => _id}} ->
         :ok
@@ -220,7 +222,7 @@ defmodule Livebook.Teams do
   @doc """
   Gets a list of app deployments for a given Hub.
   """
-  @spec get_app_deployments(Team.t()) :: list(AppDeployment.t())
+  @spec get_app_deployments(Team.t()) :: list(Teams.AppDeployment.t())
   def get_app_deployments(team) do
     TeamClient.get_app_deployments(team.id)
   end
@@ -228,9 +230,17 @@ defmodule Livebook.Teams do
   @doc """
   Gets a list of agents for a given Hub.
   """
-  @spec get_agents(Team.t()) :: list(Agent.t())
+  @spec get_agents(Team.t()) :: list(Teams.Agent.t())
   def get_agents(team) do
     TeamClient.get_agents(team.id)
+  end
+
+  @doc """
+  Gets a list of environment variables for a given Hub.
+  """
+  @spec get_environment_variables(Team.t()) :: list(Teams.Agent.t())
+  def get_environment_variables(team) do
+    TeamClient.get_environment_variables(team.id)
   end
 
   defp map_teams_field_to_livebook_field(map, teams_field, livebook_field) do

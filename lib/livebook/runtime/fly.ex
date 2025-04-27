@@ -262,7 +262,7 @@ defmodule Livebook.Runtime.Fly do
       {:error, %{message: message}} ->
         {:error,
          "failed while waiting for the machine to start, reason: #{message}." <>
-           " See the app logs in the Fly.io dashbaord to determine the reason"}
+           " See the app logs in the Fly.io dashboard to determine the reason"}
     end
   end
 

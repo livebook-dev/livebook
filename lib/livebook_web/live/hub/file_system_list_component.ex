@@ -17,8 +17,8 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
           class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
         >
           <div class="flex items-center space-x-12">
-            <.labeled_text label="Type"><%= type(file_system) %></.labeled_text>
-            <.labeled_text label="Bucket URL"><%= name(file_system) %></.labeled_text>
+            <.labeled_text label="Type">{type(file_system)}</.labeled_text>
+            <.labeled_text label="Bucket URL">{name(file_system)}</.labeled_text>
           </div>
           <div class="flex items-center space-x-2">
             <.menu id={"hub-file-system-#{file_system.id}-menu"}>
@@ -38,7 +38,7 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
                   <span>Edit</span>
                 </.link>
               </.menu_item>
-              <.menu_item variant={:danger}>
+              <.menu_item variant="danger">
                 <button
                   id={"hub-file-system-#{file_system.id}-detach"}
                   type="button"
@@ -60,7 +60,11 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
         </div>
       </div>
       <div class="flex">
-        <.button patch={~p"/hub/#{@hub_id}/file-systems/new"} id="add-file-system">
+        <.button
+          patch={~p"/hub/#{@hub_id}/file-systems/new"}
+          id="add-file-system"
+          disabled={@disabled}
+        >
           Add file storage
         </.button>
       </div>

@@ -105,7 +105,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
             phx-click={JS.push("review_file_entry_access", value: %{name: file_entry.name})}
           >
             <.remix_icon icon="alert-line" class="text-lg align-middle mr-2" />
-            <span class="break-all"><%= file_entry.name %></span>
+            <span class="break-all">{file_entry.name}</span>
           </button>
         <% else %>
           <div
@@ -118,13 +118,13 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
               icon={file_entry_icon(file_entry, @session)}
               class="text-lg align-middle mr-2"
             />
-            <span class="break-all"><%= file_entry.name %></span>
+            <span class="break-all">{file_entry.name}</span>
           </div>
         <% end %>
         <%= if file_entry.name in @transferring_file_entry_names do %>
           <.spinner class="mr-[3px]" />
         <% else %>
-          <.menu id={"file-entry-#{file_entry.type}-#{idx}-menu"} position={:bottom_right}>
+          <.menu id={"file-entry-#{file_entry.type}-#{idx}-menu"} position="bottom-right">
             <:toggle>
               <.icon_button small aria-label="menu">
                 <.remix_icon icon="more-2-line" />
@@ -188,7 +188,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
                 <span>Rename</span>
               </.link>
             </.menu_item>
-            <.menu_item variant={:danger}>
+            <.menu_item variant="danger">
               <button
                 role="menuitem"
                 phx-click={
@@ -291,7 +291,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
       assigns = %{name: file_entry.name}
 
       description = ~H"""
-      Are you sure you want to delete this file - <span class="font-semibold">“<%= @name %>”</span>?
+      Are you sure you want to delete this file - <span class="font-semibold">“{@name}”</span>?
       """
 
       {:noreply,

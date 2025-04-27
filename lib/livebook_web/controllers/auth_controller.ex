@@ -46,15 +46,6 @@ defmodule LivebookWeb.AuthController do
     end
   end
 
-  defp render_form_error(conn, authentication_mode) do
-    errors = [{"%{authentication_mode} is invalid", [authentication_mode: authentication_mode]}]
-
-    render(conn, "index.html",
-      errors: errors,
-      authentication_mode: authentication_mode
-    )
-  end
-
   defp redirect_to(conn) do
     conn
     |> then(fn conn ->
@@ -67,5 +58,14 @@ defmodule LivebookWeb.AuthController do
       end
     end)
     |> halt()
+  end
+
+  defp render_form_error(conn, authentication_mode) do
+    errors = [{"%{authentication_mode} is invalid", [authentication_mode: authentication_mode]}]
+
+    render(conn, "index.html",
+      errors: errors,
+      authentication_mode: authentication_mode
+    )
   end
 end

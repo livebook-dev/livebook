@@ -30,14 +30,14 @@ defmodule LivebookWeb.SessionHelpers do
 
   ## Options
 
-    * `:queue_setup` - whether to queue the setup cell right after
+    * `:connect_runtime` - whether to connect the runtime right after
       the session is started. Defaults to `false`
 
   Accepts the same options as `Livebook.Sessions.create_session/1`.
   """
   @spec create_session(Socket.t(), keyword()) :: Socket.t()
   def create_session(socket, opts \\ []) do
-    {queue_setup, opts} = Keyword.pop(opts, :queue_setup, false)
+    {connect_runtime, opts} = Keyword.pop(opts, :connect_runtime, false)
 
     # Revert persistence options to default values if there is
     # no file attached to the new session
@@ -50,8 +50,8 @@ defmodule LivebookWeb.SessionHelpers do
 
     case Livebook.Sessions.create_session(opts) do
       {:ok, session} ->
-        if queue_setup do
-          Session.queue_cell_evaluation(session.pid, Livebook.Notebook.Cell.setup_cell_id())
+        if connect_runtime do
+          Session.connect_runtime(session.pid)
         end
 
         redirect_path = session_path(session.id, opts)
@@ -195,7 +195,7 @@ defmodule LivebookWeb.SessionHelpers do
     assigns = %{notebook_name: session.notebook_name, file: session.file}
 
     description = ~H"""
-    Are you sure you want to close this session - <span class="font-semibold">“<%= @notebook_name %>”</span>?
+    Are you sure you want to close this session - <span class="font-semibold">“{@notebook_name}”</span>?
     <br />
     <%= if @file do %>
       This won't delete any persisted files.
@@ -208,7 +208,8 @@ defmodule LivebookWeb.SessionHelpers do
       title: "Close session",
       description: description,
       confirm_text: "Close session",
-      confirm_icon: "close-circle-line"
+      confirm_icon: "close-circle-line",
+      danger: session.file == nil
     )
   end
 
@@ -272,5 +273,33 @@ defmodule LivebookWeb.SessionHelpers do
       key = "#{input_id}-global"
       Livebook.Session.register_file(session_pid, path, key)
     end
+  end
+
+  @logout_topic "logout"
+
+  @doc """
+  Subscribes to #{@logout_topic} topic.
+  """
+  @spec subscribe_to_logout() :: :ok | {:error, term()}
+  def subscribe_to_logout do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, @logout_topic)
+  end
+
+  @doc """
+  Shows the confirmation modal to logout user from Livebook.
+  """
+  @spec confirm_logout(Socket.t()) :: Socket.t()
+  def confirm_logout(socket) do
+    on_confirm = fn socket ->
+      Phoenix.PubSub.broadcast(Livebook.PubSub, @logout_topic, :logout)
+      put_flash(socket, :info, "Livebook is logging out. You will be redirected soon.")
+    end
+
+    confirm(socket, on_confirm,
+      title: "Log out",
+      description: "Are you sure you want to log out Livebook now?",
+      confirm_text: "Log out",
+      confirm_icon: "logout-box-line"
+    )
   end
 end

@@ -17,6 +17,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     deployment_groups = Teams.get_deployment_groups(assigns.hub)
     app_deployments = Teams.get_app_deployments(assigns.hub)
     agents = Teams.get_agents(assigns.hub)
+    environment_variables = Teams.get_environment_variables(assigns.hub)
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
     default? = default_hub?(assigns.hub)
@@ -43,6 +44,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        deployment_groups: Enum.sort_by(deployment_groups, & &1.name),
        app_deployments: Enum.frequencies_by(app_deployments, & &1.deployment_group_id),
        agents: Enum.frequencies_by(agents, & &1.deployment_group_id),
+       environment_variables:
+         Enum.frequencies_by(environment_variables, & &1.deployment_group_id),
        show_key: show_key,
        secret_name: secret_name,
        secret_value: secret_value,
@@ -56,8 +59,30 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <LayoutComponents.topbar :if={Provider.connection_status(@hub)} variant={:warning}>
-        <%= Provider.connection_status(@hub) %>
+      <LayoutComponents.topbar :if={Provider.connection_status(@hub)} variant="warning">
+        {Provider.connection_status(@hub)}
+      </LayoutComponents.topbar>
+
+      <LayoutComponents.topbar :if={@hub.billing_status.type == :trialing} variant="warning">
+        <h2>
+          Your organization has
+          <strong>
+            {Date.diff(@hub.billing_status.trial_ends_at, Date.utc_today())} day(s) left
+          </strong>
+          on the free trial. Need help getting set up? <a
+            class="underline"
+            href="mailto:suport@livebook.dev?subject=Help%20with%20Livebook%20Teams"
+          >Contact us</a>.
+        </h2>
+      </LayoutComponents.topbar>
+
+      <LayoutComponents.topbar :if={@hub.billing_status.disabled} variant="warning">
+        <h2>
+          Workspace disabled: your organization doesn't have an active subscription. Please contact your <.link
+            href={org_url(@hub, "/users")}
+            class="underline"
+          >org's admin</.link>.
+        </h2>
       </LayoutComponents.topbar>
 
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
@@ -67,14 +92,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               <div class="flex gap-2 items-center">
                 <div class="flex justify-center">
                   <span class="relative">
-                    <%= @hub.hub_emoji %>
+                    {@hub.hub_emoji}
                     <div class={[
                       "absolute w-[10px] h-[10px] border-white border-2 rounded-full right-0 bottom-1",
                       if(@hub_metadata.connected?, do: "bg-green-400", else: "bg-red-400")
                     ]} />
                   </span>
                 </div>
-                <%= @hub.hub_name %>
+                {@hub.hub_name}
                 <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
                   Livebook Teams
                 </span>
@@ -173,10 +198,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 secrets={@secrets}
                 edit_path={"hub/#{@hub.id}/secrets/edit"}
                 return_to={~p"/hub/#{@hub.id}"}
+                disabled={@hub.billing_status.disabled}
               />
 
               <div>
-                <.button patch={~p"/hub/#{@hub.id}/secrets/new"} id="add-secret">
+                <.button
+                  patch={~p"/hub/#{@hub.id}/secrets/new"}
+                  id="add-secret"
+                  disabled={@hub.billing_status.disabled}
+                >
                   Add secret
                 </.button>
               </div>
@@ -197,6 +227,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 hub_id={@hub.id}
                 file_systems={@file_systems}
                 target={@myself}
+                disabled={@hub.billing_status.disabled}
               />
             </div>
 
@@ -220,6 +251,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   hub={@hub}
                   deployment_group={deployment_group}
                   app_deployments_count={Map.get(@app_deployments, deployment_group.id, 0)}
+                  environment_variables_count={
+                    Map.get(@environment_variables, deployment_group.id, 0)
+                  }
                   agents_count={Map.get(@agents, deployment_group.id, 0)}
                   live_action={@live_action}
                   params={@params}
@@ -227,7 +261,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </div>
 
               <div>
-                <.button patch={~p"/hub/#{@hub.id}/groups/new"} id="add-deployment-group">
+                <.button
+                  patch={~p"/hub/#{@hub.id}/groups/new"}
+                  id="add-deployment-group"
+                  disabled={@hub.billing_status.disabled}
+                >
                   Add deployment group
                 </.button>
               </div>
@@ -262,7 +300,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         </div>
       </div>
 
-      <.modal :if={@show_key} id="key-modal" show width={:medium} patch={~p"/hub/#{@hub.id}"}>
+      <.modal :if={@show_key} id="key-modal" show width="medium" patch={~p"/hub/#{@hub.id}"}>
         <.teams_key_modal
           teams_key={@hub.teams_key}
           confirm_url={if @show_key == "confirm", do: ~p"/hub/#{@hub.id}"}
@@ -273,7 +311,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         :if={@live_action in [:new_secret, :edit_secret]}
         id="secrets-modal"
         show
-        width={:medium}
+        width="medium"
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component
@@ -283,6 +321,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           secret_name={@secret_name}
           secret_value={@secret_value}
           return_to={~p"/hub/#{@hub.id}"}
+          disabled={@hub.billing_status.disabled}
         />
       </.modal>
 
@@ -290,13 +329,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         :if={@live_action in [:new_file_system, :edit_file_system]}
         id="file-systems-modal"
         show
-        width={:medium}
+        width="medium"
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component
           module={LivebookWeb.Hub.FileSystemFormComponent}
           id="file-systems"
           hub={@hub}
+          disabled={@hub.billing_status.disabled}
           file_system={@file_system}
           file_system_id={@file_system_id}
           return_to={~p"/hub/#{@hub.id}"}
@@ -307,7 +347,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         :if={@live_action == :new_deployment_group}
         id="deployment-group-modal"
         show
-        width={:big}
+        width="big"
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component
