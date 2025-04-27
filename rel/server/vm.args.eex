@@ -3,4 +3,9 @@
 +sbwt none +sbwtdcpu none +sbwtdio none +Q 65536
 
 # Set custom EPMD module and port
--epmd_module Elixir.Livebook.EPMD -erl_epmd_port 13825
+#
+# Note we don't use -erl_epmd_port here on purpose,
+# because that also assumes all nodes we connect to
+# run on erl_epmd_port and Livebook's attached node
+# needs to be able to connect regurlarly.
+-epmd_module Elixir.Livebook.EPMD -kernel inet_dist_listen_min 13825
