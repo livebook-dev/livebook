@@ -3,13 +3,13 @@ defmodule LivebookWeb.ErrorHTML do
 
   def render("404.html", assigns) do
     ~H"""
-    <.error_page status="404" title="No Numbats here!" />
+    <.error_page status={404} title="No Numbats here!" />
     """
   end
 
   def render("403.html", assigns) do
     ~H"""
-    <.error_page status="403" title="No Numbats allowed here!" />
+    <.error_page status={403} title="No Numbats allowed here!" />
     """
   end
 
@@ -21,7 +21,7 @@ defmodule LivebookWeb.ErrorHTML do
 
   def render("401.html", assigns) do
     ~H"""
-    <.error_page status="401" title="Not authorized" details={@details} />
+    <.error_page status={401} title="Not authorized" details={@details} />
     """
   end
 
@@ -35,11 +35,11 @@ defmodule LivebookWeb.ErrorHTML do
     """
   end
 
-  attr :status, :any, required: true
+  attr :status, :integer, required: true
   attr :title, :string, required: true
   attr :details, :string, default: nil
 
-  defp error_page(assigns) do
+  def error_page(assigns) do
     ~H"""
     <!DOCTYPE html>
     <html lang="en">

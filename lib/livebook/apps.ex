@@ -79,13 +79,14 @@ defmodule Livebook.Apps do
   @spec authorized?(App.t(), Livebook.Users.User.t()) :: boolean()
   def authorized?(app, user)
 
-  def authorized?(%{app_spec: %Livebook.Apps.TeamsAppSpec{}}, %{groups: []}), do: false
+  def authorized?(%{app_spec: %Livebook.Apps.TeamsAppSpec{}}, %{restricted_apps_groups: []}),
+    do: false
+
+  def authorized?(_app, %{restricted_apps_groups: nil}), do: true
 
   def authorized?(%{slug: slug, app_spec: %Livebook.Apps.TeamsAppSpec{hub_id: id}}, user) do
-    Livebook.Hubs.TeamClient.user_app_access?(id, user, slug)
+    Livebook.Hubs.TeamClient.user_app_access?(id, user.restricted_apps_groups, slug)
   end
-
-  def authorized?(_app, _user), do: true
 
   @doc """
   Updates the given app info across the cluster.

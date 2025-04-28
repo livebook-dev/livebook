@@ -8,8 +8,9 @@ defmodule LivebookWeb.AppSessionLive do
   alias Livebook.Notebook.Cell
 
   @impl true
+
   def mount(%{"slug" => slug, "id" => session_id}, _session, socket)
-      when socket.assigns.app_authenticated? do
+      when socket.assigns.app_authenticated? and socket.assigns.app_authorized? do
     {:ok, app} = Livebook.Apps.fetch_app(slug)
 
     app_session = Enum.find(app.sessions, &(&1.id == session_id))
@@ -53,6 +54,11 @@ defmodule LivebookWeb.AppSessionLive do
     end
   end
 
+  def mount(_params, _session, socket)
+      when socket.assigns.app_authenticated? and not socket.assigns.app_authorized? do
+    {:ok, socket, layout: false}
+  end
+
   def mount(%{"slug" => slug} = params, _session, socket) do
     if connected?(socket) do
       to =
@@ -77,7 +83,9 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   @impl true
-  def render(%{nonexistent?: true} = assigns) when assigns.app_authenticated? do
+
+  def render(%{nonexistent?: true} = assigns)
+      when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
     <div class="h-screen flex items-center justify-center">
       <div class="flex flex-col space-y-4 items-center">
@@ -96,7 +104,7 @@ defmodule LivebookWeb.AppSessionLive do
     """
   end
 
-  def render(assigns) when assigns.app_authenticated? do
+  def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
       <div class="w-full max-w-screen-lg py-4 mx-auto" data-el-notebook-content>
@@ -229,6 +237,16 @@ defmodule LivebookWeb.AppSessionLive do
         session={@session}
       />
     </.modal>
+    """
+  end
+
+  def render(assigns) when not assigns.app_authorized? do
+    ~H"""
+    <LivebookWeb.ErrorHTML.error_page
+      status={401}
+      title="Not authorized"
+      details="You don't have permission to access this app"
+    />
     """
   end
 
@@ -372,7 +390,11 @@ defmodule LivebookWeb.AppSessionLive do
     # With this strategy, we guarantee that unauthorized users
     # won't be able to keep reading the app which they
     # should't have access.
-    {:noreply, redirect(socket, to: ~p"/apps/#{slug}/sessions/#{socket.assigns.session.id}")}
+    if socket.assigns.app_authorized? do
+      {:noreply, socket}
+    else
+      {:noreply, redirect(socket, to: ~p"/apps/#{slug}/sessions/#{socket.assigns.session.id}")}
+    end
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

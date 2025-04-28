@@ -73,7 +73,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
           }
         ])
 
-      {conn, code, %{groups: []}} = authenticate_user(conn, node, test)
+      {conn, code, %{restricted_apps_groups: []}} = authenticate_user(conn, node, test)
       session = get_session(conn)
 
       conn =
@@ -81,13 +81,15 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         |> init_test_session(session)
 
       group = %{
-        "oidc_provider_id" => to_string(oidc_provider.id),
+        "provider_id" => to_string(oidc_provider.id),
         "group_name" => authorization_group.group_name
       }
 
       # Get the user with updated groups
       erpc_call(node, :update_user_info_groups, [code, [group]])
-      assert {%{halted: false}, %{groups: [^group]}} = LivebookTeams.authenticate(test, conn, [])
+
+      assert {%{halted: false}, %{restricted_apps_groups: nil}} =
+               LivebookTeams.authenticate(test, conn, [])
     end
 
     @tag :tmp_dir
@@ -162,26 +164,20 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
                       }}
 
       # Now we need to check if the current user has access to this app
-      {conn, code, %{groups: []}} = authenticate_user(conn, node, test)
+      {conn, code, %{restricted_apps_groups: []}} = authenticate_user(conn, node, test)
       session = get_session(conn)
 
-      conn =
-        build_conn(:get, ~p"/apps/#{slug}")
-        |> init_test_session(session)
-
       group = %{
-        "oidc_provider_id" => to_string(oidc_provider.id),
+        "provider_id" => to_string(oidc_provider.id),
         "group_name" => authorization_group.group_name
       }
 
-      # Get the user with updated groups
+      # Update user groups
       erpc_call(node, :update_user_info_groups, [code, [group]])
-      assert {%{halted: true} = conn, nil} = LivebookTeams.authenticate(test, conn, [])
-      assert html_response(conn, 200) =~ "You don&#39;t have permission to access this app"
 
       # Guarantee we don't list the app for this user
       conn = build_conn(:get, ~p"/") |> init_test_session(session)
-      {%{halted: false}, metadata} = LivebookTeams.authenticate(test, conn, [])
+      {_conn, metadata} = LivebookTeams.authenticate(test, conn, [])
       {:ok, user} = Livebook.Users.update_user(Livebook.Users.User.new(metadata.id), metadata)
       assert Livebook.Apps.list_authorized_apps(user) == []
 
@@ -204,23 +200,21 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
           }
         ])
 
-      {conn, code, %{groups: []}} = authenticate_user(conn, node, test)
+      {conn, code, %{restricted_apps_groups: []}} = authenticate_user(conn, node, test)
 
       group = %{
-        "oidc_provider_id" => to_string(oidc_provider.id),
+        "provider_id" => to_string(oidc_provider.id),
         "group_name" => authorization_group.group_name
       }
 
       erpc_call(node, :update_user_info_groups, [code, [group]])
 
-      for page <- ["/settings", "/learn", "/hub", "/apps-dashboard"] do
-        conn =
-          build_conn(:get, page)
-          |> init_test_session(get_session(conn))
+      conn =
+        build_conn(:get, ~p"/settings")
+        |> init_test_session(get_session(conn))
 
-        assert {%{halted: true} = conn, nil} = LivebookTeams.authenticate(test, conn, [])
-        assert html_response(conn, 200) =~ "You don&#39;t have permission to access this server"
-      end
+      assert {_conn, %{restricted_apps_groups: [^group]}} =
+               LivebookTeams.authenticate(test, conn, [])
     end
 
     test "redirects to Livebook Teams with invalid access token",
@@ -252,7 +246,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
-      assert html_response(conn, 200) =~
+      assert html_response(conn, 403) =~
                "Failed to authenticate with Livebook Teams: you do not belong to this org"
     end
   end

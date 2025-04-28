@@ -12,7 +12,18 @@ defmodule LivebookWeb.AuthPlug do
   @impl true
   def call(conn, _opts) do
     if authenticated?(conn) do
-      conn
+      user =
+        LivebookWeb.UserPlug.build_current_user(
+          get_session(conn),
+          conn.assigns.identity_data,
+          conn.assigns.user_data
+        )
+
+      if user.restricted_apps_groups == nil do
+        conn
+      else
+        render_unauthorized(conn)
+      end
     else
       authenticate(conn)
     end
@@ -99,6 +110,18 @@ defmodule LivebookWeb.AuthPlug do
     |> halt()
   end
 
+  defp render_unauthorized(%{path_info: []} = conn) do
+    conn |> redirect(to: ~p"/apps") |> halt()
+  end
+
+  defp render_unauthorized(conn) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(LivebookWeb.ErrorHTML)
+    |> render("401.html", %{details: "You don't have permission to access this server"})
+    |> halt()
+  end
+
   defp path_with_query(path, params) when params == %{}, do: path
   defp path_with_query(path, params), do: path <> "?" <> URI.encode_query(params)
 
@@ -112,6 +135,7 @@ defmodule LivebookWeb.AuthPlug do
   This mirrors `Livebook.Config.authentication/0`, except the it can
   be overridden in tests, for each connection.
   """
+  @spec authentication(Plug.Conn.t() | map()) :: Livebook.Config.authentication()
   if Mix.env() == :test do
     def authentication(%Plug.Conn{} = conn), do: authentication(get_session(conn))
 

@@ -143,19 +143,19 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
-  Returns if the given user has full access to app server.
+  Returns if the given user groups has full access to app server.
   """
-  @spec user_full_access?(String.t(), Livebook.Users.User.t()) :: boolean()
-  def user_full_access?(id, user) do
-    GenServer.call(registry_name(id), {:check_full_access, user})
+  @spec user_full_access?(String.t(), list(map())) :: boolean()
+  def user_full_access?(id, groups) do
+    GenServer.call(registry_name(id), {:check_full_access, groups})
   end
 
   @doc """
-  Returns if the given user has access to given app.
+  Returns if the given user groups has access to given app.
   """
   @spec user_app_access?(String.t(), Livebook.Users.User.t(), String.t()) :: boolean()
-  def user_app_access?(id, user, slug) do
-    GenServer.call(registry_name(id), {:check_app_access, user, slug})
+  def user_app_access?(id, groups, slug) do
+    GenServer.call(registry_name(id), {:check_app_access, groups, slug})
   end
 
   @doc """
@@ -296,30 +296,24 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
-  def handle_call({:check_full_access, user}, _caller, %{deployment_group_id: id} = state) do
+  def handle_call({:check_full_access, groups}, _caller, %{deployment_group_id: id} = state) do
     case fetch_deployment_group(id, state) do
       {:ok, deployment_group} ->
-        {:reply, authorized_group?(deployment_group.authorization_groups, user.groups), state}
+        {:reply, authorized_group?(deployment_group.authorization_groups, groups), state}
 
       _ ->
         {:reply, false, state}
     end
   end
 
-  def handle_call({:check_app_access, user, slug}, _caller, %{deployment_group_id: id} = state) do
+  def handle_call({:check_app_access, groups, slug}, _caller, %{deployment_group_id: id} = state) do
     with {:ok, deployment_group} <- fetch_deployment_group(id, state),
          {:ok, app_deployment} <- fetch_app_deployment_from_slug(slug, state) do
-      cond do
-        # If the user have full access, it should be verified first
-        authorized_group?(deployment_group.authorization_groups, user.groups) ->
-          {:reply, true, state}
+      app_access? =
+        authorized_group?(deployment_group.authorization_groups, groups) or
+          authorized_group?(app_deployment.authorization_groups, groups)
 
-        authorized_group?(app_deployment.authorization_groups, user.groups) ->
-          {:reply, true, state}
-
-        true ->
-          {:reply, false, state}
-      end
+      {:reply, app_access?, state}
     else
       _ -> {:reply, false, state}
     end
@@ -575,7 +569,7 @@ defmodule Livebook.Hubs.TeamClient do
   defp build_authorization_groups(%{authorization_groups: authorization_groups}) do
     for authorization_group <- authorization_groups do
       %Teams.AuthorizationGroup{
-        oidc_provider_id: authorization_group.oidc_provider_id,
+        provider_id: authorization_group.provider_id,
         group_name: authorization_group.group_name
       }
     end
@@ -1003,20 +997,20 @@ defmodule Livebook.Hubs.TeamClient do
   defp nullify(""), do: nil
   defp nullify(value), do: value
 
-  defp manager_sync(%{deployment_group_id: id}, state) do
-    with {:ok, deployment_group} <- fetch_deployment_group(id, state) do
-      if deployment_group.id == state.deployment_group_id do
-        # Each node runs the teams client, but we only need to call sync once
-        if Apps.Manager.local?() do
-          Apps.Manager.sync_permanent_apps()
-        end
+  defp manager_sync(app_deployment, state) do
+    # We only need to sync if the app deployment belongs to the current
+    # deployment group
+    if app_deployment.deployment_group_id == state.deployment_group_id do
+      # Each node runs the teams client, but we only need to call sync once
+      if Apps.Manager.local?() do
+        Apps.Manager.sync_permanent_apps()
       end
     end
   end
 
   defp authorized_group?(authorization_groups, groups) do
-    Enum.any?(authorization_groups, fn %{oidc_provider_id: id, group_name: name} ->
-      %{"oidc_provider_id" => id, "group_name" => name} in groups
+    Enum.any?(authorization_groups, fn %{provider_id: id, group_name: name} ->
+      %{"provider_id" => id, "group_name" => name} in groups
     end)
   end
 end

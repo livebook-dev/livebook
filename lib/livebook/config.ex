@@ -6,6 +6,8 @@ defmodule Livebook.Config do
           | %{mode: :token, secret: String.t()}
           | %{mode: :disabled}
 
+  @type authentication_mode :: :password | :token | :disabled
+
   @doc """
   Returns path to Livebook priv directory.
 
