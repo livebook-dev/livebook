@@ -125,7 +125,7 @@ defmodule LivebookWeb.AppComponents do
             for more information.
           </div>
           <p class="mt-1 text-sm">
-            Automatic clustering is available when deploying to Fly.io and Kubernetes.
+            Automatic clustering is available when deploying to AWS ECS, Fly.io, and Kubernetes.
           </p>
         </div>
       </div>
