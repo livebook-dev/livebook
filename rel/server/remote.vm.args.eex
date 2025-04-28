@@ -1,0 +1,9 @@
+# Disable busy waiting so that we don't waste resources
+# Limit the maximal number of ports for the same reason
++sbwt none +sbwtdcpu none +sbwtdio none +Q 65536
+
+# Set custom EPMD module and port
+-epmd_module Elixir.Livebook.EPMD -erl_epmd_port 13825
+
+# Disable listening and does not start epmd (due to RELEASE_DISTRIBUTION=name)
+-dist_listen false -start_epmd false
