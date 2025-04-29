@@ -1,0 +1,331 @@
+<!-- livebook:{"app_settings":{"access_type":"public","output_type":"rich","show_source":true,"slug":"github-stars"}} -->
+
+# GitHub Stars
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.15.3"},
+  {:req, "~> 0.5.10"},
+  {:kino_vega_lite, "~> 0.1.13"}
+])
+```
+
+## Introduction
+
+In this tutorial, we'll build a simple Livebook app together.
+
+We'll create an app with a form where we can enter a GitHub repository name, and it will show us how the repository's stars have grown over time - displayed both as a chart and as a table.
+
+Let's get started.
+
+## GitHub API client
+
+First, we'll build a simple API client for GitHub. We need this to fetch the list of people who have starred a repository.
+
+```elixir
+defmodule GitHubApi do
+  def stargazers(repo_name) do
+    with :ok <- rate_remaining(),
+         {:ok, response} <- do_stargazers(repo_name) do
+      maybe_paginate(response, repo_name)
+    end
+  end
+
+  defp rate_remaining do
+    response = Req.get!(base_req(), url: "/rate_limit")
+
+    if response.body["rate"]["remaining"] > 0 do
+      :ok
+    else
+      {:error, "GithubApi rate limit reached"}
+    end
+  end
+
+  defp base_req() do
+    Req.new(
+      base_url: "https://api.github.com",
+      headers: [
+        accept: "application/vnd.github.star+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      ]
+    )
+  end
+
+  defp do_stargazers(repo_name, page \\ 1) do
+    case Req.get(base_req(), url: "/repos/#{repo_name}/stargazers?per_page=100&page=#{page}") do
+      {:ok, %Req.Response{status: 200} = response} -> {:ok, response}
+      {:ok, %Req.Response{status: 403}} -> {:error, "GitHub API rate limit reached"}
+      {:ok, response} -> {:error, response.body["message"]}
+      {:error, exception} -> {:error, "Exception calling GitHub API: #{inspect(exception)}"}
+    end
+  end
+
+  defp maybe_paginate(response, repo_name) do
+    star_dates =
+      if "link" in Map.keys(response.headers) do
+        paginate(response, repo_name)
+      else
+        parse(response.body)
+      end
+
+    {:ok, star_dates}
+  end
+
+  defp paginate(response, repo_name) do
+    first_stargazers = parse(response.body)
+    last_page = last_page_number(response.headers)
+
+    additional_stargazers =
+      Task.async_stream(
+        2..last_page,
+        fn page -> do_stargazers(repo_name, page) end,
+        max_concurrency: 60
+      )
+      |> Enum.flat_map(fn
+        {:ok, {:ok, resp}} -> parse(resp.body)
+        _ -> []
+      end)
+
+    first_stargazers ++ additional_stargazers
+  end
+
+  defp parse(body) do
+    Enum.map(body, fn stargazer ->
+      %{"starred_at" => starred_at, "user" => %{"login" => user_login}} = stargazer
+      {:ok, starred_at, _} = DateTime.from_iso8601(starred_at)
+
+      %{
+        starred_at: starred_at,
+        user_login: user_login
+      }
+    end)
+  end
+
+  defp last_page_number(headers) do
+    links = hd(headers["link"])
+
+    %{"last_page" => last_page} =
+      Regex.named_captures(~r/<.*page=(?<last_page>\d+)>; rel="last"/, links)
+    String.to_integer(last_page)
+  end
+end
+```
+
+Let's try our client.
+
+Execute the cell below. You should see a list of GitHub users who starred the repository.
+
+```elixir
+repo_name = "livebook-dev/kino_vega_lite"
+{:ok, stargazers} = GitHubApi.stargazers(repo_name)
+```
+
+## Data processing
+
+Now we need to transform our stargazers data into a format that works for visualization. We'll shape it to show cumulative star counts by date, like this:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+%{
+  date: [~D[2025-04-25], ~D[2025-04-24], ~D[2025-04-23]],
+  stars: [528, 510, 490]
+}
+```
+
+The module below will transform the data to the way we need.
+
+```elixir
+defmodule GithubDataProcessor do
+  def cumulative_star_dates(stargazers) do
+    stargazers
+    |> Enum.group_by(&DateTime.to_date(&1.starred_at))
+    |> Enum.map(fn {date, stargazers} -> {date, Enum.count(stargazers)} end)
+    |> List.keysort(0, {:asc, Date})
+    |> Enum.reduce(%{date: [], stars: [0]}, fn {date, stars}, acc ->
+      %{date: dates_acc, stars: stars_acc} = acc
+
+      cumulative_stars = List.first(stars_acc) + stars
+
+      %{date: [date | dates_acc], stars: [cumulative_stars | stars_acc]}
+    end)
+  end
+end
+```
+
+Execute the cell below. You should see a data structure with dates and corresponding star counts.
+
+```elixir
+data = GithubDataProcessor.cumulative_star_dates(stargazers)
+```
+
+## Creating mock data
+
+GitHub has API rate limits that we might hit. Let's prepare some mock data so our app will work even if the API is unavailable.
+
+```elixir
+mock_data = %{
+  date: [
+    ~D[2025-04-25], ~D[2025-04-24], ~D[2025-04-23], ~D[2025-04-22], ~D[2025-04-21],
+    ~D[2025-04-20], ~D[2025-04-19], ~D[2025-04-18], ~D[2025-04-17], ~D[2025-04-16],
+    ~D[2025-04-15], ~D[2025-04-14], ~D[2025-04-13], ~D[2025-04-12], ~D[2025-04-11],
+    ~D[2025-04-10], ~D[2025-04-09], ~D[2025-04-08], ~D[2025-04-07], ~D[2025-04-06],
+    ~D[2025-04-05], ~D[2025-04-04], ~D[2025-04-03], ~D[2025-04-02], ~D[2025-04-01],
+    ~D[2025-03-31], ~D[2025-03-30], ~D[2025-03-29], ~D[2025-03-28], ~D[2025-03-27]
+  ],
+  stars: [
+    528, 510, 490, 465, 435,
+    410, 380, 350, 320, 290,
+    260, 230, 200, 175, 150,
+    130, 110, 90,  75,  60,
+    48,  38,  30,  22,  15,
+    10,  6,   3,   1,   0]
+}
+```
+
+## Building the UI components
+
+Now let's build the visual parts of our app.
+
+First, we'll create a chart component to plot how stars increase over time:
+
+```elixir
+defmodule StarsChart do
+  def new(data) do
+    VegaLite.new(width: 700, height: 450, title: "GitHub Stars history")
+    |> VegaLite.data_from_values(data, only: ["date", "stars"])
+    |> VegaLite.mark(:line, tooltip: true)
+    |> VegaLite.encode_field(:x, "date", type: :temporal)
+    |> VegaLite.encode_field(:y, "stars", type: :quantitative)
+  end
+end
+```
+Uncomment the code in the cell below and execute it to see the chart in action. You should see a line graph showing star growth over time:
+
+```elixir
+# StarsChart.new(data)
+```
+
+Now, we'll build a loading spinner. This will give users visual feedback while they wait for data to load from GitHub.
+
+To build this component, we'll write some custom HTML and CSS, and use `Kino.HTML` to render it.
+
+```elixir
+defmodule KinoSpinner do
+  def new(dimensions \\ "30px") do
+    Kino.HTML.new("""
+    <div class="loader"></div>
+
+    <style>
+      .loader {
+        border: 16px solid #f3f3f3; /* Light grey */
+        border-top: 16px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: #{dimensions};
+        height: #{dimensions};
+        animation: spin 2s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+    """)
+  end
+end
+```
+
+Uncomment the code in the cell below, and execute it to see our spinner working.
+
+```elixir
+# KinoSpinner.new()
+```
+
+## Building the app UI
+
+Now we'll create the interactive form where users can enter a GitHub repository name.
+
+1. We'll use `Kino.Control.form` to build a form
+2. We'll create a `Kino.Frame`, where we'll put the result of submitting the form
+3. We'll create a simple grid layout with two rows:
+   * the form
+   * the output frame
+
+```elixir
+# 1. A form for users to enter a GitHub repository name
+form =
+  Kino.Control.form(
+    [
+      repo_name: Kino.Input.text("GitHub repo", default: "livebook-dev/kino")
+    ],
+    submit: "Submit"
+  )
+
+# 2. A Kino frame to display the results
+output_frame = Kino.Frame.new()
+
+# 3. A grid layout containing the form and the output frame
+layout_frame = Kino.Layout.grid([form, output_frame], boxed: true)
+```
+
+Now, we'll make our form interactive.
+
+1. We'll use `Kino.listen` to listen to form submission events
+2. We'll display a spinner while we wait for the response from the API
+3. Read data from the form submission
+4. Fetch data from GitHub's API
+5. Show the data in two tabs, as a chart and as a table
+6. Handle errors, falling back to mock data when needed
+
+```elixir
+# 1. Listen for form submissions
+Kino.listen(form, fn form_submission ->
+  # 2. Show spinner
+  waiting_feedback = Kino.Layout.grid([Kino.Text.new("Getting data from GitHub..."), KinoSpinner.new()])
+  Kino.Frame.render(output_frame, waiting_feedback)
+
+  # 3. Read data from form submission
+  %{data: %{repo_name: repo_name}} = form_submission
+
+  # 4. Fetch data from GitHub's API
+  case GitHubApi.stargazers(repo_name) do
+    {:ok, star_dates} ->
+      data = GithubDataProcessor.cumulative_star_dates(star_dates)
+
+      # 5. Show the data in two tabs, as a chart and as a table
+      table = Kino.DataTable.new(data)
+      chart = StarsChart.new(data)
+      tabs = Kino.Layout.tabs(Chart: chart, Table: table)
+      Kino.Frame.render(output_frame, tabs)
+
+    {:error, error_message} ->
+      # 6. Handle errors, falling back to mock data when needed
+      Kino.Frame.render(output_frame, "Error contacting GitHub API: #{error_message}")
+      Kino.Frame.append(output_frame, "We're going to use mock data for demo purposes")
+
+      table = Kino.DataTable.new(mock_data)
+      chart = StarsChart.new(mock_data)
+      tabs = Kino.Layout.tabs(Chart: chart, Table: table)
+      Kino.Frame.append(output_frame, tabs)
+  end
+end)
+```
+
+Execute the cell above. Now the form should be fully functioning. Go back to the form, and give it a try.
+
+## Running as a Livebook app
+
+Up until this moment, we've been interacting with our code as a notebook. But the goal of this tutorial is to actually build a Livebook app. So, let's run our notebook as a Livebook app.
+
+1. Click on the <span style="font-weight: 600"><i class="ri-livebook-deploy"></i> (app settings)</span> icon on the sidebar
+2. Click on the **"Launch preview"** button to run your notebook as an app
+3. Click on the <span style="font-weight: 600"><i class="ri-link"></i> (open)</span> icon inside the sidebar panel to open your app
+
+## What we've built
+
+In this tutorial, we've created a GitHub stars Livebook app that:
+
+* Connects to the GitHub API
+* Processes time-series data
+* Creates interactive visualizations
