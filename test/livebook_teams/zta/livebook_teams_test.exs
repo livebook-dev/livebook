@@ -152,7 +152,6 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       app_deployment_id = to_string(app_deployment_id)
       assert_receive {:app_deployment_started, %{id: ^app_deployment_id}}
 
-      Livebook.Apps.Manager.sync_permanent_apps()
       Livebook.Apps.subscribe()
 
       assert_receive {:app_created, %{pid: pid, slug: ^slug}}
