@@ -383,14 +383,19 @@ defmodule LivebookWeb.AppSessionLive do
     {:noreply, redirect_on_closed(socket)}
   end
 
-  def handle_info({:app_deployment_updated, %{slug: slug}}, %{assigns: %{slug: slug}} = socket) do
+  def handle_info(
+        {:app_deployment_updated, %{slug: slug, hub_id: hub_id}},
+        %{assigns: %{slug: slug}} = socket
+      ) do
     # We force the redirection in case of
     # the current user loses access to this app.
 
     # With this strategy, we guarantee that unauthorized users
     # won't be able to keep reading the app which they
     # should't have access.
-    if socket.assigns.app_authorized? do
+    groups = socket.assigns.current_user.restricted_apps_groups
+
+    if Livebook.Hubs.TeamClient.user_app_access?(hub_id, groups, slug) do
       {:noreply, socket}
     else
       {:noreply, redirect(socket, to: ~p"/apps/#{slug}/sessions/#{socket.assigns.session.id}")}
