@@ -56,7 +56,7 @@ defmodule Livebook.Notebook.Learn do
       }
     },
     %{
-      path: Path.join(__DIR__, "learn/deploy_apps.livemd"),
+      path: Path.join(__DIR__, "learn/chat_app.livemd"),
       details: %{
         description: "Write and deploy a chat app with Kino control and frames.",
         cover_filename: "learn-deploy.svg"
