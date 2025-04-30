@@ -153,7 +153,7 @@ defmodule Livebook.Hubs.TeamClient do
   @doc """
   Returns if the given user groups has access to given app.
   """
-  @spec user_app_access?(String.t(), Livebook.Users.User.t(), String.t()) :: boolean()
+  @spec user_app_access?(String.t(), list(map()), String.t()) :: boolean()
   def user_app_access?(id, groups, slug) do
     GenServer.call(registry_name(id), {:check_app_access, groups, slug})
   end

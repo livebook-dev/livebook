@@ -38,7 +38,7 @@ defmodule LivebookWeb.AppAuthHook do
   #     For public apps (or in case the user has full access) it is
   #     set to `true` on both dead and live render
   #
-  #   * `:livebook_authenticated?` - if the user has full Livebook
+  #   * `:livebook_authorized?` - if the user has full Livebook
   #     access
   #
   #   * `:app_settings` - the current app settings
@@ -49,40 +49,26 @@ defmodule LivebookWeb.AppAuthHook do
       LivebookWeb.SessionHelpers.subscribe_to_logout()
     end
 
-    user =
-      LivebookWeb.UserPlug.build_current_user(
-        session,
-        session["identity_data"],
-        session["user_data"]
-      )
-
-    livebook_authenticated? = livebook_authenticated?(session, user, socket)
+    livebook_authorized? = livebook_authorized?(session, socket)
 
     socket =
       socket
-      |> assign(livebook_authenticated?: livebook_authenticated?)
+      |> assign(livebook_authorized?: livebook_authorized?)
       |> attach_hook(:logout, :handle_info, &handle_info/2)
       |> attach_hook(:logout, :handle_event, &handle_event/3)
 
     with {:ok, app} <- Livebook.Apps.fetch_app(slug),
          {:ok, app_settings} <- Livebook.Apps.fetch_settings(slug) do
-      app_authorized? =
-        case app.app_spec do
-          %Livebook.Apps.TeamsAppSpec{hub_id: hub_id} ->
-            Livebook.Hubs.TeamClient.user_app_access?(hub_id, user.restricted_apps_groups, slug)
-
-          _ ->
-            true
-        end
-
       app_authenticated? =
-        app_settings.access_type == :public or
-          (livebook_authenticated? or has_valid_token?(socket, app_settings))
+        case app_settings.access_type do
+          :public -> true
+          :protected -> livebook_authorized? or has_valid_token?(socket, app_settings)
+        end
 
       {:cont,
        assign(socket,
          app_authenticated?: app_authenticated?,
-         app_authorized?: app_authorized?,
+         app_authorized?: app_authorized?(session, app),
          app_settings: app_settings
        )}
     else
@@ -95,11 +81,22 @@ defmodule LivebookWeb.AppAuthHook do
     {:cont, socket}
   end
 
-  defp livebook_authenticated?(session, user, socket) do
+  defp livebook_authorized?(session, socket) do
     uri = get_connect_info(socket, :uri)
 
     LivebookWeb.AuthPlug.authenticated?(session, uri.port) and
-      user.restricted_apps_groups == nil
+      LivebookWeb.AuthPlug.authorized?(session)
+  end
+
+  defp app_authorized?(session, app) do
+    user =
+      LivebookWeb.UserPlug.build_current_user(
+        session,
+        session["identity_data"],
+        session["user_data"]
+      )
+
+    Livebook.Apps.authorized?(app, user)
   end
 
   defp handle_info(:logout, socket) do

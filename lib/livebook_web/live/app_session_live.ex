@@ -8,11 +8,28 @@ defmodule LivebookWeb.AppSessionLive do
   alias Livebook.Notebook.Cell
 
   @impl true
+  def mount(%{"slug" => slug} = params, _session, socket)
+      when not socket.assigns.app_authenticated? do
+    if connected?(socket) do
+      to =
+        if id = params["id"] do
+          ~p"/apps/#{slug}/authenticate?id=#{id}"
+        else
+          ~p"/apps/#{slug}/authenticate"
+        end
 
-  def mount(%{"slug" => slug, "id" => session_id}, _session, socket)
-      when socket.assigns.app_authenticated? and socket.assigns.app_authorized? do
+      {:ok, push_navigate(socket, to: to)}
+    else
+      {:ok, socket}
+    end
+  end
+
+  def mount(_params, _session, socket) when not socket.assigns.app_authorized? do
+    {:ok, socket, layout: false}
+  end
+
+  def mount(%{"slug" => slug, "id" => session_id}, _session, socket) do
     {:ok, app} = Livebook.Apps.fetch_app(slug)
-
     app_session = Enum.find(app.sessions, &(&1.id == session_id))
 
     if app_session && app_session.app_status.lifecycle == :active do
@@ -51,26 +68,6 @@ defmodule LivebookWeb.AppSessionLive do
          slug: slug,
          page_title: get_page_title(app.notebook_name)
        )}
-    end
-  end
-
-  def mount(_params, _session, socket)
-      when socket.assigns.app_authenticated? and not socket.assigns.app_authorized? do
-    {:ok, socket, layout: false}
-  end
-
-  def mount(%{"slug" => slug} = params, _session, socket) do
-    if connected?(socket) do
-      to =
-        if id = params["id"] do
-          ~p"/apps/#{slug}/authenticate?id=#{id}"
-        else
-          ~p"/apps/#{slug}/authenticate"
-        end
-
-      {:ok, push_navigate(socket, to: to)}
-    else
-      {:ok, socket}
     end
   end
 
@@ -116,7 +113,7 @@ defmodule LivebookWeb.AppSessionLive do
                 <.remix_icon icon="arrow-down-s-line" />
               </button>
             </:toggle>
-            <.menu_item :if={@livebook_authenticated?}>
+            <.menu_item :if={@livebook_authorized?}>
               <.link navigate={~p"/"} role="menuitem">
                 <.remix_icon icon="home-6-line" />
                 <span>Home</span>
@@ -143,7 +140,7 @@ defmodule LivebookWeb.AppSessionLive do
                 <span>View source</span>
               </.link>
             </.menu_item>
-            <.menu_item :if={@livebook_authenticated?}>
+            <.menu_item :if={@livebook_authorized?}>
               <.link patch={~p"/sessions/#{@session.id}"} role="menuitem">
                 <.remix_icon icon="terminal-line" />
                 <span>Debug</span>
@@ -183,7 +180,7 @@ defmodule LivebookWeb.AppSessionLive do
               <div class="flex items-center gap-6">
                 <span class="tooltip top" data-tooltip="Debug">
                   <.link
-                    :if={@livebook_authenticated?}
+                    :if={@livebook_authorized?}
                     navigate={~p"/sessions/#{@session.id}" <> "#cell-#{@data_view.errored_cell_id}"}
                   >
                     <.remix_icon icon="terminal-line" />
@@ -383,19 +380,16 @@ defmodule LivebookWeb.AppSessionLive do
     {:noreply, redirect_on_closed(socket)}
   end
 
-  def handle_info(
-        {:app_deployment_updated, %{slug: slug, hub_id: hub_id}},
-        %{assigns: %{slug: slug}} = socket
-      ) do
+  def handle_info({:app_deployment_updated, %{slug: slug}}, %{assigns: %{slug: slug}} = socket) do
     # We force the redirection in case of
     # the current user loses access to this app.
 
     # With this strategy, we guarantee that unauthorized users
     # won't be able to keep reading the app which they
     # should't have access.
-    groups = socket.assigns.current_user.restricted_apps_groups
+    {:ok, app} = Livebook.Apps.fetch_app(slug)
 
-    if Livebook.Hubs.TeamClient.user_app_access?(hub_id, groups, slug) do
+    if Livebook.Apps.authorized?(app, socket.assigns.current_user) do
       {:noreply, socket}
     else
       {:noreply, redirect(socket, to: ~p"/apps/#{slug}/sessions/#{socket.assigns.session.id}")}
