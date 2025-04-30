@@ -1,6 +1,6 @@
 <!-- livebook:{"app_settings":{"access_type":"public","output_type":"rich","show_source":true,"slug":"github-stars"}} -->
 
-# GitHub Stars
+# Counting GitHub Stars
 
 ```elixir
 Mix.install([
