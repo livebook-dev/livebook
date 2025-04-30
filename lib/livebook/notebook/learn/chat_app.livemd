@@ -1,4 +1,4 @@
-# Deploy a chat app with Kino
+# Build a chat app with Kino
 
 ```elixir
 Mix.install([
@@ -224,25 +224,27 @@ You can also open up this notebook on different tabs
 and emulate how different users can chat with each other.
 Give it a try!
 
-## Deploying
+## Running as a Livebook app
 
 Our chat application is ready, therefore it means we are
-ready to deploy! Click on the <i class="ri-livebook-deploy"></i>
-icon on the sidebar and then on "Configure".
+ready to run it!
 
-Now, define a slug for your deployment, such as "chat-app",
-set a password (or disable password protection), and click
-"Deploy". Now you can click the URL and interact with the
-chat app, as you did inside the notebook.
+Click on the <i class="ri-livebook-deploy"></i>
+icon on the sidebar and then on "Configure". Now, define a slug for your deployment,
+such as "chat-app", set a password (or disable password protection), and click
+"Save".
 
-When you deploy a notebook, Livebook will execute all of
+Click on the "Launch preview" button to run your notebook as an app.
+Now you can click the URL and interact with the chat app, as you did inside the notebook.
+
+When you run a notebook as an app, Livebook will execute all of
 the code in the notebook from beginning to end. This sets
 up our whole application, including frames and forms, for
 users to interact with. In case something goes wrong, you
-can always click the Livebook icon on the deployed app and
-choose to debug the deployed notebook session.
+can always click the Livebook icon on the running app and
+choose to debug the running notebook session.
 
-From here onwards, feel free to adjust the deployed application,
+From here onwards, feel free to adjust the application,
 by removing unused outputs from earlier sections or by adding
 new features.
 
@@ -250,18 +252,22 @@ Congratulations on shipping!
 
 ## Docker deployment
 
-Now that you have deployed your first notebook as an application
+Now that you have run your notebook as an application
 locally, you may be wondering: can I actually ship this production?
 
 The answer is yes!
 
 Click on the <i class="ri-livebook-deploy"></i> icon on the sidebar
-and you will find a "Deploy with Docker" link. Clicking on the link
+and you will find a "Manual Docker deployment" button. Clicking on it
 will open up a modal with instructions on deploying a single notebook
 or a folder with several entries through Docker.
 
-If you want to develop and deploy notebooks as a team, check out
-[Livebook Teams](https://livebook.dev/teams).
+We also offer a service called [Livebook Teams](https://livebook.dev/teams),
+which comes with the following features for Livebook apps:
+
+- one-click deployment
+- authentication
+- authorization
 
 ## Where to go next
 
