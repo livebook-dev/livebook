@@ -13,8 +13,6 @@ defmodule LivebookWeb.AuthPlug do
   def call(conn, _opts) do
     if authenticated?(conn) do
       if not authorized?(conn) do
-        # User has access only to specific app pages, so they do not have
-        # access to any pages guarded by this plug.
         render_unauthorized(conn)
       else
         conn
@@ -60,8 +58,11 @@ defmodule LivebookWeb.AuthPlug do
   @doc """
   Checks if given connection or session is authorized.
   """
-  @spec authorized?(Plug.Conn.t() | map()) :: boolean()
+  @spec authorized?(Plug.Conn.t()) :: boolean()
   def authorized?(%Plug.Conn{} = conn) do
+    # User has access only to specific app pages, so they do not have
+    # access to any pages guarded by this plug.
+
     LivebookWeb.UserPlug.build_current_user(
       get_session(conn),
       conn.assigns.identity_data,
@@ -69,12 +70,17 @@ defmodule LivebookWeb.AuthPlug do
     ).restricted_apps_groups == nil
   end
 
-  def authorized?(%{} = session) do
-    LivebookWeb.UserPlug.build_current_user(
-      session,
-      session["identity_data"],
-      session["user_data"]
-    ).restricted_apps_groups == nil
+  @doc """
+  Checks if the given session is authorized.
+  """
+  @spec authorized?(map(), non_neg_integer()) :: boolean()
+  def authorized?(%{} = session, port) do
+    authenticated?(session, port) and
+      LivebookWeb.UserPlug.build_current_user(
+        session,
+        session["identity_data"],
+        session["user_data"]
+      ).restricted_apps_groups == nil
   end
 
   defp authenticate(conn) do

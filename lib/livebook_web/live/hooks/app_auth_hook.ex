@@ -83,9 +83,7 @@ defmodule LivebookWeb.AppAuthHook do
 
   defp livebook_authorized?(session, socket) do
     uri = get_connect_info(socket, :uri)
-
-    LivebookWeb.AuthPlug.authenticated?(session, uri.port) and
-      LivebookWeb.AuthPlug.authorized?(session)
+    LivebookWeb.AuthPlug.authorized?(session, uri.port)
   end
 
   defp app_authorized?(session, app) do
