@@ -25,23 +25,38 @@ First, we'll build a simple API client for GitHub. We need this to fetch the lis
 ```elixir
 defmodule GitHubApi do
   def stargazers(repo_name) do
-    with :ok <- rate_remaining(),
-         {:ok, response} <- do_stargazers(repo_name) do
-      maybe_paginate(response, repo_name)
+    stargazers_path = "/repos/#{repo_name}/stargazers?per_page=100"
+
+    with {:ok, _remaining} <- rate_remaining(),
+         {:ok, response} <- request(stargazers_path),
+         {:ok, responses} <- GitHubApi.Paginator.maybe_paginate(response) do
+      responses
+      |> Enum.flat_map(fn response -> parse_stargazers(response.body) end)
+      |> then(fn stargazers -> {:ok, stargazers} end)
     end
   end
 
-  defp rate_remaining do
-    response = Req.get!(base_req(), url: "/rate_limit")
+  def rate_remaining do
+    {:ok, response} = request("/rate_limit")
 
-    if response.body["rate"]["remaining"] > 0 do
-      :ok
+    remaining = response.body["rate"]["remaining"]
+    if remaining > 0 do
+      {:ok, remaining}
     else
       {:error, "GithubApi rate limit reached"}
     end
   end
 
-  defp base_req() do
+  def request(path) do
+    case Req.get(new(), url: path) do
+      {:ok, %Req.Response{status: 200} = response} -> {:ok, response}
+      {:ok, %Req.Response{status: 403}} -> {:error, "GitHub API rate limit reached"}
+      {:ok, response} -> {:error, response.body["message"]}
+      {:error, exception} -> {:error, "Exception calling GitHub API: #{inspect(exception)}"}
+    end
+  end
+
+  def new do
     Req.new(
       base_url: "https://api.github.com",
       headers: [
@@ -51,46 +66,8 @@ defmodule GitHubApi do
     )
   end
 
-  defp do_stargazers(repo_name, page \\ 1) do
-    case Req.get(base_req(), url: "/repos/#{repo_name}/stargazers?per_page=100&page=#{page}") do
-      {:ok, %Req.Response{status: 200} = response} -> {:ok, response}
-      {:ok, %Req.Response{status: 403}} -> {:error, "GitHub API rate limit reached"}
-      {:ok, response} -> {:error, response.body["message"]}
-      {:error, exception} -> {:error, "Exception calling GitHub API: #{inspect(exception)}"}
-    end
-  end
-
-  defp maybe_paginate(response, repo_name) do
-    star_dates =
-      if "link" in Map.keys(response.headers) do
-        paginate(response, repo_name)
-      else
-        parse(response.body)
-      end
-
-    {:ok, star_dates}
-  end
-
-  defp paginate(response, repo_name) do
-    first_stargazers = parse(response.body)
-    last_page = last_page_number(response.headers)
-
-    additional_stargazers =
-      Task.async_stream(
-        2..last_page,
-        fn page -> do_stargazers(repo_name, page) end,
-        max_concurrency: 60
-      )
-      |> Enum.flat_map(fn
-        {:ok, {:ok, resp}} -> parse(resp.body)
-        _ -> []
-      end)
-
-    first_stargazers ++ additional_stargazers
-  end
-
-  defp parse(body) do
-    Enum.map(body, fn stargazer ->
+  defp parse_stargazers(stargazers) do
+    Enum.map(stargazers, fn stargazer ->
       %{"starred_at" => starred_at, "user" => %{"login" => user_login}} = stargazer
       {:ok, starred_at, _} = DateTime.from_iso8601(starred_at)
 
@@ -100,13 +77,64 @@ defmodule GitHubApi do
       }
     end)
   end
+end
+```
 
-  defp last_page_number(headers) do
-    links = hd(headers["link"])
+```elixir
+defmodule GitHubApi.Paginator do
+  def maybe_paginate(response) do
+    responses =
+      if "link" in Map.keys(response.headers) do
+        paginate(response)
+      else
+        [response]
+      end
 
-    %{"last_page" => last_page} =
-      Regex.named_captures(~r/<.*page=(?<last_page>\d+)>; rel="last"/, links)
-    String.to_integer(last_page)
+    {:ok, responses}
+  end
+
+  def paginate(response) do
+    pageless_endpoint = pageless_endpoint(response.headers["link"])
+    next_page = page_number(response.headers["link"], "next")
+    last_page = page_number(response.headers["link"], "last")
+
+    additional_responses =
+      Task.async_stream(
+        next_page..last_page,
+        fn page -> GitHubApi.request(pageless_endpoint <> "&page=#{page}") end,
+        max_concurrency: 60
+      )
+      |> Enum.flat_map(fn
+        {:ok, {:ok, response}} -> [response]
+        _ -> []
+      end)
+
+    [response] ++ additional_responses
+  end
+
+  defp pageless_endpoint(link_header) do
+    links = hd(link_header)
+
+    %{"endpoint" => endpoint} = Regex.named_captures(~r/<(?<endpoint>.*?)>;\s/, links)
+    uri = URI.parse(endpoint)
+
+    %{path: path} = Map.take(uri, [:path])
+
+    pageless_query =
+      URI.decode_query(uri.query)
+      |> Map.drop(["page"])
+      |> URI.encode_query()
+
+    "#{path}?#{pageless_query}"
+  end
+
+  defp page_number(link_header, rel) do
+    links = hd(link_header)
+
+    %{"page_number" => page_number} =
+      Regex.named_captures(~r/<.*page=(?<page_number>\d+)>; rel="#{rel}"/, links)
+
+    String.to_integer(page_number)
   end
 end
 ```
@@ -200,6 +228,7 @@ defmodule StarsChart do
   end
 end
 ```
+
 Uncomment the code in the cell below and execute it to see the chart in action. You should see a line graph showing star growth over time:
 
 ```elixir
