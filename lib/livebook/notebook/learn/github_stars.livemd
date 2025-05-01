@@ -22,28 +22,22 @@ Let's get started.
 
 First, we'll build a simple API client for GitHub. We need this to fetch the list of people who have starred a repository.
 
+<!-- livebook:{"break_markdown":true} -->
+
+We'll break our API client in two modules.
+
+The first one will be responsible for retrieving a list of stargazers for a given repository.
+
 ```elixir
 defmodule GitHubApi do
   def stargazers(repo_name) do
     stargazers_path = "/repos/#{repo_name}/stargazers?per_page=100"
 
-    with {:ok, _remaining} <- rate_remaining(),
-         {:ok, response} <- request(stargazers_path),
+    with {:ok, response} <- request(stargazers_path),
          {:ok, responses} <- GitHubApi.Paginator.maybe_paginate(response) do
       responses
       |> Enum.flat_map(fn response -> parse_stargazers(response.body) end)
       |> then(fn stargazers -> {:ok, stargazers} end)
-    end
-  end
-
-  def rate_remaining do
-    {:ok, response} = request("/rate_limit")
-
-    remaining = response.body["rate"]["remaining"]
-    if remaining > 0 do
-      {:ok, remaining}
-    else
-      {:error, "GithubApi rate limit reached"}
     end
   end
 
@@ -80,6 +74,8 @@ defmodule GitHubApi do
 end
 ```
 
+This second module will handle the pagination of GitHub API responses.
+
 ```elixir
 defmodule GitHubApi.Paginator do
   def maybe_paginate(response) do
@@ -102,7 +98,7 @@ defmodule GitHubApi.Paginator do
       Task.async_stream(
         next_page..last_page,
         fn page -> GitHubApi.request(pageless_endpoint <> "&page=#{page}") end,
-        max_concurrency: 60
+        max_concurrency: 30
       )
       |> Enum.flat_map(fn
         {:ok, {:ok, response}} -> [response]
@@ -144,7 +140,7 @@ Let's try our client.
 Execute the cell below. You should see a list of GitHub users who starred the repository.
 
 ```elixir
-repo_name = "livebook-dev/kino_vega_lite"
+repo_name = "livebook-dev/livebook"
 {:ok, stargazers} = GitHubApi.stargazers(repo_name)
 ```
 
