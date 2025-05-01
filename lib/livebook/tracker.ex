@@ -118,19 +118,22 @@ defmodule Livebook.Tracker do
   end
 
   defp handle_topic_diff(@sessions_topic, {joins, leaves}, state) do
-    joins = Map.new(joins)
-    leaves = Map.new(leaves)
+    leave_messages =
+      for {id, meta} <- leaves, into: %{} do
+        {id, {:session_closed, meta.session}}
+      end
 
     messages =
-      for id <- Enum.uniq(Map.keys(joins) ++ Map.keys(leaves)) do
-        case {joins[id], leaves[id]} do
-          {%{session: session}, nil} -> {:session_created, session}
-          {nil, %{session: session}} -> {:session_closed, session}
-          {%{session: session}, %{}} -> {:session_updated, session}
+      for {id, meta} <- joins, into: leave_messages do
+        # If there is a corresponding leave, it is actually an update.
+        if leave_messages[id] do
+          {id, {:session_updated, meta.session}}
+        else
+          {id, {:session_created, meta.session}}
         end
       end
 
-    for message <- messages do
+    for {_id, message} <- messages do
       Phoenix.PubSub.direct_broadcast!(
         state.node_name,
         state.pubsub_server,
@@ -141,19 +144,22 @@ defmodule Livebook.Tracker do
   end
 
   defp handle_topic_diff(@apps_topic, {joins, leaves}, state) do
-    joins = Map.new(joins)
-    leaves = Map.new(leaves)
+    leave_messages =
+      for {id, meta} <- leaves, into: %{} do
+        {id, {:app_closed, meta.app}}
+      end
 
     messages =
-      for slug <- Enum.uniq(Map.keys(joins) ++ Map.keys(leaves)) do
-        case {joins[slug], leaves[slug]} do
-          {%{app: app}, nil} -> {:app_created, app}
-          {nil, %{app: app}} -> {:app_closed, app}
-          {%{app: app}, %{}} -> {:app_updated, app}
+      for {id, meta} <- joins, into: leave_messages do
+        # If there is a corresponding leave, it is actually an update.
+        if leave_messages[id] do
+          {id, {:app_updated, meta.app}}
+        else
+          {id, {:app_created, meta.app}}
         end
       end
 
-    for message <- messages do
+    for {_id, message} <- messages do
       Phoenix.PubSub.direct_broadcast!(
         state.node_name,
         state.pubsub_server,
