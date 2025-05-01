@@ -84,6 +84,13 @@ defmodule Livebook.Notebook.Learn do
       }
     },
     %{
+      path: Path.join(__DIR__, "learn/github_stars.livemd"),
+      details: %{
+        description: "Build a Livebook app to visualize GitHub repository star growth over time.",
+        cover_filename: "github-stars.png"
+      }
+    },
+    %{
       ref: :kino_intro,
       path: Path.join(__DIR__, "learn/kino/intro_to_kino.livemd")
     },
