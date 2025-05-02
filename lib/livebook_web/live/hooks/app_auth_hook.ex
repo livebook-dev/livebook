@@ -68,7 +68,7 @@ defmodule LivebookWeb.AppAuthHook do
       {:cont,
        assign(socket,
          app_authenticated?: app_authenticated?,
-         app_authorized?: app_authorized?(session, app),
+         app_authorized?: Livebook.Apps.authorized?(app, socket.assigns.current_user),
          app_settings: app_settings
        )}
     else
@@ -84,17 +84,6 @@ defmodule LivebookWeb.AppAuthHook do
   defp livebook_authorized?(session, socket) do
     uri = get_connect_info(socket, :uri)
     LivebookWeb.AuthPlug.authorized?(session, uri.port)
-  end
-
-  defp app_authorized?(session, app) do
-    user =
-      LivebookWeb.UserPlug.build_current_user(
-        session,
-        session["identity_data"],
-        session["user_data"]
-      )
-
-    Livebook.Apps.authorized?(app, user)
   end
 
   defp handle_info(:logout, socket) do
