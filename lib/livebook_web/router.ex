@@ -59,7 +59,7 @@ defmodule LivebookWeb.Router do
   end
 
   live_session :default,
-    on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook, LivebookWeb.Confirm],
+    on_mount: [LivebookWeb.UserHook, LivebookWeb.AuthHook, LivebookWeb.Confirm],
     session: {LivebookWeb.UserPlug, :extra_lv_session, []} do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
@@ -139,7 +139,7 @@ defmodule LivebookWeb.Router do
   end
 
   live_session :apps,
-    on_mount: [LivebookWeb.AppAuthHook, LivebookWeb.UserHook, LivebookWeb.Confirm],
+    on_mount: [LivebookWeb.UserHook, LivebookWeb.AppAuthHook, LivebookWeb.Confirm],
     session: {LivebookWeb.UserPlug, :extra_lv_session, []} do
     scope "/", LivebookWeb do
       pipe_through [:browser, :user]

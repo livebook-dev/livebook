@@ -40,11 +40,7 @@ defmodule LivebookWeb.AuthPlug do
     authenticated?(get_session(conn), conn.port)
   end
 
-  @doc """
-  Checks if the given session is authenticated.
-  """
-  @spec authenticated?(map(), non_neg_integer()) :: boolean()
-  def authenticated?(session, port) do
+  defp authenticated?(session, port) do
     case authentication(session) do
       %{mode: :disabled} ->
         true
@@ -60,14 +56,15 @@ defmodule LivebookWeb.AuthPlug do
   """
   @spec authorized?(Plug.Conn.t()) :: boolean()
   def authorized?(%Plug.Conn{} = conn) do
-    # User has access only to specific app pages, so they do not have
-    # access to any pages guarded by this plug.
-
-    LivebookWeb.UserPlug.build_current_user(
-      get_session(conn),
-      conn.assigns.identity_data,
-      conn.assigns.user_data
-    ).restricted_apps_groups == nil
+    # Note that if the user has access restricted to specific app pages,
+    # they are not authorized and have no access to any pages guarded
+    # by this plug.
+    authenticated?(conn) and
+      LivebookWeb.UserPlug.build_current_user(
+        get_session(conn),
+        conn.assigns.identity_data,
+        conn.assigns.user_data
+      ).restricted_apps_groups == nil
   end
 
   @doc """
