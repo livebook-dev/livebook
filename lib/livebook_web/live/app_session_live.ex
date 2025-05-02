@@ -80,7 +80,6 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   @impl true
-
   def render(%{nonexistent?: true} = assigns)
       when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
