@@ -15,4 +15,4 @@ Besides deployment automation, it also offers the following features:
 - [Shared Livebook secrets](shared_secrets.md)
 - [Shared Livebook file storages](shared_file_storages.md)
 
-You can [star a free trial here](https://livebook.dev/teams/?ref=docs).
+You can [start a free trial here](https://livebook.dev/teams/?ref=docs).
