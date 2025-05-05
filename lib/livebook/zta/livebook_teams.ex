@@ -84,6 +84,7 @@ defmodule Livebook.ZTA.LivebookTeams do
       # it means, we couldn't reach to Teams server
       %{"teams_error" => true} ->
         {conn
+         |> put_status(:bad_request)
          |> delete_session(:teams_error)
          |> put_view(LivebookWeb.ErrorHTML)
          |> render("400.html", %{status: 400})
@@ -91,6 +92,7 @@ defmodule Livebook.ZTA.LivebookTeams do
 
       %{"teams_failed_reason" => reason} ->
         {conn
+         |> put_status(:forbidden)
          |> delete_session(:teams_failed_reason)
          |> put_view(LivebookWeb.ErrorHTML)
          |> render("error.html", %{
@@ -157,12 +159,26 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   defp get_user_info(team, access_token) do
     with {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
-      %{"id" => id, "name" => name, "email" => email, "avatar_url" => avatar_url} = payload
+      %{
+        "id" => id,
+        "name" => name,
+        "email" => email,
+        "groups" => groups,
+        "avatar_url" => avatar_url
+      } = payload
+
+      restricted_apps_groups =
+        if Livebook.Hubs.TeamClient.user_full_access?(team.id, groups) do
+          nil
+        else
+          groups
+        end
 
       metadata = %{
         id: id,
         name: name,
         avatar_url: avatar_url,
+        restricted_apps_groups: restricted_apps_groups,
         email: email,
         payload: payload
       }

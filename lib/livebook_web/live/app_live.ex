@@ -4,7 +4,19 @@ defmodule LivebookWeb.AppLive do
   import LivebookWeb.AppComponents
 
   @impl true
-  def mount(%{"slug" => slug}, _session, socket) when socket.assigns.app_authenticated? do
+  def mount(%{"slug" => slug}, _session, socket) when not socket.assigns.app_authenticated? do
+    if connected?(socket) do
+      {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/authenticate")}
+    else
+      {:ok, socket}
+    end
+  end
+
+  def mount(_params, _session, socket) when not socket.assigns.app_authorized? do
+    {:ok, socket, layout: false}
+  end
+
+  def mount(%{"slug" => slug}, _session, socket) do
     if socket.assigns.app_settings.multi_session do
       {:ok, app} = Livebook.Apps.fetch_app(slug)
 
@@ -20,16 +32,8 @@ defmodule LivebookWeb.AppLive do
     end
   end
 
-  def mount(%{"slug" => slug}, _session, socket) do
-    if connected?(socket) do
-      {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/authenticate")}
-    else
-      {:ok, socket}
-    end
-  end
-
   @impl true
-  def render(assigns) when assigns.app_authenticated? do
+  def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20">
       <div class="w-full max-w-screen-lg py-4 mx-auto">
@@ -87,6 +91,16 @@ defmodule LivebookWeb.AppLive do
         </div>
       </div>
     </.modal>
+    """
+  end
+
+  def render(assigns) when not assigns.app_authorized? do
+    ~H"""
+    <LivebookWeb.ErrorHTML.error_page
+      status={401}
+      title="Not authorized"
+      details="You don't have permission to access this app"
+    />
     """
   end
 

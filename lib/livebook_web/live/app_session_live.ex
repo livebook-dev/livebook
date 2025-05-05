@@ -8,10 +8,28 @@ defmodule LivebookWeb.AppSessionLive do
   alias Livebook.Notebook.Cell
 
   @impl true
-  def mount(%{"slug" => slug, "id" => session_id}, _session, socket)
-      when socket.assigns.app_authenticated? do
-    {:ok, app} = Livebook.Apps.fetch_app(slug)
+  def mount(%{"slug" => slug} = params, _session, socket)
+      when not socket.assigns.app_authenticated? do
+    if connected?(socket) do
+      to =
+        if id = params["id"] do
+          ~p"/apps/#{slug}/authenticate?id=#{id}"
+        else
+          ~p"/apps/#{slug}/authenticate"
+        end
 
+      {:ok, push_navigate(socket, to: to)}
+    else
+      {:ok, socket}
+    end
+  end
+
+  def mount(_params, _session, socket) when not socket.assigns.app_authorized? do
+    {:ok, socket, layout: false}
+  end
+
+  def mount(%{"slug" => slug, "id" => session_id}, _session, socket) do
+    {:ok, app} = Livebook.Apps.fetch_app(slug)
     app_session = Enum.find(app.sessions, &(&1.id == session_id))
 
     if app_session && app_session.app_status.lifecycle == :active do
@@ -23,6 +41,7 @@ defmodule LivebookWeb.AppSessionLive do
           {data, client_id} =
             Session.register_client(session_pid, self(), socket.assigns.current_user)
 
+          Livebook.Teams.Broadcasts.subscribe(:app_deployments)
           Session.subscribe(session_id)
 
           {data, client_id}
@@ -52,21 +71,6 @@ defmodule LivebookWeb.AppSessionLive do
     end
   end
 
-  def mount(%{"slug" => slug} = params, _session, socket) do
-    if connected?(socket) do
-      to =
-        if id = params["id"] do
-          ~p"/apps/#{slug}/authenticate?id=#{id}"
-        else
-          ~p"/apps/#{slug}/authenticate"
-        end
-
-      {:ok, push_navigate(socket, to: to)}
-    else
-      {:ok, socket}
-    end
-  end
-
   # Puts the given assigns in `socket.private`,
   # to ensure they are not used for rendering.
   defp assign_private(socket, assigns) do
@@ -76,7 +80,8 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   @impl true
-  def render(%{nonexistent?: true} = assigns) when assigns.app_authenticated? do
+  def render(%{nonexistent?: true} = assigns)
+      when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
     <div class="h-screen flex items-center justify-center">
       <div class="flex flex-col space-y-4 items-center">
@@ -95,7 +100,7 @@ defmodule LivebookWeb.AppSessionLive do
     """
   end
 
-  def render(assigns) when assigns.app_authenticated? do
+  def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
       <div class="w-full max-w-screen-lg py-4 mx-auto" data-el-notebook-content>
@@ -107,7 +112,7 @@ defmodule LivebookWeb.AppSessionLive do
                 <.remix_icon icon="arrow-down-s-line" />
               </button>
             </:toggle>
-            <.menu_item :if={@livebook_authenticated?}>
+            <.menu_item :if={@livebook_authorized?}>
               <.link navigate={~p"/"} role="menuitem">
                 <.remix_icon icon="home-6-line" />
                 <span>Home</span>
@@ -134,7 +139,7 @@ defmodule LivebookWeb.AppSessionLive do
                 <span>View source</span>
               </.link>
             </.menu_item>
-            <.menu_item :if={@livebook_authenticated?}>
+            <.menu_item :if={@livebook_authorized?}>
               <.link patch={~p"/sessions/#{@session.id}"} role="menuitem">
                 <.remix_icon icon="terminal-line" />
                 <span>Debug</span>
@@ -174,7 +179,7 @@ defmodule LivebookWeb.AppSessionLive do
               <div class="flex items-center gap-6">
                 <span class="tooltip top" data-tooltip="Debug">
                   <.link
-                    :if={@livebook_authenticated?}
+                    :if={@livebook_authorized?}
                     navigate={~p"/sessions/#{@session.id}" <> "#cell-#{@data_view.errored_cell_id}"}
                   >
                     <.remix_icon icon="terminal-line" />
@@ -228,6 +233,16 @@ defmodule LivebookWeb.AppSessionLive do
         session={@session}
       />
     </.modal>
+    """
+  end
+
+  def render(assigns) when not assigns.app_authorized? do
+    ~H"""
+    <LivebookWeb.ErrorHTML.error_page
+      status={401}
+      title="Not authorized"
+      details="You don't have permission to access this app"
+    />
     """
   end
 
@@ -362,6 +377,22 @@ defmodule LivebookWeb.AppSessionLive do
 
   def handle_info(:session_closed, socket) do
     {:noreply, redirect_on_closed(socket)}
+  end
+
+  def handle_info({:app_deployment_updated, %{slug: slug}}, %{assigns: %{slug: slug}} = socket) do
+    # We force the redirection in case of
+    # the current user loses access to this app.
+
+    # With this strategy, we guarantee that unauthorized users
+    # won't be able to keep reading the app which they
+    # should't have access.
+    {:ok, app} = Livebook.Apps.fetch_app(slug)
+
+    if Livebook.Apps.authorized?(app, socket.assigns.current_user) do
+      {:noreply, socket}
+    else
+      {:noreply, redirect(socket, to: ~p"/apps/#{slug}/sessions/#{socket.assigns.session.id}")}
+    end
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

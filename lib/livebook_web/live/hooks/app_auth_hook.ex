@@ -34,7 +34,11 @@ defmodule LivebookWeb.AppAuthHook do
   #     For public apps (or in case the user has full access) it is
   #     set to `true` on both dead and live render
   #
-  #   * `:livebook_authenticated?` - if the user has full Livebook
+  #   * `:app_authorized?` - reflects the app access authorization.
+  #     For public apps (or in case the user has full access) it is
+  #     set to `true` on both dead and live render
+  #
+  #   * `:livebook_authorized?` - if the user has full Livebook
   #     access
   #
   #   * `:app_settings` - the current app settings
@@ -45,26 +49,30 @@ defmodule LivebookWeb.AppAuthHook do
       LivebookWeb.SessionHelpers.subscribe_to_logout()
     end
 
-    livebook_authenticated? = livebook_authenticated?(session, socket)
+    livebook_authorized? = livebook_authorized?(session, socket)
 
     socket =
       socket
-      |> assign(livebook_authenticated?: livebook_authenticated?)
+      |> assign(livebook_authorized?: livebook_authorized?)
       |> attach_hook(:logout, :handle_info, &handle_info/2)
       |> attach_hook(:logout, :handle_event, &handle_event/3)
 
-    case Livebook.Apps.fetch_settings(slug) do
-      {:ok, %{access_type: :public} = app_settings} ->
-        {:cont, assign(socket, app_authenticated?: true, app_settings: app_settings)}
+    with {:ok, app} <- Livebook.Apps.fetch_app(slug),
+         {:ok, app_settings} <- Livebook.Apps.fetch_settings(slug) do
+      app_authenticated? =
+        case app_settings.access_type do
+          :public -> true
+          :protected -> livebook_authorized? or has_valid_token?(socket, app_settings)
+        end
 
-      {:ok, %{access_type: :protected} = app_settings} ->
-        app_authenticated? = livebook_authenticated? or has_valid_token?(socket, app_settings)
-
-        {:cont,
-         assign(socket, app_authenticated?: app_authenticated?, app_settings: app_settings)}
-
-      :error ->
-        {:halt, redirect(socket, to: ~p"/")}
+      {:cont,
+       assign(socket,
+         app_authenticated?: app_authenticated?,
+         app_authorized?: Livebook.Apps.authorized?(app, socket.assigns.current_user),
+         app_settings: app_settings
+       )}
+    else
+      _otherwise -> {:halt, redirect(socket, to: ~p"/")}
     end
   end
 
@@ -73,9 +81,9 @@ defmodule LivebookWeb.AppAuthHook do
     {:cont, socket}
   end
 
-  defp livebook_authenticated?(session, socket) do
+  defp livebook_authorized?(session, socket) do
     uri = get_connect_info(socket, :uri)
-    LivebookWeb.AuthPlug.authenticated?(session, uri.port)
+    LivebookWeb.AuthPlug.authorized?(session, uri.port)
   end
 
   defp handle_info(:logout, socket) do

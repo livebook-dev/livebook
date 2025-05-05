@@ -207,7 +207,7 @@ message EnvironmentVariable {
 }
 
 message AuthorizationGroup {
-  string oidc_provider_id = 1;
+  string provider_id = 1;
   string group_name = 2;
 }
 
