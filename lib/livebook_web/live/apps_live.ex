@@ -20,9 +20,20 @@ defmodule LivebookWeb.AppsLive do
     <div class="h-full flex flex-col overflow-y-auto">
       <div class="px-4 py-3 flex items-center justify-between">
         <div class="w-10 h-10">
-          <.link navigate={~p"/"}>
-            <img src={~p"/images/logo.png"} height="40" widthz="40" alt="logo livebook" />
-          </.link>
+          <.menu id="apps-menu" position="bottom-right" md_position="bottom-left">
+            <:toggle>
+              <button class="flex items-center text-gray-900">
+                <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
+                <.remix_icon icon="arrow-down-s-line" />
+              </button>
+            </:toggle>
+            <.menu_item :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}>
+              <button phx-click="logout" role="menuitem">
+                <.remix_icon icon="logout-box-line" />
+                <span>Logout</span>
+              </button>
+            </.menu_item>
+          </.menu>
         </div>
         <div>
           <.link navigate={~p"/apps-dashboard"} class="flex items-center text-blue-600">
