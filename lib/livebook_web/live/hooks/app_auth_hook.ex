@@ -78,7 +78,14 @@ defmodule LivebookWeb.AppAuthHook do
 
   # Skip auth for non-app-specific routes
   def on_mount(:default, %{}, _session, socket) do
-    {:cont, socket}
+    if connected?(socket) do
+      LivebookWeb.SessionHelpers.subscribe_to_logout()
+    end
+
+    {:cont,
+     socket
+     |> attach_hook(:logout, :handle_info, &handle_info/2)
+     |> attach_hook(:logout, :handle_event, &handle_event/3)}
   end
 
   defp livebook_authorized?(session, socket) do
