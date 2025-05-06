@@ -130,23 +130,6 @@ defmodule LivebookWeb.AppComponents do
         </div>
       </div>
     </div>
-
-    <%= if Livebook.Hubs.Provider.type(@hub) == "team" and to_string(@form[:mode].value) == "online" do %>
-      <div class="flex flex-col gap-2">
-        <.checkbox_field
-          field={@form[:teams_auth]}
-          label="Authenticate via Livebook Teams"
-          help={
-            ~S'''
-            When enabled, apps deployed in
-            this deployment group will use
-            Livebook Teams for authentication.
-            '''
-          }
-          small
-        />
-      </div>
-    <% end %>
     """
   end
 
