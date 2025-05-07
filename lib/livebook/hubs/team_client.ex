@@ -304,33 +304,45 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
-  def handle_call({:check_full_access, groups}, _caller, %{deployment_group_id: id} = state) do
-    case fetch_deployment_group(id, state) do
-      {:ok, deployment_group} ->
-        {:reply, authorized_group?(deployment_group.authorization_groups, groups), state}
+  def handle_call({:check_full_access, groups}, _caller, state) do
+    if id = state.deployment_group_id do
+      case fetch_deployment_group(id, state) do
+        {:ok, deployment_group} ->
+          {:reply, authorized_group?(deployment_group.authorization_groups, groups), state}
 
-      _ ->
-        {:reply, false, state}
-    end
-  end
-
-  def handle_call({:check_app_access, groups, slug}, _caller, %{deployment_group_id: id} = state) do
-    with {:ok, deployment_group} <- fetch_deployment_group(id, state),
-         {:ok, app_deployment} <- fetch_app_deployment_from_slug(slug, state) do
-      app_access? =
-        authorized_group?(deployment_group.authorization_groups, groups) or
-          authorized_group?(app_deployment.authorization_groups, groups)
-
-      {:reply, app_access?, state}
+        _ ->
+          {:reply, false, state}
+      end
     else
-      _ -> {:reply, false, state}
+      {:reply, true, state}
     end
   end
 
-  def handle_call(:authorization_groups_enabled?, _caller, %{deployment_group_id: id} = state) do
-    case fetch_deployment_group(id, state) do
-      {:ok, deployment_group} -> {:reply, deployment_group.groups_auth, state}
-      _ -> {:reply, false, state}
+  def handle_call({:check_app_access, groups, slug}, _caller, state) do
+    if id = state.deployment_group_id do
+      with {:ok, deployment_group} <- fetch_deployment_group(id, state),
+           {:ok, app_deployment} <- fetch_app_deployment_from_slug(slug, state) do
+        app_access? =
+          authorized_group?(deployment_group.authorization_groups, groups) or
+            authorized_group?(app_deployment.authorization_groups, groups)
+
+        {:reply, app_access?, state}
+      else
+        _ -> {:reply, false, state}
+      end
+    else
+      {:reply, true, state}
+    end
+  end
+
+  def handle_call(:authorization_groups_enabled?, _caller, state) do
+    if id = state.deployment_group_id do
+      case fetch_deployment_group(id, state) do
+        {:ok, deployment_group} -> {:reply, deployment_group.groups_auth, state}
+        _ -> {:reply, false, state}
+      end
+    else
+      {:reply, false, state}
     end
   end
 
