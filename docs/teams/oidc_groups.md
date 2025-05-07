@@ -15,24 +15,29 @@ OIDC groups authorization enables you to:
 - Control which users can access specific apps using slug prefix filtering
 - Integrate seamlessly with your existing OIDC SSO provider (Okta, Microsoft Entra, etc.)
 
+## Prerequisites
+
+Before configuring OIDC groups authorization, ensure you have:
+
+1. **Configured an OIDC provider** in your Livebook Teams organization. If you haven't done this yet, follow the instructions in our [OIDC SSO documentation](oidc_sso.md).
+
+2. **Configured your OIDC identity provider** to include group information in the ID tokens:
+   - **Okta**: [Customize tokens with a groups claim](https://developer.okta.com/docs/guides/customize-tokens-groups-claim/main/)
+
 ## Configuration
 
-### 1. Configure your OIDC SSO Provider
-
-Before setting up OIDC groups authorization, you must have at least one OIDC SSO provider configured. If you haven't done this yet, follow the instructions in our [OIDC SSO documentation](oidc_sso.md).
-
-### 2. Enable authorization via OIDC SSO groups
+### 1. Enable authorization via OIDC SSO groups
 
 To enable authorization via OIDC SSO groups for a deployment group:
 
 1. Log in to Livebook Teams
 2. Navigate to the **Deployments** panel
 3. Click **Edit** on the deployment group where you want to enable authorization
-4. Go to the **IAM** section
+4. Go to the **IAM** section (requires "admin" role in the organization)
 5. Ensure that **Authenticate via Livebook Teams** is enabled
 6. Enable **Authorize via OIDC SSO groups**
 
-### 3. Add group authorization
+### 2. Add group authorization
 
 Once authorization is enabled, you can add group access rules:
 
@@ -54,14 +59,13 @@ Users who belong to groups with full access can access:
 - The app server admin interface*
 - All Livebook apps deployed to this deployment group
 
-**Notice that [Admin authentication](authentication.md#admin-authentication) configs will also apply if configured*
+**Notice that [Admin authentication](authentication.md#admin-authentication) configs will also apply if configured.*
 
 ### Slug prefix access
 
-Users who belong to groups with slug prefix access can only access:
+Users who belong to groups with slug prefix access can only access Livebook apps whose URL slugs start with the specified prefix.
 
-- Livebook apps whose URL slugs start with the specified prefix
-- For example, with the prefix "**finance-**", users can access an app whose slug is "**finance-**budget", but not one with the slug "**hr-**budget"
+For example, with the slug prefix "**finance-**", users can access an app whose slug is "**finance-**budget", but not one with the slug "**hr-**budget".
 
 This allows you to create role-based access control based on your organization's existing group structure.
 
