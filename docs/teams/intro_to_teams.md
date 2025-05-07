@@ -11,7 +11,7 @@ Besides deployment automation, it also offers the following features:
 	- [Email-domain (Google, Microsoft, etc)](email_domain.md)
 	- [OIDC (Okta, Microsoft Entra, etc)](oidc_sso.md)
 - Authorization
-	- based on groups from an OIDC identity provider
+	- [based on groups from an OIDC identity provider (Okta, Microsoft Entra, etc)](oidc_groups.md)
 - [Shared Livebook secrets](shared_secrets.md)
 - [Shared Livebook file storages](shared_file_storages.md)
 
