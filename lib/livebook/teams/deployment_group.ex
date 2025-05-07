@@ -36,7 +36,7 @@ defmodule Livebook.Teams.DeploymentGroup do
 
   def changeset(deployment_group, attrs \\ %{}) do
     deployment_group
-    |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :url, :teams_auth])
+    |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :url])
     |> validate_required([:name, :mode])
     |> update_change(:url, fn url ->
       if url do
