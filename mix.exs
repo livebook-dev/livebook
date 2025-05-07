@@ -261,6 +261,7 @@ defmodule Livebook.MixProject do
       "docs/teams/shared_file_storages.md",
       {"docs/teams/email_domain.md", title: "Email domain auth"},
       {"docs/teams/oidc_sso.md", title: "OIDC SSO"},
+      {"docs/teams/oidc_groups.md", title: "OIDC groups authorization"},
       "docs/authentication/basic_auth.md",
       "docs/authentication/cloudflare.md",
       "docs/authentication/google_iap.md",
