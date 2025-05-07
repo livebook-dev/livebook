@@ -159,6 +159,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns if the Team client uses Livebook Teams authorization groups.
+  """
+  @spec authorization_groups_enabled?(String.t()) :: boolean()
+  def authorization_groups_enabled?(id) do
+    GenServer.call(registry_name(id), :authorization_groups_enabled?)
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -315,6 +323,13 @@ defmodule Livebook.Hubs.TeamClient do
 
       {:reply, app_access?, state}
     else
+      _ -> {:reply, false, state}
+    end
+  end
+
+  def handle_call(:authorization_groups_enabled?, _caller, %{deployment_group_id: id} = state) do
+    case fetch_deployment_group(id, state) do
+      {:ok, deployment_group} -> {:reply, deployment_group.groups_auth, state}
       _ -> {:reply, false, state}
     end
   end
@@ -492,6 +507,7 @@ defmodule Livebook.Hubs.TeamClient do
       clustering: nullify(deployment_group.clustering),
       url: nullify(deployment_group.url),
       teams_auth: deployment_group.teams_auth,
+      groups_auth: deployment_group.groups_auth,
       authorization_groups: authorization_groups
     }
   end
@@ -531,6 +547,7 @@ defmodule Livebook.Hubs.TeamClient do
         clustering: atomize(deployment_group_updated.clustering),
         url: nullify(deployment_group_updated.url),
         teams_auth: deployment_group_updated.teams_auth,
+        groups_auth: deployment_group_updated.groups_auth,
         authorization_groups: authorization_groups
     }
   end

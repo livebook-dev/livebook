@@ -168,7 +168,8 @@ defmodule Livebook.ZTA.LivebookTeams do
       } = payload
 
       restricted_apps_groups =
-        if Livebook.Hubs.TeamClient.user_full_access?(team.id, groups) do
+        if Livebook.Hubs.TeamClient.authorization_groups_enabled?(team.id) and
+             Livebook.Hubs.TeamClient.user_full_access?(team.id, groups) do
           nil
         else
           groups
