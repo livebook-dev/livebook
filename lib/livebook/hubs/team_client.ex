@@ -714,6 +714,15 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:deployment_group_updated, %Teams.DeploymentGroup{} = deployment_group, state) do
     Teams.Broadcasts.deployment_group_updated(deployment_group)
+
+    with {:ok, current_deployment_group} <- fetch_deployment_group(deployment_group.id, state) do
+      if state.deployment_group_id == deployment_group.id and
+           (current_deployment_group.authorization_groups != deployment_group.authorization_groups or
+              current_deployment_group.groups_auth != deployment_group.groups_auth) do
+        Teams.Broadcasts.server_authorization_updated(deployment_group)
+      end
+    end
+
     put_deployment_group(state, deployment_group)
   end
 
