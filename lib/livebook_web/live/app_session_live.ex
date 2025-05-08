@@ -24,8 +24,13 @@ defmodule LivebookWeb.AppSessionLive do
     end
   end
 
-  def mount(_params, _session, socket) when not socket.assigns.app_authorized? do
-    {:ok, socket, layout: false}
+  def mount(%{"slug" => slug, "id" => session_id}, _session, socket)
+      when not socket.assigns.app_authorized? do
+    if connected?(socket) do
+      Livebook.Teams.Broadcasts.subscribe(:app_deployments)
+    end
+
+    {:ok, assign(socket, slug: slug, session: %{id: session_id}), layout: false}
   end
 
   def mount(%{"slug" => slug, "id" => session_id}, _session, socket) do
@@ -388,7 +393,8 @@ defmodule LivebookWeb.AppSessionLive do
     # should't have access.
     {:ok, app} = Livebook.Apps.fetch_app(slug)
 
-    if Livebook.Apps.authorized?(app, socket.assigns.current_user) do
+    if socket.assigns.app_authorized? and
+         Livebook.Apps.authorized?(app, socket.assigns.current_user) do
       {:noreply, socket}
     else
       {:noreply, redirect(socket, to: ~p"/apps/#{slug}/sessions/#{socket.assigns.session.id}")}
