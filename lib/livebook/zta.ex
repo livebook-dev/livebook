@@ -58,6 +58,8 @@ defmodule Livebook.ZTA do
     * `:id` - a string that uniquely identifies the user
     * `:name` - the user name
     * `:email` - the user email
+    * `:avatar_url` - the user avatar
+    * `:restricted_apps_groups` - the user restricted groups to access apps
     * `:payload` - the provider payload
 
   Note that none of the keys are required. The metadata returned depends
@@ -67,6 +69,8 @@ defmodule Livebook.ZTA do
           optional(:id) => String.t(),
           optional(:name) => String.t(),
           optional(:email) => String.t(),
+          optional(:avatar_url) => String.t() | nil,
+          optional(:restricted_apps_groups) => list(map()) | nil,
           optional(:payload) => map()
         }
 
