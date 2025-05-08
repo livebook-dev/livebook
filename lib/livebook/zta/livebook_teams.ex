@@ -159,32 +159,38 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   defp get_user_info(team, access_token) do
     with {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
-      %{
-        "id" => id,
-        "name" => name,
-        "email" => email,
-        "groups" => groups,
-        "avatar_url" => avatar_url
-      } = payload
-
-      restricted_apps_groups =
-        if Livebook.Hubs.TeamClient.authorization_groups_enabled?(team.id) and
-             Livebook.Hubs.TeamClient.user_full_access?(team.id, groups) do
-          nil
-        else
-          groups
-        end
-
-      metadata = %{
-        id: id,
-        name: name,
-        avatar_url: avatar_url,
-        restricted_apps_groups: restricted_apps_groups,
-        email: email,
-        payload: payload
-      }
-
-      {:ok, metadata}
+      {:ok, build_metadata(team.id, payload)}
     end
+  end
+
+  @doc """
+  Returns the user metadata from given payload.
+  """
+  @spec build_metadata(String.t(), map()) :: Livebook.ZTA.metadata()
+  def build_metadata(hub_id, payload) do
+    %{
+      "id" => id,
+      "name" => name,
+      "email" => email,
+      "groups" => groups,
+      "avatar_url" => avatar_url
+    } = payload
+
+    restricted_apps_groups =
+      if Livebook.Hubs.TeamClient.authorization_groups_enabled?(hub_id) and
+           Livebook.Hubs.TeamClient.user_full_access?(hub_id, groups) do
+        nil
+      else
+        groups
+      end
+
+    %{
+      id: id,
+      name: name,
+      avatar_url: avatar_url,
+      restricted_apps_groups: restricted_apps_groups,
+      email: email,
+      payload: payload
+    }
   end
 end
