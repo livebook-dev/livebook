@@ -167,6 +167,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns if the Team client is an app server for given deployment group.
+  """
+  @spec current_app_server_deployment_group?(String.t(), String.t()) :: boolean()
+  def current_app_server_deployment_group?(id, deployment_group_id) do
+    GenServer.call(registry_name(id), {:current_deployment_group?, deployment_group_id})
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -344,6 +352,10 @@ defmodule Livebook.Hubs.TeamClient do
     else
       {:reply, false, state}
     end
+  end
+
+  def handle_call({:current_deployment_group?, id}, _caller, state) do
+    {:reply, state.deployment_group_id == id, state}
   end
 
   @impl true
