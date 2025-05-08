@@ -136,6 +136,7 @@ defmodule LivebookWeb.AuthPlug do
     conn
     |> put_status(:unauthorized)
     |> put_view(LivebookWeb.ErrorHTML)
+    |> put_root_layout(false)
     |> render("401.html", %{details: "You don't have permission to access this server"})
     |> halt()
   end
