@@ -316,7 +316,9 @@ defmodule Livebook.Hubs.TeamClient do
     if id = state.deployment_group_id do
       case fetch_deployment_group(id, state) do
         {:ok, deployment_group} ->
-          {:reply, authorized_group?(deployment_group.authorization_groups, groups), state}
+          {:reply,
+           not deployment_group.groups_auth or
+             authorized_group?(deployment_group.authorization_groups, groups), state}
 
         _ ->
           {:reply, false, state}
@@ -331,8 +333,9 @@ defmodule Livebook.Hubs.TeamClient do
       with {:ok, deployment_group} <- fetch_deployment_group(id, state),
            {:ok, app_deployment} <- fetch_app_deployment_from_slug(slug, state) do
         app_access? =
-          authorized_group?(deployment_group.authorization_groups, groups) or
-            authorized_group?(app_deployment.authorization_groups, groups)
+          not deployment_group.groups_auth or
+            (authorized_group?(deployment_group.authorization_groups, groups) or
+               authorized_group?(app_deployment.authorization_groups, groups))
 
         {:reply, app_access?, state}
       else
@@ -700,7 +703,6 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:deployment_group_created, %Teams.DeploymentGroup{} = deployment_group, state) do
     Teams.Broadcasts.deployment_group_created(deployment_group)
-
     put_deployment_group(state, deployment_group)
   end
 
