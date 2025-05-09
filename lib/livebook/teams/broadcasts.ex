@@ -37,7 +37,7 @@ defmodule Livebook.Teams.Broadcasts do
 
   Topic `#{@app_server_topic}`:
 
-    * `{:server_authorization_updated, map()}`
+    * `{:server_authorization_updated, DeploymentGroup.t()}`
 
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}

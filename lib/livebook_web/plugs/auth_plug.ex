@@ -64,7 +64,7 @@ defmodule LivebookWeb.AuthPlug do
         get_session(conn),
         conn.assigns.identity_data,
         conn.assigns.user_data
-      ).restricted_apps_groups == nil
+      ).access_type == :full
   end
 
   @doc """
@@ -77,7 +77,7 @@ defmodule LivebookWeb.AuthPlug do
         session,
         session["identity_data"],
         session["user_data"]
-      ).restricted_apps_groups == nil
+      ).access_type == :full
   end
 
   defp authenticate(conn) do

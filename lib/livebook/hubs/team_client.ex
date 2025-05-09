@@ -159,22 +159,6 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
-  Returns if the Team client uses Livebook Teams authorization groups.
-  """
-  @spec authorization_groups_enabled?(String.t()) :: boolean()
-  def authorization_groups_enabled?(id) do
-    GenServer.call(registry_name(id), :authorization_groups_enabled?)
-  end
-
-  @doc """
-  Returns if the Team client is an app server for given deployment group.
-  """
-  @spec current_app_server_deployment_group?(String.t(), String.t()) :: boolean()
-  def current_app_server_deployment_group?(id, deployment_group_id) do
-    GenServer.call(registry_name(id), {:current_deployment_group?, deployment_group_id})
-  end
-
-  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -317,7 +301,8 @@ defmodule Livebook.Hubs.TeamClient do
       case fetch_deployment_group(id, state) do
         {:ok, deployment_group} ->
           {:reply,
-           not deployment_group.groups_auth or
+           not deployment_group.teams_auth or
+             not deployment_group.groups_auth or
              authorized_group?(deployment_group.authorization_groups, groups), state}
 
         _ ->
@@ -333,7 +318,8 @@ defmodule Livebook.Hubs.TeamClient do
       with {:ok, deployment_group} <- fetch_deployment_group(id, state),
            {:ok, app_deployment} <- fetch_app_deployment_from_slug(slug, state) do
         app_access? =
-          not deployment_group.groups_auth or
+          not deployment_group.teams_auth or
+            not deployment_group.groups_auth or
             (authorized_group?(deployment_group.authorization_groups, groups) or
                authorized_group?(app_deployment.authorization_groups, groups))
 
@@ -344,21 +330,6 @@ defmodule Livebook.Hubs.TeamClient do
     else
       {:reply, true, state}
     end
-  end
-
-  def handle_call(:authorization_groups_enabled?, _caller, state) do
-    if id = state.deployment_group_id do
-      case fetch_deployment_group(id, state) do
-        {:ok, deployment_group} -> {:reply, deployment_group.groups_auth, state}
-        _ -> {:reply, false, state}
-      end
-    else
-      {:reply, false, state}
-    end
-  end
-
-  def handle_call({:current_deployment_group?, id}, _caller, state) do
-    {:reply, state.deployment_group_id == id, state}
   end
 
   @impl true

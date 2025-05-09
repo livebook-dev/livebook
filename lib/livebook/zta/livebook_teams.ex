@@ -176,19 +176,17 @@ defmodule Livebook.ZTA.LivebookTeams do
       "avatar_url" => avatar_url
     } = payload
 
-    restricted_apps_groups =
-      if not Livebook.Hubs.TeamClient.authorization_groups_enabled?(hub_id) or
-           Livebook.Hubs.TeamClient.user_full_access?(hub_id, groups) do
-        nil
-      else
-        groups
-      end
+    access_type =
+      if Livebook.Hubs.TeamClient.user_full_access?(hub_id, groups),
+        do: :full,
+        else: :apps
 
     %{
       id: id,
       name: name,
       avatar_url: avatar_url,
-      restricted_apps_groups: restricted_apps_groups,
+      access_type: access_type,
+      groups: groups,
       email: email,
       payload: payload
     }

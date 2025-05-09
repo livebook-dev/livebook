@@ -14,13 +14,16 @@ defmodule LivebookWeb.AuthHook do
     end
   end
 
-  defp handle_info({:server_authorization_updated, _deployment_group}, socket) do
+  defp handle_info({:server_authorization_updated, %{hub_id: hub_id}}, socket) do
     # We already updated the current user, so we just need to force the redirection.
     # But, for apps, we redirect directly from the app session
-    if socket.assigns.current_user.restricted_apps_groups do
-      {:halt, redirect(socket, to: ~p"/")}
-    else
+    current_user = socket.assigns.current_user
+
+    if current_user.access_type == :full and
+         Livebook.Hubs.TeamClient.user_full_access?(hub_id, current_user.groups) do
       {:halt, socket}
+    else
+      {:halt, redirect(socket, to: ~p"/")}
     end
   end
 
