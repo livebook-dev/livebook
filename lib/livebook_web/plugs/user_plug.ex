@@ -34,7 +34,7 @@ defmodule LivebookWeb.UserPlug do
   end
 
   defp ensure_user_identity(conn) do
-    {_type, module, _key} = Livebook.Config.identity_provider()
+    {_type, module, _key} = identity_provider(conn)
     {conn, identity_data} = module.authenticate(LivebookWeb.ZTA, conn, [])
 
     cond do
@@ -127,5 +127,23 @@ defmodule LivebookWeb.UserPlug do
       "identity_data" => conn.assigns.identity_data,
       "user_data" => conn.assigns.user_data
     }
+  end
+
+  @doc """
+  Returns the identity provider configuration for the given `conn` or
+  `session`.
+
+  This mirrors `Livebook.Config.identity_provider/0`, except the it can
+  be overridden in tests, for each connection.
+  """
+  @spec identity_provider(Plug.Conn.t() | map()) :: {atom(), module, binary}
+  if Mix.env() == :test do
+    def identity_provider(%Plug.Conn{} = conn), do: identity_provider(get_session(conn))
+
+    def identity_provider(%{} = session) do
+      session["identity_provider_test_override"] || Livebook.Config.identity_provider()
+    end
+  else
+    def identity_provider(_), do: Livebook.Config.identity_provider()
   end
 end

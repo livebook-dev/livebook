@@ -172,8 +172,7 @@ defmodule Livebook.Teams.Requests do
       name: deployment_group.name,
       mode: deployment_group.mode,
       clustering: deployment_group.clustering,
-      url: deployment_group.url,
-      teams_auth: deployment_group.teams_auth
+      url: deployment_group.url
     }
 
     post("/api/v1/org/deployment-groups", params, team)

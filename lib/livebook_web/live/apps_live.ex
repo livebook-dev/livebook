@@ -4,7 +4,7 @@ defmodule LivebookWeb.AppsLive do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      Livebook.Teams.Broadcasts.subscribe(:app_deployments)
+      Livebook.Teams.Broadcasts.subscribe(:app_server)
       Livebook.Apps.subscribe()
     end
 
@@ -101,7 +101,7 @@ defmodule LivebookWeb.AppsLive do
     {:noreply, update(socket, :apps, &LivebookWeb.AppComponents.update_app_list(&1, event))}
   end
 
-  def handle_info({:app_deployment_updated, _app_deployment}, socket) do
+  def handle_info({:server_authorization_updated, _}, socket) do
     apps = Livebook.Apps.list_authorized_apps(socket.assigns.current_user)
     {:noreply, assign(socket, :apps, apps)}
   end

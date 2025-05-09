@@ -30,6 +30,12 @@ defmodule LivebookWeb.ConnCase do
   end
 
   def with_authentication(conn, authentication) do
-    Plug.Test.init_test_session(conn, authentication_test_override: authentication)
+    Plug.Test.init_test_session(conn, %{authentication_test_override: authentication})
+  end
+
+  def with_authorization(conn, id) do
+    Plug.Test.init_test_session(conn, %{
+      identity_provider_test_override: {:zta, Livebook.ZTA.LivebookTeams, id}
+    })
   end
 end

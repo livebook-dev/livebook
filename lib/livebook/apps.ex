@@ -7,6 +7,7 @@ defmodule Livebook.Apps do
   require Logger
 
   alias Livebook.App
+  alias Livebook.Apps
 
   @doc """
   Returns app process pid for the given slug.
@@ -79,13 +80,11 @@ defmodule Livebook.Apps do
   @spec authorized?(App.t(), Livebook.Users.User.t()) :: boolean()
   def authorized?(app, user)
 
-  def authorized?(%{app_spec: %Livebook.Apps.TeamsAppSpec{}}, %{restricted_apps_groups: []}),
-    do: false
+  def authorized?(%{app_spec: %Apps.TeamsAppSpec{}}, %{groups: [], access_type: :apps}), do: false
+  def authorized?(_app, %{access_type: :full}), do: true
 
-  def authorized?(_app, %{restricted_apps_groups: nil}), do: true
-
-  def authorized?(%{slug: slug, app_spec: %Livebook.Apps.TeamsAppSpec{hub_id: id}}, user) do
-    Livebook.Hubs.TeamClient.user_app_access?(id, user.restricted_apps_groups, slug)
+  def authorized?(%{slug: slug, app_spec: %Apps.TeamsAppSpec{hub_id: id}}, user) do
+    Livebook.Hubs.TeamClient.user_app_access?(id, user.groups, slug)
   end
 
   @doc """

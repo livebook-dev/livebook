@@ -7,6 +7,7 @@ defmodule Livebook.Teams.Broadcasts do
   @app_deployments_topic "teams:app_deployments"
   @clients_topic "teams:clients"
   @deployment_groups_topic "teams:deployment_groups"
+  @app_server_topic "teams:app_server"
 
   @doc """
   Subscribes to one or more subtopics in `"teams"`.
@@ -31,8 +32,12 @@ defmodule Livebook.Teams.Broadcasts do
   Topic `#{@deployment_groups_topic}`:
 
     * `{:deployment_group_created, DeploymentGroup.t()}`
-    * `{:deployment_group_update, DeploymentGroup.t()}`
+    * `{:deployment_group_updated, DeploymentGroup.t()}`
     * `{:deployment_group_deleted, DeploymentGroup.t()}`
+
+  Topic `#{@app_server_topic}`:
+
+    * `{:server_authorization_updated, DeploymentGroup.t()}`
 
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
@@ -130,6 +135,14 @@ defmodule Livebook.Teams.Broadcasts do
   @spec agent_left(Teams.Agent.t()) :: broadcast()
   def agent_left(%Teams.Agent{} = agent) do
     broadcast(@agents_topic, {:agent_left, agent})
+  end
+
+  @doc """
+  Broadcasts under `#{@app_server_topic}` topic when hub received a updated deployment group that changed which groups have access to the server.
+  """
+  @spec server_authorization_updated(Teams.DeploymentGroup.t()) :: broadcast()
+  def server_authorization_updated(%Teams.DeploymentGroup{} = deployment_group) do
+    broadcast(@app_server_topic, {:server_authorization_updated, deployment_group})
   end
 
   defp broadcast(topic, message) do
