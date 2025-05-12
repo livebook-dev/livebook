@@ -80,7 +80,6 @@ defmodule Livebook.Apps do
   @spec authorized?(App.t(), Livebook.Users.User.t()) :: boolean()
   def authorized?(app, user)
 
-  def authorized?(%{app_spec: %Apps.TeamsAppSpec{}}, %{groups: [], access_type: :apps}), do: false
   def authorized?(_app, %{access_type: :full}), do: true
 
   def authorized?(%{slug: slug, app_spec: %Apps.TeamsAppSpec{hub_id: id}}, user) do

@@ -160,6 +160,54 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
              |> get(~p"/apps")
              |> html_response(200) =~ slug
     end
+
+    @tag :tmp_dir
+    test "shows all apps if disable the authentication in real-time",
+         %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
+      {:ok, deployment_group} =
+        erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
+
+      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+
+      authorization_group =
+        erpc_call(node, :create_authorization_group, [
+          %{
+            group_name: "marketing",
+            access_type: :apps,
+            prefixes: ["mkt-"],
+            oidc_provider: oidc_provider,
+            deployment_group: deployment_group
+          }
+        ])
+
+      erpc_call(node, :update_user_info_groups, [
+        code,
+        [
+          %{
+            "provider_id" => to_string(oidc_provider.id),
+            "group_name" => authorization_group.group_name
+          }
+        ]
+      ])
+
+      slug = "marketing-app"
+
+      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      assert conn
+             |> get(~p"/apps")
+             |> html_response(200) =~ "No apps running."
+
+      {:ok, %{teams_auth: false} = deployment_group} =
+        erpc_call(node, :toggle_teams_authentication, [deployment_group])
+
+      id = to_string(deployment_group.id)
+      assert_receive {:server_authorization_updated, %{id: ^id, teams_auth: false}}
+
+      assert conn
+             |> get(~p"/apps")
+             |> html_response(200) =~ slug
+    end
   end
 
   defp deploy_app(slug, team, org, deployment_group, tmp_dir, node) do

@@ -164,5 +164,47 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
       {:ok, view, _html} = live(conn, ~p"/apps")
       assert render(view) =~ "No apps running."
     end
+
+    test "shows admin page if authentication is disabled",
+         %{conn: conn, node: node, code: code} = context do
+      {:ok, deployment_group} =
+        erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
+
+      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+
+      authorization_group =
+        erpc_call(node, :create_authorization_group, [
+          %{
+            group_name: "marketing",
+            access_type: :apps,
+            prefixes: ["ops-"],
+            oidc_provider: oidc_provider,
+            deployment_group: deployment_group
+          }
+        ])
+
+      erpc_call(node, :update_user_info_groups, [
+        code,
+        [
+          %{
+            "provider_id" => to_string(oidc_provider.id),
+            "group_name" => authorization_group.group_name
+          }
+        ]
+      ])
+
+      assert conn
+             |> get(~p"/settings")
+             |> html_response(401) =~ "Not authorized"
+
+      {:ok, %{teams_auth: false} = deployment_group} =
+        erpc_call(node, :toggle_teams_authentication, [deployment_group])
+
+      id = to_string(deployment_group.id)
+      assert_receive {:server_authorization_updated, %{id: ^id, teams_auth: false}}
+
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      assert render(view) =~ "System settings"
+    end
   end
 end
