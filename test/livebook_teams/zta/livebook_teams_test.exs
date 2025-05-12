@@ -73,7 +73,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
           }
         ])
 
-      {conn, code, %{restricted_apps_groups: []}} = authenticate_user(conn, node, test)
+      {conn, code, %{groups: [], access_type: :apps}} = authenticate_user(conn, node, test)
       session = get_session(conn)
 
       conn =
@@ -88,7 +88,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       # Get the user with updated groups
       erpc_call(node, :update_user_info_groups, [code, [group]])
 
-      assert {%{halted: false}, %{restricted_apps_groups: nil}} =
+      assert {%{halted: false}, %{groups: [^group], access_type: :full}} =
                LivebookTeams.authenticate(test, conn, [])
     end
 
@@ -163,7 +163,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
                       }}
 
       # Now we need to check if the current user has access to this app
-      {conn, code, %{restricted_apps_groups: []}} = authenticate_user(conn, node, test)
+      {conn, code, %{groups: [], access_type: :apps}} = authenticate_user(conn, node, test)
       session = get_session(conn)
 
       group = %{
@@ -199,7 +199,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
           }
         ])
 
-      {conn, code, %{restricted_apps_groups: []}} = authenticate_user(conn, node, test)
+      {conn, code, %{groups: [], access_type: :apps}} = authenticate_user(conn, node, test)
 
       group = %{
         "provider_id" => to_string(oidc_provider.id),
@@ -212,7 +212,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         build_conn(:get, ~p"/settings")
         |> init_test_session(get_session(conn))
 
-      assert {_conn, %{restricted_apps_groups: [^group]}} =
+      assert {_conn, %{groups: [^group], access_type: :apps}} =
                LivebookTeams.authenticate(test, conn, [])
     end
 

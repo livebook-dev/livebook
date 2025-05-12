@@ -1,39 +1,9 @@
-defmodule LivebookWeb.Integration.AdminLiveTest do
-  # Not async, because we alter global config (app server instance)
+defmodule LivebookWeb.Integration.AppsLiveTest do
   use Livebook.TeamsIntegrationCase, async: false
 
-  import Phoenix.LiveViewTest
-
-  describe "topbar" do
-    setup %{teams_auth: teams_auth} do
-      Application.put_env(:livebook, :teams_auth, teams_auth)
-      on_exit(fn -> Application.delete_env(:livebook, :teams_auth) end)
-
-      :ok
-    end
-
-    for page <- ["/", "/settings", "/learn", "/hub", "/apps-dashboard"] do
-      @tag page: page, teams_auth: :online
-      test "GET #{page} shows the app server instance topbar warning", %{conn: conn, page: page} do
-        {:ok, view, _} = live(conn, page)
-
-        assert render(view) =~
-                 "This Livebook instance has been configured for notebook deployment and is in read-only mode."
-      end
-
-      @tag page: page, teams_auth: :offline
-      test "GET #{page} shows the offline hub topbar warning", %{conn: conn, page: page} do
-        {:ok, view, _} = live(conn, page)
-
-        assert render(view) =~
-                 "You are running an offline Workspace for deployment. You cannot modify its settings."
-      end
-    end
-  end
-
-  describe "authorization" do
+  describe "authorized apps" do
     setup %{conn: conn, node: node} do
-      Livebook.Teams.Broadcasts.subscribe([:agents, :app_server])
+      Livebook.Teams.Broadcasts.subscribe([:agents, :app_deployments, :app_server])
       Livebook.Apps.subscribe()
 
       {_agent_key, org, deployment_group, team} = create_agent_team_hub(node)
@@ -59,8 +29,9 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
       {:ok, conn: conn, code: code, deployment_group: deployment_group, org: org, team: team}
     end
 
-    test "renders unauthorized admin page if user doesn't have full access",
-         %{conn: conn, node: node, code: code} = context do
+    @tag :tmp_dir
+    test "shows one app if user doesn't have full access",
+         %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
       oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
 
@@ -85,13 +56,22 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
         ]
       ])
 
-      assert conn
-             |> get(~p"/settings")
-             |> html_response(401) =~ "Not authorized"
+      slug = "dev-app"
+
+      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      html =
+        conn
+        |> get(~p"/apps")
+        |> html_response(200)
+
+      refute html =~ "No apps running."
+      assert html =~ slug
     end
 
-    test "shows admin page if user have full access",
-         %{conn: conn, node: node, code: code} = context do
+    @tag :tmp_dir
+    test "shows all apps if user have full access",
+         %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
       oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
 
@@ -115,58 +95,27 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
         ]
       ])
 
-      {:ok, _view, html} = live(conn, ~p"/settings")
-      assert html =~ "System settings"
+      slugs = ~w(mkt-app sales-app opt-app)
+
+      for slug <- slugs do
+        deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+      end
+
+      html =
+        conn
+        |> get(~p"/apps")
+        |> html_response(200)
+
+      refute html =~ "No apps running."
+
+      for slug <- slugs do
+        assert html =~ slug
+      end
     end
 
-    test "renders unauthorized if loses the access in real-time",
-         %{conn: conn, node: node, code: code} = context do
-      {:ok, deployment_group} =
-        erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
-
-      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
-
-      authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :app_server,
-            oidc_provider: oidc_provider,
-            deployment_group: deployment_group
-          }
-        ])
-
-      erpc_call(node, :update_user_info_groups, [
-        code,
-        [
-          %{
-            "provider_id" => to_string(oidc_provider.id),
-            "group_name" => authorization_group.group_name
-          }
-        ]
-      ])
-
-      {:ok, view, _html} = live(conn, ~p"/settings")
-      assert render(view) =~ "System settings"
-
-      erpc_call(node, :update_authorization_group, [
-        authorization_group,
-        %{access_type: :apps, prefixes: ["ops-"]}
-      ])
-
-      id = to_string(deployment_group.id)
-      assert_receive {:server_authorization_updated, %{id: ^id}}
-
-      # If you lose access to the app server, we will redirect to "/"
-      assert_redirect view, ~p"/"
-
-      # And it will redirect to "/apps"
-      {:ok, view, _html} = live(conn, ~p"/apps")
-      assert render(view) =~ "No apps running."
-    end
-
-    test "shows admin page if authentication is disabled",
-         %{conn: conn, node: node, code: code} = context do
+    @tag :tmp_dir
+    test "updates the apps list in real-time",
+         %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       {:ok, deployment_group} =
         erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
 
@@ -177,7 +126,7 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
           %{
             group_name: "marketing",
             access_type: :apps,
-            prefixes: ["ops-"],
+            prefixes: ["mkt-"],
             oidc_provider: oidc_provider,
             deployment_group: deployment_group
           }
@@ -193,9 +142,61 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
         ]
       ])
 
+      slug = "marketing-app"
+
+      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
       assert conn
-             |> get(~p"/settings")
-             |> html_response(401) =~ "Not authorized"
+             |> get(~p"/apps")
+             |> html_response(200) =~ "No apps running."
+
+      {:ok, %{groups_auth: false} = deployment_group} =
+        erpc_call(node, :toggle_groups_authorization, [deployment_group])
+
+      id = to_string(deployment_group.id)
+      assert_receive {:server_authorization_updated, %{id: ^id, groups_auth: false}}
+
+      assert conn
+             |> get(~p"/apps")
+             |> html_response(200) =~ slug
+    end
+
+    @tag :tmp_dir
+    test "shows all apps if disable the authentication in real-time",
+         %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
+      {:ok, deployment_group} =
+        erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
+
+      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+
+      authorization_group =
+        erpc_call(node, :create_authorization_group, [
+          %{
+            group_name: "marketing",
+            access_type: :apps,
+            prefixes: ["mkt-"],
+            oidc_provider: oidc_provider,
+            deployment_group: deployment_group
+          }
+        ])
+
+      erpc_call(node, :update_user_info_groups, [
+        code,
+        [
+          %{
+            "provider_id" => to_string(oidc_provider.id),
+            "group_name" => authorization_group.group_name
+          }
+        ]
+      ])
+
+      slug = "marketing-app"
+
+      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      assert conn
+             |> get(~p"/apps")
+             |> html_response(200) =~ "No apps running."
 
       {:ok, %{teams_auth: false} = deployment_group} =
         erpc_call(node, :toggle_teams_authentication, [deployment_group])
@@ -203,8 +204,57 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
       id = to_string(deployment_group.id)
       assert_receive {:server_authorization_updated, %{id: ^id, teams_auth: false}}
 
-      {:ok, view, _html} = live(conn, ~p"/settings")
-      assert render(view) =~ "System settings"
+      assert conn
+             |> get(~p"/apps")
+             |> html_response(200) =~ slug
     end
+  end
+
+  defp deploy_app(slug, team, org, deployment_group, tmp_dir, node) do
+    source = """
+    <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"hub_id":"#{team.id}","deployment_group_id":"#{deployment_group.id}"} -->
+
+    # LivebookApp:#{slug}
+
+    ```elixir
+    ```
+    """
+
+    {notebook, %{warnings: []}} = Livebook.LiveMarkdown.notebook_from_livemd(source)
+
+    files_dir = Livebook.FileSystem.File.local(tmp_dir)
+
+    {:ok, %Livebook.Teams.AppDeployment{file: zip_content} = app_deployment} =
+      Livebook.Teams.AppDeployment.new(notebook, files_dir)
+
+    secret_key = Livebook.Teams.derive_key(team.teams_key)
+    encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)
+
+    app_deployment_id =
+      erpc_call(node, :upload_app_deployment, [
+        org,
+        deployment_group,
+        app_deployment,
+        encrypted_content,
+        # broadcast?
+        true
+      ]).id
+
+    app_deployment_id = to_string(app_deployment_id)
+    assert_receive {:app_deployment_started, %{id: ^app_deployment_id}}
+
+    assert_receive {:app_created, %{pid: pid, slug: ^slug}}
+
+    assert_receive {:app_updated,
+                    %{
+                      slug: ^slug,
+                      sessions: [%{app_status: %{execution: :executed, lifecycle: :active}}]
+                    }}
+
+    on_exit(fn ->
+      if Process.alive?(pid) do
+        Livebook.App.close(pid)
+      end
+    end)
   end
 end

@@ -296,26 +296,39 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
-  def handle_call({:check_full_access, groups}, _caller, %{deployment_group_id: id} = state) do
-    case fetch_deployment_group(id, state) do
-      {:ok, deployment_group} ->
-        {:reply, authorized_group?(deployment_group.authorization_groups, groups), state}
+  def handle_call({:check_full_access, groups}, _caller, state) do
+    if id = state.deployment_group_id do
+      case fetch_deployment_group(id, state) do
+        {:ok, deployment_group} ->
+          {:reply,
+           not deployment_group.teams_auth or
+             not deployment_group.groups_auth or
+             authorized_group?(deployment_group.authorization_groups, groups), state}
 
-      _ ->
-        {:reply, false, state}
+        _ ->
+          {:reply, false, state}
+      end
+    else
+      {:reply, true, state}
     end
   end
 
-  def handle_call({:check_app_access, groups, slug}, _caller, %{deployment_group_id: id} = state) do
-    with {:ok, deployment_group} <- fetch_deployment_group(id, state),
-         {:ok, app_deployment} <- fetch_app_deployment_from_slug(slug, state) do
-      app_access? =
-        authorized_group?(deployment_group.authorization_groups, groups) or
-          authorized_group?(app_deployment.authorization_groups, groups)
+  def handle_call({:check_app_access, groups, slug}, _caller, state) do
+    if id = state.deployment_group_id do
+      with {:ok, deployment_group} <- fetch_deployment_group(id, state),
+           {:ok, app_deployment} <- fetch_app_deployment_from_slug(slug, state) do
+        app_access? =
+          not deployment_group.teams_auth or
+            not deployment_group.groups_auth or
+            (authorized_group?(deployment_group.authorization_groups, groups) or
+               authorized_group?(app_deployment.authorization_groups, groups))
 
-      {:reply, app_access?, state}
+        {:reply, app_access?, state}
+      else
+        _ -> {:reply, false, state}
+      end
     else
-      _ -> {:reply, false, state}
+      {:reply, true, state}
     end
   end
 
@@ -492,6 +505,7 @@ defmodule Livebook.Hubs.TeamClient do
       clustering: nullify(deployment_group.clustering),
       url: nullify(deployment_group.url),
       teams_auth: deployment_group.teams_auth,
+      groups_auth: deployment_group.groups_auth,
       authorization_groups: authorization_groups
     }
   end
@@ -531,6 +545,7 @@ defmodule Livebook.Hubs.TeamClient do
         clustering: atomize(deployment_group_updated.clustering),
         url: nullify(deployment_group_updated.url),
         teams_auth: deployment_group_updated.teams_auth,
+        groups_auth: deployment_group_updated.groups_auth,
         authorization_groups: authorization_groups
     }
   end
@@ -659,7 +674,6 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:deployment_group_created, %Teams.DeploymentGroup{} = deployment_group, state) do
     Teams.Broadcasts.deployment_group_created(deployment_group)
-
     put_deployment_group(state, deployment_group)
   end
 
@@ -673,6 +687,16 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:deployment_group_updated, %Teams.DeploymentGroup{} = deployment_group, state) do
     Teams.Broadcasts.deployment_group_updated(deployment_group)
+
+    with {:ok, current_deployment_group} <- fetch_deployment_group(deployment_group.id, state) do
+      if state.deployment_group_id == deployment_group.id and
+           (current_deployment_group.authorization_groups != deployment_group.authorization_groups or
+              current_deployment_group.groups_auth != deployment_group.groups_auth or
+              current_deployment_group.teams_auth != deployment_group.teams_auth) do
+        Teams.Broadcasts.server_authorization_updated(deployment_group)
+      end
+    end
+
     put_deployment_group(state, deployment_group)
   end
 

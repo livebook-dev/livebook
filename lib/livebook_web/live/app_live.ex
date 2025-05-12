@@ -12,8 +12,13 @@ defmodule LivebookWeb.AppLive do
     end
   end
 
-  def mount(_params, _session, socket) when not socket.assigns.app_authorized? do
-    {:ok, socket, layout: false}
+  def mount(%{"slug" => slug}, _session, socket) when not socket.assigns.app_authorized? do
+    if connected?(socket) do
+      Livebook.Teams.Broadcasts.subscribe(:app_deployments)
+    end
+
+    {:ok, app} = Livebook.Apps.fetch_app(slug)
+    {:ok, assign(socket, app: app), layout: false}
   end
 
   def mount(%{"slug" => slug}, _session, socket) do
@@ -22,6 +27,7 @@ defmodule LivebookWeb.AppLive do
 
       if connected?(socket) do
         Livebook.App.subscribe(slug)
+        Livebook.Teams.Broadcasts.subscribe(:app_deployments)
       end
 
       {:ok, assign(socket, app: app)}
@@ -120,6 +126,18 @@ defmodule LivebookWeb.AppLive do
   @impl true
   def handle_info({:app_updated, app}, socket) do
     {:noreply, assign(socket, :app, app)}
+  end
+
+  def handle_info(
+        {:app_deployment_updated, %{slug: slug}},
+        %{assigns: %{app: %{slug: slug} = app}} = socket
+      ) do
+    if socket.assigns.app_authorized? and
+         Livebook.Apps.authorized?(app, socket.assigns.current_user) do
+      {:noreply, socket}
+    else
+      {:noreply, redirect(socket, to: ~p"/apps/#{slug}")}
+    end
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

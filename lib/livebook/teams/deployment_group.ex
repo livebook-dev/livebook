@@ -13,6 +13,7 @@ defmodule Livebook.Teams.DeploymentGroup do
           clustering: :auto | :dns | nil,
           hub_id: String.t() | nil,
           teams_auth: boolean(),
+          groups_auth: boolean(),
           authorization_groups: Ecto.Schema.embeds_many(Teams.AuthorizationGroup.t()),
           secrets: Ecto.Schema.has_many(Secrets.Secret.t()),
           agent_keys: Ecto.Schema.has_many(Teams.AgentKey.t()),
@@ -27,6 +28,7 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :clustering, Ecto.Enum, values: [:auto, :dns]
     field :url, :string
     field :teams_auth, :boolean, default: true
+    field :groups_auth, :boolean, default: false
 
     has_many :secrets, Secrets.Secret
     has_many :agent_keys, Teams.AgentKey
@@ -36,7 +38,7 @@ defmodule Livebook.Teams.DeploymentGroup do
 
   def changeset(deployment_group, attrs \\ %{}) do
     deployment_group
-    |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :url, :teams_auth])
+    |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :url])
     |> validate_required([:name, :mode])
     |> update_change(:url, fn url ->
       if url do
