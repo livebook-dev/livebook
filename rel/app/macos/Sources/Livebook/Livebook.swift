@@ -110,7 +110,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         for url in urls {
-            ElixirKit.API.publish("open", "file://\(url.path)")       
+            if url.scheme! == "livebook" {
+                let string = url.absoluteString
+                ElixirKit.API.publish("open", string)
+            }
+            if url.scheme! == "file" {
+                // Livebook.Utils.expand_desktop_url/1 URL-escapes so here we pass unescaped URL
+                // as not to escape twice. This is not a problem for livebook:// url above.
+                let string = "file://\(url.path)"
+                ElixirKit.API.publish("open", string)
+            }
         }
     }
 

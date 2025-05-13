@@ -18,7 +18,18 @@ static class LivebookMain
 
         if (args.Length == 1 && args[0].StartsWith(prefix))
         {
-            url = $"file://{args[0].Remove(0, prefix.Length)}";
+            url = args[0].Substring(prefix.Length);
+            var uri = new System.Uri(url);
+            if (uri.Scheme == "livebook")
+            {
+                url = uri.AbsoluteUri;
+            }
+            if (uri.Scheme == "file")
+            {
+                // Livebook.Utils.expand_desktop_url/1 URL-escapes so here we pass unescaped URL
+                // as not to escape twice. This is not a problem for livebook:// url above.
+                url = "file://" + uri.LocalPath;
+            }
         }
 
         var logPath = getLogPath();
