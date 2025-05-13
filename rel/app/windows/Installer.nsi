@@ -97,7 +97,7 @@ Section "Install Handlers"
 
   DetailPrint "Registering livebook URL Handler"
   DeleteRegKey HKCU "Software\Classes\livebook"
-  WriteRegStr  HKCU "Software\Classes\livebook" "" "Livebook URL Protocol"
+  WriteRegStr  HKCU "Software\Classes\livebook" "" "URL:Livebook Protocol"
   WriteRegStr  HKCU "Software\Classes\livebook" "URL Protocol" ""
   WriteRegStr  HKCU "Software\Classes\livebook\shell" "" ""
   WriteRegStr  HKCU "Software\Classes\livebook\shell\open" "" ""
