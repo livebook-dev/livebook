@@ -2,7 +2,7 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
+## [v0.16.0](https://github.com/livebook-dev/livebook/tree/v0.16.0) (2025-05-20)
 
 This release marks Livebook Teams coming out of beta. It also brings experimental support for Python code evaluation. The Python integration is not feature complete and we plan to continue work on it. If you give it a try and you want to provide feedback, feel free to drop a comment on [#2937](https://github.com/livebook-dev/livebook/issues/2937).
 
