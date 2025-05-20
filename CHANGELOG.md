@@ -23,6 +23,7 @@ This release marks Livebook Teams coming out of beta. It also brings experimenta
 * Improved UX when loading JS output fails or takes long time ([#2975](https://github.com/livebook-dev/livebook/pull/2975))
 * Crashes when evaluating code that does a `:setopts` IO request ([#2983](https://github.com/livebook-dev/livebook/pull/2983))
 * Missing box borders in app outputs
+* Handling of `livebook://` URLs on macOS and Windows ([#3002](https://github.com/livebook-dev/livebook/pull/3002))
 
 ## v0.15
 
