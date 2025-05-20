@@ -45,9 +45,9 @@ defmodule Livebook.TeamsIntegrationCase do
 
     [_, location] = Regex.run(~r/URL\("(.*?)"\)/, response)
     uri = URI.parse(location)
-    %{"code" => code} = URI.decode_query(uri.query)
+    %{"token" => token} = URI.decode_query(uri.query)
 
-    Livebook.HubHelpers.erpc_call(node, :allow_auth_request, [code])
+    %{code: code} = Livebook.HubHelpers.erpc_call(node, :allow_auth_request, [token])
 
     session =
       conn

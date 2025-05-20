@@ -3,7 +3,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
   alias Livebook.ZTA.LivebookTeams
 
-  setup %{test: test, node: node} do
+  setup %{node: node} do
     Livebook.Teams.Broadcasts.subscribe([:agents])
     {_agent_key, org, deployment_group, team} = create_agent_team_hub(node)
 
@@ -15,30 +15,29 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
     assert_receive {:agent_joined,
                     %{hub_id: ^hub_id, org_id: ^org_id, deployment_group_id: ^deployment_group_id}}
 
-    start_supervised!({LivebookTeams, name: test, identity_key: team.id})
+    start_supervised!({LivebookTeams, name: LivebookWeb.ZTA, identity_key: team.id})
     {:ok, deployment_group: deployment_group, org: org, team: team}
   end
 
   describe "authenticate/3" do
-    test "renders HTML with JavaScript redirect", %{conn: conn, test: test} do
+    test "renders HTML with JavaScript redirect", %{conn: conn} do
       conn = init_test_session(conn, %{})
-      assert {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert {conn, nil} = authenticate(conn, [])
       assert conn.halted
       assert html_response(conn, 200) =~ "window.location.href = "
     end
 
-    test "gets the user information from Livebook Teams",
-         %{conn: conn, node: node, test: test} do
+    test "gets the user information from Livebook Teams", %{conn: conn, node: node} do
       # Step 1: Get redirected to Livebook Teams
       conn = init_test_session(conn, %{})
-      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      {conn, nil} = authenticate(conn, [])
 
       [_, location] = Regex.run(~r/URL\("(.*?)"\)/, html_response(conn, 200))
       uri = URI.parse(location)
       assert uri.path == "/identity/authorize"
-      assert %{"code" => code} = URI.decode_query(uri.query)
+      assert %{"token" => token} = URI.decode_query(uri.query)
 
-      erpc_call(node, :allow_auth_request, [code])
+      %{code: code} = erpc_call(node, :allow_auth_request, [token])
 
       # Step 2: Emulate the redirect back with the code for validation
       conn =
@@ -46,7 +45,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         |> init_test_session(Plug.Conn.get_session(conn))
 
       assert {conn, %{id: _id, name: _, email: _, payload: %{}} = metadata} =
-               LivebookTeams.authenticate(test, conn, [])
+               authenticate(conn, [])
 
       assert redirected_to(conn, 302) == "/"
 
@@ -55,11 +54,11 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         build_conn(:get, "/")
         |> init_test_session(Plug.Conn.get_session(conn))
 
-      assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
+      assert {%{halted: false}, ^metadata} = authenticate(conn, [])
     end
 
     test "authorizes user to access admin page with full access permission",
-         %{conn: conn, node: node, deployment_group: deployment_group, org: org, test: test} do
+         %{conn: conn, node: node, deployment_group: deployment_group, org: org, team: team} do
       erpc_call(node, :toggle_groups_authorization, [deployment_group])
       oidc_provider = erpc_call(node, :create_oidc_provider, [org])
 
@@ -73,7 +72,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
           }
         ])
 
-      {conn, code, %{groups: [], access_type: :apps}} = authenticate_user(conn, node, test)
+      {conn, code} = authenticate_user_on_teams(conn, node, team)
       session = get_session(conn)
 
       conn =
@@ -87,9 +86,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
       # Get the user with updated groups
       erpc_call(node, :update_user_info_groups, [code, [group]])
-
-      assert {%{halted: false}, %{groups: [^group], access_type: :full}} =
-               LivebookTeams.authenticate(test, conn, [])
+      assert {%{halted: false}, %{groups: [^group], access_type: :full}} = authenticate(conn, [])
     end
 
     @tag :tmp_dir
@@ -100,8 +97,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
            deployment_group: deployment_group,
            org: org,
            tmp_dir: tmp_dir,
-           team: team,
-           test: test
+           team: team
          } do
       erpc_call(node, :toggle_groups_authorization, [deployment_group])
       oidc_provider = erpc_call(node, :create_oidc_provider, [org])
@@ -163,7 +159,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
                       }}
 
       # Now we need to check if the current user has access to this app
-      {conn, code, %{groups: [], access_type: :apps}} = authenticate_user(conn, node, test)
+      {conn, code} = authenticate_user_on_teams(conn, node, team)
       session = get_session(conn)
 
       group = %{
@@ -176,7 +172,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
       # Guarantee we don't list the app for this user
       conn = build_conn(:get, ~p"/") |> init_test_session(session)
-      {_conn, metadata} = LivebookTeams.authenticate(test, conn, [])
+      {_conn, metadata} = authenticate(conn, [])
       {:ok, user} = Livebook.Users.update_user(Livebook.Users.User.new(metadata.id), metadata)
       assert Livebook.Apps.list_authorized_apps(user) == []
 
@@ -184,7 +180,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
     end
 
     test "renders unauthorized user to access admin page with slug prefix access permission",
-         %{conn: conn, node: node, deployment_group: deployment_group, org: org, test: test} do
+         %{conn: conn, node: node, deployment_group: deployment_group, org: org, team: team} do
       erpc_call(node, :toggle_groups_authorization, [deployment_group])
       oidc_provider = erpc_call(node, :create_oidc_provider, [org])
 
@@ -199,7 +195,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
           }
         ])
 
-      {conn, code, %{groups: [], access_type: :apps}} = authenticate_user(conn, node, test)
+      {conn, code} = authenticate_user_on_teams(conn, node, team)
 
       group = %{
         "provider_id" => to_string(oidc_provider.id),
@@ -212,19 +208,17 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         build_conn(:get, ~p"/settings")
         |> init_test_session(get_session(conn))
 
-      assert {_conn, %{groups: [^group], access_type: :apps}} =
-               LivebookTeams.authenticate(test, conn, [])
+      assert {_conn, %{groups: [^group], access_type: :apps}} = authenticate(conn, [])
     end
 
-    test "redirects to Livebook Teams with invalid access token",
-         %{conn: conn, test: test} do
+    test "redirects to Livebook Teams with invalid access token", %{conn: conn} do
       conn = init_test_session(conn, %{livebook_teams_access_token: "1234567890"})
-      assert {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert {conn, nil} = authenticate(conn, [])
       assert conn.halted
       assert html_response(conn, 200) =~ "window.location.href = "
     end
 
-    test "shows an error when the user does not belong to the org", %{conn: conn, test: test} do
+    test "shows an error when the user does not belong to the org", %{conn: conn} do
       # Step 1: Emulate a request coming from Teams saying the user does belong to the org
       conn = init_test_session(conn, %{})
 
@@ -235,7 +229,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
       conn = %Plug.Conn{conn | params: params_from_teams}
 
-      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      {conn, nil} = authenticate(conn, [])
       assert conn.status == 302
 
       # Step 2: follow the redirect keeping the session set in previous request
@@ -243,7 +237,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         build_conn(:get, redirected_to(conn))
         |> init_test_session(get_session(conn))
 
-      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      {conn, nil} = authenticate(conn, [])
 
       assert html_response(conn, 403) =~
                "Failed to authenticate with Livebook Teams: you do not belong to this org"
@@ -251,12 +245,13 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
   end
 
   describe "logout/2" do
-    test "revoke access token from Livebook Teams", %{conn: conn, node: node, test: test} do
-      {conn, _code, metadata} = authenticate_user(conn, node, test)
-      assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
+    test "revoke access token from Livebook Teams",
+         %{conn: conn, node: node, team: team} do
+      {conn, _code} = authenticate_user_on_teams(conn, node, team)
+      assert {%{halted: false}, %{id: _}} = authenticate(conn, [])
 
       # Revoke the token and the metadata will be invalid for future requests
-      assert %{status: 302} = conn = LivebookTeams.logout(test, conn)
+      assert %{status: 302} = conn = logout(conn)
       [url] = get_resp_header(conn, "location")
       assert %{status: 200} = Req.get!(url)
 
@@ -265,31 +260,17 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         build_conn(:get, ~p"/")
         |> init_test_session(get_session(conn))
 
-      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      {conn, nil} = authenticate(conn, [])
       assert conn.halted
       assert html_response(conn, 200) =~ "window.location.href = "
     end
   end
 
-  defp authenticate_user(conn, node, test) do
-    conn = init_test_session(conn, %{})
-    {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+  defp authenticate(conn, opts) do
+    LivebookTeams.authenticate(LivebookWeb.ZTA, conn, opts)
+  end
 
-    [_, location] = Regex.run(~r/URL\("(.*?)"\)/, html_response(conn, 200))
-    uri = URI.parse(location)
-    %{"code" => code} = URI.decode_query(uri.query)
-
-    erpc_call(node, :allow_auth_request, [code])
-
-    session = get_session(conn)
-
-    conn =
-      build_conn(:get, ~p"/", %{teams_identity: "", code: code})
-      |> init_test_session(session)
-
-    {conn, %{id: _id} = metadata} = LivebookTeams.authenticate(test, conn, [])
-    session = get_session(conn)
-
-    {init_test_session(build_conn(), session), code, metadata}
+  defp logout(conn) do
+    LivebookTeams.logout(LivebookWeb.ZTA, conn)
   end
 end
