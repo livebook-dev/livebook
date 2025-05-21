@@ -67,6 +67,7 @@ message DeploymentGroup {
   repeated EnvironmentVariable environment_variables = 10;
   bool teams_auth = 11;
   repeated AuthorizationGroup authorization_groups = 12;
+  bool groups_auth = 13;
 }
 
 message DeploymentGroupCreated {
@@ -93,6 +94,7 @@ message DeploymentGroupUpdated {
   repeated EnvironmentVariable environment_variables = 9;
   bool teams_auth = 10;
   repeated AuthorizationGroup authorization_groups = 11;
+  bool groups_auth = 12;
 }
 
 message DeploymentGroupDeleted {

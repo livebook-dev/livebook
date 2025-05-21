@@ -1,29 +1,9 @@
-# Changelog for Livebook v0.16
+# Changelog for Livebook v0.17
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
 
-This release marks Livebook Teams coming out of beta. It also brings experimental support for Python code evaluation. The Python integration is not feature complete and we plan to continue work on it. If you give it a try and you want to provide feedback, feel free to drop a comment on [#2937](https://github.com/livebook-dev/livebook/issues/2937).
+## v0.16
 
-### Added
-
-* (Experimental) Support for Python cells ([#2936](https://github.com/livebook-dev/livebook/pull/2936))
-* Shortcut to toggle line wrapping in code cells ([#2974](https://github.com/livebook-dev/livebook/pull/2974))
-* Support for automatic clustering in AWS execution environments ([#2797](https://github.com/livebook-dev/livebook/pull/2797))
-* Example GitHub app notebook to the learn section ([#2990](https://github.com/livebook-dev/livebook/pull/2990))
-* Support for OIDC group-based authorization in Teams apps ([#2984](https://github.com/livebook-dev/livebook/pull/2984))
-
-### Changed
-
-* Bumped versions to Elixir 1.18.3 and Erlang 27.3.3 in the Docker image and the desktop app ([#2987](https://github.com/livebook-dev/livebook/pull/2987))
-
-### Fixed
-
-* Improved UX when loading JS output fails or takes long time ([#2975](https://github.com/livebook-dev/livebook/pull/2975))
-* Crashes when evaluating code that does a `:setopts` IO request ([#2983](https://github.com/livebook-dev/livebook/pull/2983))
-* Missing box borders in app outputs
-
-## v0.15
-
-The CHANGELOG for v0.15 releases can be found in the [v0.15](https://github.com/livebook-dev/livebook/tree/v0.15/CHANGELOG.md) branch.
+The CHANGELOG for v0.16 releases can be found in the [v0.16](https://github.com/livebook-dev/livebook/tree/v0.16/CHANGELOG.md) branch.
