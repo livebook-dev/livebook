@@ -62,7 +62,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       connect_to_teams(team)
 
       # force user to be deleted from org
-      erpc_call(node, :delete_user_org, [team.user_id, team.org_id])
+      TeamsRPC.delete_user_org(node, team.user_id, team.org_id)
 
       id = team.id
       reason = "#{team.hub_name}: you were removed from the org"
@@ -317,7 +317,7 @@ defmodule Livebook.Hubs.TeamClientTest do
   describe "handle agent_connected event" do
     setup %{node: node} do
       {agent_key, org, deployment_group, team} = build_agent_team_hub(node)
-      org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org]])
+      org_key_pair = TeamsRPC.create_org_key_pair(node, org: org)
 
       agent_connected =
         %LivebookProto.AgentConnected{
@@ -657,12 +657,13 @@ defmodule Livebook.Hubs.TeamClientTest do
       encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)
 
       teams_app_deployment =
-        erpc_call(node, :upload_app_deployment, [
+        TeamsRPC.upload_app_deployment(
+          node,
           teams_org,
           teams_deployment_group,
           app_deployment,
           encrypted_content
-        ])
+        )
 
       # Since the app deployment struct generation is from Livebook side,
       # we don't have yet the information about who deployed the app,
@@ -698,9 +699,9 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       Livebook.Apps.subscribe()
       Livebook.Apps.Manager.subscribe()
-      erpc_call(node, :subscribe, [self(), teams_deployment_group, teams_org])
+      TeamsRPC.subscribe(node, self(), teams_deployment_group, teams_org)
 
-      assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{}
+      assert TeamsRPC.get_apps_metadatas(node, deployment_group_id) == %{}
 
       send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:app_deployment_started, ^app_deployment}
@@ -712,7 +713,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:apps_manager_status, [%{app_spec: ^app_spec, running?: false}]}
       assert_receive {:teams_broadcast, {:agent_updated, _agent}}
 
-      assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{
+      assert TeamsRPC.get_apps_metadatas(node, deployment_group_id) == %{
                app_spec.version => %{
                  id: app_spec.app_deployment_id,
                  status: :preparing,
@@ -731,7 +732,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert app_deployment in TeamClient.get_app_deployments(team.id)
       assert_receive {:teams_broadcast, {:agent_updated, _agent}}
 
-      assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{
+      assert TeamsRPC.get_apps_metadatas(node, deployment_group_id) == %{
                app_spec.version => %{
                  id: app_spec.app_deployment_id,
                  status: :available,
@@ -739,7 +740,7 @@ defmodule Livebook.Hubs.TeamClientTest do
                }
              }
 
-      erpc_call(node, :toggle_app_deployment, [app_deployment.id, teams_org.id])
+      TeamsRPC.toggle_app_deployment(node, app_deployment.id, teams_org.id)
 
       assert_receive {:app_deployment_stopped, ^app_deployment}
       assert_receive {:apps_manager_status, [%{app_spec: ^app_spec, running?: false}]}
@@ -753,7 +754,7 @@ defmodule Livebook.Hubs.TeamClientTest do
                       }}
 
       assert_receive {:teams_broadcast, {:agent_updated, _agent}}
-      assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{}
+      assert TeamsRPC.get_apps_metadatas(node, deployment_group_id) == %{}
     end
 
     test "dispatches the agents list",

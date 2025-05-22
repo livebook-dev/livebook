@@ -39,14 +39,10 @@ defmodule Livebook.TeamsTest do
     test "returns the device flow data to confirm the org creation", %{user: user, node: node} do
       org = build(:org)
       key_hash = Teams.Org.key_hash(org)
+      teams_org = TeamsRPC.create_org(node, name: org.name)
 
-      teams_org = :erpc.call(node, TeamsRPC, :create_org, [[name: org.name]])
-
-      :erpc.call(node, TeamsRPC, :create_org_key, [
-        [org: teams_org, key_hash: key_hash]
-      ])
-
-      :erpc.call(node, TeamsRPC, :create_user_org, [[org: teams_org, user: user]])
+      TeamsRPC.create_org_key(node, org: teams_org, key_hash: key_hash)
+      TeamsRPC.create_user_org(node, org: teams_org, user: user)
 
       assert {:ok,
               %{
@@ -79,11 +75,8 @@ defmodule Livebook.TeamsTest do
       teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
-      org_request =
-        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
-
-      org_request =
-        :erpc.call(node, TeamsRPC, :confirm_org_request, [org_request, user])
+      org_request = TeamsRPC.create_org_request(node, key_hash: key_hash)
+      org_request = TeamsRPC.confirm_org_request(node, org_request, user)
 
       org =
         build(:org,
@@ -121,9 +114,7 @@ defmodule Livebook.TeamsTest do
     test "returns the org request awaiting confirmation", %{node: node} do
       teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
-
-      org_request =
-        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
+      org_request = TeamsRPC.create_org_request(node, key_hash: key_hash)
 
       org =
         build(:org,
@@ -149,11 +140,7 @@ defmodule Livebook.TeamsTest do
       expires_at = NaiveDateTime.add(now, -5000)
       teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
-
-      org_request =
-        :erpc.call(node, TeamsRPC, :create_org_request, [
-          [expires_at: expires_at, key_hash: key_hash]
-        ])
+      org_request = TeamsRPC.create_org_request(node, expires_at: expires_at, key_hash: key_hash)
 
       org =
         build(:org,
@@ -267,7 +254,7 @@ defmodule Livebook.TeamsTest do
                Teams.deploy_app(team, %{app_deployment | access_type: :abc})
 
       # force app deployment to be stopped
-      erpc_call(node, :toggle_app_deployment, [app_deployment2.id, team.org_id])
+      TeamsRPC.toggle_app_deployment(node, app_deployment2.id, team.org_id)
       assert_receive {:app_deployment_stopped, ^app_deployment2}
     end
   end

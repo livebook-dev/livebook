@@ -36,21 +36,20 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
 
     test "renders unauthorized admin page if user doesn't have full access",
          %{conn: conn, node: node, code: code} = context do
-      erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
-      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+      TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :apps,
-            prefixes: ["dev-"],
-            oidc_provider: oidc_provider,
-            deployment_group: context.deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :apps,
+          prefixes: ["dev-"],
+          oidc_provider: oidc_provider,
+          deployment_group: context.deployment_group
+        )
 
-      erpc_call(node, :update_user_info_groups, [
+      TeamsRPC.update_user_info_groups(
+        node,
         code,
         [
           %{
@@ -58,7 +57,7 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
             "group_name" => authorization_group.group_name
           }
         ]
-      ])
+      )
 
       assert conn
              |> get(~p"/settings")
@@ -67,20 +66,19 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
 
     test "shows admin page if user have full access",
          %{conn: conn, node: node, code: code} = context do
-      erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
-      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+      TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :app_server,
-            oidc_provider: oidc_provider,
-            deployment_group: context.deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :app_server,
+          oidc_provider: oidc_provider,
+          deployment_group: context.deployment_group
+        )
 
-      erpc_call(node, :update_user_info_groups, [
+      TeamsRPC.update_user_info_groups(
+        node,
         code,
         [
           %{
@@ -88,7 +86,7 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
             "group_name" => authorization_group.group_name
           }
         ]
-      ])
+      )
 
       {:ok, _view, html} = live(conn, ~p"/settings")
       assert html =~ "System settings"
@@ -97,21 +95,20 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
     test "renders unauthorized if loses the access in real-time",
          %{conn: conn, node: node, code: code} = context do
       {:ok, deployment_group} =
-        erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
+        TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
 
-      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :app_server,
-            oidc_provider: oidc_provider,
-            deployment_group: deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :app_server,
+          oidc_provider: oidc_provider,
+          deployment_group: deployment_group
+        )
 
-      erpc_call(node, :update_user_info_groups, [
+      TeamsRPC.update_user_info_groups(
+        node,
         code,
         [
           %{
@@ -119,15 +116,15 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
             "group_name" => authorization_group.group_name
           }
         ]
-      ])
+      )
 
       {:ok, view, _html} = live(conn, ~p"/settings")
       assert render(view) =~ "System settings"
 
-      erpc_call(node, :update_authorization_group, [
-        authorization_group,
-        %{access_type: :apps, prefixes: ["ops-"]}
-      ])
+      TeamsRPC.update_authorization_group(node, authorization_group, %{
+        access_type: :apps,
+        prefixes: ["ops-"]
+      })
 
       id = to_string(deployment_group.id)
       assert_receive {:server_authorization_updated, %{id: ^id}}
@@ -143,22 +140,21 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
     test "shows admin page if authentication is disabled",
          %{conn: conn, node: node, code: code} = context do
       {:ok, deployment_group} =
-        erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
+        TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
 
-      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :apps,
-            prefixes: ["ops-"],
-            oidc_provider: oidc_provider,
-            deployment_group: deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :apps,
+          prefixes: ["ops-"],
+          oidc_provider: oidc_provider,
+          deployment_group: deployment_group
+        )
 
-      erpc_call(node, :update_user_info_groups, [
+      TeamsRPC.update_user_info_groups(
+        node,
         code,
         [
           %{
@@ -166,14 +162,14 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
             "group_name" => authorization_group.group_name
           }
         ]
-      ])
+      )
 
       assert conn
              |> get(~p"/settings")
              |> html_response(401) =~ "Not authorized"
 
       {:ok, %{teams_auth: false} = deployment_group} =
-        erpc_call(node, :toggle_teams_authentication, [deployment_group])
+        TeamsRPC.toggle_teams_authentication(node, deployment_group)
 
       id = to_string(deployment_group.id)
       assert_receive {:server_authorization_updated, %{id: ^id, teams_auth: false}}

@@ -58,7 +58,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert has_element?(view, ~s/#select-hub-#{id}/)
 
       # force user to be deleted from org
-      erpc_call(node, :delete_user_org, [user.id, hub.org_id])
+      TeamsRPC.delete_user_org(node, user.id, hub.org_id)
       reason = "#{hub.hub_name}: you were removed from the org"
 
       # checks if the hub received the `user_deleted` event and deleted the hub

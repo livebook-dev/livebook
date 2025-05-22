@@ -7,21 +7,20 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
     @tag :tmp_dir
     test "shows one app if user doesn't have full access",
          %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
-      erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
-      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+      TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :apps,
-            prefixes: ["dev-"],
-            oidc_provider: oidc_provider,
-            deployment_group: context.deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :apps,
+          prefixes: ["dev-"],
+          oidc_provider: oidc_provider,
+          deployment_group: context.deployment_group
+        )
 
-      erpc_call(node, :update_user_info_groups, [
+      TeamsRPC.update_user_info_groups(
+        node,
         code,
         [
           %{
@@ -29,7 +28,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
             "group_name" => authorization_group.group_name
           }
         ]
-      ])
+      )
 
       slug = "dev-app"
 
@@ -47,20 +46,19 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
     @tag :tmp_dir
     test "shows all apps if user have full access",
          %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
-      erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
-      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+      TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :app_server,
-            oidc_provider: oidc_provider,
-            deployment_group: context.deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :app_server,
+          oidc_provider: oidc_provider,
+          deployment_group: context.deployment_group
+        )
 
-      erpc_call(node, :update_user_info_groups, [
+      TeamsRPC.update_user_info_groups(
+        node,
         code,
         [
           %{
@@ -68,7 +66,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
             "group_name" => authorization_group.group_name
           }
         ]
-      ])
+      )
 
       slugs = ~w(mkt-app sales-app opt-app)
 
@@ -92,22 +90,21 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
     test "updates the apps list in real-time",
          %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       {:ok, deployment_group} =
-        erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
+        TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
 
-      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :apps,
-            prefixes: ["mkt-"],
-            oidc_provider: oidc_provider,
-            deployment_group: deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :apps,
+          prefixes: ["mkt-"],
+          oidc_provider: oidc_provider,
+          deployment_group: deployment_group
+        )
 
-      erpc_call(node, :update_user_info_groups, [
+      TeamsRPC.update_user_info_groups(
+        node,
         code,
         [
           %{
@@ -115,7 +112,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
             "group_name" => authorization_group.group_name
           }
         ]
-      ])
+      )
 
       slug = "marketing-app"
 
@@ -126,7 +123,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
              |> html_response(200) =~ "No apps running."
 
       {:ok, %{groups_auth: false} = deployment_group} =
-        erpc_call(node, :toggle_groups_authorization, [deployment_group])
+        TeamsRPC.toggle_groups_authorization(node, deployment_group)
 
       id = to_string(deployment_group.id)
       assert_receive {:server_authorization_updated, %{id: ^id, groups_auth: false}}
@@ -140,22 +137,21 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
     test "shows all apps if disable the authentication in real-time",
          %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       {:ok, deployment_group} =
-        erpc_call(node, :toggle_groups_authorization, [context.deployment_group])
+        TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
 
-      oidc_provider = erpc_call(node, :create_oidc_provider, [context.org])
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :apps,
-            prefixes: ["mkt-"],
-            oidc_provider: oidc_provider,
-            deployment_group: deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :apps,
+          prefixes: ["mkt-"],
+          oidc_provider: oidc_provider,
+          deployment_group: deployment_group
+        )
 
-      erpc_call(node, :update_user_info_groups, [
+      TeamsRPC.update_user_info_groups(
+        node,
         code,
         [
           %{
@@ -163,7 +159,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
             "group_name" => authorization_group.group_name
           }
         ]
-      ])
+      )
 
       slug = "marketing-app"
 
@@ -174,7 +170,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
              |> html_response(200) =~ "No apps running."
 
       {:ok, %{teams_auth: false} = deployment_group} =
-        erpc_call(node, :toggle_teams_authentication, [deployment_group])
+        TeamsRPC.toggle_teams_authentication(node, deployment_group)
 
       id = to_string(deployment_group.id)
       assert_receive {:server_authorization_updated, %{id: ^id, teams_auth: false}}
@@ -206,14 +202,15 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
     encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)
 
     app_deployment_id =
-      erpc_call(node, :upload_app_deployment, [
+      TeamsRPC.upload_app_deployment(
+        node,
         org,
         deployment_group,
         app_deployment,
         encrypted_content,
         # broadcast?
         true
-      ]).id
+      ).id
 
     app_deployment_id = to_string(app_deployment_id)
     assert_receive {:app_deployment_started, %{id: ^app_deployment_id}}

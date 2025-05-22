@@ -23,7 +23,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert uri.path == "/identity/authorize"
       assert %{"token" => token} = URI.decode_query(uri.query)
 
-      %{code: code} = erpc_call(node, :allow_auth_request, [token])
+      %{code: code} = TeamsRPC.allow_auth_request(node, token)
 
       # Step 2: Emulate the redirect back with the code for validation
       conn =
@@ -45,18 +45,16 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
     test "authorizes user to access admin page with full access permission",
          %{conn: conn, node: node, deployment_group: deployment_group, org: org, team: team} do
-      erpc_call(node, :toggle_groups_authorization, [deployment_group])
-      oidc_provider = erpc_call(node, :create_oidc_provider, [org])
+      TeamsRPC.toggle_groups_authorization(node, deployment_group)
+      oidc_provider = TeamsRPC.create_oidc_provider(node, org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "developers",
-            access_type: :app_server,
-            oidc_provider: oidc_provider,
-            deployment_group: deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "developers",
+          access_type: :app_server,
+          oidc_provider: oidc_provider,
+          deployment_group: deployment_group
+        )
 
       {conn, code} = authenticate_user_on_teams(conn, node, team)
       session = get_session(conn)
@@ -71,7 +69,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       }
 
       # Get the user with updated groups
-      erpc_call(node, :update_user_info_groups, [code, [group]])
+      TeamsRPC.update_user_info_groups(node, code, [group])
       assert {%{halted: false}, %{groups: [^group], access_type: :full}} = authenticate(conn, [])
     end
 
@@ -85,19 +83,17 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
            tmp_dir: tmp_dir,
            team: team
          } do
-      erpc_call(node, :toggle_groups_authorization, [deployment_group])
-      oidc_provider = erpc_call(node, :create_oidc_provider, [org])
+      TeamsRPC.toggle_groups_authorization(node, deployment_group)
+      oidc_provider = TeamsRPC.create_oidc_provider(node, org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :apps,
-            prefixes: ["mkt-"],
-            oidc_provider: oidc_provider,
-            deployment_group: deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :apps,
+          prefixes: ["mkt-"],
+          oidc_provider: oidc_provider,
+          deployment_group: deployment_group
+        )
 
       Livebook.Apps.subscribe()
       slug = "marketing-app"
@@ -122,14 +118,15 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       Livebook.Teams.Broadcasts.subscribe(:app_deployments)
 
       app_deployment_id =
-        erpc_call(node, :upload_app_deployment, [
+        TeamsRPC.upload_app_deployment(
+          node,
           org,
           deployment_group,
           app_deployment,
           encrypted_content,
           # broadcast?
           true
-        ]).id
+        ).id
 
       app_deployment_id = to_string(app_deployment_id)
       assert_receive {:app_deployment_started, %{id: ^app_deployment_id}}
@@ -154,7 +151,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       }
 
       # Update user groups
-      erpc_call(node, :update_user_info_groups, [code, [group]])
+      TeamsRPC.update_user_info_groups(node, code, [group])
 
       # Guarantee we don't list the app for this user
       conn = build_conn(:get, ~p"/") |> init_test_session(session)
@@ -167,19 +164,17 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
     test "renders unauthorized user to access admin page with slug prefix access permission",
          %{conn: conn, node: node, deployment_group: deployment_group, org: org, team: team} do
-      erpc_call(node, :toggle_groups_authorization, [deployment_group])
-      oidc_provider = erpc_call(node, :create_oidc_provider, [org])
+      TeamsRPC.toggle_groups_authorization(node, deployment_group)
+      oidc_provider = TeamsRPC.create_oidc_provider(node, org)
 
       authorization_group =
-        erpc_call(node, :create_authorization_group, [
-          %{
-            group_name: "marketing",
-            access_type: :apps,
-            prefixes: ["mkt-"],
-            oidc_provider: oidc_provider,
-            deployment_group: deployment_group
-          }
-        ])
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :apps,
+          prefixes: ["mkt-"],
+          oidc_provider: oidc_provider,
+          deployment_group: deployment_group
+        )
 
       {conn, code} = authenticate_user_on_teams(conn, node, team)
 
@@ -188,7 +183,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         "group_name" => authorization_group.group_name
       }
 
-      erpc_call(node, :update_user_info_groups, [code, [group]])
+      TeamsRPC.update_user_info_groups(node, code, [group])
 
       conn =
         build_conn(:get, ~p"/settings")

@@ -14,6 +14,7 @@ defmodule Livebook.TeamsIntegrationCase do
       @moduletag :teams_integration
 
       alias Livebook.TeamsServer
+      alias Livebook.TeamsRPC
 
       import Livebook.HubHelpers
       import Livebook.TeamsIntegrationCase
@@ -82,7 +83,7 @@ defmodule Livebook.TeamsIntegrationCase do
     uri = URI.parse(location)
     %{"token" => token} = URI.decode_query(uri.query)
 
-    %{code: code} = Livebook.HubHelpers.erpc_call(node, :allow_auth_request, [token])
+    %{code: code} = Livebook.TeamsRPC.allow_auth_request(node, token)
 
     session =
       conn

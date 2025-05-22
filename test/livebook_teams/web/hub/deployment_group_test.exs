@@ -287,7 +287,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
   test "shows the environment variables count", %{conn: conn, node: node, hub: hub} do
     %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
-    deployment_group = erpc_call(node, :get_deployment_group!, [id])
+    deployment_group = TeamsRPC.get_deployment_group!(node, id)
     id = to_string(deployment_group.id)
 
     assert_receive {:deployment_group_created, %{id: ^id, environment_variables: []}}
@@ -301,7 +301,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
            |> LazyHTML.text()
            |> String.trim() == "0"
 
-    erpc_call(node, :create_environment_variable, [[deployment_group: deployment_group]])
+    TeamsRPC.create_environment_variable(node, deployment_group: deployment_group)
     assert_receive {:deployment_group_updated, %{id: ^id, environment_variables: [_]}}
 
     assert view

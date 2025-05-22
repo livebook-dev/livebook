@@ -1,6 +1,8 @@
 defmodule Livebook.TeamsServer do
   use GenServer
 
+  alias Livebook.TeamsRPC
+
   defstruct [:node, :token, :user, :org, :teams_key, :port, :app_port, :url, :env]
 
   @name __MODULE__
@@ -118,10 +120,6 @@ defmodule Livebook.TeamsServer do
 
   # Private
 
-  defp call_erpc_function(node, function, args \\ []) do
-    :erpc.call(node, TeamsRPC, function, args)
-  end
-
   defp ensure_session_token(state) do
     state =
       state
@@ -129,30 +127,23 @@ defmodule Livebook.TeamsServer do
       |> ensure_org()
       |> ensure_teams_key()
 
-    token = call_erpc_function(state.node, :associate_user_with_org, [state.user, state.org])
+    token = TeamsRPC.associate_user_with_org(state.node, state.user, state.org)
 
     %{state | token: token}
   end
 
   defp ensure_user(state) do
-    if state.user,
-      do: state,
-      else: %{state | user: call_erpc_function(state.node, :create_user)}
+    if state.user, do: state, else: %{state | user: TeamsRPC.create_user(state.node)}
   end
 
   defp ensure_org(state) do
-    if state.org,
-      do: state,
-      else: %{state | org: call_erpc_function(state.node, :create_org)}
+    if state.org, do: state, else: %{state | org: TeamsRPC.create_org(state.node)}
   end
 
   defp ensure_teams_key(state) do
     if state.teams_key,
       do: state,
-      else: %{
-        state
-        | teams_key: call_erpc_function(state.node, :create_org_key, [[org: state.org]]).key_hash
-      }
+      else: %{state | teams_key: TeamsRPC.create_org_key(state.node, org: state.org).key_hash}
   end
 
   defp start_app(state) do
