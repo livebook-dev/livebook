@@ -4,32 +4,7 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
   import Phoenix.LiveViewTest
 
   describe "authorized apps" do
-    setup %{conn: conn, node: node} do
-      Livebook.Teams.Broadcasts.subscribe([:agents, :app_deployments, :app_server])
-      Livebook.Apps.subscribe()
-
-      {_agent_key, org, deployment_group, team} = create_agent_team_hub(node)
-
-      # we wait until the agent_connected is received by livebook
-      hub_id = team.id
-      deployment_group_id = to_string(deployment_group.id)
-      org_id = to_string(org.id)
-
-      assert_receive {:agent_joined,
-                      %{
-                        hub_id: ^hub_id,
-                        org_id: ^org_id,
-                        deployment_group_id: ^deployment_group_id
-                      }}
-
-      start_supervised!(
-        {Livebook.ZTA.LivebookTeams, name: LivebookWeb.ZTA, identity_key: team.id}
-      )
-
-      {conn, code} = authenticate_user_on_teams(conn, node, team)
-
-      {:ok, conn: conn, code: code, deployment_group: deployment_group, org: org, team: team}
-    end
+    setup :livebook_teams_auth
 
     @tag :tmp_dir
     test "shows app if user doesn't have full access",

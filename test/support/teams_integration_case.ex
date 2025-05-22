@@ -36,6 +36,41 @@ defmodule Livebook.TeamsIntegrationCase do
     {:ok, node: node, token: token, user: user}
   end
 
+  def livebook_teams_auth(%{conn: conn, node: node}) do
+    {:ok, deployment_group: deployment_group, org: org, team: team} =
+      livebook_teams_zta(%{node: node})
+
+    {conn, code} = authenticate_user_on_teams(conn, node, team)
+
+    {:ok, conn: conn, code: code, deployment_group: deployment_group, org: org, team: team}
+  end
+
+  def livebook_teams_zta(%{node: node}) do
+    Livebook.Teams.Broadcasts.subscribe([:agents, :clients, :app_deployments, :app_server])
+    Livebook.Apps.subscribe()
+
+    {_agent_key, org, deployment_group, team} = Livebook.HubHelpers.create_agent_team_hub(node)
+
+    # we wait until the agent_connected is received by livebook
+    hub_id = team.id
+    deployment_group_id = to_string(deployment_group.id)
+    org_id = to_string(org.id)
+
+    assert_receive {:client_connected, ^hub_id}
+
+    # we wait until the agent_joined is received by livebook
+    assert_receive {:agent_joined,
+                    %{
+                      hub_id: ^hub_id,
+                      org_id: ^org_id,
+                      deployment_group_id: ^deployment_group_id
+                    }}
+
+    start_supervised!({Livebook.ZTA.LivebookTeams, name: LivebookWeb.ZTA, identity_key: team.id})
+
+    {:ok, deployment_group: deployment_group, org: org, team: team}
+  end
+
   def authenticate_user_on_teams(conn, node, team) do
     response =
       conn

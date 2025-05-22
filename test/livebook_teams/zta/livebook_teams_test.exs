@@ -3,21 +3,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
   alias Livebook.ZTA.LivebookTeams
 
-  setup %{node: node} do
-    Livebook.Teams.Broadcasts.subscribe([:agents])
-    {_agent_key, org, deployment_group, team} = create_agent_team_hub(node)
-
-    # we wait until the agent_connected is received by livebook
-    hub_id = team.id
-    deployment_group_id = to_string(deployment_group.id)
-    org_id = to_string(org.id)
-
-    assert_receive {:agent_joined,
-                    %{hub_id: ^hub_id, org_id: ^org_id, deployment_group_id: ^deployment_group_id}}
-
-    start_supervised!({LivebookTeams, name: LivebookWeb.ZTA, identity_key: team.id})
-    {:ok, deployment_group: deployment_group, org: org, team: team}
-  end
+  setup :livebook_teams_zta
 
   describe "authenticate/3" do
     test "renders HTML with JavaScript redirect", %{conn: conn} do
