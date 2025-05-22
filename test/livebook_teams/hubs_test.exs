@@ -1,47 +1,38 @@
 defmodule Livebook.HubsTest do
   use Livebook.TeamsIntegrationCase, async: true
-
   alias Livebook.Hubs
 
-  setup do
-    Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
-    Livebook.Teams.Broadcasts.subscribe([:clients])
+  import Livebook.Integration.TeamsTest
 
-    :ok
-  end
+  @moduletag workspace_for: :user
+  setup :workspace
 
-  test "get_hubs/0 returns a list of persisted hubs", %{user: user, node: node} do
-    team = connect_to_teams(user, node)
+  @moduletag subscribe_to_hubs_topics: [:connection, :file_systems, :secrets]
+  @moduletag subscribe_to_teams_topics: [:clients]
+
+  test "get_hubs/0 returns a list of persisted hubs", %{team: team} do
     assert team in Hubs.get_hubs()
-
-    Hubs.delete_hub(team.id)
-    refute team in Hubs.get_hubs()
+    assert Hubs.hub_exists?(team.id)
   end
 
-  test "get_metadata/0 returns a list of persisted hubs normalized", %{user: user, node: node} do
-    team = connect_to_teams(user, node)
-    metadata = Hubs.Provider.to_metadata(team)
-
+  test "get_metadata/0 returns a list of persisted hubs normalized", %{team: team} do
+    assert %{provider: ^team} = metadata = Hubs.Provider.to_metadata(team)
     assert metadata in Hubs.get_metadata()
-
-    Hubs.delete_hub(team.id)
-    refute metadata in Hubs.get_metadata()
   end
 
-  test "fetch_hub!/1 returns one persisted team", %{user: user, node: node} do
+  @tag persisted: false
+  test "fetch_hub!/1 returns one persisted team", %{team: team} do
     assert_raise Livebook.Storage.NotFoundError,
-                 ~s/could not find entry in "hubs" with ID "nonexistent"/,
+                 ~s/could not find entry in "hubs" with ID "#{team.id}"/,
                  fn ->
-                   Hubs.fetch_hub!("nonexistent")
+                   Hubs.fetch_hub!(team.id)
                  end
 
-    team = connect_to_teams(user, node)
-
+    Hubs.save_hub(team)
     assert Hubs.fetch_hub!(team.id) == team
   end
 
-  test "hub_exists?/1", %{user: user, node: node} do
-    team = build_team_hub(user, node)
+  test "hub_exists?/1", %{team: team} do
     refute Hubs.hub_exists?(team.id)
     Hubs.save_hub(team)
     assert Hubs.hub_exists?(team.id)

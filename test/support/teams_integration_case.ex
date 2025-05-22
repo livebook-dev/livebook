@@ -37,6 +37,18 @@ defmodule Livebook.TeamsIntegrationCase do
     {:ok, node: node, token: token, user: user}
   end
 
+  setup context do
+    if topics = context[:subscribe_to_hubs_topics] do
+      Livebook.Hubs.Broadcasts.subscribe(topics)
+    end
+
+    if topics = context[:subscribe_to_teams_topics] do
+      Livebook.Teams.Broadcasts.subscribe(topics)
+    end
+
+    :ok
+  end
+
   def livebook_teams_auth(%{conn: conn, node: node}) do
     {:ok, deployment_group: deployment_group, org: org, team: team} =
       livebook_teams_zta(%{node: node})
