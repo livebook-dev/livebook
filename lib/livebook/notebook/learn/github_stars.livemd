@@ -141,7 +141,16 @@ Execute the cell below. You should see a list of GitHub users who starred the re
 
 ```elixir
 repo_name = "livebook-dev/livebook"
-{:ok, stargazers} = GitHubApi.stargazers(repo_name)
+
+stargazers =
+  case GitHubApi.stargazers(repo_name) do
+    {:ok, stargazers} ->
+      stargazers
+
+    {:error, error_message} ->
+      IO.puts(error_message)
+      []
+  end
 ```
 
 ## Data processing
