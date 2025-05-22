@@ -217,7 +217,7 @@ defmodule Livebook.TeamsServer do
   defp wait_on_start(state, port) do
     url = state.url || fetch_url(state)
 
-    case :httpc.request(:get, {~c"#{url}/public/health", []}, [], []) do
+    case :httpc.request(:get, {~c"#{url}/healthz", []}, [], []) do
       {:ok, _} ->
         port
 
