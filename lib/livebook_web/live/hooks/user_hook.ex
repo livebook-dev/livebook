@@ -40,11 +40,16 @@ defmodule LivebookWeb.UserHook do
     # to the current app server, we don't need to check here.
     current_user = socket.assigns.current_user
     hub_id = deployment_group.hub_id
-    metadata = Livebook.ZTA.LivebookTeams.build_metadata(hub_id, current_user.payload)
 
-    case Livebook.Users.update_user(current_user, metadata) do
-      {:ok, user} -> {:cont, assign(socket, :current_user, user)}
-      _otherwise -> {:cont, socket}
+    if current_user.payload do
+      metadata = Livebook.ZTA.LivebookTeams.build_metadata(hub_id, current_user.payload)
+
+      case Livebook.Users.update_user(current_user, metadata) do
+        {:ok, user} -> {:cont, assign(socket, :current_user, user)}
+        _otherwise -> {:cont, socket}
+      end
+    else
+      {:cont, socket}
     end
   end
 

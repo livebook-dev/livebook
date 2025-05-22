@@ -107,7 +107,7 @@ defmodule LivebookWeb.AuthPlug do
   defp redirect_to_authenticate(%{path_info: []} = conn) do
     path =
       if Livebook.Apps.list_apps() != [] or Livebook.Config.apps_path() != nil or
-           Livebook.Config.teams_auth() != nil do
+           teams_auth(conn) != nil do
         ~p"/apps"
       else
         ~p"/authenticate"
@@ -163,5 +163,19 @@ defmodule LivebookWeb.AuthPlug do
     end
   else
     def authentication(_), do: Livebook.Config.authentication()
+  end
+
+  if Mix.env() == :test do
+    defp teams_auth(%Plug.Conn{} = conn) do
+      conn |> get_session() |> teams_auth()
+    end
+
+    defp teams_auth(%{} = session) do
+      session["teams_auth_test_override"] || Livebook.Config.teams_auth()
+    end
+  else
+    defp teams_auth(_) do
+      Livebook.Config.teams_auth()
+    end
   end
 end
