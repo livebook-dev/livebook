@@ -140,7 +140,7 @@ Let's try our client.
 Execute the cell below. You should see a list of GitHub users who starred the repository.
 
 ```elixir
-repo_name = "livebook-dev/livebook"
+repo_name = "livebook-dev/vega_lite"
 
 stargazers =
   case GitHubApi.stargazers(repo_name) do
