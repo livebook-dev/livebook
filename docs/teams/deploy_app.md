@@ -1,6 +1,6 @@
 # Deploy Livebook Apps with Livebook Teams
 
-This tutorial guides you through deploying a Livebook app using Livebook Teams. By the end, you'll have transformed a notebook into an interactive web app running in a local server.
+This tutorial guides you through deploying a Livebook app using Livebook Teams. By the end, you'll have deployed a notebook as an interactive web app running in a local server.
 
 ## Prerequisites
 
@@ -10,16 +10,16 @@ Before you begin, make sure you have:
 - Membership in a Livebook Teams organization
 - Docker installed
 
-If you're not part of Teams org, here's a [one-minute video showing how to create one](https://www.youtube.com/watch?v=Ox8-JT0JHO4).
+If you're not part of a Teams org, here's a [one-minute video showing how to create one](https://www.youtube.com/watch?v=Ox8-JT0JHO4).
 
 ## Step 1: Open our example notebook
 
 For this tutorial, we'll use our example notebook that contains a Livebook app.
 
 1. Open Livebook in your browser
-2. Click on the **Open** button, to open a notebook
-3. Click on the **From URL** tab, for opening a notebook from a URL
-4. Fill in the notebook URL input with the URL of our example app: `https://teams.livebook.dev/notebooks/github_stars`
+2. Click the **Open** button to open a notebook
+3. Click the **From URL** tab to open a notebook from a URL
+4. Enter the URL of our example app in the notebook URL field: `https://teams.livebook.dev/notebooks/github_stars`
 5. Click the **Import** button
 
 You should see the "GitHub Stars" notebook opened:
@@ -30,9 +30,9 @@ You should see the "GitHub Stars" notebook opened:
 
 Before deploying the app, let's preview what it looks like.
 
-1. Click on the **app settings** icon on the sidebar
-2. Click on the **Launch preview** button to run your notebook as an app
-3. Click on the URL of your local app preview to open the app
+1. Click the **App Settings** icon in the sidebar
+2. Click the **Launch preview** button to run your notebook as an app
+3. Click the URL of your local app preview to open the app
 
 You should see your app running inside Livebook. Something like this:
 
@@ -47,35 +47,35 @@ for your Teams org. Let's do that.
 
 First, go back to your notebook. Then:
 
-1. Click on the **app settings** icon on the sidebar
-2. Click on the **Deploy with Livebook Teams** button
-3. If the notebook is not opened in the context of the workspace of your Teams organization, you'll be asked to change the workspace to your organization's workspace. Do that if needed and click the "Deploy with Livebook Teams" button again.
+1. Click the **App Settings** icon in the sidebar
+2. Click the **Deploy with Livebook Teams** button
+3. If the notebook is not open within your Teams organization's workspace, you'll be asked to change the workspace to your organization's workspace. Do that if needed and click the "Deploy with Livebook Teams" button again.
 
 You should now see a form to create a deployment group, like this:
 
 ![deployment group form](images/deployment_group_form.png)
 
-Let's fill in this form to create our deployment group.
+Let's complete this form to create our deployment group.
 
 1. For the **Name** input, let's use "local test".
 2. For the **Clustering** select, change to "Single instance"
 3. Click the **Add** button
 
-Now we're ready for the last configuration step, set up a Livebook app server.
+Now we're ready for the final configuration step: setting up a Livebook app server.
 
 ## Step 4: Set up a Livebook app server
 
-After the step before, you should be seeing a modal like this:
+After completing the previous step, you should see a modal like this:
 
 ![app server setup instructions](images/app_server_setup.png)
 
-This modal contains instructions to setup an [app server](teams_concepts.md#app-server). Let's setup our app server.
+This modal contains instructions to set up an [app server](teams_concepts.md#app-server). Let's do it.
 
-The easiest way to setup an app server is to run it as a Docker container. You can do that in any
+The easiest way to set up an app server is to run it as a Docker container. You can do that in any
 server infrastructure that runs Docker, such as Fly.io or a Kubernetes cluster.
 
-For our tutorial, we'll setup our app server running in a local Docker container. To do that,
-copy and paste the CLI instructions given by your Livebook. The instructions look something
+For our tutorial, we'll set up our app server running in a local Docker container. To do that,
+copy and paste the CLI command provided by Livebook. The instructions look something
 like this:
 
 ![CLI command to run an Livebook app server with Docker](images/app_server_docker.png)
@@ -95,9 +95,9 @@ like this:
 > docker run -p 9080:8080 -p 9081:8081 (rest of the command...)
 > ```
 
-Once you run the CLI command in your terminal, Docker will download Livebook image and run it. Wait until that's done.
+Once you run the CLI command in your terminal, Docker will download the Livebook image and run it. Wait until that's done.
 
-Once the container is ready, a Livebook instance will be started and will automatically connect to your Livebook Teams organization. Your Livebook will show a message saying that it knows there's now an app server running connected to your Teams org, like this:
+Once the container is ready, a Livebook instance will start and automatically connect to your Livebook Teams organization. Livebook will display a message confirming that an app server is now running and connected to your Teams organization, like this:
 
 ![feedback message saying the app server is running](images/app_server_setup_message.png)
 
@@ -111,7 +111,7 @@ Once your app server is up and running, return to Livebook. You should see a **D
 
 Click the button to deploy your Livebook app to your local app server.
 
-Now that the app is deployed, let's access it. Assuming the host port you used in the Docker CLI command was 8080, you can access your app server at `http://localhost:8080` (adjust if necessary).
+Now let's access the deployed app. If you used the default host port 8080 in the Docker command, access your app server at `http://localhost:8080`. If you used a different port, adjust the URL accordingly.
 
 Once you access it, you will be asked to authenticate. Use the built-in "Sign in with Livebook Teams" authentication mechanism. It will use your Livebook Teams account to authenticate to your app server:
 
@@ -135,8 +135,8 @@ That's it, you deployed a Livebook app with Livebook Teams! 🎉
 When you want to update your deployed app:
 
 1. Open the notebook and make your changes
-2. Click on the **app settings** icon on the sidebar
-3. Click on the **Deploy with Livebook Teams** button
+2. Click the **App Settings** icon in the sidebar
+3. Click the **Deploy with Livebook Teams** button
 4. Select your existing deployment group
 5. Click **Deploy**
 
@@ -148,7 +148,7 @@ Try it now by changing the title of your notebook and deploying it again.
 
 You've successfully deployed a Livebook app with Livebook Teams! Along the way, you:
 
-- Transformed a Livebook notebook into an interactive web app
+- Ran a Livebook notebook as an interactive web app
 - Created a deployment group to organize your app deployments
 - Set up a Livebook app server using Docker
 - Deployed your app with a single click
@@ -171,16 +171,15 @@ I'll leave this as an exercise for you, the path goes like this:
 
 Now, click the **Add deployment group** button and fill in the form to create a new deployment group, like we did in [Step 3](#step-3-set-up-a-deployment-group), but now let's use "staging" as the name of the deployment group.
 
-Once you create this new deployment group, you'll see there's **+Deploy** link for that deployment
-group:
+Once you create this new deployment group, you'll see there's a **+Deploy** link for that deployment group:
 
 ![add app server to deployment group](images/add_app_server_to_deployment_group.png)
 
-Click on the **+Deploy** link of your staging deployment group to add an app server to it. You should see instructions of different ways to set up an app server:
+Click the **+Deploy** link of your staging deployment group to add an app server to it. You should see instructions for different ways to set up an app server:
 
 ![instructions to set up an app server](images/instructions_setup_app_server.png)
 
 You can use the Docker instructions to set up an app server in any cloud infrastructure that
-supports Docker. There's specific instructions for Fly.io and Kubernetes. Use the one you prefer.
+supports Docker. There are also specific instructions for Fly.io and Kubernetes. Use the one you prefer.
 
 > **Want to understand the concepts?** If you'd like to learn more about deployment groups and app servers, check out our [concepts page](teams_concepts.md) after completing this tutorial.
