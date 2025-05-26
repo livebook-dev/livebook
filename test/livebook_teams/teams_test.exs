@@ -6,12 +6,11 @@ defmodule Livebook.TeamsTest do
   alias Livebook.Teams
   alias Livebook.Utils
 
-  setup do
-    Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
-    Livebook.Teams.Broadcasts.subscribe([:clients, :deployment_groups, :app_deployments, :agents])
+  @moduletag workspace_for: :user
+  setup :workspace
 
-    :ok
-  end
+  @moduletag subscribe_to_hubs_topics: [:connection, :file_systems, :secrets]
+  @moduletag subscribe_to_teams_topics: [:clients, :deployment_groups, :app_deployments, :agents]
 
   describe "create_org/1" do
     test "returns the device flow data to confirm the org creation" do
@@ -27,6 +26,7 @@ defmodule Livebook.TeamsTest do
               }} = Teams.create_org(org, %{})
     end
 
+    @tag workspace_persisted: false
     test "returns changeset errors when data is invalid" do
       org = build(:org)
 
@@ -39,14 +39,10 @@ defmodule Livebook.TeamsTest do
     test "returns the device flow data to confirm the org creation", %{user: user, node: node} do
       org = build(:org)
       key_hash = Teams.Org.key_hash(org)
+      teams_org = TeamsRPC.create_org(node, name: org.name)
 
-      teams_org = :erpc.call(node, TeamsRPC, :create_org, [[name: org.name]])
-
-      :erpc.call(node, TeamsRPC, :create_org_key, [
-        [org: teams_org, key_hash: key_hash]
-      ])
-
-      :erpc.call(node, TeamsRPC, :create_user_org, [[org: teams_org, user: user]])
+      TeamsRPC.create_org_key(node, org: teams_org, key_hash: key_hash)
+      TeamsRPC.create_user_org(node, org: teams_org, user: user)
 
       assert {:ok,
               %{
@@ -75,15 +71,13 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "get_org_request_completion_data/1" do
+    @tag workspace_persisted: false
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
       teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
-      org_request =
-        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
-
-      org_request =
-        :erpc.call(node, TeamsRPC, :confirm_org_request, [org_request, user])
+      org_request = TeamsRPC.create_org_request(node, key_hash: key_hash)
+      org_request = TeamsRPC.confirm_org_request(node, org_request, user)
 
       org =
         build(:org,
@@ -121,9 +115,7 @@ defmodule Livebook.TeamsTest do
     test "returns the org request awaiting confirmation", %{node: node} do
       teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
-
-      org_request =
-        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
+      org_request = TeamsRPC.create_org_request(node, key_hash: key_hash)
 
       org =
         build(:org,
@@ -149,11 +141,7 @@ defmodule Livebook.TeamsTest do
       expires_at = NaiveDateTime.add(now, -5000)
       teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
-
-      org_request =
-        :erpc.call(node, TeamsRPC, :create_org_request, [
-          [expires_at: expires_at, key_hash: key_hash]
-        ])
+      org_request = TeamsRPC.create_org_request(node, expires_at: expires_at, key_hash: key_hash)
 
       org =
         build(:org,
@@ -169,14 +157,10 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "create_deployment_group/2" do
-    test "creates a new deployment group when the data is valid", %{user: user, node: node} do
-      team = connect_to_teams(user, node)
+    test "creates a new deployment group when the data is valid", %{team: team} do
       attrs = params_for(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
-      assert {:ok, deployment_group} = Teams.create_deployment_group(team, attrs)
-
-      %{id: id, name: name, mode: mode} = deployment_group
-
+      assert {:ok, %{id: id, name: name, mode: mode}} = Teams.create_deployment_group(team, attrs)
       assert_receive {:deployment_group_created, %{id: ^id, name: ^name, mode: ^mode}}
 
       # Guarantee uniqueness
@@ -184,9 +168,7 @@ defmodule Livebook.TeamsTest do
       assert "has already been taken" in errors_on(changeset).name
     end
 
-    test "creates a new deployment group with Livebook Teams authentication",
-         %{user: user, node: node} do
-      team = connect_to_teams(user, node)
+    test "creates a new deployment group with Livebook Teams authentication", %{team: team} do
       attrs = params_for(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
       assert {:ok, %{id: id, name: name, mode: mode, teams_auth: true}} =
@@ -196,16 +178,12 @@ defmodule Livebook.TeamsTest do
                       %{id: ^id, name: ^name, mode: ^mode, teams_auth: true}}
     end
 
-    test "returns changeset errors when the name is invalid", %{user: user, node: node} do
-      team = connect_to_teams(user, node)
+    test "returns changeset errors with invalid data", %{team: team} do
       attrs = params_for(:deployment_group, name: "")
 
       assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
       assert "can't be blank" in errors_on(changeset).name
-    end
 
-    test "returns changeset errors when the mode is invalid", %{user: user, node: node} do
-      team = connect_to_teams(user, node)
       attrs = params_for(:deployment_group, mode: "invalid")
 
       assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
@@ -215,11 +193,9 @@ defmodule Livebook.TeamsTest do
 
   describe "deploy_app/2" do
     @tag :tmp_dir
-    test "deploys app to Teams from a notebook", %{user: user, node: node, tmp_dir: tmp_dir} do
-      team = connect_to_teams(user, node)
+    test "deploys app to Teams from a notebook", %{team: team, node: node, tmp_dir: tmp_dir} do
       attrs = params_for(:deployment_group, name: "BAZ", mode: :online)
       {:ok, %{id: id}} = Teams.create_deployment_group(team, attrs)
-
       assert_receive {:deployment_group_created, %{id: ^id}}
 
       # creates the app deployment
@@ -267,7 +243,7 @@ defmodule Livebook.TeamsTest do
                Teams.deploy_app(team, %{app_deployment | access_type: :abc})
 
       # force app deployment to be stopped
-      erpc_call(node, :toggle_app_deployment, [app_deployment2.id, team.org_id])
+      TeamsRPC.toggle_app_deployment(node, app_deployment2.id, team.org_id)
       assert_receive {:app_deployment_stopped, ^app_deployment2}
     end
   end

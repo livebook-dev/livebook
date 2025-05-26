@@ -4,6 +4,12 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   import Phoenix.LiveViewTest
   import Livebook.SessionHelpers
 
+  @moduletag workspace_for: :user
+  setup :workspace
+
+  @moduletag subscribe_to_hubs_topics: [:connection]
+  @moduletag subscribe_to_teams_topics: [:clients, :agents, :app_deployments, :app_server]
+
   alias Livebook.FileSystem
   alias Livebook.Sessions
   alias Livebook.Session
@@ -58,7 +64,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert has_element?(view, ~s/#select-hub-#{id}/)
 
       # force user to be deleted from org
-      erpc_call(node, :delete_user_org, [user.id, hub.org_id])
+      TeamsRPC.delete_user_org(node, user.id, hub.org_id)
       reason = "#{hub.hub_name}: you were removed from the org"
 
       # checks if the hub received the `user_deleted` event and deleted the hub
