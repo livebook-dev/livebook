@@ -107,7 +107,7 @@ defmodule LivebookWeb.AuthPlug do
   defp redirect_to_authenticate(%{path_info: []} = conn) do
     path =
       if Livebook.Apps.list_apps() != [] or Livebook.Config.apps_path() != nil or
-           Livebook.Config.teams_auth() != nil do
+           teams_auth(conn) != nil do
         ~p"/apps"
       else
         ~p"/authenticate"
@@ -163,5 +163,27 @@ defmodule LivebookWeb.AuthPlug do
     end
   else
     def authentication(_), do: Livebook.Config.authentication()
+  end
+
+  @doc """
+  Returns the kind of Teams authentication configuration for the given `conn` or
+  `session`.
+
+  This mirrors `Livebook.Config.teams_auth/0`, except the it can
+  be overridden in tests, for each connection.
+  """
+  @spec teams_auth(Plug.Conn.t() | map()) :: :online | :offline | nil
+  if Mix.env() == :test do
+    def teams_auth(%Plug.Conn{} = conn) do
+      conn |> get_session() |> teams_auth()
+    end
+
+    def teams_auth(%{} = session) do
+      session["teams_auth_test_override"] || Livebook.Config.teams_auth()
+    end
+  else
+    def teams_auth(_) do
+      Livebook.Config.teams_auth()
+    end
   end
 end

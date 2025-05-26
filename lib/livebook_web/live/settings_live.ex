@@ -30,6 +30,7 @@ defmodule LivebookWeb.SettingsLive do
     <LayoutComponents.layout
       current_page={~p"/settings"}
       current_user={@current_user}
+      teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
     >
       <div id="settings-page" class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-16">

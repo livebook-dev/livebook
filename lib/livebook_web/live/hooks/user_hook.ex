@@ -15,6 +15,9 @@ defmodule LivebookWeb.UserHook do
         user_data = connect_params["user_data"] || session["user_data"]
         LivebookWeb.UserPlug.build_current_user(session, identity_data, user_data)
       end)
+      |> assign_new(:teams_auth, fn ->
+        LivebookWeb.AuthPlug.teams_auth(session)
+      end)
       |> attach_hook(:current_user_subscription, :handle_info, &handle_info/2)
       |> attach_hook(:server_authorization_subscription, :handle_info, &handle_info/2)
 
