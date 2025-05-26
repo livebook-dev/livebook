@@ -947,6 +947,57 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
+  test "includes error outputs" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:code)
+                  | source: """
+                    raise "hello"\
+                    """,
+                    outputs: [
+                      {0,
+                       %{
+                         type: :error,
+                         message:
+                           "\e[31m** (RuntimeError) hello\e[0m\n\e[31m    #cell:tlbdimkdsfldvwge:1: (file)\n\e[0m",
+                         context: nil
+                       }}
+                    ]
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    raise "hello"
+    ```
+
+    <!-- livebook:{"output":true} -->
+
+    ```
+    ** (RuntimeError) hello
+        #cell:tlbdimkdsfldvwge:1: (file)
+    ```
+    """
+
+    {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
+
+    assert expected_document == document
+  end
+
   test "includes outputs when notebook has :persist_outputs set" do
     notebook = %{
       Notebook.new()
