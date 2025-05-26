@@ -1,10 +1,7 @@
 defmodule Livebook.TeamsIntegrationCase do
   use ExUnit.CaseTemplate
 
-  import Phoenix.ConnTest
   alias Livebook.TeamsServer
-
-  @endpoint LivebookWeb.Endpoint
 
   using do
     quote do
@@ -14,9 +11,10 @@ defmodule Livebook.TeamsIntegrationCase do
       @moduletag :teams_integration
 
       alias Livebook.TeamsServer
+      alias Livebook.TeamsRPC
 
       import Livebook.HubHelpers
-      import Livebook.TeamsIntegrationCase
+      import Livebook.TeamsIntegrationHelper
     end
   end
 
@@ -26,35 +24,23 @@ defmodule Livebook.TeamsIntegrationCase do
       {:error, {:already_started, _}} -> :ok
     end
 
-    token = TeamsServer.token()
     url = TeamsServer.url()
-    user = TeamsServer.user()
     node = TeamsServer.get_node()
 
     Application.put_env(:livebook, :teams_url, url, persistent: true)
 
-    {:ok, node: node, token: token, user: user}
+    {:ok, node: node}
   end
 
-  def authenticate_user_on_teams(conn, node, team) do
-    response =
-      conn
-      |> LivebookWeb.ConnCase.with_authorization(team.id)
-      |> get("/")
-      |> html_response(200)
+  setup context do
+    if topics = context[:subscribe_to_hubs_topics] do
+      Livebook.Hubs.Broadcasts.subscribe(topics)
+    end
 
-    [_, location] = Regex.run(~r/URL\("(.*?)"\)/, response)
-    uri = URI.parse(location)
-    %{"code" => code} = URI.decode_query(uri.query)
+    if topics = context[:subscribe_to_teams_topics] do
+      Livebook.Teams.Broadcasts.subscribe(topics)
+    end
 
-    Livebook.HubHelpers.erpc_call(node, :allow_auth_request, [code])
-
-    session =
-      conn
-      |> LivebookWeb.ConnCase.with_authorization(team.id)
-      |> get("/", %{teams_identity: "", code: code})
-      |> Plug.Conn.get_session()
-
-    {Plug.Test.init_test_session(conn, session), code}
+    :ok
   end
 end
