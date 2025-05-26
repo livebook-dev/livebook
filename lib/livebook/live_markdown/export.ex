@@ -238,12 +238,11 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_output(%{type: :terminal_text, text: text}, _ctx) do
-    text = String.replace_suffix(text, "\n", "")
-    delimiter = MarkdownHelpers.code_block_delimiter(text)
-    text = strip_ansi(text)
+    render_text_output(text)
+  end
 
-    [delimiter, "\n", text, "\n", delimiter]
-    |> prepend_metadata(%{output: true})
+  defp render_output(%{type: :error, message: message}, _ctx) do
+    render_text_output(message)
   end
 
   defp render_output(%{type: :js, js_view: %{ref: ref}}, ctx) do
@@ -278,6 +277,14 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_output(_output, _ctx), do: :ignored
+
+  defp render_text_output(text) do
+    text = text |> strip_ansi() |> String.replace_suffix("\n", "")
+    delimiter = MarkdownHelpers.code_block_delimiter(text)
+
+    [delimiter, "\n", text, "\n", delimiter]
+    |> prepend_metadata(%{output: true})
+  end
 
   defp encode_js_data(data) when is_binary(data), do: {:ok, data}
 
@@ -349,7 +356,7 @@ defmodule Livebook.LiveMarkdown.Export do
     string
     |> Livebook.Utils.ANSI.parse_ansi_string()
     |> elem(0)
-    |> Enum.map(fn {_modifiers, string} -> string end)
+    |> Enum.map_join(fn {_modifiers, string} -> string end)
   end
 
   defp render_notebook_footer(_notebook, _notebook_source, _include_stamp? = false), do: {[], []}
