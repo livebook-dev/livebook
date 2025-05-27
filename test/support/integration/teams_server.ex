@@ -1,9 +1,7 @@
 defmodule Livebook.TeamsServer do
   use GenServer
 
-  alias Livebook.TeamsRPC
-
-  defstruct [:node, :token, :user, :org, :teams_key, :port, :app_port, :url, :env]
+  defstruct [:node, :port, :app_port, :url, :env]
 
   @name __MODULE__
   @timeout 10_000
