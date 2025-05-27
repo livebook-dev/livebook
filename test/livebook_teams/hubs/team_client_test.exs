@@ -3,14 +3,14 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   alias Livebook.Hubs.TeamClient
 
-  setup :workspace
+  setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:crud, :connection, :file_systems, :secrets]
   @moduletag subscribe_to_teams_topics: [:clients, :deployment_groups, :app_deployments, :agents]
 
   describe "connect" do
-    @describetag workspace_for: :user
-    @describetag workspace_persisted: false
+    @describetag teams_for: :user
+    @describetag teams_persisted: false
 
     test "successfully authenticates the websocket connection", %{team: team} do
       id = team.id
@@ -36,7 +36,7 @@ defmodule Livebook.Hubs.TeamClientTest do
   end
 
   describe "handle user_connected event" do
-    @describetag workspace_for: :user
+    @describetag teams_for: :user
 
     setup %{team: team} do
       user_connected =
@@ -306,7 +306,7 @@ defmodule Livebook.Hubs.TeamClientTest do
   end
 
   describe "handle agent_connected event" do
-    @describetag workspace_for: :agent
+    @describetag teams_for: :agent
 
     setup context do
       agent_connected =

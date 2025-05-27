@@ -6,8 +6,8 @@ defmodule Livebook.TeamsTest do
   alias Livebook.Teams
   alias Livebook.Utils
 
-  @moduletag workspace_for: :user
-  setup :workspace
+  @moduletag teams_for: :user
+  setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:connection, :file_systems, :secrets]
   @moduletag subscribe_to_teams_topics: [:clients, :deployment_groups, :app_deployments, :agents]
@@ -26,7 +26,7 @@ defmodule Livebook.TeamsTest do
               }} = Teams.create_org(org, %{})
     end
 
-    @tag workspace_persisted: false
+    @tag teams_persisted: false
     test "returns changeset errors when data is invalid" do
       org = build(:org)
 
@@ -71,7 +71,7 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "get_org_request_completion_data/1" do
-    @tag workspace_persisted: false
+    @tag teams_persisted: false
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
       teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)

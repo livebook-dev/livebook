@@ -3,8 +3,8 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
 
   import Phoenix.LiveViewTest
 
-  @moduletag workspace_for: :agent
-  setup :workspace
+  @moduletag teams_for: :agent
+  setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:connection]
   @moduletag subscribe_to_teams_topics: [:clients, :agents, :app_deployments, :app_server]

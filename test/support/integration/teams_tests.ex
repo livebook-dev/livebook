@@ -6,8 +6,8 @@ defmodule Livebook.TeamsIntegrationHelper do
 
   @endpoint LivebookWeb.Endpoint
 
-  def workspace(context) do
-    case {context[:workspace_for], context[:workspace_persisted]} do
+  def teams(context) do
+    case {context[:teams_for], context[:teams_persisted]} do
       {:user, false} -> Map.merge(context, new_user_hub(context.node))
       {:user, _} -> Map.merge(context, create_user_hub(context.node))
       {:agent, false} -> Map.merge(context, new_agent_hub(context.node))
@@ -16,7 +16,7 @@ defmodule Livebook.TeamsIntegrationHelper do
     end
   end
 
-  def livebook_teams_auth(%{conn: conn, node: node, team: team, workspace_for: :agent} = context) do
+  def livebook_teams_auth(%{conn: conn, node: node, team: team, teams_for: :agent} = context) do
     ExUnit.Callbacks.start_supervised!(
       {Livebook.ZTA.LivebookTeams, name: LivebookWeb.ZTA, identity_key: team.id}
     )

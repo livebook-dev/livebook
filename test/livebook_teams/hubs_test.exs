@@ -2,8 +2,8 @@ defmodule Livebook.HubsTest do
   use Livebook.TeamsIntegrationCase, async: true
   alias Livebook.Hubs
 
-  @moduletag workspace_for: :user
-  setup :workspace
+  @moduletag teams_for: :user
+  setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:connection, :file_systems, :secrets]
   @moduletag subscribe_to_teams_topics: [:clients]
@@ -18,7 +18,7 @@ defmodule Livebook.HubsTest do
     assert metadata in Hubs.get_metadata()
   end
 
-  @tag workspace_persisted: false
+  @tag teams_persisted: false
   test "fetch_hub!/1 returns one persisted team", %{team: team} do
     assert_raise Livebook.Storage.NotFoundError,
                  ~s/could not find entry in "hubs" with ID "#{team.id}"/,
@@ -31,7 +31,7 @@ defmodule Livebook.HubsTest do
   end
 
   describe "save_hub/1" do
-    @tag workspace_persisted: false
+    @tag teams_persisted: false
     test "persists hub", %{team: team} do
       refute Hubs.hub_exists?(team.id)
       Hubs.save_hub(team)

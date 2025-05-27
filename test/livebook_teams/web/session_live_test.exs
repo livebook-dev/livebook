@@ -4,8 +4,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   import Phoenix.LiveViewTest
   import Livebook.SessionHelpers
 
-  @moduletag workspace_for: :user
-  setup :workspace
+  @moduletag teams_for: :user
+  setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:connection]
   @moduletag subscribe_to_teams_topics: [:clients, :agents, :app_deployments, :app_server]

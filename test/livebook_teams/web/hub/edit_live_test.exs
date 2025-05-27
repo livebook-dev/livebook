@@ -6,13 +6,13 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   import Livebook.TestHelpers
   import Phoenix.LiveViewTest
 
-  setup :workspace
+  setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:crud, :connection, :secrets, :file_systems]
   @moduletag subscribe_to_teams_topics: [:clients]
 
   describe "user" do
-    @describetag workspace_for: :user
+    @describetag teams_for: :user
 
     test "updates the hub", %{conn: conn, team: team} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
@@ -285,7 +285,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   end
 
   describe "agent" do
-    @describetag workspace_for: :agent
+    @describetag teams_for: :agent
     @describetag subscribe_to_teams_topics: [:clients, :agents]
 
     test "shows an error when creating a secret", %{conn: conn, team: team} do
@@ -359,8 +359,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     # Not async, because we alter global config (default hub)
     use Livebook.TeamsIntegrationCase, async: false
 
-    @moduletag workspace_for: :user
-    setup :workspace
+    @moduletag teams_for: :user
+    setup :teams
 
     @moduletag subscribe_to_hubs_topics: [:crud, :connection, :secrets, :file_systems]
     @moduletag subscribe_to_teams_topics: [:clients]

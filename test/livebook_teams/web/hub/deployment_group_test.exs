@@ -6,8 +6,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
   alias Livebook.Teams.DeploymentGroup
 
-  @moduletag workspace_for: :user
-  setup :workspace
+  @moduletag teams_for: :user
+  setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:crud, :connection, :secrets, :file_systems]
   @moduletag subscribe_to_teams_topics: [:clients, :agents, :app_deployments, :deployment_groups]
