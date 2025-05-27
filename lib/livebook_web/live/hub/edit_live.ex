@@ -41,6 +41,7 @@ defmodule LivebookWeb.Hub.EditLive do
     <LayoutComponents.layout
       current_page={~p"/hub/#{@hub.id}"}
       current_user={@current_user}
+      teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
     >
       <.hub_component

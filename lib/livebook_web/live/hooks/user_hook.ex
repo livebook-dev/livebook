@@ -15,6 +15,9 @@ defmodule LivebookWeb.UserHook do
         user_data = connect_params["user_data"] || session["user_data"]
         LivebookWeb.UserPlug.build_current_user(session, identity_data, user_data)
       end)
+      |> assign_new(:teams_auth, fn ->
+        LivebookWeb.AuthPlug.teams_auth(session)
+      end)
       |> attach_hook(:current_user_subscription, :handle_info, &handle_info/2)
       |> attach_hook(:server_authorization_subscription, :handle_info, &handle_info/2)
 
@@ -40,11 +43,16 @@ defmodule LivebookWeb.UserHook do
     # to the current app server, we don't need to check here.
     current_user = socket.assigns.current_user
     hub_id = deployment_group.hub_id
-    metadata = Livebook.ZTA.LivebookTeams.build_metadata(hub_id, current_user.payload)
 
-    case Livebook.Users.update_user(current_user, metadata) do
-      {:ok, user} -> {:cont, assign(socket, :current_user, user)}
-      _otherwise -> {:cont, socket}
+    if current_user.payload do
+      metadata = Livebook.ZTA.LivebookTeams.build_metadata(hub_id, current_user.payload)
+
+      case Livebook.Users.update_user(current_user, metadata) do
+        {:ok, user} -> {:cont, assign(socket, :current_user, user)}
+        _otherwise -> {:cont, socket}
+      end
+    else
+      {:cont, socket}
     end
   end
 

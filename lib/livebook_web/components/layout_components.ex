@@ -10,6 +10,7 @@ defmodule LivebookWeb.LayoutComponents do
   """
   attr :current_page, :string, required: true
   attr :current_user, Livebook.Users.User, required: true
+  attr :teams_auth, :atom, values: [:online, :offline]
   attr :saved_hubs, :list, required: true
 
   slot :inner_block, required: true
@@ -23,10 +24,10 @@ defmodule LivebookWeb.LayoutComponents do
         <.sidebar current_page={@current_page} current_user={@current_user} saved_hubs={@saved_hubs} />
       </div>
       <div class="grow overflow-y-auto">
-        <.topbar :if={Livebook.Config.teams_auth() == :online} variant="warning">
+        <.topbar :if={@teams_auth == :online} variant="warning">
           This Livebook instance has been configured for notebook deployment and is in read-only mode.
         </.topbar>
-        <.topbar :if={Livebook.Config.teams_auth() == :offline} variant="warning">
+        <.topbar :if={@teams_auth == :offline} variant="warning">
           You are running an offline Workspace for deployment. You cannot modify its settings.
         </.topbar>
 

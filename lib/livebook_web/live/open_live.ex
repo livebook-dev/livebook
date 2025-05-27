@@ -42,6 +42,7 @@ defmodule LivebookWeb.OpenLive do
     <LayoutComponents.layout
       current_page={~p"/"}
       current_user={@current_user}
+      teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
     >
       <:topbar_action>

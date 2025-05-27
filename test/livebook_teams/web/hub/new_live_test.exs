@@ -5,6 +5,12 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   import Phoenix.LiveViewTest
 
+  @moduletag teams_for: :user
+  setup :teams
+
+  @moduletag subscribe_to_hubs_topics: [:connection]
+  @moduletag subscribe_to_teams_topics: [:clients]
+
   test "render hub selection cards", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/hub")
 
@@ -35,14 +41,14 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       render_submit(form, attrs)
 
       # gets the org request by name
-      org_request = :erpc.call(node, TeamsRPC, :get_org_request_by!, [[name: name]])
+      org_request = TeamsRPC.get_org_request_by!(node, name: name)
 
       # check if the form has the url to confirm
       link_element = element(view, "#new-org-form a")
       assert render(link_element) =~ "/org-request/#{org_request.id}/confirm"
 
       # force org request confirmation
-      :erpc.call(node, TeamsRPC, :confirm_org_request, [org_request, user])
+      TeamsRPC.confirm_org_request(node, org_request, user)
 
       # wait for the c:handle_info/2 cycle
       # check if the page redirected to edit hub page
@@ -76,10 +82,10 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       {:ok, view, _html} = live(conn, ~p"/hub")
 
       # previously create the org and associate user with org
-      org = :erpc.call(node, TeamsRPC, :create_org, [[name: name]])
-      :erpc.call(node, TeamsRPC, :create_org_key, [[org: org, key_hash: key_hash]])
-      :erpc.call(node, TeamsRPC, :create_org_key_pair, [[org: org]])
-      :erpc.call(node, TeamsRPC, :create_user_org, [[org: org, user: user]])
+      org = TeamsRPC.create_org(node, name: name)
+      TeamsRPC.create_org_key(node, org: org, key_hash: key_hash)
+      TeamsRPC.create_org_key_pair(node, org: org)
+      TeamsRPC.create_user_org(node, org: org, user: user)
 
       # select the new org option
       view
@@ -97,17 +103,14 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       render_submit(form, attrs)
 
       # gets the org request by name and key hash
-      org_request =
-        :erpc.call(node, TeamsRPC, :get_org_request_by!, [
-          [name: name, key_hash: key_hash]
-        ])
+      org_request = TeamsRPC.get_org_request_by!(node, name: name, key_hash: key_hash)
 
       # check if the form has the url to confirm
       link_element = element(view, "#join-org-form a")
       assert render(link_element) =~ "/org-request/#{org_request.id}/confirm"
 
       # force org request confirmation
-      :erpc.call(node, TeamsRPC, :confirm_org_request, [org_request, user])
+      TeamsRPC.confirm_org_request(node, org_request, user)
 
       # wait for the c:handle_info/2 cycle
       # check if the page redirected to edit hub page

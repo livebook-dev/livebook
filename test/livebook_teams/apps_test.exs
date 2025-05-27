@@ -1,21 +1,25 @@
 defmodule Livebook.Integration.AppsTest do
   use Livebook.TeamsIntegrationCase, async: true
 
-  alias Livebook.Apps
+  @moduletag teams_for: :agent
+  setup :teams
+
+  @moduletag subscribe_to_hubs_topics: [:connection, :secrets]
+  @moduletag subscribe_to_teams_topics: [:clients, :agents]
 
   describe "integration" do
     @tag :tmp_dir
-    test "deploying apps with hub secrets", %{user: user, node: node, tmp_dir: tmp_dir} do
-      Livebook.Hubs.Broadcasts.subscribe([:secrets])
-
-      hub = create_team_hub(user, node)
-      hub_id = hub.id
-      secret = insert_secret(hub_id: hub.id)
+    test "deploying apps with hub secrets",
+         %{team: team, org_key: org_key, node: node, tmp_dir: tmp_dir} do
+      hub_id = team.id
+      secret = TeamsRPC.create_secret(node, team, org_key)
       secret_name = secret.name
+      secret_value = secret.value
+
+      assert_receive {:secret_created,
+                      %{hub_id: ^hub_id, name: ^secret_name, value: ^secret_value}}
+
       slug = Livebook.Utils.random_short_id()
-
-      assert_receive {:secret_created, %{hub_id: ^hub_id, name: ^secret_name}}
-
       app_path = Path.join(tmp_dir, "app.livemd")
 
       source = """
@@ -35,12 +39,12 @@ defmodule Livebook.Integration.AppsTest do
       {source, []} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
       File.write!(app_path, source)
 
-      Apps.subscribe()
+      Livebook.Apps.subscribe()
 
-      assert [app_spec] = Apps.build_app_specs_in_dir(tmp_dir)
+      assert [app_spec] = Livebook.Apps.build_app_specs_in_dir(tmp_dir)
 
-      deployer_pid = Apps.Deployer.local_deployer()
-      Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
+      deployer_pid = Livebook.Apps.Deployer.local_deployer()
+      Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
 
       assert_receive {:app_created, %{pid: pid, slug: ^slug}}
 
@@ -52,7 +56,16 @@ defmodule Livebook.Integration.AppsTest do
                         ]
                       }}
 
-      assert %{secrets: %{^secret_name => ^secret}} = Livebook.Session.get_data(session.pid)
+      assert %{
+               secrets: %{
+                 ^secret_name => %Livebook.Secrets.Secret{
+                   name: ^secret_name,
+                   value: ^secret_value,
+                   deployment_group_id: nil,
+                   hub_id: ^hub_id
+                 }
+               }
+             } = Livebook.Session.get_data(session.pid)
 
       Livebook.App.close(pid)
     end

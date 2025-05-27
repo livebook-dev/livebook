@@ -19,11 +19,15 @@ defmodule LivebookWeb.AuthHook do
     # But, for apps, we redirect directly from the app session
     current_user = socket.assigns.current_user
 
-    if current_user.access_type == :full and
-         Livebook.Hubs.TeamClient.user_full_access?(hub_id, current_user.groups) do
-      {:halt, socket}
+    if current_user.payload do
+      if current_user.access_type == :full and
+           Livebook.Hubs.TeamClient.user_full_access?(hub_id, current_user.groups) do
+        {:halt, socket}
+      else
+        {:halt, redirect(socket, to: ~p"/")}
+      end
     else
-      {:halt, redirect(socket, to: ~p"/")}
+      {:halt, socket}
     end
   end
 

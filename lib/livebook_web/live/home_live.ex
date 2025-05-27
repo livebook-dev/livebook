@@ -40,6 +40,7 @@ defmodule LivebookWeb.HomeLive do
     <LayoutComponents.layout
       current_page={@self_path}
       current_user={@current_user}
+      teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
     >
       <:topbar_action>

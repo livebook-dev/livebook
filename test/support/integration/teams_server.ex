@@ -1,7 +1,7 @@
 defmodule Livebook.TeamsServer do
   use GenServer
 
-  defstruct [:node, :token, :user, :org, :teams_key, :port, :app_port, :url, :env]
+  defstruct [:node, :port, :app_port, :url, :env]
 
   @name __MODULE__
   @timeout 10_000
@@ -38,14 +38,6 @@ defmodule Livebook.TeamsServer do
     GenServer.call(@name, :fetch_url, @timeout)
   end
 
-  def token() do
-    GenServer.call(@name, :fetch_token, @timeout)
-  end
-
-  def user() do
-    GenServer.call(@name, :fetch_user, @timeout)
-  end
-
   def get_node() do
     GenServer.call(@name, :fetch_node, @timeout)
   end
@@ -65,20 +57,6 @@ defmodule Livebook.TeamsServer do
   end
 
   @impl true
-  def handle_call(:fetch_token, _from, state) do
-    state = if state.token, do: state, else: ensure_session_token(state)
-
-    {:reply, state.token, state}
-  end
-
-  @impl true
-  def handle_call(:fetch_user, _from, state) do
-    state = if state.user, do: state, else: ensure_user(state)
-
-    {:reply, state.user, state}
-  end
-
-  @impl true
   def handle_call(:fetch_url, _from, state) do
     state = if state.app_port, do: state, else: %{state | app_port: app_port()}
     url = state.url || fetch_url(state)
@@ -88,16 +66,6 @@ defmodule Livebook.TeamsServer do
 
   def handle_call(:fetch_node, _from, state) do
     {:reply, state.node, state}
-  end
-
-  def handle_call(:fetch_port, _from, state) do
-    app_port = state.app_port || app_port()
-
-    {:reply, app_port, %{state | app_port: app_port}}
-  end
-
-  def handle_call(:fetch_env, _from, state) do
-    {:reply, state.env, state}
   end
 
   # Port Callbacks
@@ -117,43 +85,6 @@ defmodule Livebook.TeamsServer do
   end
 
   # Private
-
-  defp call_erpc_function(node, function, args \\ []) do
-    :erpc.call(node, TeamsRPC, function, args)
-  end
-
-  defp ensure_session_token(state) do
-    state =
-      state
-      |> ensure_user()
-      |> ensure_org()
-      |> ensure_teams_key()
-
-    token = call_erpc_function(state.node, :associate_user_with_org, [state.user, state.org])
-
-    %{state | token: token}
-  end
-
-  defp ensure_user(state) do
-    if state.user,
-      do: state,
-      else: %{state | user: call_erpc_function(state.node, :create_user)}
-  end
-
-  defp ensure_org(state) do
-    if state.org,
-      do: state,
-      else: %{state | org: call_erpc_function(state.node, :create_org)}
-  end
-
-  defp ensure_teams_key(state) do
-    if state.teams_key,
-      do: state,
-      else: %{
-        state
-        | teams_key: call_erpc_function(state.node, :create_org_key, [[org: state.org]]).key_hash
-      }
-  end
 
   defp start_app(state) do
     env =
@@ -217,7 +148,7 @@ defmodule Livebook.TeamsServer do
   defp wait_on_start(state, port) do
     url = state.url || fetch_url(state)
 
-    case :httpc.request(:get, {~c"#{url}/public/health", []}, [], []) do
+    case :httpc.request(:get, {~c"#{url}/healthz", []}, [], []) do
       {:ok, _} ->
         port
 
