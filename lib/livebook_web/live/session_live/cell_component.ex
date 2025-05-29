@@ -249,7 +249,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           cell_id={@cell_view.id}
           validity={@cell_view.eval.validity}
           status={@cell_view.eval.status}
-          reevaluate_automatically={false}
+          reevaluate_automatically={@cell_view.reevaluate_automatically}
           reevaluates_automatically={@cell_view.eval.reevaluates_automatically}
         />
       </:primary>

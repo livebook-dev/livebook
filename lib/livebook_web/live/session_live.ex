@@ -1978,6 +1978,7 @@ defmodule LivebookWeb.SessionLive do
       type: :smart,
       empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data, changed_input_ids),
+      reevaluate_automatically: cell.reevaluate_automatically,
       status: info.status,
       js_view: cell.js_view,
       editor:
