@@ -342,10 +342,6 @@ mix phx.server
 mix test
 ```
 
-### Acknowledgements
-
-Thank you to [Uffizzi](https://www.uffizzi.com) for providing ephemeral environments to preview pull requests.
-
 ### Desktop app builds
 
 For macOS, run:
