@@ -5,7 +5,6 @@ defmodule Livebook.Teams.Connection do
 
   alias Livebook.Teams.WebSocket
 
-  @backoff 5_000
   @no_state :no_state
   @loop_ping_delay 5_000
 
@@ -50,7 +49,10 @@ defmodule Livebook.Teams.Connection do
       {:transport_error, reason} ->
         send(data.listener, {:connection_error, reason})
         Logger.warning("Teams WebSocket connection - transport error: #{inspect(reason)}")
-        {:keep_state_and_data, {{:timeout, :backoff}, @backoff, nil}}
+
+        # Random between 3 and 10 seconds
+        backoff = Enum.random(3..10) * 1000
+        {:keep_state_and_data, {{:timeout, :backoff}, backoff, nil}}
 
       {:server_error, error} ->
         reason = LivebookProto.Error.decode(error).details
