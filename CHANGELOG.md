@@ -2,6 +2,18 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.16.2](https://github.com/livebook-dev/livebook/tree/v0.16.2) (2025-06-04)
+
+### Added
+
+* Notebook export to include errors when exporting with outputs ([#3009](https://github.com/livebook-dev/livebook/pull/3009))
+* Support for enabling reevaluate automatically for Smart cells
+
+### Fixed
+
+* GitHub stars notebook to execute without errors when GitHubs API rate limit ([#3006](https://github.com/livebook-dev/livebook/pull/3006))
+* Startup errors in env.sh when using the Docker deployment ([#3013](https://github.com/livebook-dev/livebook/pull/3013))
+
 ## [v0.16.1](https://github.com/livebook-dev/livebook/tree/v0.16.1) (2025-05-21)
 
 ### Fixed
