@@ -11,7 +11,13 @@ defmodule LivebookWeb.AppsLive do
     apps = Livebook.Apps.list_authorized_apps(socket.assigns.current_user)
     empty_apps_path? = Livebook.Apps.empty_apps_path?()
 
-    {:ok, assign(socket, apps: apps, empty_apps_path?: empty_apps_path?)}
+    {:ok,
+     assign(socket,
+       apps: apps,
+       empty_apps_path?: empty_apps_path?,
+       logout_enabled?:
+         Livebook.Config.logout_enabled?() and socket.assigns.current_user.email != nil
+     )}
   end
 
   @impl true
@@ -24,10 +30,10 @@ defmodule LivebookWeb.AppsLive do
             <:toggle>
               <button class="flex items-center text-gray-900">
                 <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
-                <.remix_icon icon="arrow-down-s-line" />
+                <.remix_icon :if={@logout_enabled?} icon="arrow-down-s-line" />
               </button>
             </:toggle>
-            <.menu_item :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}>
+            <.menu_item :if={@logout_enabled?}>
               <button phx-click="logout" role="menuitem">
                 <.remix_icon icon="logout-box-line" />
                 <span>Logout</span>
