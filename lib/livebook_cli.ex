@@ -104,14 +104,10 @@ defmodule LivebookCLI do
         List.starts_with?(name, in_archive_priv_path)
       end
 
-      case :zip.extract(archive, cwd: String.to_charlist(archive_dir), file_filter: file_filter) do
-        {:ok, _} ->
-          :ok
+      opts = [cwd: String.to_charlist(archive_dir), file_filter: file_filter]
 
-        {:error, error} ->
-          print_error_and_exit(
-            "Livebook failed to extract archive files, reason: #{inspect(error)}"
-          )
+      with {:error, error} <- :zip.extract(archive, opts) do
+        raise "Livebook failed to extract archive files, reason: #{inspect(error)}"
       end
 
       File.touch!(extracted_path)
@@ -121,9 +117,35 @@ defmodule LivebookCLI do
     Application.put_env(:livebook, :priv_dir, priv_dir, persistent: true)
   end
 
-  @spec print_error_and_exit(String.t()) :: no_return()
-  defp print_error_and_exit(message) do
-    IO.ANSI.format([:red, message]) |> IO.puts()
+  @doc """
+  Logs an error message.
+  """
+  def error(message), do: IO.puts(:stderr, IO.ANSI.format(red(message)))
+
+  @doc """
+  Logs an info message.
+  """
+  def info(message), do: IO.puts(IO.ANSI.format(message))
+
+  @doc """
+  Logs a debug message.
+  """
+  def debug(message), do: IO.puts(IO.ANSI.format(cyan(message)))
+
+  @doc """
+  Logs a warning message.
+  """
+  def warning(message), do: IO.warn(message, [])
+
+  @doc """
+  Aborts
+  """
+  @spec raise(String.t()) :: no_return()
+  def raise(message) do
+    error(message)
     System.halt(1)
   end
+
+  defp red(message), do: [:red, :bright, message]
+  defp cyan(message), do: [:cyan, :bright, message]
 end
