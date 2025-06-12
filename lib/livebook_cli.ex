@@ -1,15 +1,15 @@
 defmodule LivebookCLI do
-  def usage() do
-    """
-    Usage: livebook [command] [options]
+  import Kernel, except: [raise: 1]
 
-    Available commands:
+  @switches [
+    help: :boolean,
+    version: :boolean
+  ]
 
-      livebook server    Starts the Livebook web application
-
-    The --help and --version options can be given instead of a command for usage and versioning information.
-    """
-  end
+  @aliases [
+    h: :help,
+    v: :version
+  ]
 
   def main(args) do
     {:ok, _} = Application.ensure_all_started(:elixir)
@@ -22,62 +22,45 @@ defmodule LivebookCLI do
       Application.put_env(:elixir, :ansi_enabled, true)
     end
 
-    call(args)
+    case OptionParser.parse(args, strict: @switches, aliases: @aliases) do
+      {[help: true], [], _} ->
+        display_help()
+
+      {[version: true], _, _} ->
+        display_version()
+
+      {[help: true], [name], _} ->
+        LivebookCLI.Command.usage(name)
+
+      {_, [name | _], _} ->
+        # We want to keep the switches for the command, which is being ignored here
+        LivebookCLI.Command.call(name, List.delete(args, name))
+    end
   end
 
   defp unix?(), do: match?({:unix, _}, :os.type())
 
-  defp call([arg]) when arg in ["--help", "-h"], do: display_help()
-  defp call([arg]) when arg in ["--version", "-v"], do: display_version()
-
-  defp call([task_name | args]) do
-    case find_task(task_name) do
-      nil ->
-        IO.ANSI.format([:red, "Unknown command #{task_name}\n"]) |> IO.puts()
-        IO.write(usage())
-
-      task ->
-        call_task(task, args)
-    end
-  end
-
-  defp call(_args), do: IO.write(usage())
-
-  defp find_task("server"), do: LivebookCLI.Server
-  defp find_task(_), do: nil
-
-  defp call_task(task, [arg]) when arg in ["--help", "-h"] do
-    IO.write(task.usage())
-  end
-
-  defp call_task(task, args) do
-    try do
-      task.call(args)
-    rescue
-      error in OptionParser.ParseError ->
-        IO.ANSI.format([
-          :red,
-          Exception.message(error),
-          "\n\nFor more information try --help"
-        ])
-        |> IO.puts()
-
-      error ->
-        IO.ANSI.format([:red, Exception.format(:error, error, __STACKTRACE__), "\n"]) |> IO.puts()
-    end
-  end
-
   defp display_help() do
-    IO.puts("Livebook is an interactive notebook system for Elixir\n")
-    IO.write(usage())
+    info("""
+    Livebook is an interactive notebook system for Elixir
+
+    Usage: livebook [command] [options]
+
+    Available commands:
+
+      livebook server    Starts the Livebook web application
+      livebook deploy    Deploys a notebook to Livebook Teams
+
+    The --help and --version options can be given instead of a command for usage and versioning information.\
+    """)
   end
 
   defp display_version() do
-    IO.puts(:erlang.system_info(:system_version))
-    IO.puts("Elixir " <> System.build_info()[:build])
-
-    version = Livebook.Config.app_version()
-    IO.puts("\nLivebook #{version}")
+    info("""
+    #{:erlang.system_info(:system_version)}
+    Elixir #{System.build_info()[:build]}
+    Livebook #{Livebook.Config.app_version()}\
+    """)
   end
 
   import Record
