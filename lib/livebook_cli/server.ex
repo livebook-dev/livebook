@@ -1,5 +1,5 @@
 defmodule LivebookCLI.Server do
-  @behaviour LivebookCLI.Task
+  use LivebookCLI.Command
 
   @external_resource "README.md"
 
