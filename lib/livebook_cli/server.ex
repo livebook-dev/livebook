@@ -63,8 +63,7 @@ defmodule LivebookCLI.Server do
 
     Starts a server and imports the notebook at the given URL:
 
-        livebook server https://example.com/my-notebook.livemd
-
+        livebook server https://example.com/my-notebook.livemd\
     """
   end
 
@@ -84,14 +83,12 @@ defmodule LivebookCLI.Server do
 
         case check_endpoint_availability(base_url) do
           :livebook_running ->
-            IO.puts("Livebook already running on #{base_url}")
+            info("Livebook already running on #{base_url}")
             open_from_args(base_url, extra_args)
 
           :taken ->
-            print_error(
-              "Another application is already running on port #{port}." <>
-                " Either ensure this port is free or specify a different port using the --port option"
-            )
+            raise "Another application is already running on port #{port}." <>
+                    " Either ensure this port is free or specify a different port using the --port option"
 
           :available ->
             start_server(extra_args)
@@ -108,7 +105,7 @@ defmodule LivebookCLI.Server do
         Process.sleep(:infinity)
 
       {:error, error} ->
-        print_error("Livebook failed to start with reason: #{inspect(error)}")
+        raise "Livebook failed to start with reason: #{inspect(error)}"
     end
   end
 
@@ -126,20 +123,13 @@ defmodule LivebookCLI.Server do
 
   defp check_endpoint_availability(base_url) do
     Application.ensure_all_started(:req)
-
     health_url = set_path(base_url, "/public/health")
-
     req = Req.new() |> Livebook.Utils.req_attach_defaults()
 
     case Req.get(req, url: health_url, retry: false) do
-      {:ok, %{status: 200, body: %{"application" => "livebook"}}} ->
-        :livebook_running
-
-      {:ok, _other} ->
-        :taken
-
-      {:error, _exception} ->
-        :available
+      {:ok, %{status: 200, body: %{"application" => "livebook"}}} -> :livebook_running
+      {:ok, _other} -> :taken
+      {:error, _exception} -> :available
     end
   end
 
@@ -158,7 +148,7 @@ defmodule LivebookCLI.Server do
   end
 
   defp open_from_args(base_url, ["new"]) do
-    IO.warn(~s/passing "new" as an argument is deprecated, use "@new" instead/, [])
+    warning(~s/passing "new" as an argument is deprecated, use "@new" instead/)
     open_from_args(base_url, ["@new"])
   end
 
@@ -183,9 +173,7 @@ defmodule LivebookCLI.Server do
   end
 
   defp open_from_args(_base_url, _extra_args) do
-    print_error(
-      "Too many arguments entered. Ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch"
-    )
+    raise "Too many arguments entered. Ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch"
   end
 
   @switches [
@@ -236,9 +224,5 @@ defmodule LivebookCLI.Server do
     |> URI.parse()
     |> Map.put(:path, path)
     |> URI.to_string()
-  end
-
-  defp print_error(message) do
-    IO.ANSI.format([:red, message]) |> IO.puts()
   end
 end
