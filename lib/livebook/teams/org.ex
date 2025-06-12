@@ -37,9 +37,11 @@ defmodule Livebook.Teams.Org do
   @doc """
   Generates a hash key.
   """
-  @spec key_hash(t()) :: String.t()
-  def key_hash(%__MODULE__{teams_key: teams_key}),
-    do: Base.url_encode64(:crypto.hash(:sha256, teams_key), padding: false)
+  @spec key_hash(%{teams_key: String.t()}) :: String.t()
+  def key_hash(%{teams_key: teams_key}) do
+    hash = :crypto.hash(:sha256, teams_key)
+    Base.url_encode64(hash, padding: false)
+  end
 
   @doc false
   def changeset(org, attrs) do
