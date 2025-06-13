@@ -101,8 +101,25 @@ defmodule Livebook do
       config :logger, level: level
     end
 
-    if metadata = Livebook.Config.log_metadata!("LIVEBOOK_LOG_METADATA") do
-      config :logger, :console, metadata: metadata
+    log_metadata = Livebook.Config.log_metadata!("LIVEBOOK_LOG_METADATA")
+    log_format = Livebook.Config.log_format!("LIVEBOOK_LOG_FORMAT")
+
+    case {log_format, log_metadata} do
+      {:json, nil} ->
+        default_metadata = Application.get_env(:logger, :console, [])[:metadata] || []
+
+        config :logger, :default_handler,
+          formatter: {LoggerJSON.Formatters.Basic, %{metadata: default_metadata}}
+
+      {:json, log_metadata} ->
+        config :logger, :default_handler,
+          formatter: {LoggerJSON.Formatters.Basic, %{metadata: log_metadata}}
+
+      {_, log_metadata} when not is_nil(log_metadata) ->
+        config :logger, :console, metadata: log_metadata
+
+      _ ->
+        :ok
     end
 
     if port = Livebook.Config.port!("LIVEBOOK_PORT") do
