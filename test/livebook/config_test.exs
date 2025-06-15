@@ -57,8 +57,8 @@ defmodule Livebook.ConfigTest do
 
   describe "log_format!/1" do
     test "parses valid formats" do
-      with_env([TEST_LOG_FORMAT: "console"], fn ->
-        assert Config.log_format!("TEST_LOG_FORMAT") == :console
+      with_env([TEST_LOG_FORMAT: "text"], fn ->
+        assert Config.log_format!("TEST_LOG_FORMAT") == :text
       end)
 
       with_env([TEST_LOG_FORMAT: "json"], fn ->

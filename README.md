@@ -266,7 +266,7 @@ The following environment variables can be used to configure Livebook on boot:
     users (attached to evaluation and request logs). By default includes only
     request_id.
 
-  * `LIVEBOOK_LOG_FORMAT` - sets the log output format, either console (default)
+  * `LIVEBOOK_LOG_FORMAT` - sets the log output format, either text (default)
     for human-readable logs or json for structured JSON.
 
   * `LIVEBOOK_NODE` - sets the node name for running Livebook in a cluster.

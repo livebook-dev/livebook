@@ -115,7 +115,10 @@ defmodule Livebook do
         config :logger, :default_handler,
           formatter: {LoggerJSON.Formatters.Basic, %{metadata: log_metadata}}
 
-      {_, log_metadata} when not is_nil(log_metadata) ->
+      {:text, log_metadata} when not is_nil(log_metadata) ->
+        config :logger, :console, metadata: log_metadata
+
+      {nil, log_metadata} when not is_nil(log_metadata) ->
         config :logger, :console, metadata: log_metadata
 
       _ ->

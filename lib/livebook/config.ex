@@ -483,7 +483,7 @@ defmodule Livebook.Config do
   Parses and validates log format from env.
   """
   def log_format!(env) do
-    formats = ~w(console json)
+    formats = ~w(text json)
 
     if format = System.get_env(env) do
       if format in formats do
