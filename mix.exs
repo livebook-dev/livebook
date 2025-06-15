@@ -125,6 +125,7 @@ defmodule Livebook.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:lazy_html, "~> 0.1.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
+      {:logger_json, "~> 6.1"},
       # So that we can test Python evaluation in the same node
       {:pythonx, "~> 0.4.2", only: :test},
       # ZTA deps

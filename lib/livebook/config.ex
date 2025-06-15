@@ -480,6 +480,23 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses and validates log format from env.
+  """
+  def log_format!(env) do
+    formats = ~w(text json)
+
+    if format = System.get_env(env) do
+      if format in formats do
+        String.to_atom(format)
+      else
+        abort!(
+          "expected #{env} to be one of #{Enum.join(formats, ", ")}, got: #{inspect(format)}"
+        )
+      end
+    end
+  end
+
+  @doc """
   Parses and validates the port from env.
   """
   def port!(env) do
