@@ -43,6 +43,34 @@ defmodule Livebook.ConfigTest do
     end
   end
 
+  describe "log_metadata!/1" do
+    test "parses valida metadata configs" do
+      with_env([TEST_LOG_METADATA: "users,request_id"], fn ->
+        assert Config.log_metadata!("TEST_LOG_METADATA") == [:users, :request_id]
+      end)
+    end
+
+    test "returns nil when environment variable is not set" do
+      assert Config.log_metadata!("TEST_LOG_METADATA") == nil
+    end
+  end
+
+  describe "log_format!/1" do
+    test "parses valid formats" do
+      with_env([TEST_LOG_FORMAT: "console"], fn ->
+        assert Config.log_format!("TEST_LOG_FORMAT") == :console
+      end)
+
+      with_env([TEST_LOG_FORMAT: "json"], fn ->
+        assert Config.log_format!("TEST_LOG_FORMAT") == :json
+      end)
+    end
+
+    test "returns nil when environment variable is not set" do
+      assert Config.log_format!("TEST_LOG_FORMAT") == nil
+    end
+  end
+
   defp with_env(env_vars, fun) do
     existing =
       Enum.map(env_vars, fn {env, _value} ->
