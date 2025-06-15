@@ -7,7 +7,7 @@ config :livebook, LivebookWeb.Endpoint,
   server: false
 
 # Print only warnings and errors during test
-config :logger, level: :warning
+config :logger, :default_handler, false
 
 # Disable authentication in tests
 config :livebook,
