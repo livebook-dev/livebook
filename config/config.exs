@@ -10,7 +10,7 @@ config :livebook, LivebookWeb.Endpoint,
   render_errors: [formats: [html: LivebookWeb.ErrorHTML], layout: false]
 
 # Configures Elixir's Logger
-config :logger, :console,
+config :logger, :default_formatter,
   format: "$date $time $metadata[$level] $message\n",
   metadata: [:request_id]
 
