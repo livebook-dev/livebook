@@ -15,12 +15,13 @@ config :logger, :default_handler, level: :warning
 
 # Also configure the JSON formatter for test.
 # We make sure we write all currently available metadata.
-File.rm("tmp/test-json.log")
+path = "tmp/test.log.json"
+File.rm(path)
 
 config :livebook, :logger, [
   {:handler, :json_log, :logger_std_h,
    %{
-     config: %{file: ~c"tmp/test-json.log"},
+     config: %{file: ~c"#{path}"},
      formatter: {LoggerJSON.Formatters.Basic, %{metadata: [:users, :request_id]}}
    }}
 ]
