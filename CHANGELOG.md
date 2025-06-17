@@ -2,6 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.16.3](https://github.com/livebook-dev/livebook/tree/v0.16.3) (2025-06-17)
+
+### Added
+
+* Support for logging in JSON format via `LIVEBOOK_LOG_FORMAT=json` ([#3017](https://github.com/livebook-dev/livebook/pull/3017))
+
+### Changed
+
+* Updated Docker images to use CUDA 12.8 and include NCCL ([#3018](https://github.com/livebook-dev/livebook/pull/3018))
+
 ## [v0.16.2](https://github.com/livebook-dev/livebook/tree/v0.16.2) (2025-06-04)
 
 ### Added
