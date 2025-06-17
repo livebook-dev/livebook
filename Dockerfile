@@ -7,7 +7,8 @@ FROM ${BASE_IMAGE} AS base-default
 
 FROM ${BASE_IMAGE} AS base-cuda
 
-ARG CUDA_VERSION
+ARG CUDA_VERSION_MAJOR
+ARG CUDA_VERSION_MINOR
 
 RUN distro="ubuntu$(. /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d '.')" && \
   # Official Docker images use the sbsa packages when targetting arm64.
@@ -20,8 +21,7 @@ RUN distro="ubuntu$(. /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d '.')" &&
   # the CUDA toolkit that is required by Elixir numerical packages
   # (nvcc and runtime libraries). Note that we do not need to install
   # the driver, it is already provided by NVIDIA Container Toolkit.
-  cuda_version="${CUDA_VERSION}" && cuda_major="${cuda_version%-*}" && \
-  apt-get install -y git cuda-nvcc-${CUDA_VERSION} cuda-libraries-${CUDA_VERSION} libcudnn9-cuda-$cuda_major && \
+  apt-get install -y git cuda-nvcc-${CUDA_VERSION_MAJOR}-${CUDA_VERSION_MINOR} cuda-libraries-${CUDA_VERSION_MAJOR}-${CUDA_VERSION_MINOR} libcudnn9-cuda-${CUDA_VERSION_MAJOR} libnccl2=*+cuda${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR} && \
   apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/usr/local/nvidia/bin:/usr/local/cuda/bin:$PATH"
