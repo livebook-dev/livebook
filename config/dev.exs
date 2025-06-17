@@ -62,7 +62,7 @@ config :livebook, LivebookWeb.Endpoint,
   ]
 
 # Do not include timestamps in development logs
-config :logger, :console,
+config :logger, :default_formatter,
   format: "$metadata[$level] $message\n",
   metadata: []
 
