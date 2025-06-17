@@ -6,8 +6,24 @@ config :livebook, LivebookWeb.Endpoint,
   http: [port: 4002],
   server: false
 
-# Print only warnings and errors during test
-config :logger, level: :warning
+# Print only warnings and errors during test.
+#
+# We configure the default handler instead of Logger on purpose,
+# as we want all calls to be processed, especially when using
+# the JSON formatter.
+config :logger, :default_handler, level: :warning
+
+# Also configure the JSON formatter for test.
+# We make sure we write all currently available metadata.
+File.rm("tmp/test-json.log")
+
+config :livebook, :logger, [
+  {:handler, :json_log, :logger_std_h,
+   %{
+     config: %{file: ~c"tmp/test-json.log"},
+     formatter: {LoggerJSON.Formatters.Basic, %{metadata: [:users, :request_id]}}
+   }}
+]
 
 # Disable authentication in tests
 config :livebook,
