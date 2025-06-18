@@ -1,6 +1,4 @@
 defmodule LivebookCLI do
-  import Kernel, except: [raise: 1]
-
   @switches [
     help: :boolean,
     version: :boolean
@@ -103,32 +101,97 @@ defmodule LivebookCLI do
   @doc """
   Logs an error message.
   """
-  def error(message), do: IO.puts(:stderr, IO.ANSI.format(red(message)))
+  def error(message) do
+    message
+    |> put_level(:error)
+    |> IO.ANSI.format()
+    |> IO.puts()
+  end
 
   @doc """
   Logs an info message.
   """
-  def info(message), do: IO.puts(IO.ANSI.format(message))
+  def info(message) do
+    message
+    |> put_level(:info)
+    |> IO.ANSI.format()
+    |> IO.puts()
+  end
 
   @doc """
   Logs a debug message.
   """
-  def debug(message), do: IO.puts(IO.ANSI.format(cyan(message)))
+  if Mix.env() == :dev do
+    def debug(message) do
+      message
+      |> put_level(:debug)
+      |> IO.ANSI.format()
+      |> IO.puts()
+    end
+  else
+    def debug(message) do
+      _ = put_level(message, :debug)
+      :ok
+    end
+  end
 
   @doc """
   Logs a warning message.
   """
-  def warning(message), do: IO.warn(message, [])
+  def warning(message) do
+    message
+    |> put_level(:warning)
+    |> IO.ANSI.format()
+    |> IO.warn()
+  end
 
   @doc """
-  Aborts
+  Logs an error message.
   """
-  @spec raise(String.t()) :: no_return()
-  def raise(message) do
-    error(message)
+  def raise(exception, command_name, stacktrace) when is_exception(exception) do
+    exception
+    |> format_exception(command_name, stacktrace)
+    |> IO.ANSI.format()
+    |> IO.puts()
+
     System.halt(1)
   end
 
-  defp red(message), do: [:red, :bright, message]
-  defp cyan(message), do: [:cyan, :bright, message]
+  defp put_level(message, :info) do
+    ["[info] ", message]
+  end
+
+  defp put_level(message, :error) do
+    [:red, "[error] ", message]
+  end
+
+  defp put_level(message, :warning) do
+    ["[warning] ", message]
+  end
+
+  defp put_level(message, :debug) do
+    [:cyan, "[debug] ", message]
+  end
+
+  defp format_exception(%OptionParser.ParseError{} = exception, command_name, _) do
+    [
+      :red,
+      :bright,
+      """
+      #{Exception.message(exception)}
+
+      For more information try:
+
+         livebook #{command_name} --help
+      """
+    ]
+  end
+
+  defp format_exception(exception, _command_name, stacktrace) do
+    [
+      :red,
+      :bright,
+      Exception.format(:error, exception, stacktrace)
+    ]
+  end
 end

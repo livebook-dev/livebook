@@ -179,9 +179,13 @@ defmodule Livebook.Hubs.TeamClient do
   ## GenServer callbacks
 
   @impl true
+  def init(%Hubs.Team{session_token: "lb_dk_" <> _} = team) do
+    derived_key = Teams.derive_key(team.teams_key)
+    {:ok, %__MODULE__{hub: team, derived_key: derived_key}}
+  end
+
   def init(%Hubs.Team{offline: nil} = team) do
     Apps.Manager.subscribe()
-
     derived_key = Teams.derive_key(team.teams_key)
 
     headers =

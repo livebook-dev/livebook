@@ -14,8 +14,7 @@ defmodule LivebookCLI.Command do
   @doc false
   defmacro __using__(_) do
     quote do
-      import Kernel, except: [raise: 1]
-      import LivebookCLI, only: [error: 1, warning: 1, debug: 1, info: 1, raise: 1]
+      import LivebookCLI, only: [error: 1, warning: 1, debug: 1, info: 1]
 
       @behaviour LivebookCLI.Command
     end
@@ -39,22 +38,10 @@ defmodule LivebookCLI.Command do
          :ok <- command.call(args) do
       :ok
     else
-      {:error, reason} -> LivebookCLI.raise(reason)
+      {:error, reason} -> LivebookCLI.error(reason)
     end
   rescue
-    error in OptionParser.ParseError ->
-      LivebookCLI.raise("""
-      #{Exception.message(error)}
-
-      For more information try:
-
-         livebook #{name} --help
-      """)
-
-    error ->
-      LivebookCLI.raise("""
-      #{Exception.format(:error, error, __STACKTRACE__)}
-      """)
+    exception -> LivebookCLI.raise(exception, name, __STACKTRACE__)
   end
 
   @doc """
@@ -64,7 +51,9 @@ defmodule LivebookCLI.Command do
   def usage(name) do
     case fetch_command(name) do
       {:ok, command} -> LivebookCLI.info(command.usage())
-      {:error, reason} -> LivebookCLI.raise(reason)
+      {:error, reason} -> LivebookCLI.error(reason)
     end
+  rescue
+    exception -> LivebookCLI.raise(exception, name, __STACKTRACE__)
   end
 end
