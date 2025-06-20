@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.16.4](https://github.com/livebook-dev/livebook/tree/v0.16.4) (2025-06-20)
+
+### Fixed
+
+* Livebook automatic clustering within AWS ECS ([#3022](https://github.com/livebook-dev/livebook/pull/3022))
+* Embedding livebook inside iframe with LIVEBOOK_WITHIN_IFRAME ([#3024](https://github.com/livebook-dev/livebook/pull/3024))
+
 ## [v0.16.3](https://github.com/livebook-dev/livebook/tree/v0.16.3) (2025-06-17)
 
 ### Added
