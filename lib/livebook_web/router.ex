@@ -178,7 +178,7 @@ defmodule LivebookWeb.Router do
 
   defp within_iframe_secure_headers(conn, _opts) do
     if Livebook.Config.within_iframe?() do
-      delete_resp_header(conn, "x-frame-options")
+      put_resp_header(conn, "content-security-policy", "base-uri 'self'; frame-ancestors *;")
     else
       conn
     end
