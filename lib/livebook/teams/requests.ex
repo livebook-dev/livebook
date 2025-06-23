@@ -318,10 +318,19 @@ defmodule Livebook.Teams.Requests do
       )
     else
       token =
-        if team.user_id do
-          "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
-        else
-          "#{team.session_token}:#{Livebook.Config.agent_name()}:#{team.org_id}:#{team.org_key_id}"
+        case team do
+          %{session_token: "lb_dk_" <> _} = team ->
+            [deploy_key, deployment_group_name] = String.split(team.session_token, ":", parts: 2)
+            key_hash = Livebook.Teams.Org.key_hash(team.teams_key)
+
+            "#{deploy_key}:#{key_hash}:#{deployment_group_name}"
+
+          %{user_id: nil} = team ->
+            agent_name = Livebook.Config.agent_name()
+            "#{team.session_token}:#{agent_name}:#{team.org_id}:#{team.org_key_id}"
+
+          team ->
+            "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
         end
 
       Req.Request.merge_options(req, auth: {:bearer, token})
