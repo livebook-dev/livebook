@@ -52,6 +52,7 @@ defmodule LivebookCLI.Deploy do
 
   @impl true
   def call(args) do
+    Application.put_env(:livebook, :mode, :cli)
     config = config_from_args(args)
 
     with :ok <- validate_config(config),
