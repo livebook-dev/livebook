@@ -250,6 +250,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
               deployment_group={deployment_group}
               num_agents={@num_agents}
               num_app_deployments={@num_app_deployments}
+              authorized={authorized_for_deployment_group?(deployment_group)}
               selectable
             />
           </div>
@@ -301,6 +302,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
 
   attr :active, :boolean, default: false
   attr :selectable, :boolean, default: false
+  attr :authorized, :boolean, default: true
   attr :deployment_group, :map, required: true
   attr :num_agents, :map, required: true
   attr :num_app_deployments, :map, required: true
@@ -310,29 +312,49 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     ~H"""
     <div
       class={[
-        "border p-3 rounded-lg",
-        @selectable && "cursor-pointer",
+        "border p-3 rounded-lg relative",
+        @selectable && @authorized && "cursor-pointer",
+        @selectable && !@authorized && "cursor-not-allowed",
+        !@authorized && "tooltip top",
         if(@active,
           do: "border-blue-600 bg-blue-50",
           else: "border-gray-200"
-        )
+        ),
+        !@authorized && "opacity-50 bg-gray-50"
       ]}
-      phx-click={@selectable && "select_deployment_group"}
+      style={!@authorized && "display: block !important;"}
+      data-tooltip={!@authorized && "You are not authorized to deploy to this deployment group"}
+      phx-click={@selectable && @authorized && "select_deployment_group"}
       phx-value-id={@deployment_group.id}
       {@rest}
     >
       <div class="flex justify-between items-center">
-        <div class="flex gap-2 items-center text-gray-700">
-          <h3 class="text-sm">
+        <div class="flex gap-2 items-center">
+          <h3 class={[
+            "text-sm",
+            if(@authorized, do: "text-gray-700", else: "text-gray-500")
+          ]}>
             <span class="font-semibold">{@deployment_group.name}</span>
             <span :if={url = @deployment_group.url}>({url})</span>
           </h3>
         </div>
-        <div class="flex gap-2">
-          <div class="text-sm text-gray-700 border-l border-gray-300 pl-2">
+        <div class="flex gap-2 flex-shrink-0">
+          <div class={[
+            "text-sm border-l pl-2",
+            if(@authorized,
+              do: "border-gray-300 text-gray-700",
+              else: "border-gray-300 text-gray-500"
+            )
+          ]}>
             App servers: {@num_agents[@deployment_group.id] || 0}
           </div>
-          <div class="text-sm text-gray-700 border-l border-gray-300 pl-2">
+          <div class={[
+            "text-sm border-l pl-2",
+            if(@authorized,
+              do: "border-gray-300 text-gray-700",
+              else: "border-gray-300 text-gray-500"
+            )
+          ]}>
             Apps deployed: {@num_app_deployments[@deployment_group.id] || 0}
           </div>
         </div>
@@ -550,5 +572,11 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     Enum.reduce(opts, msg, fn {key, value}, acc ->
       String.replace(acc, "%{#{key}}", to_string(value))
     end)
+  end
+
+  # TODO: Replace with actual authorization logic from Livebook Teams
+  # For now, simulate that "production" and "staging" deployment groups require authorization
+  defp authorized_for_deployment_group?(deployment_group) do
+    deployment_group.name not in ["production", "staging"]
   end
 end
