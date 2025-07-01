@@ -137,7 +137,7 @@ defmodule Livebook.Hubs.TeamClient do
   @doc """
   Returns a list of cached environment variables.
   """
-  @spec get_environment_variables(String.t()) :: list(Teams.Agent.t())
+  @spec get_environment_variables(String.t()) :: list(Teams.EnvironmentVariable.t())
   def get_environment_variables(id) do
     GenServer.call(registry_name(id), :get_environment_variables)
   end
