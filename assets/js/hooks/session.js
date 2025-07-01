@@ -792,12 +792,10 @@ const Session = {
     });
 
     this.el.addEventListener("dragover", (event) => {
-      event.stopPropagation();
       event.preventDefault();
     });
 
     this.el.addEventListener("drop", (event) => {
-      event.stopPropagation();
       event.preventDefault();
 
       const insertDropEl = event.target.closest(`[data-el-insert-drop-area]`);
