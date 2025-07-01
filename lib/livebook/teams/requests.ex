@@ -296,23 +296,20 @@ defmodule Livebook.Teams.Requests do
 
   defp add_team_auth(req, nil), do: req
 
-  defp add_team_auth(req, team) do
-    if team.offline do
-      Req.Request.append_request_steps(req,
-        unauthorized: fn req ->
-          {req, Req.Response.new(status: 401)}
-        end
-      )
-    else
-      token =
-        if team.user_id do
-          "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
-        else
-          "#{team.session_token}:#{Livebook.Config.agent_name()}:#{team.org_id}:#{team.org_key_id}"
-        end
+  defp add_team_auth(req, %{offline: %{}}) do
+    Req.Request.append_request_steps(req, unauthorized: &{&1, Req.Response.new(status: 401)})
+  end
 
-      Req.Request.merge_options(req, auth: {:bearer, token})
-    end
+  defp add_team_auth(req, %{user_id: nil} = team) do
+    agent_name = Livebook.Config.agent_name()
+    token = "#{team.session_token}:#{agent_name}:#{team.org_id}:#{team.org_key_id}"
+
+    Req.Request.merge_options(req, auth: {:bearer, token})
+  end
+
+  defp add_team_auth(req, team) do
+    token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
+    Req.Request.merge_options(req, auth: {:bearer, token})
   end
 
   defp request(req, opts) do
