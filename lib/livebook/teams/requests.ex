@@ -241,57 +241,45 @@ defmodule Livebook.Teams.Requests do
   def error_message(), do: @error_message
 
   defp post(path, json, team \\ nil) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :post, url: path, json: json)
+    build_req(team)
+    |> Req.post(url: path, json: json)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
   defp put(path, json, team) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :put, url: path, json: json)
+    build_req(team)
+    |> Req.put(url: path, json: json)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
   defp delete(path, json, team) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :delete, url: path, json: json)
+    build_req(team)
+    |> Req.delete(url: path, json: json)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
   defp get(path, params \\ %{}, team \\ nil) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :get, url: path, params: params)
+    build_req(team)
+    |> Req.get(url: path, params: params)
+    |> handle_response()
   end
 
   defp upload(path, content, params, team) do
-    build_req()
-    |> add_team_auth(team)
+    build_req(team)
     |> Req.Request.put_header("content-length", "#{byte_size(content)}")
-    |> request(method: :post, url: path, params: params, body: content)
+    |> Req.post(url: path, params: params, body: content)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
-  defp build_req() do
-    base_url = URI.new!(Livebook.Config.teams_url())
-
-    options =
-      if userinfo = base_url.userinfo do
-        [
-          base_url: %{base_url | userinfo: nil},
-          auth: {:basic, userinfo}
-        ]
-      else
-        [
-          base_url: base_url
-        ]
-      end
-
-    Req.new([headers: [{"x-lb-version", Livebook.Config.app_version()}]] ++ options)
+  defp build_req(team) do
+    Req.new(base_url: Livebook.Config.teams_url())
+    |> Req.Request.put_new_header("x-lb-version", Livebook.Config.app_version())
     |> Livebook.Utils.req_attach_defaults()
+    |> add_team_auth(team)
   end
 
   defp add_team_auth(req, nil), do: req
@@ -312,18 +300,13 @@ defmodule Livebook.Teams.Requests do
     Req.Request.merge_options(req, auth: {:bearer, token})
   end
 
-  defp request(req, opts) do
-    case Req.request(req, opts) do
-      {:ok, %{status: 204, body: body}} ->
-        {:ok, body}
-
+  defp handle_response(response) do
+    case response do
       {:ok, %{status: status} = response} when status in 200..299 ->
         {:ok, response.body}
 
-      {:ok, %{status: status} = response} when status in [410, 422] ->
-        if json?(response),
-          do: {:error, response.body},
-          else: {:transport_error, response.body}
+      {:ok, %{status: status} = response} when status in [410, 404, 422] ->
+        return_error(response)
 
       {:ok, %{status: 401}} ->
         {:transport_error,
@@ -350,6 +333,12 @@ defmodule Livebook.Teams.Requests do
   end
 
   defp dispatch_messages(result, _), do: result
+
+  defp return_error(response) do
+    if json?(response),
+      do: {:error, response.body},
+      else: {:transport_error, response.body}
+  end
 
   defp json?(response) do
     "application/json; charset=utf-8" in Req.Response.get_header(response, "content-type")

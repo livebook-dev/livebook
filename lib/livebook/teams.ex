@@ -12,6 +12,7 @@ defmodule Livebook.Teams do
     only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
 
   @prefix Org.teams_key_prefix()
+  @error_message Requests.error_message()
 
   @doc """
   Creates an Org.
@@ -79,6 +80,7 @@ defmodule Livebook.Teams do
       {:ok, %{"status" => "awaiting_confirmation"}} -> {:ok, :awaiting_confirmation}
       {:ok, completion_data} -> {:ok, completion_data}
       {:error, %{"status" => "expired"}} -> {:error, :expired}
+      {:error, _} -> {:transport_error, @error_message}
       any -> any
     end
   end
@@ -197,7 +199,7 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Creates a new app deployment.
+  Deploys the given app deployment.
   """
   @spec deploy_app(Team.t(), Teams.AppDeployment.t()) ::
           :ok
