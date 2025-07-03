@@ -12,6 +12,8 @@ defmodule Livebook.TeamsIntegrationHelper do
       {:user, _} -> Map.merge(context, create_user_hub(context.node))
       {:agent, false} -> Map.merge(context, new_agent_hub(context.node))
       {:agent, _} -> Map.merge(context, create_agent_hub(context.node))
+      {:cli, false} -> Map.merge(context, new_cli_hub(context.node))
+      {:cli, _} -> Map.merge(context, create_cli_hub(context.node))
       _otherwise -> context
     end
   end
@@ -56,6 +58,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       Factory.build(:team,
         id: "team-#{org.name}",
         hub_name: org.name,
+        hub_emoji: "💡",
         user_id: user.id,
         org_id: org.id,
         org_key_id: org_key.id,
@@ -124,6 +127,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       Factory.build(:team,
         id: "team-#{org.name}",
         hub_name: org.name,
+        hub_emoji: "💡",
         user_id: nil,
         org_id: org.id,
         org_key_id: org_key.id,
@@ -134,6 +138,61 @@ defmodule Livebook.TeamsIntegrationHelper do
 
     %{
       agent_key: agent_key,
+      deployment_group: deployment_group,
+      org: org,
+      org_key: org_key,
+      org_key_pair: org_key_pair,
+      team: team
+    }
+  end
+
+  @doc false
+  def create_cli_hub(node, opts \\ []) do
+    context = new_cli_hub(node, opts)
+
+    Hubs.save_hub(context.team)
+    ExUnit.Callbacks.on_exit(fn -> Hubs.delete_hub(context.team.id) end)
+
+    %{context | team: Hubs.fetch_hub!(context.team.id)}
+  end
+
+  @doc false
+  def new_cli_hub(node, opts \\ []) do
+    {teams_key, key_hash} = generate_key_hash()
+
+    org = TeamsRPC.create_org(node)
+    org_key = TeamsRPC.create_org_key(node, org: org, key_hash: key_hash)
+    org_key_pair = TeamsRPC.create_org_key_pair(node, org: org)
+
+    attrs =
+      opts
+      |> Keyword.get(:deployment_group, [])
+      |> Keyword.merge(
+        name: "angry-cat-#{Ecto.UUID.generate()}",
+        mode: :online,
+        org: org
+      )
+
+    deployment_group = TeamsRPC.create_deployment_group(node, attrs)
+    {key, deploy_key} = TeamsRPC.create_deploy_key(node, org: org)
+
+    TeamsRPC.create_billing_subscription(node, org)
+
+    team =
+      Factory.build(:team,
+        id: "team-#{org.name}",
+        hub_name: org.name,
+        hub_emoji: "🚀",
+        user_id: nil,
+        org_id: org.id,
+        org_key_id: org_key.id,
+        org_public_key: org_key_pair.public_key,
+        session_token: key,
+        teams_key: teams_key
+      )
+
+    %{
+      deploy_key: Map.replace!(deploy_key, :key_hash, key),
       deployment_group: deployment_group,
       org: org,
       org_key: org_key,

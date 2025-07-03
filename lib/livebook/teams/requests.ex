@@ -5,6 +5,7 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
 
+  @cli_deploy_key_prefix "lb_dk_"
   @error_message "Something went wrong, try again later or please file a bug if it persists"
 
   @typep api_result :: {:ok, map()} | error_result()
@@ -224,6 +225,14 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
+  Send a request to Livebook Team API to return a session using a deploy key.
+  """
+  @spec fetch_cli_session(map()) :: api_result()
+  def fetch_cli_session(config) do
+    post("/api/v1/cli/auth", %{}, config)
+  end
+
+  @doc """
   Normalizes errors map into errors for the given schema.
   """
   @spec to_error_list(module(), %{String.t() => list(String.t())}) ::
@@ -286,6 +295,11 @@ defmodule Livebook.Teams.Requests do
 
   defp add_team_auth(req, %{offline: %{}}) do
     Req.Request.append_request_steps(req, unauthorized: &{&1, Req.Response.new(status: 401)})
+  end
+
+  defp add_team_auth(req, %{session_token: @cli_deploy_key_prefix <> _} = team) do
+    token = "#{team.session_token}:#{Teams.Org.key_hash(team.teams_key)}"
+    Req.Request.merge_options(req, auth: {:bearer, token})
   end
 
   defp add_team_auth(req, %{user_id: nil} = team) do

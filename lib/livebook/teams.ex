@@ -245,6 +245,43 @@ defmodule Livebook.Teams do
     TeamClient.get_environment_variables(team.id)
   end
 
+  @doc """
+  Fetches the CLI session using a deploy key.
+  """
+  @spec fetch_cli_session(map()) ::
+          {:ok, Team.t()} | {:error, String.t()} | {:transport_error, String.t()}
+  def fetch_cli_session(%{session_token: _, teams_key: _} = config) do
+    case Requests.fetch_cli_session(config) do
+      {:ok, %{"name" => name} = attrs} ->
+        id = "team-#{name}"
+
+        hub =
+          if Hubs.hub_exists?(id) do
+            %{Hubs.fetch_hub!(id) | user_id: nil, session_token: config.session_token}
+          else
+            %Team{
+              id: id,
+              hub_name: name,
+              hub_emoji: "🚀",
+              user_id: nil,
+              org_id: attrs["org_id"],
+              org_key_id: attrs["org_key_id"],
+              session_token: config.session_token,
+              teams_key: config.teams_key,
+              org_public_key: attrs["public_key"]
+            }
+          end
+
+        {:ok, hub}
+
+      {:error, %{"errors" => %{"detail" => error}}} ->
+        {:transport_error, "Livebook Teams API returned error: #{error}"}
+
+      other ->
+        other
+    end
+  end
+
   defp map_teams_field_to_livebook_field(map, teams_field, livebook_field) do
     if value = map[teams_field] do
       Map.put_new(map, livebook_field, value)

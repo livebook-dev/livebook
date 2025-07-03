@@ -247,4 +247,49 @@ defmodule Livebook.TeamsTest do
       assert_receive {:app_deployment_stopped, ^app_deployment2}
     end
   end
+
+  describe "fetch_cli_session/1" do
+    @describetag teams_for: :cli
+
+    @tag teams_persisted: false
+    test "authenticates the deploy key", %{team: team} do
+      config = %{teams_key: team.teams_key, session_token: team.session_token}
+
+      assert Teams.fetch_cli_session(config) == {:ok, team}
+      refute Livebook.Hubs.hub_exists?(team.id)
+    end
+
+    @tag teams_for: :user
+    test "authenticates the deploy key when hub already exists",
+         %{team: team, org: org, node: node} do
+      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      config = %{teams_key: team.teams_key, session_token: key}
+
+      assert Teams.fetch_cli_session(config) ==
+               {:ok,
+                %Livebook.Hubs.Team{
+                  billing_status: team.billing_status,
+                  hub_emoji: team.hub_emoji,
+                  hub_name: team.hub_name,
+                  id: team.id,
+                  offline: nil,
+                  org_id: team.org_id,
+                  org_key_id: team.org_key_id,
+                  org_public_key: team.org_public_key,
+                  session_token: key,
+                  teams_key: team.teams_key,
+                  user_id: nil
+                }}
+
+      assert Livebook.Hubs.hub_exists?(team.id)
+    end
+
+    @tag teams_persisted: false
+    test "returns error with invalid credentials", %{team: team} do
+      config = %{teams_key: team.teams_key, session_token: "lb_dk_foo"}
+
+      assert {:transport_error, "You are not authorized" <> _} = Teams.fetch_cli_session(config)
+      refute Livebook.Hubs.hub_exists?(team.id)
+    end
+  end
 end
