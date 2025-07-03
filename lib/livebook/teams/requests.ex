@@ -233,6 +233,26 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
+  Send a request to Livebook Team API to deploy an app using a deploy key.
+  """
+  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), String.t()) :: api_result()
+  def deploy_app_from_cli(team, app_deployment, deployment_group_name) do
+    secret_key = Teams.derive_key(team.teams_key)
+
+    params = %{
+      title: app_deployment.title,
+      slug: app_deployment.slug,
+      multi_session: app_deployment.multi_session,
+      access_type: app_deployment.access_type,
+      deployment_group_name: deployment_group_name,
+      sha: app_deployment.sha
+    }
+
+    encrypted_content = Teams.encrypt(app_deployment.file, secret_key)
+    upload("/api/v1/cli/org/apps", encrypted_content, params, team)
+  end
+
+  @doc """
   Normalizes errors map into errors for the given schema.
   """
   @spec to_error_list(module(), %{String.t() => list(String.t())}) ::
