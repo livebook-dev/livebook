@@ -1,6 +1,7 @@
 defmodule LivebookWeb.UserPlugTest do
   use ExUnit.Case, async: true
-  use Plug.Test
+  import Plug.Test
+  import Plug.Conn
 
   defp call(conn) do
     LivebookWeb.UserPlug.call(conn, LivebookWeb.UserPlug.init([]))
