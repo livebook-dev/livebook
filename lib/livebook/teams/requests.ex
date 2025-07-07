@@ -6,9 +6,13 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Teams
 
   @error_message "Something went wrong, try again later or please file a bug if it persists"
+  @unauthorized_error_message "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
 
   @typep api_result :: {:ok, map()} | error_result()
   @typep error_result :: {:error, map() | String.t()} | {:transport_error, String.t()}
+
+  @doc false
+  def error_message(), do: @error_message
 
   @doc """
   Send a request to Livebook Team API to create a new org.
@@ -237,61 +241,48 @@ defmodule Livebook.Teams.Requests do
         do: {field, errors}
   end
 
-  @doc false
-  def error_message(), do: @error_message
-
   defp post(path, json, team \\ nil) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :post, url: path, json: json)
+    build_req(team)
+    |> Req.post(url: path, json: json)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
   defp put(path, json, team) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :put, url: path, json: json)
+    build_req(team)
+    |> Req.put(url: path, json: json)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
   defp delete(path, json, team) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :delete, url: path, json: json)
+    build_req(team)
+    |> Req.delete(url: path, json: json)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
   defp get(path, params \\ %{}, team \\ nil) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :get, url: path, params: params)
+    build_req(team)
+    |> Req.get(url: path, params: params)
+    |> handle_response()
   end
 
   defp upload(path, content, params, team) do
-    build_req()
-    |> add_team_auth(team)
+    build_req(team)
     |> Req.Request.put_header("content-length", "#{byte_size(content)}")
-    |> request(method: :post, url: path, params: params, body: content)
+    |> Req.Request.put_private(:deploy, true)
+    |> Req.post(url: path, params: params, body: content)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
-  defp build_req() do
-    base_url = URI.new!(Livebook.Config.teams_url())
-
-    options =
-      if userinfo = base_url.userinfo do
-        [
-          base_url: %{base_url | userinfo: nil},
-          auth: {:basic, userinfo}
-        ]
-      else
-        [
-          base_url: base_url
-        ]
-      end
-
-    Req.new([headers: [{"x-lb-version", Livebook.Config.app_version()}]] ++ options)
+  defp build_req(team) do
+    Req.new(base_url: Livebook.Config.teams_url())
+    |> Req.Request.put_new_header("x-lb-version", Livebook.Config.app_version())
+    |> Req.Request.append_response_steps(transform_teams_response: &transform_response/1)
     |> Livebook.Utils.req_attach_defaults()
+    |> add_team_auth(team)
   end
 
   defp add_team_auth(req, nil), do: req
@@ -312,25 +303,24 @@ defmodule Livebook.Teams.Requests do
     Req.Request.merge_options(req, auth: {:bearer, token})
   end
 
-  defp request(req, opts) do
-    case Req.request(req, opts) do
-      {:ok, %{status: 204, body: body}} ->
-        {:ok, body}
+  defp transform_response({request, response}) do
+    case {request, response} do
 
-      {:ok, %{status: status} = response} when status in 200..299 ->
-        {:ok, response.body}
-
-      {:ok, %{status: status} = response} when status in [410, 422] ->
-        if json?(response),
-          do: {:error, response.body},
-          else: {:transport_error, response.body}
-
-      {:ok, %{status: 401}} ->
-        {:transport_error,
-         "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"}
+      {request, %{status: 400, body: %{"errors" => %{"detail" => error}}}}
+      when request.private.deploy ->
+        {request, %{response | status: 422, body: %{"errors" => %{"file" => [error]}}}}
 
       _otherwise ->
-        {:transport_error, @error_message}
+        {request, response}
+    end
+  end
+
+  defp handle_response(response) do
+    case response do
+      {:ok, %{status: status} = response} when status in 200..299 -> {:ok, response.body}
+      {:ok, %{status: status} = response} when status in [410, 422] -> return_error(response)
+      {:ok, %{status: 401}} -> {:transport_error, @unauthorized_error_message}
+      _otherwise -> {:transport_error, @error_message}
     end
   end
 
@@ -350,6 +340,12 @@ defmodule Livebook.Teams.Requests do
   end
 
   defp dispatch_messages(result, _), do: result
+
+  defp return_error(response) do
+    if json?(response),
+      do: {:error, response.body},
+      else: {:transport_error, response.body}
+  end
 
   defp json?(response) do
     "application/json; charset=utf-8" in Req.Response.get_header(response, "content-type")
