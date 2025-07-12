@@ -32,15 +32,8 @@ config :livebook,
   check_completion_data_interval: 300,
   iframe_port: 4003
 
-data_path = Path.expand("tmp/livebook_data/test")
-
-# Clear data path for tests
-if File.exists?(data_path) do
-  File.rm_rf!(data_path)
-end
-
 config :livebook,
-  data_path: data_path,
+  data_path: Path.expand("tmp/livebook_data/test"),
   agent_name: "chonky-cat",
   k8s_kubeconfig_pipeline:
     {Kubereq.Kubeconfig.Stub,
