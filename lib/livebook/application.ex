@@ -444,6 +444,6 @@ defmodule Livebook.Application do
       end
     end
   else
-    defp setup_tets(), do: :ok
+    defp setup_tests(), do: :ok
   end
 end
