@@ -4,6 +4,8 @@ defmodule Livebook.Application do
   require Logger
 
   def start(_type, _args) do
+    setup_tests()
+
     Logger.add_handlers(:livebook)
     Livebook.ZTA.init()
     create_teams_hub = parse_teams_hub()
@@ -431,5 +433,17 @@ defmodule Livebook.Application do
 
   defp serverless?() do
     Application.get_env(:livebook, :serverless, false)
+  end
+
+  if Mix.env() == :test do
+    defp setup_tests() do
+      data_path = Livebook.Config.data_path()
+      # Clear data path for tests
+      if File.exists?(data_path) do
+        File.rm_rf!(data_path)
+      end
+    end
+  else
+    defp setup_tets(), do: :ok
   end
 end
