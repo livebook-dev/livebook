@@ -1,5 +1,5 @@
 defmodule LivebookWeb.Integration.AppSessionLiveTest do
-  use Livebook.TeamsIntegrationCase, async: false
+  use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
 
