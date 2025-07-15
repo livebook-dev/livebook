@@ -305,7 +305,6 @@ defmodule Livebook.Teams.Requests do
 
   defp transform_response({request, response}) do
     case {request, response} do
-
       {request, %{status: 400, body: %{"errors" => %{"detail" => error}}}}
       when request.private.deploy ->
         {request, %{response | status: 422, body: %{"errors" => %{"file" => [error]}}}}

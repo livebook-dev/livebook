@@ -96,6 +96,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
         "sales-app-#{Livebook.Utils.random_short_id()}",
         "opt-app-#{Livebook.Utils.random_short_id()}"
       ]
+
       context = change_to_user_session(context)
 
       for slug <- slugs do
