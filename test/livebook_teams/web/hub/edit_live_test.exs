@@ -9,7 +9,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:crud, :connection, :secrets, :file_systems]
-  @moduletag subscribe_to_teams_topics: [:clients]
+  @moduletag subscribe_to_teams_topics: [:clients, :agents]
 
   describe "user" do
     @describetag teams_for: :user
@@ -286,7 +286,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
   describe "agent" do
     @describetag teams_for: :agent
-    @describetag subscribe_to_teams_topics: [:clients, :agents]
 
     test "shows an error when creating a secret", %{conn: conn, team: team} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")

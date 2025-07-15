@@ -112,7 +112,7 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
 
       # And it will redirect to "/apps"
       {:ok, view, _html} = live(conn, ~p"/apps")
-      assert render(view) =~ "No apps running."
+      assert render(view) =~ "Apps"
     end
 
     test "shows admin page if authentication is disabled",

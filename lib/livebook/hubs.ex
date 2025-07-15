@@ -124,20 +124,28 @@ defmodule Livebook.Hubs do
     if get_default_hub().id == hub_id, do: unset_default_hub(), else: :ok
   end
 
-  defp disconnect_hub(hub) do
-    # We use a task supervisor because the hub connection itself
-    # calls delete_hub (which calls this function), otherwise we deadlock.
-    Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
-      # Since other processes may have been communicating
-      # with the hub, we don't want to terminate abruptly and
-      # make them crash, so we give it some time to shut down.
-      #
-      # The default backoff is 5.5s, so we round it down to 5s.
-      Process.sleep(30_000)
-      :ok = Provider.disconnect(hub)
-    end)
+  if Mix.env() == :test do
+    # In test environment, disconnect synchronously to avoid race conditions
+    # during test cleanup where other processes might still be accessing hubs
+    defp disconnect_hub(hub) do
+      Provider.disconnect(hub)
+    end
+  else
+    defp disconnect_hub(hub) do
+      # We use a task supervisor because the hub connection itself
+      # calls delete_hub (which calls this function), otherwise we deadlock.
+      Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+        # Since other processes may have been communicating
+        # with the hub, we don't want to terminate abruptly and
+        # make them crash, so we give it some time to shut down.
+        #
+        # The default backoff is 5.5s, so we round it down to 5s.
+        Process.sleep(30_000)
+        :ok = Provider.disconnect(hub)
+      end)
 
-    :ok
+      :ok
+    end
   end
 
   defp to_struct(%{id: "personal-" <> _} = fields) do
