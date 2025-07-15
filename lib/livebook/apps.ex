@@ -86,6 +86,8 @@ defmodule Livebook.Apps do
     Livebook.Hubs.TeamClient.user_app_access?(id, user.groups, slug)
   end
 
+  def authorized?(%{permanent: false}, _user), do: true
+
   @doc """
   Updates the given app info across the cluster.
   """
