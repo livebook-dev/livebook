@@ -27,6 +27,10 @@ defmodule Livebook.TeamsIntegrationHelper do
     context = new_user_hub(node)
     Hubs.save_hub(context.team)
 
+    ExUnit.Callbacks.on_exit(fn ->
+      Hubs.delete_hub(context.team.id)
+    end)
+
     wait_until_client_start(context)
   end
 
@@ -67,6 +71,10 @@ defmodule Livebook.TeamsIntegrationHelper do
   defp create_agent_hub(node, opts \\ []) do
     context = new_agent_hub(node, opts)
     Hubs.save_hub(context.team)
+
+    ExUnit.Callbacks.on_exit(fn ->
+      Hubs.delete_hub(context.team.id)
+    end)
 
     wait_until_agent_start(context)
   end
