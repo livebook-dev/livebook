@@ -75,7 +75,6 @@ defmodule Livebook.AppHelpers do
     on_exit(fn ->
       if Process.alive?(pid) do
         Livebook.App.close(pid)
-        Process.exit(pid, :kill)
       end
     end)
 
