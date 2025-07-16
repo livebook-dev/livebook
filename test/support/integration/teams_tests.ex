@@ -23,16 +23,14 @@ defmodule Livebook.TeamsIntegrationHelper do
     Map.merge(context, %{conn: conn, code: code})
   end
 
-  @doc false
-  def create_user_hub(node) do
+  defp create_user_hub(node) do
     context = new_user_hub(node)
     Hubs.save_hub(context.team)
 
     wait_until_client_start(context)
   end
 
-  @doc false
-  def new_user_hub(node) do
+  defp new_user_hub(node) do
     {teams_key, key_hash} = generate_key_hash()
 
     org = TeamsRPC.create_org(node)
@@ -66,16 +64,14 @@ defmodule Livebook.TeamsIntegrationHelper do
     }
   end
 
-  @doc false
-  def create_agent_hub(node, opts \\ []) do
+  defp create_agent_hub(node, opts \\ []) do
     context = new_agent_hub(node, opts)
     Hubs.save_hub(context.team)
 
     wait_until_agent_start(context)
   end
 
-  @doc false
-  def new_agent_hub(node, opts \\ []) do
+  defp new_agent_hub(node, opts \\ []) do
     {teams_key, key_hash} = generate_key_hash()
 
     org = TeamsRPC.create_org(node)
@@ -119,8 +115,7 @@ defmodule Livebook.TeamsIntegrationHelper do
     }
   end
 
-  @doc false
-  def authenticate_user_on_teams(name, conn, node, team) do
+  defp authenticate_user_on_teams(name, conn, node, team) do
     # Create a fresh connection to avoid session contamination
     fresh_conn = Phoenix.ConnTest.build_conn()
 
@@ -151,7 +146,6 @@ defmodule Livebook.TeamsIntegrationHelper do
      code}
   end
 
-  @doc false
   def change_to_agent_session(%{node: node, teams_for: :user} = context) do
     pid = Hubs.TeamClient.get_pid(context.team.id)
     Hubs.TeamClient.stop(context.team.id)
