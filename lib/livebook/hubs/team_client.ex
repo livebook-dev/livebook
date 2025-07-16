@@ -63,6 +63,8 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_secrets(String.t()) :: list(Secrets.Secret.t())
   def get_secrets(id) do
     GenServer.call(registry_name(id), :get_secrets)
+  catch
+    :exit, _ -> []
   end
 
   @doc """
@@ -71,6 +73,8 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_file_systems(String.t()) :: list(FileSystem.t())
   def get_file_systems(id) do
     GenServer.call(registry_name(id), :get_file_systems)
+  catch
+    :exit, _ -> []
   end
 
   @doc """
@@ -106,6 +110,8 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_agent_app_deployments(String.t()) :: list(Teams.AppDeployment.t())
   def get_agent_app_deployments(id) do
     GenServer.call(registry_name(id), :get_agent_app_deployments)
+  catch
+    :exit, _ -> []
   end
 
   @doc """
@@ -137,7 +143,7 @@ defmodule Livebook.Hubs.TeamClient do
   @doc """
   Returns a list of cached environment variables.
   """
-  @spec get_environment_variables(String.t()) :: list(Teams.Agent.t())
+  @spec get_environment_variables(String.t()) :: list(Teams.EnvironmentVariable.t())
   def get_environment_variables(id) do
     GenServer.call(registry_name(id), :get_environment_variables)
   end

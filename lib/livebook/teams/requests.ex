@@ -6,12 +6,18 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Teams
 
   @error_message "Something went wrong, try again later or please file a bug if it persists"
+  @unauthorized_error_message "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
+
+  @typep api_result :: {:ok, map()} | error_result()
+  @typep error_result :: {:error, map() | String.t()} | {:transport_error, String.t()}
+
+  @doc false
+  def error_message(), do: @error_message
 
   @doc """
   Send a request to Livebook Team API to create a new org.
   """
-  @spec create_org(Teams.Org.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec create_org(Teams.Org.t()) :: api_result()
   def create_org(org) do
     post("/api/v1/org-request", %{name: org.name, key_hash: Teams.Org.key_hash(org)})
   end
@@ -19,8 +25,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to join an org.
   """
-  @spec join_org(Teams.Org.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec join_org(Teams.Org.t()) :: api_result()
   def join_org(org) do
     post("/api/v1/org-request/join", %{name: org.name, key_hash: Teams.Org.key_hash(org)})
   end
@@ -28,8 +33,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to get an org request.
   """
-  @spec get_org_request_completion_data(pos_integer(), binary) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec get_org_request_completion_data(pos_integer(), binary) :: api_result()
   def get_org_request_completion_data(id, device_code) do
     get("/api/v1/org-request/#{id}?device_code=#{device_code}")
   end
@@ -37,8 +41,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to sign the given payload.
   """
-  @spec org_sign(Team.t(), String.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec org_sign(Team.t(), String.t()) :: api_result()
   def org_sign(team, payload) do
     post("/api/v1/org/sign", %{payload: payload}, team)
   end
@@ -46,8 +49,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to create a secret.
   """
-  @spec create_secret(Team.t(), Secret.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec create_secret(Team.t(), Secret.t()) :: api_result()
   def create_secret(team, %{deployment_group_id: nil} = secret) do
     secret_key = Teams.derive_key(team.teams_key)
     secret_value = Teams.encrypt(secret.value, secret_key)
@@ -71,8 +73,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to update a secret.
   """
-  @spec update_secret(Team.t(), Secret.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec update_secret(Team.t(), Secret.t()) :: api_result()
   def update_secret(team, %{deployment_group_id: nil} = secret) do
     secret_key = Teams.derive_key(team.teams_key)
     secret_value = Teams.encrypt(secret.value, secret_key)
@@ -96,8 +97,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to delete a secret.
   """
-  @spec delete_secret(Team.t(), Secret.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec delete_secret(Team.t(), Secret.t()) :: api_result()
   def delete_secret(team, %{deployment_group_id: nil} = secret) do
     delete("/api/v1/org/secrets", %{name: secret.name}, team)
   end
@@ -111,8 +111,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to create a file system.
   """
-  @spec create_file_system(Team.t(), FileSystem.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec create_file_system(Team.t(), FileSystem.t()) :: api_result()
   def create_file_system(team, file_system) do
     secret_key = Teams.derive_key(team.teams_key)
 
@@ -133,8 +132,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to update a file system.
   """
-  @spec update_file_system(Team.t(), FileSystem.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec update_file_system(Team.t(), FileSystem.t()) :: api_result()
   def update_file_system(team, file_system) do
     secret_key = Teams.derive_key(team.teams_key)
 
@@ -156,8 +154,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to delete a file system.
   """
-  @spec delete_file_system(Team.t(), FileSystem.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec delete_file_system(Team.t(), FileSystem.t()) :: api_result()
   def delete_file_system(team, file_system) do
     delete("/api/v1/org/file-systems", %{id: file_system.external_id}, team)
   end
@@ -165,8 +162,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to create a deployment group.
   """
-  @spec create_deployment_group(Team.t(), Teams.DeploymentGroup.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec create_deployment_group(Team.t(), Teams.DeploymentGroup.t()) :: api_result()
   def create_deployment_group(team, deployment_group) do
     params = %{
       name: deployment_group.name,
@@ -181,8 +177,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to deploy an app.
   """
-  @spec deploy_app(Team.t(), Teams.AppDeployment.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec deploy_app(Team.t(), Teams.AppDeployment.t()) :: api_result()
   def deploy_app(team, app_deployment) do
     secret_key = Teams.derive_key(team.teams_key)
 
@@ -202,8 +197,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to download an app revision.
   """
-  @spec download_revision(Team.t(), Teams.AppDeployment.t()) ::
-          {:ok, binary()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec download_revision(Team.t(), Teams.AppDeployment.t()) :: {:ok, binary()} | error_result()
   def download_revision(team, app_deployment) do
     params = %{id: app_deployment.id, deployment_group_id: app_deployment.deployment_group_id}
     get("/api/v1/org/apps", params, team)
@@ -212,8 +206,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to create a new auth request.
   """
-  @spec create_auth_request(Team.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec create_auth_request(Team.t()) :: api_result()
   def create_auth_request(team) do
     post("/api/v1/org/identity", %{}, team)
   end
@@ -221,8 +214,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to get the access token from given auth request code.
   """
-  @spec retrieve_access_token(Team.t(), String.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec retrieve_access_token(Team.t(), String.t()) :: api_result()
   def retrieve_access_token(team, code) do
     post("/api/v1/org/identity/token", %{code: code}, team)
   end
@@ -230,8 +222,7 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to get the user information from given access token.
   """
-  @spec get_user_info(Team.t(), String.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  @spec get_user_info(Team.t(), String.t()) :: api_result()
   def get_user_info(team, access_token) do
     get("/api/v1/org/identity", %{access_token: access_token}, team)
   end
@@ -250,103 +241,85 @@ defmodule Livebook.Teams.Requests do
         do: {field, errors}
   end
 
-  @doc false
-  def error_message(), do: @error_message
-
   defp post(path, json, team \\ nil) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :post, url: path, json: json)
+    build_req(team)
+    |> Req.post(url: path, json: json)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
   defp put(path, json, team) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :put, url: path, json: json)
+    build_req(team)
+    |> Req.put(url: path, json: json)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
   defp delete(path, json, team) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :delete, url: path, json: json)
+    build_req(team)
+    |> Req.delete(url: path, json: json)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
   defp get(path, params \\ %{}, team \\ nil) do
-    build_req()
-    |> add_team_auth(team)
-    |> request(method: :get, url: path, params: params)
+    build_req(team)
+    |> Req.get(url: path, params: params)
+    |> handle_response()
   end
 
   defp upload(path, content, params, team) do
-    build_req()
-    |> add_team_auth(team)
+    build_req(team)
     |> Req.Request.put_header("content-length", "#{byte_size(content)}")
-    |> request(method: :post, url: path, params: params, body: content)
+    |> Req.Request.put_private(:deploy, true)
+    |> Req.post(url: path, params: params, body: content)
+    |> handle_response()
     |> dispatch_messages(team)
   end
 
-  defp build_req() do
-    base_url = URI.new!(Livebook.Config.teams_url())
-
-    options =
-      if userinfo = base_url.userinfo do
-        [
-          base_url: %{base_url | userinfo: nil},
-          auth: {:basic, userinfo}
-        ]
-      else
-        [
-          base_url: base_url
-        ]
-      end
-
-    Req.new([headers: [{"x-lb-version", Livebook.Config.app_version()}]] ++ options)
+  defp build_req(team) do
+    Req.new(base_url: Livebook.Config.teams_url())
+    |> Req.Request.put_new_header("x-lb-version", Livebook.Config.app_version())
+    |> Req.Request.append_response_steps(transform_teams_response: &transform_response/1)
     |> Livebook.Utils.req_attach_defaults()
+    |> add_team_auth(team)
   end
 
   defp add_team_auth(req, nil), do: req
 
-  defp add_team_auth(req, team) do
-    if team.offline do
-      Req.Request.append_request_steps(req,
-        unauthorized: fn req ->
-          {req, Req.Response.new(status: 401)}
-        end
-      )
-    else
-      token =
-        if team.user_id do
-          "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
-        else
-          "#{team.session_token}:#{Livebook.Config.agent_name()}:#{team.org_id}:#{team.org_key_id}"
-        end
+  defp add_team_auth(req, %{offline: %{}}) do
+    Req.Request.append_request_steps(req, unauthorized: &{&1, Req.Response.new(status: 401)})
+  end
 
-      Req.Request.merge_options(req, auth: {:bearer, token})
+  defp add_team_auth(req, %{user_id: nil} = team) do
+    agent_name = Livebook.Config.agent_name()
+    token = "#{team.session_token}:#{agent_name}:#{team.org_id}:#{team.org_key_id}"
+
+    Req.Request.merge_options(req, auth: {:bearer, token})
+  end
+
+  defp add_team_auth(req, team) do
+    token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
+    Req.Request.merge_options(req, auth: {:bearer, token})
+  end
+
+  defp transform_response({request, response}) do
+    case {request, response} do
+      {request, %{status: 400, body: %{"errors" => %{"detail" => error}}}}
+      when request.private.deploy ->
+        {request, %{response | status: 422, body: %{"errors" => %{"file" => [error]}}}}
+
+      _otherwise ->
+        {request, response}
     end
   end
 
-  defp request(req, opts) do
-    case Req.request(req, opts) do
-      {:ok, %{status: 204, body: body}} ->
-        {:ok, body}
-
-      {:ok, %{status: status} = response} when status in 200..299 ->
-        {:ok, response.body}
-
-      {:ok, %{status: status} = response} when status in [410, 422] ->
-        if json?(response),
-          do: {:error, response.body},
-          else: {:transport_error, response.body}
-
-      {:ok, %{status: 401}} ->
-        {:transport_error,
-         "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"}
-
-      _otherwise ->
-        {:transport_error, @error_message}
+  defp handle_response(response) do
+    case response do
+      {:ok, %{status: status} = response} when status in 200..299 -> {:ok, response.body}
+      {:ok, %{status: status} = response} when status in [410, 422] -> return_error(response)
+      {:ok, %{status: 401}} -> {:transport_error, @unauthorized_error_message}
+      _otherwise -> {:transport_error, @error_message}
     end
   end
 
@@ -366,6 +339,12 @@ defmodule Livebook.Teams.Requests do
   end
 
   defp dispatch_messages(result, _), do: result
+
+  defp return_error(response) do
+    if json?(response),
+      do: {:error, response.body},
+      else: {:transport_error, response.body}
+  end
 
   defp json?(response) do
     "application/json; charset=utf-8" in Req.Response.get_header(response, "content-type")

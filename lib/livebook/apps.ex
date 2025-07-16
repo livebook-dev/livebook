@@ -76,6 +76,10 @@ defmodule Livebook.Apps do
 
   @doc """
   Returns if the given running app is authorized to given user.
+
+  Teams apps have authorization rules that can restrict access on
+  per-user basis. This kind of authorization is not applicable to
+  other types of apps, for those this function always returns `true`.
   """
   @spec authorized?(App.t(), Livebook.Users.User.t()) :: boolean()
   def authorized?(app, user)
@@ -85,6 +89,8 @@ defmodule Livebook.Apps do
   def authorized?(%{slug: slug, app_spec: %Apps.TeamsAppSpec{hub_id: id}}, user) do
     Livebook.Hubs.TeamClient.user_app_access?(id, user.groups, slug)
   end
+
+  def authorized?(_app, _user), do: true
 
   @doc """
   Updates the given app info across the cluster.

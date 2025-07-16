@@ -10,27 +10,24 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
   @moduletag subscribe_to_teams_topics: [:clients, :agents]
 
   describe "authenticate/3" do
-    setup %{team: team} do
+    setup %{team: team, test: test} do
       Livebook.Apps.subscribe()
-
-      start_supervised!(
-        {Livebook.ZTA.LivebookTeams, name: LivebookWeb.ZTA, identity_key: team.id}
-      )
+      start_supervised!({LivebookTeams, name: test, identity_key: team.id})
 
       :ok
     end
 
-    test "renders HTML with JavaScript redirect", %{conn: conn} do
+    test "renders HTML with JavaScript redirect", %{conn: conn, test: test} do
       conn = init_test_session(conn, %{})
-      assert {conn, nil} = authenticate(conn, [])
+      assert {conn, nil} = LivebookTeams.authenticate(test, conn, [])
       assert conn.halted
       assert html_response(conn, 200) =~ "window.location.href = "
     end
 
-    test "gets the user information from Livebook Teams", %{conn: conn, node: node} do
+    test "gets the user information from Livebook Teams", %{conn: conn, node: node, test: test} do
       # Step 1: Get redirected to Livebook Teams
       conn = init_test_session(conn, %{})
-      {conn, nil} = authenticate(conn, [])
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
       [_, location] = Regex.run(~r/URL\("(.*?)"\)/, html_response(conn, 200))
       uri = URI.parse(location)
@@ -45,7 +42,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         |> init_test_session(Plug.Conn.get_session(conn))
 
       assert {conn, %{id: _id, name: _, email: _, payload: %{}} = metadata} =
-               authenticate(conn, [])
+               LivebookTeams.authenticate(test, conn, [])
 
       assert redirected_to(conn, 302) == "/"
 
@@ -54,10 +51,10 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         build_conn(:get, "/")
         |> init_test_session(Plug.Conn.get_session(conn))
 
-      assert {%{halted: false}, ^metadata} = authenticate(conn, [])
+      assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
     end
 
-    test "shows an error when the user does not belong to the org", %{conn: conn} do
+    test "shows an error when the user does not belong to the org", %{conn: conn, test: test} do
       # Step 1: Emulate a request coming from Teams saying the user does belong to the org
       conn = init_test_session(conn, %{})
 
@@ -68,7 +65,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
       conn = %Plug.Conn{conn | params: params_from_teams}
 
-      {conn, nil} = authenticate(conn, [])
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
       assert conn.status == 302
 
       # Step 2: follow the redirect keeping the session set in previous request
@@ -76,7 +73,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         build_conn(:get, redirected_to(conn))
         |> init_test_session(get_session(conn))
 
-      {conn, nil} = authenticate(conn, [])
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
       assert html_response(conn, 403) =~
                "Failed to authenticate with Livebook Teams: you do not belong to this org"
@@ -86,9 +83,9 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
   describe "logout/2" do
     setup :livebook_teams_auth
 
-    test "revoke access token from Livebook Teams", %{conn: conn} do
+    test "revoke access token from Livebook Teams", %{conn: conn, test: test} do
       # Revoke the token and the metadata will be invalid for future requests
-      assert %{status: 302} = conn = logout(conn)
+      assert %{status: 302} = conn = LivebookTeams.logout(test, conn)
       [url] = get_resp_header(conn, "location")
       assert %{status: 200} = Req.get!(url)
 
@@ -97,17 +94,9 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         build_conn(:get, ~p"/")
         |> init_test_session(get_session(conn))
 
-      {conn, nil} = authenticate(conn, [])
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
       assert conn.halted
       assert html_response(conn, 200) =~ "window.location.href = "
     end
-  end
-
-  defp authenticate(conn, opts) do
-    LivebookTeams.authenticate(LivebookWeb.ZTA, conn, opts)
-  end
-
-  defp logout(conn) do
-    LivebookTeams.logout(LivebookWeb.ZTA, conn)
   end
 end

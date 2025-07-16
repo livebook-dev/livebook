@@ -1,7 +1,8 @@
 defmodule LivebookWeb.Integration.AppsLiveTest do
-  use Livebook.TeamsIntegrationCase, async: false
+  use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
+  import Livebook.AppHelpers
 
   @moduletag teams_for: :agent
   setup :teams
@@ -25,7 +26,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
 
     @tag :tmp_dir
     test "shows one app if user doesn't have full access",
-         %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
+         %{conn: conn, code: code, node: node, tmp_dir: tmp_dir} = context do
       TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
 
@@ -49,9 +50,12 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
         ]
       )
 
-      slug = "dev-app"
-
+      slug = "dev-app-#{Livebook.Utils.random_short_id()}"
+      context = change_to_user_session(context)
       deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      change_to_agent_session(context)
+      wait_livebook_app_start(slug)
 
       html =
         conn
@@ -87,10 +91,22 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
         ]
       )
 
-      slugs = ~w(mkt-app sales-app opt-app)
+      slugs = [
+        "mkt-app-#{Livebook.Utils.random_short_id()}",
+        "sales-app-#{Livebook.Utils.random_short_id()}",
+        "opt-app-#{Livebook.Utils.random_short_id()}"
+      ]
+
+      context = change_to_user_session(context)
 
       for slug <- slugs do
         deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+      end
+
+      change_to_agent_session(context)
+
+      for slug <- slugs do
+        wait_livebook_app_start(slug)
       end
 
       html =
@@ -136,8 +152,12 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
         ]
       )
 
-      slug = "marketing-report"
+      slug = "marketing-report-#{Livebook.Utils.random_short_id()}"
+      context = change_to_user_session(context)
       deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      change_to_agent_session(context)
+      wait_livebook_app_start(slug)
 
       {:ok, view, _} = live(conn, ~p"/apps")
       refute render(view) =~ slug
@@ -180,8 +200,12 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
         ]
       )
 
-      slug = "marketing-app"
+      slug = "marketing-app-#{Livebook.Utils.random_short_id()}"
+      context = change_to_user_session(context)
       deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      change_to_agent_session(context)
+      wait_livebook_app_start(slug)
 
       {:ok, view, _} = live(conn, ~p"/apps")
       refute render(view) =~ slug
@@ -192,55 +216,5 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       {:ok, view, _} = live(conn, ~p"/apps")
       assert render(view) =~ slug
     end
-  end
-
-  defp deploy_app(slug, team, org, deployment_group, tmp_dir, node) do
-    source = """
-    <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"hub_id":"#{team.id}","deployment_group_id":"#{deployment_group.id}"} -->
-
-    # LivebookApp:#{slug}
-
-    ```elixir
-    ```
-    """
-
-    {notebook, %{warnings: []}} = Livebook.LiveMarkdown.notebook_from_livemd(source)
-
-    files_dir = Livebook.FileSystem.File.local(tmp_dir)
-
-    {:ok, %Livebook.Teams.AppDeployment{file: zip_content} = app_deployment} =
-      Livebook.Teams.AppDeployment.new(notebook, files_dir)
-
-    secret_key = Livebook.Teams.derive_key(team.teams_key)
-    encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)
-
-    app_deployment =
-      TeamsRPC.upload_app_deployment(
-        node,
-        org,
-        deployment_group,
-        app_deployment,
-        encrypted_content,
-        # broadcast?
-        true
-      )
-
-    app_deployment_id = to_string(app_deployment.id)
-    assert_receive {:app_deployment_started, %{id: ^app_deployment_id}}
-
-    assert_receive {:app_created, %{pid: pid, slug: ^slug}}, 50000
-
-    assert_receive {:app_updated,
-                    %{
-                      slug: ^slug,
-                      sessions: [%{app_status: %{execution: :executed, lifecycle: :active}}]
-                    }},
-                   5000
-
-    on_exit(fn ->
-      if Process.alive?(pid) do
-        Livebook.App.close(pid)
-      end
-    end)
   end
 end

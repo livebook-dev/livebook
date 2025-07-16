@@ -397,7 +397,8 @@ defmodule LivebookWeb.AppSessionLive do
          Livebook.Apps.authorized?(app, socket.assigns.current_user) do
       {:noreply, socket}
     else
-      {:noreply, redirect(socket, to: ~p"/apps/#{slug}/sessions/#{socket.assigns.session.id}")}
+      {:noreply,
+       push_navigate(socket, to: ~p"/apps/#{slug}/sessions/#{socket.assigns.session.id}")}
     end
   end
 

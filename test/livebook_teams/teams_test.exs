@@ -6,7 +6,6 @@ defmodule Livebook.TeamsTest do
   alias Livebook.Teams
   alias Livebook.Utils
 
-  @moduletag teams_for: :user
   setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:connection, :file_systems, :secrets]
@@ -26,7 +25,6 @@ defmodule Livebook.TeamsTest do
               }} = Teams.create_org(org, %{})
     end
 
-    @tag teams_persisted: false
     test "returns changeset errors when data is invalid" do
       org = build(:org)
 
@@ -36,10 +34,11 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "join_org/1" do
-    test "returns the device flow data to confirm the org creation", %{user: user, node: node} do
+    test "returns the device flow data to confirm the org creation", %{node: node} do
       org = build(:org)
       key_hash = Teams.Org.key_hash(org)
       teams_org = TeamsRPC.create_org(node, name: org.name)
+      user = TeamsRPC.create_user(node)
 
       TeamsRPC.create_org_key(node, org: teams_org, key_hash: key_hash)
       TeamsRPC.create_user_org(node, org: teams_org, user: user)
@@ -71,11 +70,11 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "get_org_request_completion_data/1" do
-    @tag teams_persisted: false
-    test "returns the org data when it has been confirmed", %{node: node, user: user} do
+    test "returns the org data when it has been confirmed", %{node: node} do
       teams_key = Teams.Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
+      user = TeamsRPC.create_user(node)
       org_request = TeamsRPC.create_org_request(node, key_hash: key_hash)
       org_request = TeamsRPC.confirm_org_request(node, org_request, user)
 
@@ -157,6 +156,8 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "create_deployment_group/2" do
+    @describetag teams_for: :user
+
     test "creates a new deployment group when the data is valid", %{team: team} do
       attrs = params_for(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
@@ -192,6 +193,8 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "deploy_app/2" do
+    @describetag teams_for: :user
+
     @tag :tmp_dir
     test "deploys app to Teams from a notebook", %{team: team, node: node, tmp_dir: tmp_dir} do
       attrs = params_for(:deployment_group, name: "BAZ", mode: :online)

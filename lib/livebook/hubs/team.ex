@@ -103,14 +103,13 @@ defmodule Livebook.Hubs.Team do
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
-  alias Livebook.Hubs.Team
-  alias Livebook.Hubs.TeamClient
+  alias Livebook.Hubs.{Team, TeamClient}
   alias Livebook.Teams.Requests
   alias Livebook.FileSystem
   alias Livebook.Secrets.Secret
 
   @teams_key_prefix Livebook.Teams.Org.teams_key_prefix()
-  @public_key_prefix Livebook.Hubs.Team.public_key_prefix()
+  @public_key_prefix Team.public_key_prefix()
 
   def load(team, fields) do
     {offline?, fields} = Map.pop(fields, :offline?, false)

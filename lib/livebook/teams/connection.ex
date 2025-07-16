@@ -85,13 +85,13 @@ defmodule Livebook.Teams.Connection do
     :keep_state_and_data
   end
 
-  def handle_event(:info, message, @no_state, data) when elem(message, 0) in @expected_messages do
-    handle_websocket_message(message, data)
-  end
-
   def handle_event(:info, message, @no_state, %{http_conn: nil})
       when elem(message, 0) in @expected_messages do
     :keep_state_and_data
+  end
+
+  def handle_event(:info, message, @no_state, data) when elem(message, 0) in @expected_messages do
+    handle_websocket_message(message, data)
   end
 
   def handle_event(:info, _message, @no_state, _data) do
@@ -115,6 +115,10 @@ defmodule Livebook.Teams.Connection do
   end
 
   # Private
+
+  defp handle_websocket_message(_message, %{http_conn: nil} = data) do
+    {:keep_state, data, {:next_event, :internal, :connect}}
+  end
 
   defp handle_websocket_message(message, data) do
     case WebSocket.receive(data.http_conn, data.ref, data.websocket, message) do

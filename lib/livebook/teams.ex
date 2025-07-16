@@ -197,7 +197,7 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Creates a new app deployment.
+  Deploys the given app deployment.
   """
   @spec deploy_app(Team.t(), Teams.AppDeployment.t()) ::
           :ok
@@ -205,17 +205,9 @@ defmodule Livebook.Teams do
           | {:transport_error, String.t()}
   def deploy_app(%Team{} = team, %Teams.AppDeployment{} = app_deployment) do
     case Requests.deploy_app(team, app_deployment) do
-      {:ok, %{"id" => _id}} ->
-        :ok
-
-      {:error, %{"errors" => %{"detail" => error}}} ->
-        {:error, add_external_errors(app_deployment, %{"file" => [error]})}
-
-      {:error, %{"errors" => errors}} ->
-        {:error, add_external_errors(app_deployment, errors)}
-
-      any ->
-        any
+      {:ok, %{"id" => _id}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_external_errors(app_deployment, errors)}
+      any -> any
     end
   end
 

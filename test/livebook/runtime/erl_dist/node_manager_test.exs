@@ -9,7 +9,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManagerTest do
     # We use a standalone runtime, so that we have an isolated node
     # with its own node manager
     pid = Runtime.Standalone.new() |> Runtime.connect()
-    assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
+    assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, 5_000
     %{node: node, server_pid: server1} = runtime
 
     Runtime.take_ownership(runtime)

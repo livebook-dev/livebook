@@ -35,7 +35,7 @@ defmodule LivebookWeb.UserPlug do
 
   defp ensure_user_identity(conn) do
     {_type, module, _key} = identity_provider(conn)
-    {conn, identity_data} = module.authenticate(LivebookWeb.ZTA, conn, [])
+    {conn, identity_data} = authenticate(module, conn, [])
 
     cond do
       conn.halted ->
@@ -138,12 +138,26 @@ defmodule LivebookWeb.UserPlug do
   """
   @spec identity_provider(Plug.Conn.t() | map()) :: {atom(), module, binary}
   if Mix.env() == :test do
-    def identity_provider(%Plug.Conn{} = conn), do: identity_provider(get_session(conn))
-
-    def identity_provider(%{} = session) do
+    def identity_provider(%Plug.Conn{} = conn) do
+      session = get_session(conn)
       session["identity_provider_test_override"] || Livebook.Config.identity_provider()
     end
   else
     def identity_provider(_), do: Livebook.Config.identity_provider()
+  end
+
+  @zta_name LivebookWeb.ZTA
+
+  @spec authenticate(module(), Plug.Conn.t() | map(), keyword()) ::
+          {Plug.Conn.t(), Livebook.ZTA.metadata()}
+  if Mix.env() == :test do
+    def authenticate(module, %Plug.Conn{} = conn, opts) do
+      session = get_session(conn)
+      name = session["zta_name_test_override"] || @zta_name
+
+      module.authenticate(name, conn, opts)
+    end
+  else
+    def identity_provider(module, conn, opts), do: module.authenticate(@zta_name, conn, opts)
   end
 end

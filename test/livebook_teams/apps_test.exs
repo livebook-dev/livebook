@@ -1,7 +1,7 @@
 defmodule Livebook.Integration.AppsTest do
   use Livebook.TeamsIntegrationCase, async: true
 
-  @moduletag teams_for: :agent
+  @moduletag teams_for: :user
   setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:connection, :secrets]

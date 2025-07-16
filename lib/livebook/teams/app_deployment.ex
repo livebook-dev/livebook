@@ -42,11 +42,27 @@ defmodule Livebook.Teams.AppDeployment do
   @doc """
   Creates a new app deployment from notebook.
   """
-  @spec new(Livebook.Notebook.t(), Livebook.FileSystem.File.t()) ::
+  @spec new(Livebook.Notebook.t() | String.t(), Livebook.FileSystem.File.t()) ::
           {:ok, t()} | {:warning, list(String.t())} | {:error, FileSystem.error()}
-  def new(notebook, files_dir) do
-    with {:ok, source} <- fetch_notebook_source(notebook),
-         {:ok, files} <- build_and_check_file_entries(notebook, source, files_dir),
+  def new(%Livebook.Notebook{} = notebook, files_dir) do
+    case Livebook.LiveMarkdown.notebook_to_livemd(notebook) do
+      {source, []} -> new(notebook, source, files_dir)
+      {_, warnings} -> {:warning, warnings}
+    end
+  end
+
+  @stamp_error "notebook does not have a stamp, disabling access to secrets and remote files"
+
+  def new(source, files_dir) when is_binary(source) do
+    case Livebook.LiveMarkdown.notebook_from_livemd(source) do
+      {notebook, %{warnings: [], stamp_verified?: true}} -> new(notebook, source, files_dir)
+      {_, %{warnings: [], stamp_verified?: false}} -> {:warning, [@stamp_error]}
+      {_, %{warnings: warnings}} -> {:warning, warnings}
+    end
+  end
+
+  def new(%Livebook.Notebook{} = notebook, source, files_dir) do
+    with {:ok, files} <- build_and_check_file_entries(notebook, source, files_dir),
          {:ok, {_, zip_content}} <- :zip.create(~c"app_deployment.zip", files, [:memory]),
          :ok <- validate_size(zip_content) do
       md5_hash = :crypto.hash(:md5, zip_content)
@@ -63,13 +79,6 @@ defmodule Livebook.Teams.AppDeployment do
          deployment_group_id: notebook.deployment_group_id,
          file: zip_content
        }}
-    end
-  end
-
-  defp fetch_notebook_source(notebook) do
-    case Livebook.LiveMarkdown.notebook_to_livemd(notebook) do
-      {source, []} -> {:ok, source}
-      {_, warnings} -> {:warning, warnings}
     end
   end
 

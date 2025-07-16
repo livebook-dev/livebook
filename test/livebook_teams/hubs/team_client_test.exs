@@ -311,7 +311,7 @@ defmodule Livebook.Hubs.TeamClientTest do
     setup context do
       agent_connected =
         %LivebookProto.AgentConnected{
-          name: context.agent.name,
+          name: get_in(context, [:agent, Access.key!(:name)]),
           public_key: context.org_key_pair.public_key,
           deployment_group_id: context.deployment_group.id,
           secrets: [],
@@ -569,10 +569,10 @@ defmodule Livebook.Hubs.TeamClientTest do
     end
 
     @tag :tmp_dir
+    @tag teams_persisted: false
     test "dispatches the app deployments list",
          %{
            team: team,
-           pid: pid,
            org: teams_org,
            deployment_group: teams_deployment_group,
            agent_key: teams_agent_key,
@@ -615,11 +615,6 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
 
-      # Since we're connecting as Agent, we should receive the
-      # `:deployment_group_created` event from `:agent_connected` event
-      assert_receive {:deployment_group_created, ^deployment_group}
-      assert deployment_group in TeamClient.get_deployment_groups(team.id)
-
       # creates a new app deployment
       deployment_group_id = to_string(deployment_group.id)
       slug = Livebook.Utils.random_short_id()
@@ -638,8 +633,46 @@ defmodule Livebook.Hubs.TeamClientTest do
       image_file = Livebook.FileSystem.File.resolve(files_dir, "image.jpg")
       :ok = Livebook.FileSystem.File.write(image_file, "content")
 
+      # since the app deployment must be exported to .livemd
+      # it will call Teams to stamp the notebook, which
+      # requires an user session
+      id = team.id
+      user = TeamsRPC.create_user(node)
+      session_token = TeamsRPC.associate_user_with_org(node, user, teams_org)
+      deployment_group_id = to_string(deployment_group.id)
+      org_id = to_string(teams_org.id)
+      team_user = %{team | user_id: user.id, session_token: session_token}
+      Livebook.Hubs.save_hub(team_user)
+
+      # check if it connected as User
+      assert_receive {:hub_connected, ^id}
+      assert_receive {:client_connected, ^id}
+
+      refute_receive {:agent_joined,
+                      %{hub_id: ^id, deployment_group_id: ^deployment_group_id, org_id: ^org_id}}
+
+      # get the pid for user session, so we can guarantee the hub is deleted later
+      pid = TeamClient.get_pid(id)
+
       {:ok, %Livebook.Teams.AppDeployment{file: zip_content} = app_deployment} =
         Livebook.Teams.AppDeployment.new(notebook, files_dir)
+
+      # now we change to agent session
+      TeamClient.stop(id)
+      refute Process.alive?(pid)
+
+      Livebook.Hubs.save_hub(team)
+      pid = TeamClient.get_pid(id)
+
+      # check if it connected again as Agent
+      assert Process.alive?(pid)
+      assert_receive {:hub_connected, ^id}, 3_000
+      assert_receive {:client_connected, ^id}, 3_000
+
+      assert_receive {:agent_joined,
+                      %{hub_id: ^id, deployment_group_id: ^deployment_group_id, org_id: ^org_id} =
+                        agent},
+                     3_000
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)
@@ -683,7 +716,11 @@ defmodule Livebook.Hubs.TeamClientTest do
           authorization_groups: []
         }
 
-      agent_connected = %{agent_connected | app_deployments: [livebook_proto_app_deployment]}
+      agent_connected = %{
+        agent_connected
+        | name: agent.name,
+          app_deployments: [livebook_proto_app_deployment]
+      }
 
       Livebook.Apps.subscribe()
       TeamsRPC.subscribe(node, self(), teams_deployment_group, teams_org)
@@ -749,6 +786,8 @@ defmodule Livebook.Hubs.TeamClientTest do
            agent_connected: agent_connected,
            deployment_group: deployment_group
          } do
+      send(pid, {:event, :agent_joined, agent})
+      assert_receive {:agent_joined, ^agent}
       assert agent in TeamClient.get_agents(team.id)
 
       livebook_proto_deployment_group =

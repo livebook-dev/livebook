@@ -1,5 +1,5 @@
 defmodule Livebook.TeamsIntegrationHelper do
-  alias Livebook.{Factory, Hubs, Teams, TeamsRPC}
+  alias Livebook.{Factory, Hubs, Teams, TeamsRPC, ZTA}
 
   import ExUnit.Assertions
   import Phoenix.ConnTest
@@ -16,33 +16,25 @@ defmodule Livebook.TeamsIntegrationHelper do
     end
   end
 
-  def livebook_teams_auth(%{conn: conn, node: node, team: team, teams_for: :agent} = context) do
-    ExUnit.Callbacks.start_supervised!(
-      {Livebook.ZTA.LivebookTeams, name: LivebookWeb.ZTA, identity_key: team.id}
-    )
+  def livebook_teams_auth(%{conn: conn, node: node, team: team} = context) do
+    ZTA.LivebookTeams.start_link(name: context.test, identity_key: team.id)
+    {conn, code} = authenticate_user_on_teams(context.test, conn, node, team)
 
-    {conn, code} = authenticate_user_on_teams(conn, node, team)
     Map.merge(context, %{conn: conn, code: code})
   end
 
-  @doc false
-  def create_user_hub(node) do
+  defp create_user_hub(node) do
     context = new_user_hub(node)
-    id = context.team.id
     Hubs.save_hub(context.team)
-    pid = Hubs.TeamClient.get_pid(id)
 
-    assert Process.alive?(pid)
-    assert Hubs.hub_exists?(id)
-    assert_receive {:hub_connected, ^id}, 3_000
-    assert_receive {:client_connected, ^id}, 3_000
+    ExUnit.Callbacks.on_exit(fn ->
+      Hubs.delete_hub(context.team.id)
+    end)
 
-    ExUnit.Callbacks.on_exit(fn -> Hubs.delete_hub(id) end)
-    context
+    wait_until_client_start(context)
   end
 
-  @doc false
-  def new_user_hub(node) do
+  defp new_user_hub(node) do
     {teams_key, key_hash} = generate_key_hash()
 
     org = TeamsRPC.create_org(node)
@@ -56,6 +48,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       Factory.build(:team,
         id: "team-#{org.name}",
         hub_name: org.name,
+        hub_emoji: "💡",
         user_id: user.id,
         org_id: org.id,
         org_key_id: org_key.id,
@@ -70,36 +63,23 @@ defmodule Livebook.TeamsIntegrationHelper do
       user: user,
       org_key: org_key,
       org_key_pair: org_key_pair,
+      session_token: token,
       team: team
     }
   end
 
-  @doc false
-  def create_agent_hub(node, opts \\ []) do
+  defp create_agent_hub(node, opts \\ []) do
     context = new_agent_hub(node, opts)
-    id = context.team.id
     Hubs.save_hub(context.team)
 
-    deployment_group_id = to_string(context.deployment_group.id)
-    org_id = to_string(context.org.id)
-    pid = Hubs.TeamClient.get_pid(id)
+    ExUnit.Callbacks.on_exit(fn ->
+      Hubs.delete_hub(context.team.id)
+    end)
 
-    assert Process.alive?(pid)
-    assert Hubs.hub_exists?(id)
-    assert_receive {:hub_connected, ^id}, 3_000
-    assert_receive {:client_connected, ^id}, 3_000
-
-    assert_receive {:agent_joined,
-                    %{hub_id: ^id, deployment_group_id: ^deployment_group_id, org_id: ^org_id} =
-                      agent},
-                   3_000
-
-    ExUnit.Callbacks.on_exit(fn -> Hubs.delete_hub(id) end)
-    Map.put_new(%{context | team: Hubs.fetch_hub!(id)}, :agent, agent)
+    wait_until_agent_start(context)
   end
 
-  @doc false
-  def new_agent_hub(node, opts \\ []) do
+  defp new_agent_hub(node, opts \\ []) do
     {teams_key, key_hash} = generate_key_hash()
 
     org = TeamsRPC.create_org(node)
@@ -124,6 +104,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       Factory.build(:team,
         id: "team-#{org.name}",
         hub_name: org.name,
+        hub_emoji: "💡",
         user_id: nil,
         org_id: org.id,
         org_key_id: org_key.id,
@@ -142,11 +123,13 @@ defmodule Livebook.TeamsIntegrationHelper do
     }
   end
 
-  @doc false
-  def authenticate_user_on_teams(conn, node, team) do
+  defp authenticate_user_on_teams(name, conn, node, team) do
+    # Create a fresh connection to avoid session contamination
+    fresh_conn = Phoenix.ConnTest.build_conn()
+
     response =
-      conn
-      |> LivebookWeb.ConnCase.with_authorization(team.id)
+      fresh_conn
+      |> LivebookWeb.ConnCase.with_authorization(team.id, name)
       |> get("/")
       |> html_response(200)
 
@@ -157,19 +140,82 @@ defmodule Livebook.TeamsIntegrationHelper do
     %{code: code} = Livebook.TeamsRPC.allow_auth_request(node, token)
 
     session =
-      conn
-      |> LivebookWeb.ConnCase.with_authorization(team.id)
+      fresh_conn
+      |> LivebookWeb.ConnCase.with_authorization(team.id, name)
       |> get("/", %{teams_identity: "", code: code})
       |> Plug.Conn.get_session()
 
-    conn = Plug.Test.init_test_session(conn, session)
-    authenticated_conn = get(conn, "/")
-    assigns = Map.take(authenticated_conn.assigns, [:current_user])
+    # Initialize the original conn with the new session data
+    authenticated_conn = Plug.Test.init_test_session(conn, session)
+    final_conn = get(authenticated_conn, "/")
+    assigns = Map.take(final_conn.assigns, [:current_user])
 
-    {%Plug.Conn{conn | assigns: Map.merge(conn.assigns, assigns)}, code}
+    {%Plug.Conn{authenticated_conn | assigns: Map.merge(authenticated_conn.assigns, assigns)},
+     code}
+  end
+
+  def change_to_agent_session(%{node: node, teams_for: :user} = context) do
+    pid = Hubs.TeamClient.get_pid(context.team.id)
+    Hubs.TeamClient.stop(context.team.id)
+    refute Process.alive?(pid)
+
+    agent_key = context[:agent_key] || TeamsRPC.create_agent_key(node, org: context.org)
+
+    deployment_group =
+      context[:deployment_group] ||
+        TeamsRPC.create_deployment_group(node, mode: :online, org: context.org)
+
+    team = %{context.team | user_id: nil, session_token: agent_key.key}
+
+    Hubs.save_hub(team)
+
+    %{context | teams_for: :agent}
+    |> Map.put_new(:agent_key, agent_key)
+    |> Map.put_new(:deployment_group, deployment_group)
+    |> wait_until_agent_start()
+  end
+
+  def change_to_user_session(%{node: node, org: org, teams_for: :agent} = context) do
+    pid = Hubs.TeamClient.get_pid(context.team.id)
+    Hubs.TeamClient.stop(context.team.id)
+    refute Process.alive?(pid)
+
+    user = context[:user] || TeamsRPC.create_user(node)
+    session_token = context[:session_token] || TeamsRPC.associate_user_with_org(node, user, org)
+    team = %{context.team | user_id: user.id, session_token: session_token}
+
+    Hubs.save_hub(team)
+    wait_until_client_start(%{context | team: team, teams_for: :user})
   end
 
   # Private
+
+  defp wait_until_client_start(context) do
+    id = context.team.id
+    pid = Hubs.TeamClient.get_pid(id)
+
+    assert Process.alive?(pid)
+    assert Hubs.hub_exists?(id)
+
+    assert_receive {:hub_connected, ^id}, 3_000
+    assert_receive {:client_connected, ^id}, 3_000
+
+    context
+  end
+
+  defp wait_until_agent_start(context) do
+    context = wait_until_client_start(context)
+    id = context.team.id
+    deployment_group_id = to_string(context.deployment_group.id)
+    org_id = to_string(context.org.id)
+
+    assert_receive {:agent_joined,
+                    %{hub_id: ^id, deployment_group_id: ^deployment_group_id, org_id: ^org_id} =
+                      agent},
+                   3_000
+
+    Map.put_new(context, :agent, agent)
+  end
 
   defp generate_key_hash(teams_key \\ Teams.Org.teams_key()) do
     {teams_key, Teams.Org.key_hash(%Teams.Org{teams_key: teams_key})}

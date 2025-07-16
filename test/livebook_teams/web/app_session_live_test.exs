@@ -1,6 +1,7 @@
 defmodule LivebookWeb.Integration.AppSessionLiveTest do
-  use Livebook.TeamsIntegrationCase, async: false
+  use Livebook.TeamsIntegrationCase, async: true
 
+  import Livebook.AppHelpers
   import Phoenix.LiveViewTest
 
   @moduletag teams_for: :agent
@@ -43,8 +44,12 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
         ]
       )
 
-      slug = "dev-app"
-      pid = deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+      slug = "dev-oban-app"
+      context = change_to_user_session(context)
+      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      change_to_agent_session(context)
+      pid = wait_livebook_app_start(slug)
       session_id = Livebook.App.get_session_id(pid, user: Livebook.Users.User.new())
 
       {:ok, _view, html} = live(conn, ~p"/apps/#{slug}/sessions/#{session_id}")
@@ -76,10 +81,22 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
         ]
       )
 
-      slugs = ~w(mkt-livebook-app eng-livebook-app ops-livebook-app)
+      slugs = [
+        "mkt-livebook-app-#{Livebook.Utils.random_short_id()}",
+        "eng-livebook-app-#{Livebook.Utils.random_short_id()}",
+        "ops-livebook-app-#{Livebook.Utils.random_short_id()}"
+      ]
+
+      context = change_to_user_session(context)
 
       for slug <- slugs do
-        pid = deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+        deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+      end
+
+      change_to_agent_session(context)
+
+      for slug <- slugs do
+        pid = wait_livebook_app_start(slug)
         session_id = Livebook.App.get_session_id(pid, user: Livebook.Users.User.new())
 
         {:ok, _view, html} = live(conn, ~p"/apps/#{slug}/sessions/#{session_id}")
@@ -115,8 +132,12 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
         ]
       )
 
-      slug = "mkt-analytics"
-      pid = deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+      slug = "mkt-analytics-#{Livebook.Utils.random_short_id()}"
+      context = change_to_user_session(context)
+      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      change_to_agent_session(context)
+      pid = wait_livebook_app_start(slug)
       session_id = Livebook.App.get_session_id(pid, user: Livebook.Users.User.new())
       path = ~p"/apps/#{slug}/sessions/#{session_id}"
 
@@ -164,8 +185,12 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
         ]
       )
 
-      slug = "analytics-app"
-      pid = deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+      slug = "analytics-app-#{Livebook.Utils.random_short_id()}"
+      context = change_to_user_session(context)
+      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      change_to_agent_session(context)
+      pid = wait_livebook_app_start(slug)
       session_id = Livebook.App.get_session_id(pid, user: Livebook.Users.User.new())
       path = ~p"/apps/#{slug}/sessions/#{session_id}"
 
@@ -182,56 +207,5 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
       {:ok, view, _html} = live(conn, path)
       assert render(view) =~ "LivebookApp:#{slug}"
     end
-  end
-
-  defp deploy_app(slug, team, org, deployment_group, tmp_dir, node) do
-    source = """
-    <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"hub_id":"#{team.id}","deployment_group_id":"#{deployment_group.id}"} -->
-
-    # LivebookApp:#{slug}
-
-    ```elixir
-    ```
-    """
-
-    {notebook, %{warnings: []}} = Livebook.LiveMarkdown.notebook_from_livemd(source)
-
-    files_dir = Livebook.FileSystem.File.local(tmp_dir)
-
-    {:ok, %Livebook.Teams.AppDeployment{file: zip_content} = app_deployment} =
-      Livebook.Teams.AppDeployment.new(notebook, files_dir)
-
-    secret_key = Livebook.Teams.derive_key(team.teams_key)
-    encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)
-
-    app_deployment_id =
-      TeamsRPC.upload_app_deployment(
-        node,
-        org,
-        deployment_group,
-        app_deployment,
-        encrypted_content,
-        # broadcast?
-        true
-      ).id
-
-    app_deployment_id = to_string(app_deployment_id)
-    assert_receive {:app_deployment_started, %{id: ^app_deployment_id}}
-
-    assert_receive {:app_created, %{pid: pid, slug: ^slug}}
-
-    assert_receive {:app_updated,
-                    %{
-                      slug: ^slug,
-                      sessions: [%{app_status: %{execution: :executed, lifecycle: :active}}]
-                    }}
-
-    on_exit(fn ->
-      if Process.alive?(pid) do
-        Livebook.App.close(pid)
-      end
-    end)
-
-    pid
   end
 end

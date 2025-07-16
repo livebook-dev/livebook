@@ -7,7 +7,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   @moduletag teams_for: :user
   setup :teams
 
-  @moduletag subscribe_to_hubs_topics: [:connection]
+  @moduletag subscribe_to_hubs_topics: [:connection, :crud, :secrets]
   @moduletag subscribe_to_teams_topics: [:clients, :agents, :app_deployments, :app_server]
 
   alias Livebook.FileSystem
@@ -26,9 +26,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   end
 
   describe "hubs" do
-    test "selects the notebook hub", %{conn: conn, user: user, node: node, session: session} do
-      hub = create_team_hub(user, node)
-      id = hub.id
+    test "selects the notebook hub", %{team: %{id: id}, conn: conn, session: session} do
       personal_id = Livebook.Hubs.Personal.id()
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -40,21 +38,12 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> render_click()
 
       assert_receive {:operation, {:set_notebook_hub, _, ^id}}
-      assert Session.get_notebook(session.pid).hub_id == hub.id
+      assert Session.get_notebook(session.pid).hub_id == id
     end
 
     test "closes all sessions from notebooks that belongs to the org when the org deletes the user",
-         %{conn: conn, user: user, node: node, session: session} do
-      Livebook.Hubs.Broadcasts.subscribe([:connection, :crud, :secrets])
-      Livebook.Teams.Broadcasts.subscribe([:clients])
-      Session.subscribe(session.id)
-
-      hub = create_team_hub(user, node)
-      id = hub.id
-
-      assert_receive {:hub_connected, ^id}
-      assert_receive {:client_connected, ^id}, 10_000
-
+         %{team: team, conn: conn, user: user, node: node, session: session} do
+      id = team.id
       Session.set_notebook_hub(session.pid, id)
 
       assert_receive {:operation, {:set_notebook_hub, _, ^id}}
@@ -64,13 +53,13 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert has_element?(view, ~s/#select-hub-#{id}/)
 
       # force user to be deleted from org
-      TeamsRPC.delete_user_org(node, user.id, hub.org_id)
-      reason = "#{hub.hub_name}: you were removed from the org"
+      TeamsRPC.delete_user_org(node, user.id, team.org_id)
+      reason = "#{team.hub_name}: you were removed from the org"
 
       # checks if the hub received the `user_deleted` event and deleted the hub
       assert_receive {:hub_server_error, ^id, ^reason}
       assert_receive {:hub_deleted, ^id}
-      refute hub in Livebook.Hubs.get_hubs()
+      refute team in Livebook.Hubs.get_hubs()
 
       # all sessions that uses the deleted hub must be closed
       assert_receive :session_closed
@@ -78,9 +67,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   end
 
   describe "secrets" do
-    test "creates a new secret", %{conn: conn, user: user, node: node, session: session} do
-      team = create_team_hub(user, node)
-
+    test "creates a new secret", %{team: team, conn: conn, session: session} do
       # loads the session page
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -124,12 +111,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
 
     test "redirects the user to update or delete a secret",
-         %{conn: conn, user: user, node: node, session: session} do
-      Livebook.Hubs.Broadcasts.subscribe([:secrets, :connection])
-      team = create_team_hub(user, node)
-      id = team.id
-      assert_receive {:hub_connected, ^id}
-
+         %{team: team, conn: conn, session: session} do
       # creates a secret
       secret = insert_secret(hub_id: team.id)
       assert_receive {:secret_created, ^secret}
@@ -142,17 +124,15 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       # clicks the button to edit a secret
       view
-      |> element("#hub-#{id}-secret-#{secret.name}-edit-button")
+      |> element("#hub-#{team.id}-secret-#{secret.name}-edit-button")
       |> render_click()
 
       # redirects to hub page and loads the modal with
       # the secret name and value filled
-      assert_redirect(view, ~p"/hub/#{id}/secrets/edit/#{secret.name}")
+      assert_redirect(view, ~p"/hub/#{team.id}/secrets/edit/#{secret.name}")
     end
 
-    test "toggle a secret from team hub", %{conn: conn, session: session, user: user, node: node} do
-      team = create_team_hub(user, node)
-
+    test "toggle a secret from team hub", %{team: team, conn: conn, session: session} do
       # loads the session page
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -174,9 +154,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
 
     test "adding a missing secret using 'Add secret' button",
-         %{conn: conn, user: user, node: node, session: session} do
-      team = create_team_hub(user, node)
-
+         %{team: team, conn: conn, session: session} do
       secret = build(:secret, hub_id: team.id)
 
       # selects the notebook's hub with team hub id
@@ -223,9 +201,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
 
     test "granting access for missing secret using 'Add secret' button",
-         %{conn: conn, user: user, node: node, session: session} do
-      team = create_team_hub(user, node)
-
+         %{team: team, conn: conn, session: session} do
       secret = build(:secret, hub_id: team.id)
 
       # selects the notebook's hub with team hub id
@@ -283,15 +259,13 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   end
 
   describe "files" do
-    test "shows only hub's file systems",
-         %{conn: conn, user: user, node: node, session: session} do
-      Livebook.Hubs.Broadcasts.subscribe([:file_systems])
+    @describetag subscribe_to_hubs_topics: [:connection, :file_systems]
 
+    test "shows only hub's file systems", %{team: team, conn: conn, session: session} do
       personal_id = Livebook.Hubs.Personal.id()
       personal_file_system = build(:fs_s3)
       Livebook.Hubs.Personal.save_file_system(personal_file_system)
 
-      team = create_team_hub(user, node)
       team_id = team.id
 
       bucket_url = "https://my-own-bucket.s3.amazonaws.com"
@@ -332,8 +306,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
 
     test "shows file system from offline hub", %{conn: conn, session: session} do
-      Livebook.Hubs.Broadcasts.subscribe([:file_systems])
-
       hub = offline_hub()
       hub_id = hub.id
       bucket_url = "https://#{hub.id}-file-system.s3.amazonaws.com"
@@ -369,8 +341,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   describe "offline deployment with docker" do
     @tag :tmp_dir
     test "show deployment group on app deployment",
-         %{conn: conn, user: user, node: node, session: session, tmp_dir: tmp_dir} do
-      team = create_team_hub(user, node)
+         %{team: team, conn: conn, session: session, tmp_dir: tmp_dir} do
       team_id = team.id
 
       insert_deployment_group(
@@ -398,8 +369,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
     @tag :tmp_dir
     test "set deployment group on app deployment",
-         %{conn: conn, user: user, node: node, session: session, tmp_dir: tmp_dir} do
-      team = create_team_hub(user, node)
+         %{team: team, conn: conn, session: session, tmp_dir: tmp_dir} do
       team_id = team.id
 
       insert_deployment_group(
@@ -442,8 +412,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
     @tag :tmp_dir
     test "show no deployments groups available",
-         %{conn: conn, user: user, node: node, session: session, tmp_dir: tmp_dir} do
-      team = create_team_hub(user, node)
+         %{team: team, conn: conn, session: session, tmp_dir: tmp_dir} do
       team_id = team.id
 
       Session.set_notebook_hub(session.pid, team_id)
@@ -466,10 +435,15 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   end
 
   describe "online deployment" do
-    test "shows a message when non-teams hub is selected",
-         %{conn: conn, user: user, node: node, session: session} do
-      create_team_hub(user, node)
+    @moduletag subscribe_to_teams_topics: [
+                 :clients,
+                 :agents,
+                 :app_deployments,
+                 :deployment_groups,
+                 :app_server
+               ]
 
+    test "shows a message when non-teams hub is selected", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
@@ -481,8 +455,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
 
     test "deployment flow with no deployment groups in the hub",
-         %{conn: conn, user: user, node: node, session: session} do
-      team = create_team_hub(user, node)
+         %{team: team, conn: conn, session: session} do
       Session.set_notebook_hub(session.pid, team.id)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -539,9 +512,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
 
     test "deployment flow with existing deployment groups in the hub",
-         %{conn: conn, user: user, node: node, session: session} do
-      Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
-      team = create_team_hub(user, node)
+         %{team: team, conn: conn, session: session} do
       Session.set_notebook_hub(session.pid, team.id)
 
       id = insert_deployment_group(mode: :online, hub_id: team.id).id
@@ -601,9 +572,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
 
     test "shows an error when the deployment size is higher than the maximum size of 20MB",
-         %{conn: conn, user: user, node: node, session: session} do
-      Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
-      team = create_team_hub(user, node)
+         %{team: team, conn: conn, session: session} do
       Session.set_notebook_hub(session.pid, team.id)
 
       slug = Livebook.Utils.random_short_id()

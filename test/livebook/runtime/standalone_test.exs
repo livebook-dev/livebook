@@ -6,7 +6,7 @@ defmodule Livebook.Runtime.StandaloneTest do
   describe "Runtime.connect/1" do
     test "starts a new Elixir runtime in distribution mode and ties its lifetime to the NodeManager process" do
       pid = Runtime.Standalone.new() |> Runtime.connect()
-      assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
+      assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, 5_000
       %{node: node} = runtime
       Runtime.take_ownership(runtime)
 
@@ -24,7 +24,7 @@ defmodule Livebook.Runtime.StandaloneTest do
 
     test "loads necessary modules and starts manager process" do
       pid = Runtime.Standalone.new() |> Runtime.connect()
-      assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
+      assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, 5_000
       %{node: node} = runtime
       Runtime.take_ownership(runtime)
 
@@ -35,7 +35,7 @@ defmodule Livebook.Runtime.StandaloneTest do
 
   test "Runtime.disconnect/1 makes the node terminate" do
     pid = Runtime.Standalone.new() |> Runtime.connect()
-    assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
+    assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, 5_000
     %{node: node} = runtime
     Runtime.take_ownership(runtime)
 
