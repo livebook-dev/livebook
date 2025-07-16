@@ -93,8 +93,6 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_deployment_groups(String.t()) :: list(Teams.DeploymentGroup.t())
   def get_deployment_groups(id) do
     GenServer.call(registry_name(id), :get_deployment_groups)
-  catch
-    :exit, _ -> []
   end
 
   @doc """
@@ -103,8 +101,6 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_app_deployments(String.t()) :: list(Teams.AppDeployment.t())
   def get_app_deployments(id) do
     GenServer.call(registry_name(id), :get_app_deployments)
-  catch
-    :exit, _ -> []
   end
 
   @doc """
@@ -134,8 +130,6 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_agents(String.t()) :: list(Teams.Agent.t())
   def get_agents(id) do
     GenServer.call(registry_name(id), :get_agents)
-  catch
-    :exit, _ -> []
   end
 
   @doc """
@@ -144,8 +138,6 @@ defmodule Livebook.Hubs.TeamClient do
   @spec identity_enabled?(String.t()) :: boolean()
   def identity_enabled?(id) do
     GenServer.call(registry_name(id), :identity_enabled?)
-  catch
-    :exit, _ -> false
   end
 
   @doc """
@@ -154,8 +146,6 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_environment_variables(String.t()) :: list(Teams.EnvironmentVariable.t())
   def get_environment_variables(id) do
     GenServer.call(registry_name(id), :get_environment_variables)
-  catch
-    :exit, _ -> []
   end
 
   @doc """
@@ -164,8 +154,6 @@ defmodule Livebook.Hubs.TeamClient do
   @spec user_full_access?(String.t(), list(map())) :: boolean()
   def user_full_access?(id, groups) do
     GenServer.call(registry_name(id), {:check_full_access, groups})
-  catch
-    :exit, _ -> false
   end
 
   @doc """
@@ -174,8 +162,6 @@ defmodule Livebook.Hubs.TeamClient do
   @spec user_app_access?(String.t(), list(map()), String.t()) :: boolean()
   def user_app_access?(id, groups, slug) do
     GenServer.call(registry_name(id), {:check_app_access, groups, slug})
-  catch
-    :exit, _ -> false
   end
 
   @doc """
