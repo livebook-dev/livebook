@@ -11,6 +11,7 @@ defmodule Livebook.Migration do
   def run() do
     insert_personal_hub()
     remove_offline_hub()
+    remove_cli_hub()
 
     storage_version =
       case Storage.fetch_key(:system, "global", :migration_version) do
@@ -42,6 +43,19 @@ defmodule Livebook.Migration do
     # always remove it and insert on startup if applicable.
 
     for %{id: "team-" <> _ = id, offline: true} <- Storage.all(:hubs) do
+      :ok = Storage.delete(:hubs, id)
+    end
+  end
+
+  @deploy_key_prefix Livebook.Teams.Requests.deploy_key_prefix()
+
+  defp remove_cli_hub() do
+    # The CLI hub will only be present in the storage if the
+    # user doesn't have the Team hub already persisted with the
+    # user credentials. Consequently, we always remove it and
+    # insert on CLI if applicable.
+
+    for %{id: "team-" <> _ = id, session_token: @deploy_key_prefix <> _} <- Storage.all(:hubs) do
       :ok = Storage.delete(:hubs, id)
     end
   end

@@ -12,13 +12,15 @@ defmodule Livebook.TeamsIntegrationHelper do
       {:user, _} -> Map.merge(context, create_user_hub(context.node))
       {:agent, false} -> Map.merge(context, new_agent_hub(context.node))
       {:agent, _} -> Map.merge(context, create_agent_hub(context.node))
+      {:cli, false} -> Map.merge(context, new_cli_hub(context.node))
+      {:cli, _} -> Map.merge(context, create_cli_hub(context.node))
       _otherwise -> context
     end
   end
 
-  def livebook_teams_auth(%{conn: conn, node: node, team: team} = context) do
+  def livebook_teams_auth(%{node: node, team: team} = context) do
     ZTA.LivebookTeams.start_link(name: context.test, identity_key: team.id)
-    {conn, code} = authenticate_user_on_teams(context.test, conn, node, team)
+    {conn, code} = authenticate_user_on_teams(context.test, node, team)
 
     Map.merge(context, %{conn: conn, code: code})
   end
@@ -123,12 +125,64 @@ defmodule Livebook.TeamsIntegrationHelper do
     }
   end
 
-  defp authenticate_user_on_teams(name, conn, node, team) do
-    # Create a fresh connection to avoid session contamination
-    fresh_conn = Phoenix.ConnTest.build_conn()
+  def create_cli_hub(node, opts \\ []) do
+    context = new_cli_hub(node, opts)
+
+    Hubs.save_hub(context.team)
+    ExUnit.Callbacks.on_exit(fn -> Hubs.delete_hub(context.team.id) end)
+
+    %{context | team: Hubs.fetch_hub!(context.team.id)}
+  end
+
+  def new_cli_hub(node, opts \\ []) do
+    {teams_key, key_hash} = generate_key_hash()
+
+    org = TeamsRPC.create_org(node)
+    org_key = TeamsRPC.create_org_key(node, org: org, key_hash: key_hash)
+    org_key_pair = TeamsRPC.create_org_key_pair(node, org: org)
+
+    attrs =
+      opts
+      |> Keyword.get(:deployment_group, [])
+      |> Keyword.merge(
+        name: "angry-cat-#{Ecto.UUID.generate()}",
+        mode: :online,
+        org: org
+      )
+
+    deployment_group = TeamsRPC.create_deployment_group(node, attrs)
+    {key, deploy_key} = TeamsRPC.create_deploy_key(node, org: org)
+
+    TeamsRPC.create_billing_subscription(node, org)
+
+    team =
+      Factory.build(:team,
+        id: "team-#{org.name}",
+        hub_name: org.name,
+        hub_emoji: "🚀",
+        user_id: nil,
+        org_id: org.id,
+        org_key_id: org_key.id,
+        org_public_key: org_key_pair.public_key,
+        session_token: key,
+        teams_key: teams_key
+      )
+
+    %{
+      deploy_key: Map.replace!(deploy_key, :key_hash, key),
+      deployment_group: deployment_group,
+      org: org,
+      org_key: org_key,
+      org_key_pair: org_key_pair,
+      team: team
+    }
+  end
+
+  def authenticate_user_on_teams(name, node, team) do
+    conn = Phoenix.ConnTest.build_conn()
 
     response =
-      fresh_conn
+      conn
       |> LivebookWeb.ConnCase.with_authorization(team.id, name)
       |> get("/")
       |> html_response(200)
@@ -140,12 +194,11 @@ defmodule Livebook.TeamsIntegrationHelper do
     %{code: code} = Livebook.TeamsRPC.allow_auth_request(node, token)
 
     session =
-      fresh_conn
+      conn
       |> LivebookWeb.ConnCase.with_authorization(team.id, name)
       |> get("/", %{teams_identity: "", code: code})
       |> Plug.Conn.get_session()
 
-    # Initialize the original conn with the new session data
     authenticated_conn = Plug.Test.init_test_session(conn, session)
     final_conn = get(authenticated_conn, "/")
     assigns = Map.take(final_conn.assigns, [:current_user])

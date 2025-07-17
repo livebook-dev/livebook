@@ -5,6 +5,7 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
 
+  @deploy_key_prefix "lb_dk_"
   @error_message "Something went wrong, try again later or please file a bug if it persists"
   @unauthorized_error_message "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
 
@@ -13,6 +14,9 @@ defmodule Livebook.Teams.Requests do
 
   @doc false
   def error_message(), do: @error_message
+
+  @doc false
+  def deploy_key_prefix(), do: @deploy_key_prefix
 
   @doc """
   Send a request to Livebook Team API to create a new org.
@@ -228,6 +232,34 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
+  Send a request to Livebook Team API to return a session using a deploy key.
+  """
+  @spec fetch_cli_session(map()) :: api_result()
+  def fetch_cli_session(config) do
+    post("/api/v1/cli/auth", %{}, config)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to deploy an app using a deploy key.
+  """
+  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), String.t()) :: api_result()
+  def deploy_app_from_cli(team, app_deployment, deployment_group_name) do
+    secret_key = Teams.derive_key(team.teams_key)
+
+    params = %{
+      title: app_deployment.title,
+      slug: app_deployment.slug,
+      multi_session: app_deployment.multi_session,
+      access_type: app_deployment.access_type,
+      deployment_group_name: deployment_group_name,
+      sha: app_deployment.sha
+    }
+
+    encrypted_content = Teams.encrypt(app_deployment.file, secret_key)
+    upload("/api/v1/cli/org/apps", encrypted_content, params, team)
+  end
+
+  @doc """
   Normalizes errors map into errors for the given schema.
   """
   @spec to_error_list(module(), %{String.t() => list(String.t())}) ::
@@ -271,6 +303,7 @@ defmodule Livebook.Teams.Requests do
   defp upload(path, content, params, team) do
     build_req(team)
     |> Req.Request.put_header("content-length", "#{byte_size(content)}")
+    |> Req.Request.put_private(:cli, path =~ "cli")
     |> Req.Request.put_private(:deploy, true)
     |> Req.post(url: path, params: params, body: content)
     |> handle_response()
@@ -291,6 +324,11 @@ defmodule Livebook.Teams.Requests do
     Req.Request.append_request_steps(req, unauthorized: &{&1, Req.Response.new(status: 401)})
   end
 
+  defp add_team_auth(req, %{session_token: @deploy_key_prefix <> _} = team) do
+    token = "#{team.session_token}:#{Teams.Org.key_hash(%Teams.Org{teams_key: team.teams_key})}"
+    Req.Request.merge_options(req, auth: {:bearer, token})
+  end
+
   defp add_team_auth(req, %{user_id: nil} = team) do
     agent_name = Livebook.Config.agent_name()
     token = "#{team.session_token}:#{agent_name}:#{team.org_id}:#{team.org_key_id}"
@@ -305,6 +343,9 @@ defmodule Livebook.Teams.Requests do
 
   defp transform_response({request, response}) do
     case {request, response} do
+      {request, %{status: 404}} when request.private.cli and request.private.deploy ->
+        {request, %{response | status: 422, body: %{"errors" => %{"name" => ["does not exist"]}}}}
+
       {request, %{status: 400, body: %{"errors" => %{"detail" => error}}}}
       when request.private.deploy ->
         {request, %{response | status: 422, body: %{"errors" => %{"file" => [error]}}}}

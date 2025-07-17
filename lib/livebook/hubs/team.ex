@@ -110,6 +110,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   @teams_key_prefix Livebook.Teams.Org.teams_key_prefix()
   @public_key_prefix Team.public_key_prefix()
+  @deploy_key_prefix Requests.deploy_key_prefix()
 
   def load(team, fields) do
     {offline?, fields} = Map.pop(fields, :offline?, false)
@@ -137,6 +138,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def type(_team), do: "team"
 
+  def connection_spec(%{session_token: @deploy_key_prefix <> _}), do: nil
   def connection_spec(team), do: {TeamClient, team}
 
   def disconnect(team), do: TeamClient.stop(team.id)
