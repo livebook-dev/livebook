@@ -158,6 +158,6 @@ defmodule LivebookWeb.UserPlug do
       module.authenticate(name, conn, opts)
     end
   else
-    def identity_provider(module, conn, opts), do: module.authenticate(@zta_name, conn, opts)
+    def authenticate(module, conn, opts), do: module.authenticate(@zta_name, conn, opts)
   end
 end
