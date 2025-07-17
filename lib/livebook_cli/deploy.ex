@@ -41,7 +41,6 @@ defmodule LivebookCLI.Deploy do
   @impl true
   def call(args) do
     Application.put_env(:livebook, :mode, :cli)
-    Application.put_env(:livebook, LivebookWeb.Endpoint, server: false)
 
     {:ok, _} = Application.ensure_all_started(:livebook)
     config = config_from_args(args)
