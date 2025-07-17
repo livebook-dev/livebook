@@ -326,7 +326,7 @@ defmodule Livebook.Application do
         Application.put_env(:livebook, :apps_path_hub_id, hub_id)
         fun
 
-      teams_key || auth ->
+      Application.get_env(:livebook, :mode) == :app and (teams_key || auth) ->
         Livebook.Config.abort!(
           "You must specify both LIVEBOOK_TEAMS_KEY and LIVEBOOK_TEAMS_AUTH."
         )

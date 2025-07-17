@@ -32,6 +32,7 @@ defmodule LivebookCLI do
     Available commands:
 
       livebook server    Starts the Livebook web application
+      livebook deploy    Deploys a notebook to Livebook Teams
 
     The --help and --version options can be given instead of a command for usage and versioning information.\
     """)

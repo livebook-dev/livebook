@@ -24,6 +24,7 @@ config :mime, :types, %{
 
 config :livebook,
   agent_name: "default",
+  mode: :app,
   allowed_uri_schemes: [],
   app_service_name: nil,
   app_service_url: nil,
