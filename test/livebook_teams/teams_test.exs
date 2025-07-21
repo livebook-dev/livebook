@@ -355,7 +355,7 @@ defmodule Livebook.TeamsTest do
                       } = app_deployment2}
 
       assert Teams.deploy_app_from_cli(team, app_deployment, "foo") ==
-               {:error, %{"name" => ["does not exist"]}}
+               {:error, %{"deployment_group" => ["does not exist"]}}
 
       assert Teams.deploy_app_from_cli(team, %{app_deployment | slug: "@abc"}, name) ==
                {:error, %{"slug" => ["should only contain alphanumeric characters and dashes"]}}

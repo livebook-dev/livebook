@@ -40,8 +40,6 @@ defmodule LivebookCLI.Deploy do
 
   @impl true
   def call(args) do
-    Application.put_env(:livebook, :mode, :cli)
-
     {:ok, _} = Application.ensure_all_started(:livebook)
     config = config_from_args(args)
     ensure_config!(config)
@@ -67,35 +65,26 @@ defmodule LivebookCLI.Deploy do
 
     errors =
       Enum.reduce(config, %{}, fn
-        {:session_token, value}, acc when value in ["", nil] ->
-          add_error(acc, "Deploy Key", "can't be blank")
+        {key, value}, acc when value in ["", nil] ->
+          add_error(acc, normalize_key(key), "can't be blank")
 
         {:session_token, value}, acc ->
           if not String.starts_with?(value, @deploy_key_prefix) do
-            add_error(acc, "Deploy Key", "must be a Livebook Teams Deploy Key")
+            add_error(acc, normalize_key(:session_token), "must be a Livebook Teams Deploy Key")
           else
             acc
           end
-
-        {:teams_key, value}, acc when value in ["", nil] ->
-          add_error(acc, "Teams Key", "can't be blank")
 
         {:teams_key, value}, acc ->
           if not String.starts_with?(value, @teams_key_prefix) do
-            add_error(acc, "Teams Key", "must be a Livebook Teams Key")
+            add_error(acc, normalize_key(:teams_key), "must be a Livebook Teams Key")
           else
             acc
           end
 
-        {:deployment_group, value}, acc when value in ["", nil] ->
-          add_error(acc, "Deployment Group", "can't be blank")
-
-        {:path, value}, acc when value in ["", nil] ->
-          add_error(acc, "Path", "can't be blank")
-
         {:path, value}, acc ->
           if not File.exists?(value) do
-            add_error(acc, "Path", "must be a valid path")
+            add_error(acc, normalize_key(:path), "must be a valid path")
           else
             acc
           end
@@ -110,7 +99,7 @@ defmodule LivebookCLI.Deploy do
       raise """
       You configuration is invalid, make sure you are using the correct options for this task.
 
-      #{format_errors(errors)}\
+      #{format_errors(errors, " * ")}\
       """
     end
   end
@@ -126,16 +115,32 @@ defmodule LivebookCLI.Deploy do
   end
 
   defp deploy_to_teams(team, config) do
-    for path <- list_notebooks!(config.path) do
-      log_debug("Deploying notebook: #{path}")
+    notebook_paths = list_notebooks!(config.path)
+    log_info("Deploying notebooks:")
+
+    for path <- notebook_paths do
+      log_info(" * Preparing to deploy notebook #{Path.basename(path)}")
       files_dir = Livebook.FileSystem.File.local(path)
 
       with {:ok, content} <- File.read(path),
            {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir) do
         case Livebook.Teams.deploy_app_from_cli(team, app_deployment, config.deployment_group) do
-          {:ok, url} -> print_deployment(app_deployment, url)
-          {:error, errors} -> raise format_errors(errors)
-          {:transport_error, reason} -> raise reason
+          {:ok, url} ->
+            print_text([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
+
+          {:error, errors} ->
+            print_text([:red, "  * #{app_deployment.title} failed to deployed."])
+            errors = normalize_errors(errors)
+
+            raise """
+            #{format_errors(errors, "  * ")}
+
+            #{Teams.Requests.error_message()}\
+            """
+
+          {:transport_error, reason} ->
+            print_text([:red, "  * #{app_deployment.title} failed to deployed."])
+            raise reason
         end
       end
     end
@@ -170,25 +175,6 @@ defmodule LivebookCLI.Deploy do
     end
   end
 
-  defp add_error(errors, key, message) do
-    Map.update(errors, key, [message], &[message | &1])
-  end
-
-  defp format_errors(%{} = errors_map) do
-    errors_map
-    |> Enum.map(fn {key, errors} ->
-      """
-      * #{key}
-      #{format_list(errors)}\
-      """
-    end)
-    |> Enum.join("\n")
-  end
-
-  defp format_list(errors) when is_list(errors) do
-    errors |> Enum.map(&"  * #{&1}") |> Enum.join("\n")
-  end
-
   defp prepare_app_deployment(path, content, files_dir) do
     case Livebook.Teams.AppDeployment.new(content, files_dir) do
       {:ok, app_deployment} ->
@@ -197,7 +183,7 @@ defmodule LivebookCLI.Deploy do
       {:warning, warnings} ->
         raise """
         Deployment for notebook #{Path.basename(path)} failed because the notebook has some warnings:
-        #{format_list(warnings)}
+        #{format_list(warnings, " * ")}
         """
 
       {:error, reason} ->
@@ -205,22 +191,31 @@ defmodule LivebookCLI.Deploy do
     end
   end
 
-  defp print_deployment(app_deployment, url) do
-    print_text([
-      :green,
-      "App deployment created successfully.\n\n",
-      :magenta,
-      :bright,
-      "Slug: ",
-      :reset,
-      :white,
-      "#{app_deployment.slug} (#{url})\n",
-      :magenta,
-      :bright,
-      "Title: ",
-      :reset,
-      :white,
-      app_deployment.title
-    ])
+  defp add_error(errors, key, message) do
+    Map.update(errors, key, [message], &[message | &1])
+  end
+
+  def normalize_errors(%{} = errors) do
+    for {key, values} <- errors, into: %{} do
+      {normalize_key(key), values}
+    end
+  end
+
+  defp normalize_key(key) when is_atom(key), do: to_string(key) |> normalize_key()
+  defp normalize_key("session_token"), do: "Deploy Key"
+  defp normalize_key("teams_key"), do: "Teams Key"
+  defp normalize_key("deployment_group"), do: "Deployment Group"
+  defp normalize_key("path"), do: "Path"
+
+  defp format_errors(errors, prefix) do
+    errors
+    |> Enum.map(fn {key, values} ->
+      values |> Enum.map(&"#{prefix}#{key} #{&1}") |> Enum.join("\n")
+    end)
+    |> Enum.join("\n")
+  end
+
+  defp format_list(errors, prefix) do
+    errors |> Enum.map(&"#{prefix}#{&1}") |> Enum.join("\n")
   end
 end

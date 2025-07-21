@@ -53,9 +53,8 @@ defmodule LivebookCLI.Integration.DeployTest do
                  ]) == :ok
         end)
 
-      assert output =~ "App deployment created successfully."
-      assert output =~ "#{slug} (#{@url}/apps/#{slug})"
-      assert output =~ title
+      assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
+      assert output =~ "  * #{title} deployed successfully. (#{@url}/apps/#{slug})"
 
       assert_receive {:app_deployment_started,
                       %{
@@ -78,7 +77,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         for i <- 1..3 do
           title = "Test App #{i}"
           slug = "app-#{i}-#{Utils.random_short_id()}"
-          app_path = Path.join(tmp_dir, "app_#{i}.livemd")
+          app_path = Path.join(tmp_dir, "#{slug}.livemd")
 
           stamp_notebook(app_path, """
           <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"hub_id":"#{hub_id}"} -->
@@ -107,9 +106,8 @@ defmodule LivebookCLI.Integration.DeployTest do
         end)
 
       for {slug, title} <- apps do
-        assert output =~ "App deployment created successfully."
-        assert output =~ "#{slug} (#{@url}/apps/#{slug})"
-        assert output =~ title
+        assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
+        assert output =~ "  * #{title} deployed successfully. (#{@url}/apps/#{slug})"
 
         assert_receive {:app_deployment_started,
                         %{
@@ -133,7 +131,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise RuntimeError, ~r/Deploy Key.*must be a Livebook Teams Deploy Key/s, fn ->
+      assert_raise RuntimeError, ~r/Deploy Key must be a Livebook Teams Deploy Key/s, fn ->
         Deploy.call([
           "--deploy-key",
           "invalid_key",
@@ -158,7 +156,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise RuntimeError, ~r/Teams Key.*must be a Livebook Teams Key/s, fn ->
+      assert_raise RuntimeError, ~r/Teams Key must be a Livebook Teams Key/s, fn ->
         Deploy.call([
           "--deploy-key",
           key,
@@ -183,7 +181,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise RuntimeError, ~r/Deployment Group.*can't be blank/s, fn ->
+      assert_raise RuntimeError, ~r/Deployment Group can't be blank/s, fn ->
         Deploy.call([
           "--deploy-key",
           key,
@@ -194,11 +192,57 @@ defmodule LivebookCLI.Integration.DeployTest do
       end
     end
 
+    test "fails with invalid deployment group",
+         %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
+      title = "Test CLI Deploy App"
+      slug = Utils.random_short_id()
+      app_path = Path.join(tmp_dir, "#{slug}.livemd")
+      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
+      hub_id = team.id
+      deployment_group_id = to_string(deployment_group.id)
+
+      stamp_notebook(app_path, """
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"hub_id":"#{hub_id}"} -->
+
+      # #{title}
+
+      ## Test Section
+
+      ```elixir
+      IO.puts("Hello from CLI deployed app!")
+      ```
+      """)
+
+      assert_raise RuntimeError, ~r/Deployment Group does not exist/s, fn ->
+        ExUnit.CaptureIO.capture_io(fn ->
+          Deploy.call([
+            "--deploy-key",
+            key,
+            "--teams-key",
+            team.teams_key,
+            "--deployment-group",
+            Utils.random_short_id(),
+            app_path
+          ])
+        end)
+      end
+
+      refute_receive {:app_deployment_started,
+                      %{
+                        title: ^title,
+                        slug: ^slug,
+                        deployment_group_id: ^deployment_group_id,
+                        hub_id: ^hub_id,
+                        deployed_by: "CLI"
+                      }}
+    end
+
     test "fails with non-existent file", %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
       {key, _} = TeamsRPC.create_deploy_key(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
 
-      assert_raise RuntimeError, ~r/Path.*must be a valid path/s, fn ->
+      assert_raise RuntimeError, ~r/Path must be a valid path/s, fn ->
         Deploy.call([
           "--deploy-key",
           key,

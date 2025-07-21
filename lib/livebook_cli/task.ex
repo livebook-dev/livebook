@@ -18,8 +18,6 @@ defmodule LivebookCLI.Task do
   def call(name, args) do
     task = fetch_task!(name)
     task.call(args)
-
-    :ok
   rescue
     exception -> log_exception(exception, name, __STACKTRACE__)
   end
@@ -31,14 +29,50 @@ defmodule LivebookCLI.Task do
   def usage(name) do
     task = fetch_task!(name)
     print_text(task.usage())
-
-    :ok
   rescue
     exception -> log_exception(exception, name, __STACKTRACE__)
   end
 
-  @spec fetch_task!(String.t()) :: module() | no_return()
   defp fetch_task!("server"), do: LivebookCLI.Server
   defp fetch_task!("deploy"), do: LivebookCLI.Deploy
-  defp fetch_task!(name), do: raise("Unknown command #{name}")
+
+  defp fetch_task!(name) do
+    log_error("Unknown command #{name}")
+    print_text(LivebookCLI.usage())
+
+    System.halt(1)
+  end
+
+  defp log_error(message) do
+    [:red, message]
+    |> IO.ANSI.format()
+    |> IO.puts()
+  end
+
+  @spec log_exception(Exception.t(), String.t(), Exception.stacktrace()) :: no_return()
+  defp log_exception(exception, command_name, stacktrace) when is_exception(exception) do
+    [:red, format_exception(exception, command_name, stacktrace)]
+    |> IO.ANSI.format()
+    |> IO.puts()
+
+    System.halt(1)
+  end
+
+  defp format_exception(%OptionParser.ParseError{} = exception, command_name, _) do
+    """
+    #{Exception.message(exception)}
+
+    For more information try:
+
+       livebook #{command_name} --help
+    """
+  end
+
+  defp format_exception(%RuntimeError{} = exception, _, _) do
+    Exception.message(exception)
+  end
+
+  defp format_exception(exception, _, stacktrace) do
+    Exception.format(:error, exception, stacktrace)
+  end
 end

@@ -344,7 +344,12 @@ defmodule Livebook.Teams.Requests do
   defp transform_response({request, response}) do
     case {request, response} do
       {request, %{status: 404}} when request.private.cli and request.private.deploy ->
-        {request, %{response | status: 422, body: %{"errors" => %{"name" => ["does not exist"]}}}}
+        {request,
+         %{
+           response
+           | status: 422,
+             body: %{"errors" => %{"deployment_group" => ["does not exist"]}}
+         }}
 
       {request, %{status: 400, body: %{"errors" => %{"detail" => error}}}}
       when request.private.deploy ->
