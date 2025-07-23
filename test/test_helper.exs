@@ -38,9 +38,6 @@ Application.put_env(:livebook, Livebook.Runtime.Embedded,
   load_packages: {Livebook.Runtime.Embedded.Packages, :list, []}
 )
 
-# Disable ETS disk persistence
-Application.put_env(:livebook, :persist_storage, false)
-
 # Disable autosaving
 Livebook.Storage.insert(:settings, "global", autosave_path: nil)
 
