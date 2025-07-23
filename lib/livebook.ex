@@ -157,6 +157,10 @@ defmodule Livebook do
       config :livebook, teams_url: url, warn_on_live_teams_server: false
     end
 
+    if System.get_env("LIVEBOOK_TEAMS_AUTH") do
+      config :livebook, :persist_storage, false
+    end
+
     if Livebook.Config.boolean!("LIVEBOOK_SHUTDOWN_ENABLED", false) do
       config :livebook, :shutdown_callback, {System, :stop, []}
     end

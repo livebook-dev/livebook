@@ -186,10 +186,17 @@ defmodule Livebook.Storage do
     # in case it is persisting to disk. terminate/2 is still a no-op.
     Process.flag(:trap_exit, true)
 
-    table = load_or_create_table()
-    :persistent_term.put(__MODULE__, table)
+    persist_storage? = Application.get_env(:livebook, :persist_storage, true)
 
-    {:ok, %{table: table}}
+    table =
+      if persist_storage? do
+        load_or_create_table()
+      else
+        :ets.new(__MODULE__, [:protected, :duplicate_bag])
+      end
+
+    :persistent_term.put(__MODULE__, table)
+    {:ok, %{table: table, persist?: persist_storage?}}
   end
 
   @impl true
@@ -220,6 +227,10 @@ defmodule Livebook.Storage do
   end
 
   @impl true
+  def handle_continue(:save_to_file, %{persist?: false} = state) do
+    {:noreply, state}
+  end
+
   def handle_continue(:save_to_file, %{table: table} = state) do
     file_path = String.to_charlist(config_file_path())
     :ok = :ets.tab2file(table, file_path)

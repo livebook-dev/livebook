@@ -21,6 +21,7 @@ defmodule LivebookCLI do
     extract_priv!()
 
     :ok = Application.load(:livebook)
+    Application.put_env(:livebook, :persist_storage, false)
 
     if unix?() do
       Application.put_env(:elixir, :ansi_enabled, true)
