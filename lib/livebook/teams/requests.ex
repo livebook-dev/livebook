@@ -313,7 +313,6 @@ defmodule Livebook.Teams.Requests do
   defp build_req(team) do
     Req.new(base_url: Livebook.Config.teams_url())
     |> Req.Request.put_new_header("x-lb-version", Livebook.Config.app_version())
-    |> Req.Request.append_response_steps(transform_teams_response: &transform_response/1)
     |> Livebook.Utils.req_attach_defaults()
     |> add_team_auth(team)
   end
@@ -339,25 +338,6 @@ defmodule Livebook.Teams.Requests do
   defp add_team_auth(req, team) do
     token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
     Req.Request.merge_options(req, auth: {:bearer, token})
-  end
-
-  defp transform_response({request, response}) do
-    case {request, response} do
-      {request, %{status: 404}} when request.private.cli and request.private.deploy ->
-        {request,
-         %{
-           response
-           | status: 422,
-             body: %{"errors" => %{"deployment_group" => ["does not exist"]}}
-         }}
-
-      {request, %{status: 400, body: %{"errors" => %{"detail" => error}}}}
-      when request.private.deploy ->
-        {request, %{response | status: 422, body: %{"errors" => %{"file" => [error]}}}}
-
-      _otherwise ->
-        {request, response}
-    end
   end
 
   defp handle_response(response) do
