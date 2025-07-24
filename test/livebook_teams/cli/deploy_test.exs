@@ -4,7 +4,6 @@ defmodule LivebookCLI.Integration.DeployTest do
   import Livebook.AppHelpers
 
   alias Livebook.Utils
-  alias LivebookCLI.Deploy
 
   @url "http://localhost:4200"
 
@@ -15,7 +14,6 @@ defmodule LivebookCLI.Integration.DeployTest do
   @moduletag subscribe_to_teams_topics: [:clients, :deployment_groups, :app_deployments]
 
   @moduletag :tmp_dir
-  @moduletag :capture_io
 
   describe "CLI deploy integration" do
     test "successfully deploys a notebook via CLI",
@@ -42,15 +40,12 @@ defmodule LivebookCLI.Integration.DeployTest do
 
       output =
         ExUnit.CaptureIO.capture_io(fn ->
-          assert Deploy.call([
-                   "--deploy-key",
+          assert deploy(
                    key,
-                   "--teams-key",
                    team.teams_key,
-                   "--deployment-group",
                    deployment_group.name,
                    app_path
-                 ]) == :ok
+                 ) == :ok
         end)
 
       assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
@@ -94,15 +89,12 @@ defmodule LivebookCLI.Integration.DeployTest do
 
       output =
         ExUnit.CaptureIO.capture_io(fn ->
-          assert Deploy.call([
-                   "--deploy-key",
+          assert deploy(
                    key,
-                   "--teams-key",
                    team.teams_key,
-                   "--deployment-group",
                    deployment_group.name,
-                   tmp_dir
-                 ]) == :ok
+                   Path.join(tmp_dir, "*.livemd")
+                 ) == :ok
         end)
 
       for {slug, title} <- apps do
@@ -131,16 +123,13 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise RuntimeError, ~r/Deploy Key must be a Livebook Teams Deploy Key/s, fn ->
-        Deploy.call([
-          "--deploy-key",
+      assert_raise LivebookCLI.Error, ~r/Deploy Key must be a Livebook Teams Deploy Key/s, fn ->
+        deploy(
           "invalid_key",
-          "--teams-key",
           team.teams_key,
-          "--deployment-group",
           deployment_group.name,
           app_path
-        ])
+        )
       end
     end
 
@@ -156,16 +145,13 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise RuntimeError, ~r/Teams Key must be a Livebook Teams Key/s, fn ->
-        Deploy.call([
-          "--deploy-key",
+      assert_raise LivebookCLI.Error, ~r/Teams Key must be a Livebook Teams Key/s, fn ->
+        deploy(
           key,
-          "--teams-key",
           "invalid-key",
-          "--deployment-group",
           deployment_group.name,
           app_path
-        ])
+        )
       end
     end
 
@@ -181,14 +167,13 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise RuntimeError, ~r/Deployment Group can't be blank/s, fn ->
-        Deploy.call([
-          "--deploy-key",
+      assert_raise LivebookCLI.Error, ~r/Deployment Group can't be blank/s, fn ->
+        deploy(
           key,
-          "--teams-key",
           team.teams_key,
+          "",
           app_path
-        ])
+        )
       end
     end
 
@@ -214,17 +199,14 @@ defmodule LivebookCLI.Integration.DeployTest do
       ```
       """)
 
-      assert_raise RuntimeError, ~r/Deployment Group does not exist/s, fn ->
+      assert_raise LivebookCLI.Error, ~r/Deployment Group does not exist/s, fn ->
         ExUnit.CaptureIO.capture_io(fn ->
-          Deploy.call([
-            "--deploy-key",
+          deploy(
             key,
-            "--teams-key",
             team.teams_key,
-            "--deployment-group",
             Utils.random_short_id(),
             app_path
-          ])
+          )
         end)
       end
 
@@ -242,38 +224,42 @@ defmodule LivebookCLI.Integration.DeployTest do
       {key, _} = TeamsRPC.create_deploy_key(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
 
-      assert_raise RuntimeError, ~r/Path must be a valid path/s, fn ->
-        Deploy.call([
-          "--deploy-key",
+      assert_raise LivebookCLI.Error, ~r/Path must be a valid path/s, fn ->
+        deploy(
           key,
-          "--teams-key",
           team.teams_key,
-          "--deployment-group",
           deployment_group.name,
           Path.join(tmp_dir, "app.livemd")
-        ])
+        )
       end
     end
 
-    test "fails when directory contains no notebooks",
-         %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
+    test "fails with directory argument", %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
       {key, _} = TeamsRPC.create_deploy_key(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
 
-      File.write!(Path.join(tmp_dir, "readme.txt"), "No notebooks here")
-      File.write!(Path.join(tmp_dir, "config.json"), "{}")
-
-      assert_raise RuntimeError, ~r/There's no notebook available to deploy/, fn ->
-        Deploy.call([
-          "--deploy-key",
+      assert_raise LivebookCLI.Error, ~r/Path must be a file path/s, fn ->
+        deploy(
           key,
-          "--teams-key",
           team.teams_key,
-          "--deployment-group",
           deployment_group.name,
           tmp_dir
-        ])
+        )
       end
     end
+  end
+
+  defp deploy(deploy_key, teams_key, deployment_group_name, path) do
+    path = if Path.wildcard(path) == [], do: path, else: Path.wildcard(path)
+
+    LivebookCLI.Deploy.call([
+      "--deploy-key",
+      deploy_key,
+      "--teams-key",
+      teams_key,
+      "--deployment-group",
+      deployment_group_name,
+      path
+    ])
   end
 end

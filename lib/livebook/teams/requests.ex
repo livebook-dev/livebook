@@ -5,7 +5,7 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
 
-  @deploy_key_prefix "lb_dk_"
+  @deploy_key_prefix Teams.Constants.deploy_key_prefix()
   @error_message "Something went wrong, try again later or please file a bug if it persists"
   @unauthorized_error_message "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
 
@@ -14,9 +14,6 @@ defmodule Livebook.Teams.Requests do
 
   @doc false
   def error_message(), do: @error_message
-
-  @doc false
-  def deploy_key_prefix(), do: @deploy_key_prefix
 
   @doc """
   Send a request to Livebook Team API to create a new org.
@@ -303,8 +300,6 @@ defmodule Livebook.Teams.Requests do
   defp upload(path, content, params, team) do
     build_req(team)
     |> Req.Request.put_header("content-length", "#{byte_size(content)}")
-    |> Req.Request.put_private(:cli, path =~ "cli")
-    |> Req.Request.put_private(:deploy, true)
     |> Req.post(url: path, params: params, body: content)
     |> handle_response()
     |> dispatch_messages(team)

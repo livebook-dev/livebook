@@ -68,8 +68,14 @@ defmodule LivebookCLI.Task do
     """
   end
 
-  defp format_exception(%RuntimeError{} = exception, _, _) do
-    Exception.message(exception)
+  defp format_exception(%LivebookCLI.Error{} = exception, command_name, _) do
+    """
+    #{Exception.message(exception)}
+
+    For more information try:
+
+       livebook #{command_name} --help
+    """
   end
 
   defp format_exception(exception, _, stacktrace) do

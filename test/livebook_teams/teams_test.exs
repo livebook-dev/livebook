@@ -258,6 +258,7 @@ defmodule Livebook.TeamsTest do
     test "authenticates the deploy key", %{team: team} do
       config = %{teams_key: team.teams_key, session_token: team.session_token}
 
+      refute Livebook.Hubs.hub_exists?(team.id)
       assert Teams.fetch_cli_session(config) == {:ok, team}
       assert Livebook.Hubs.hub_exists?(team.id)
     end
@@ -272,7 +273,7 @@ defmodule Livebook.TeamsTest do
                {:ok,
                 %Livebook.Hubs.Team{
                   billing_status: team.billing_status,
-                  hub_emoji: team.hub_emoji,
+                  hub_emoji: "🚀",
                   hub_name: team.hub_name,
                   id: team.id,
                   offline: nil,
@@ -284,9 +285,8 @@ defmodule Livebook.TeamsTest do
                   user_id: nil
                 }}
 
-      # If the hub already exist, we don't update them from storage
       assert Livebook.Hubs.hub_exists?(team.id)
-      refute Livebook.Hubs.fetch_hub!(team.id).session_token == key
+      assert Livebook.Hubs.fetch_hub!(team.id).session_token == key
     end
 
     @tag teams_persisted: false

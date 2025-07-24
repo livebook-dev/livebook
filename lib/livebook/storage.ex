@@ -187,15 +187,9 @@ defmodule Livebook.Storage do
     Process.flag(:trap_exit, true)
 
     persist_storage? = Application.get_env(:livebook, :persist_storage, true)
-
-    table =
-      if persist_storage? do
-        load_or_create_table()
-      else
-        :ets.new(__MODULE__, [:protected, :duplicate_bag])
-      end
-
+    table = load_or_create_table(persist_storage?)
     :persistent_term.put(__MODULE__, table)
+
     {:ok, %{table: table, persist?: persist_storage?}}
   end
 
@@ -239,7 +233,11 @@ defmodule Livebook.Storage do
 
   defp table_name(), do: :persistent_term.get(__MODULE__)
 
-  defp load_or_create_table() do
+  defp load_or_create_table(false) do
+    :ets.new(__MODULE__, [:protected, :duplicate_bag])
+  end
+
+  defp load_or_create_table(true) do
     tab =
       if path = config_file_path_for_restore() do
         path

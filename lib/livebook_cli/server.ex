@@ -88,7 +88,8 @@ defmodule LivebookCLI.Server do
             open_from_args(base_url, extra_args)
 
           :taken ->
-            raise "Another application is already running on port #{port}." <>
+            raise LivebookCLI.Error,
+                  "Another application is already running on port #{port}." <>
                     " Either ensure this port is free or specify a different port using the --port option"
 
           :available ->
@@ -106,7 +107,7 @@ defmodule LivebookCLI.Server do
         Process.sleep(:infinity)
 
       {:error, error} ->
-        raise "Livebook failed to start with reason: #{inspect(error)}"
+        raise LivebookCLI.Error, "Livebook failed to start with reason: #{inspect(error)}"
     end
   end
 
@@ -174,7 +175,9 @@ defmodule LivebookCLI.Server do
   end
 
   defp open_from_args(_base_url, _extra_args) do
-    raise "Too many arguments entered. Ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch"
+    raise OptionParser.ParseError,
+          "Too many arguments entered. Ensure only one argument is used to" <>
+            "specify the file path and all other arguments are preceded by the relevant switch"
   end
 
   @switches [

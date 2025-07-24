@@ -21,7 +21,6 @@ defmodule LivebookCLI do
     extract_priv!()
 
     :ok = Application.load(:livebook)
-    Application.put_env(:livebook, :persist_storage, false)
 
     if unix?() do
       Application.put_env(:elixir, :ansi_enabled, true)
@@ -30,7 +29,7 @@ defmodule LivebookCLI do
     case args do
       [arg] when arg in @help_args -> display_help()
       [arg] when arg in @version_args -> display_version()
-      [name | [arg]] when arg in @help_args -> Task.usage(name)
+      [name, arg] when arg in @help_args -> Task.usage(name)
       [name | args] -> Task.call(name, List.delete(args, name))
       _args -> Utils.print_text(usage())
     end

@@ -4,8 +4,8 @@ defmodule LivebookCLI.Deploy do
 
   @behaviour LivebookCLI.Task
 
-  @deploy_key_prefix Teams.Requests.deploy_key_prefix()
-  @teams_key_prefix Teams.Org.teams_key_prefix()
+  @deploy_key_prefix Teams.Constants.deploy_key_prefix()
+  @teams_key_prefix Teams.Constants.teams_key_prefix()
 
   @impl true
   def usage() do
@@ -16,7 +16,7 @@ defmodule LivebookCLI.Deploy do
 
       --deploy-key        Sets the deploy key to authenticate with Livebook Teams
       --teams-key         Sets the Teams key to authenticate with Livebook Teams and encrypt the Livebook app
-      --deployment-group  The deployment group name which you want to deploy
+      --deployment-group  The deployment group name which you want to deploy to
 
     The --help option can be given to print this notice.
 
@@ -24,11 +24,11 @@ defmodule LivebookCLI.Deploy do
 
     Deploys a single notebook:
 
-        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." -deployment-group "online" path/to/file.livemd
+        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group "online" path/to/app1.livemd
 
-    Deploys a folder:
+    Deploys multiple notebooks:
 
-        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." -deployment-group "online" path/to\
+        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group "online" path/to/*.livemd\
     """
   end
 
@@ -40,6 +40,7 @@ defmodule LivebookCLI.Deploy do
 
   @impl true
   def call(args) do
+    Application.put_env(:livebook, :persist_storage, false)
     {:ok, _} = Application.ensure_all_started(:livebook)
     config = config_from_args(args)
     ensure_config!(config)
@@ -49,11 +50,10 @@ defmodule LivebookCLI.Deploy do
   end
 
   defp config_from_args(args) do
-    {opts, filename_or_directory} = OptionParser.parse!(args, strict: @switches)
-    filename_or_directory = Path.expand(filename_or_directory)
+    {opts, path} = OptionParser.parse!(args, strict: @switches)
 
     %{
-      path: filename_or_directory,
+      path: List.flatten(path),
       session_token: opts[:deploy_key],
       teams_key: opts[:teams_key],
       deployment_group: opts[:deployment_group]
@@ -83,11 +83,7 @@ defmodule LivebookCLI.Deploy do
           end
 
         {:path, value}, acc ->
-          if not File.exists?(value) do
-            add_error(acc, normalize_key(:path), "must be a valid path")
-          else
-            acc
-          end
+          Enum.reduce_while(value, acc, &validate_path/2)
 
         _otherwise, acc ->
           acc
@@ -96,11 +92,24 @@ defmodule LivebookCLI.Deploy do
     if Map.keys(errors) == [] do
       :ok
     else
-      raise """
+      raise LivebookCLI.Error, """
       You configuration is invalid, make sure you are using the correct options for this task.
 
       #{format_errors(errors, " * ")}\
       """
+    end
+  end
+
+  defp validate_path(value, acc) do
+    cond do
+      not File.exists?(value) ->
+        {:halt, add_error(acc, normalize_key(:path), "must be a valid path")}
+
+      File.dir?(value) ->
+        {:halt, add_error(acc, normalize_key(:path), "must be a file path")}
+
+      true ->
+        {:cont, acc}
     end
   end
 
@@ -109,16 +118,21 @@ defmodule LivebookCLI.Deploy do
 
     case Teams.fetch_cli_session(config) do
       {:ok, team} -> team
-      {:error, error} -> raise error
-      {:transport_error, error} -> raise error
+      {:error, error} -> raise LivebookCLI.Error, error
+      {:transport_error, error} -> raise LivebookCLI.Error, error
     end
   end
 
   defp deploy_to_teams(team, config) do
-    notebook_paths = list_notebooks!(config.path)
+    if length(config.path) == 1 do
+      log_debug("Found 1 notebook")
+    else
+      log_debug("Found #{length(config.path)} notebooks")
+    end
+
     log_info("Deploying notebooks:")
 
-    for path <- notebook_paths do
+    for path <- config.path do
       log_info(" * Preparing to deploy notebook #{Path.basename(path)}")
       files_dir = Livebook.FileSystem.File.local(path)
 
@@ -129,50 +143,23 @@ defmodule LivebookCLI.Deploy do
             print_text([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
 
           {:error, errors} ->
-            print_text([:red, "  * #{app_deployment.title} failed to deployed."])
+            print_text([:red, "  * #{app_deployment.title} failed to deploy."])
             errors = normalize_errors(errors)
 
-            raise """
+            raise LivebookCLI.Error, """
             #{format_errors(errors, "  * ")}
 
             #{Teams.Requests.error_message()}\
             """
 
           {:transport_error, reason} ->
-            print_text([:red, "  * #{app_deployment.title} failed to deployed."])
-            raise reason
+            print_text([:red, "  * #{app_deployment.title} failed to deploy."])
+            raise LivebookCLI.Error, reason
         end
       end
     end
 
     :ok
-  end
-
-  defp list_notebooks!(path) do
-    log_debug("Listing notebooks from: #{path}")
-
-    files =
-      if File.dir?(path) do
-        path
-        |> File.ls!()
-        |> Enum.map(&Path.join(path, &1))
-        |> Enum.reject(&File.dir?/1)
-        |> Enum.filter(&String.ends_with?(&1, ".livemd"))
-      else
-        [path]
-      end
-
-    if files == [] do
-      raise "There's no notebook available to deploy"
-    else
-      if length(files) == 1 do
-        log_debug("Found 1 notebook")
-      else
-        log_debug("Found #{length(files)} notebooks")
-      end
-
-      files
-    end
   end
 
   defp prepare_app_deployment(path, content, files_dir) do
@@ -181,13 +168,13 @@ defmodule LivebookCLI.Deploy do
         {:ok, app_deployment}
 
       {:warning, warnings} ->
-        raise """
+        raise LivebookCLI.Error, """
         Deployment for notebook #{Path.basename(path)} failed because the notebook has some warnings:
         #{format_list(warnings, " * ")}
         """
 
       {:error, reason} ->
-        raise "Failed to handle I/O operations: #{reason}"
+        raise LivebookCLI.Error, "Failed to handle I/O operations: #{reason}"
     end
   end
 
