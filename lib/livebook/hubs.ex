@@ -311,6 +311,7 @@ defmodule Livebook.Hubs do
   @spec get_app_specs() :: list(Livebook.Apps.AppSpec.t())
   def get_app_specs() do
     for hub <- get_hubs(),
+        Provider.connection_spec(hub),
         app_spec <- Provider.get_app_specs(hub),
         do: app_spec
   end

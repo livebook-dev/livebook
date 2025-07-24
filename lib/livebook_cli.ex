@@ -1,19 +1,23 @@
 defmodule LivebookCLI do
-  def usage() do
-    """
+  alias LivebookCLI.{Task, Utils}
+
+  @help_args ["--help", "-h"]
+  @version_args ["--version", "-v"]
+
+  def usage,
+    do: """
     Usage: livebook [command] [options]
 
     Available commands:
 
       livebook server    Starts the Livebook web application
+      livebook deploy    Deploys a notebook to Livebook Teams
 
-    The --help and --version options can be given instead of a command for usage and versioning information.
+    The --help and --version options can be given instead of a command for usage and versioning information.\
     """
-  end
 
   def main(args) do
     {:ok, _} = Application.ensure_all_started(:elixir)
-
     extract_priv!()
 
     :ok = Application.load(:livebook)
@@ -22,62 +26,32 @@ defmodule LivebookCLI do
       Application.put_env(:elixir, :ansi_enabled, true)
     end
 
-    call(args)
+    case args do
+      [arg] when arg in @help_args -> display_help()
+      [arg] when arg in @version_args -> display_version()
+      [name, arg] when arg in @help_args -> Task.usage(name)
+      [name | args] -> Task.call(name, List.delete(args, name))
+      _args -> Utils.log_info(usage())
+    end
   end
 
   defp unix?(), do: match?({:unix, _}, :os.type())
 
-  defp call([arg]) when arg in ["--help", "-h"], do: display_help()
-  defp call([arg]) when arg in ["--version", "-v"], do: display_version()
-
-  defp call([task_name | args]) do
-    case find_task(task_name) do
-      nil ->
-        IO.ANSI.format([:red, "Unknown command #{task_name}\n"]) |> IO.puts()
-        IO.write(usage())
-
-      task ->
-        call_task(task, args)
-    end
-  end
-
-  defp call(_args), do: IO.write(usage())
-
-  defp find_task("server"), do: LivebookCLI.Server
-  defp find_task(_), do: nil
-
-  defp call_task(task, [arg]) when arg in ["--help", "-h"] do
-    IO.write(task.usage())
-  end
-
-  defp call_task(task, args) do
-    try do
-      task.call(args)
-    rescue
-      error in OptionParser.ParseError ->
-        IO.ANSI.format([
-          :red,
-          Exception.message(error),
-          "\n\nFor more information try --help"
-        ])
-        |> IO.puts()
-
-      error ->
-        IO.ANSI.format([:red, Exception.format(:error, error, __STACKTRACE__), "\n"]) |> IO.puts()
-    end
-  end
-
   defp display_help() do
-    IO.puts("Livebook is an interactive notebook system for Elixir\n")
-    IO.write(usage())
+    Utils.log_info("""
+    Livebook is an interactive notebook system for Elixir
+
+    #{usage()}\
+    """)
   end
 
   defp display_version() do
-    IO.puts(:erlang.system_info(:system_version))
-    IO.puts("Elixir " <> System.build_info()[:build])
+    Utils.log_info("""
+    #{:erlang.system_info(:system_version)}
+    Elixir #{System.build_info()[:build]}
 
-    version = Livebook.Config.app_version()
-    IO.puts("\nLivebook #{version}")
+    Livebook #{Livebook.Config.app_version()}\
+    """)
   end
 
   import Record
@@ -104,14 +78,10 @@ defmodule LivebookCLI do
         List.starts_with?(name, in_archive_priv_path)
       end
 
-      case :zip.extract(archive, cwd: String.to_charlist(archive_dir), file_filter: file_filter) do
-        {:ok, _} ->
-          :ok
+      opts = [cwd: String.to_charlist(archive_dir), file_filter: file_filter]
 
-        {:error, error} ->
-          print_error_and_exit(
-            "Livebook failed to extract archive files, reason: #{inspect(error)}"
-          )
+      with {:error, error} <- :zip.extract(archive, opts) do
+        raise "Livebook failed to extract archive files, reason: #{inspect(error)}"
       end
 
       File.touch!(extracted_path)
@@ -119,11 +89,5 @@ defmodule LivebookCLI do
 
     priv_dir = Path.join(archive_dir, in_archive_priv_path)
     Application.put_env(:livebook, :priv_dir, priv_dir, persistent: true)
-  end
-
-  @spec print_error_and_exit(String.t()) :: no_return()
-  defp print_error_and_exit(message) do
-    IO.ANSI.format([:red, message]) |> IO.puts()
-    System.halt(1)
   end
 end

@@ -2,8 +2,6 @@ defmodule Livebook.Teams.Org do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @prefix "lb_tk_"
-
   @type t :: %__MODULE__{
           id: pos_integer() | nil,
           emoji: String.t() | nil,
@@ -31,7 +29,7 @@ defmodule Livebook.Teams.Org do
   @spec teams_key() :: String.t()
   def teams_key() do
     key = :crypto.strong_rand_bytes(@secret_key_size)
-    @prefix <> Base.url_encode64(key, padding: false)
+    Livebook.Teams.Constants.teams_key_prefix() <> Base.url_encode64(key, padding: false)
   end
 
   @doc """
@@ -50,10 +48,4 @@ defmodule Livebook.Teams.Org do
       message: "should only contain lowercase alphanumeric characters and dashes"
     )
   end
-
-  @doc """
-  Returns the teams key prefix
-  """
-  @spec teams_key_prefix() :: String.t()
-  def teams_key_prefix(), do: @prefix
 end

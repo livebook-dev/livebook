@@ -11,7 +11,7 @@ defmodule Livebook.Teams do
   import Ecto.Changeset,
     only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
 
-  @prefix Org.teams_key_prefix()
+  @teams_key_prefix Teams.Constants.teams_key_prefix()
 
   @doc """
   Creates an Org.
@@ -148,7 +148,7 @@ defmodule Livebook.Teams do
   Derives the secret and sign secret from given `teams_key`.
   """
   @spec derive_key(String.t()) :: bitstring()
-  def derive_key(@prefix <> teams_key) do
+  def derive_key(@teams_key_prefix <> teams_key) do
     binary_key = Base.url_decode64!(teams_key, padding: false)
     Plug.Crypto.KeyGenerator.generate(binary_key, "notebook secret", cache: Plug.Crypto.Keys)
   end
@@ -233,6 +233,45 @@ defmodule Livebook.Teams do
   @spec get_environment_variables(Team.t()) :: list(Teams.Agent.t())
   def get_environment_variables(team) do
     TeamClient.get_environment_variables(team.id)
+  end
+
+  @doc """
+  Fetches the CLI session using a deploy key.
+  """
+  @spec fetch_cli_session(map()) ::
+          {:ok, Team.t()} | {:error, String.t()} | {:transport_error, String.t()}
+  def fetch_cli_session(%{session_token: _, teams_key: _} = config) do
+    with {:ok, %{"name" => name} = attrs} <- Requests.fetch_cli_session(config) do
+      id = "team-#{name}"
+
+      hub =
+        Hubs.save_hub(%Team{
+          id: id,
+          hub_name: name,
+          hub_emoji: "🚀",
+          user_id: nil,
+          org_id: attrs["org_id"],
+          org_key_id: attrs["org_key_id"],
+          session_token: config.session_token,
+          teams_key: config.teams_key,
+          org_public_key: attrs["public_key"]
+        })
+
+      {:ok, hub}
+    end
+  end
+
+  @doc """
+  Deploys the given app deployment to given deployment group using a deploy key.
+  """
+  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), String.t()) ::
+          {:ok, String.t()} | {:error, map()} | {:transport_error, String.t()}
+  def deploy_app_from_cli(%Team{} = team, %Teams.AppDeployment{} = app_deployment, name) do
+    case Requests.deploy_app_from_cli(team, app_deployment, name) do
+      {:ok, %{"url" => url}} -> {:ok, url}
+      {:error, %{"errors" => errors}} -> {:error, errors}
+      any -> any
+    end
   end
 
   defp map_teams_field_to_livebook_field(map, teams_field, livebook_field) do
