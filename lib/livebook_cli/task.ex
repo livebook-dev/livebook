@@ -28,7 +28,7 @@ defmodule LivebookCLI.Task do
   @spec usage(String.t()) :: :ok
   def usage(name) do
     task = fetch_task!(name)
-    print_text(task.usage())
+    log_info(task.usage())
   rescue
     exception -> log_exception(exception, name, __STACKTRACE__)
   end
@@ -38,15 +38,9 @@ defmodule LivebookCLI.Task do
 
   defp fetch_task!(name) do
     log_error("Unknown command #{name}")
-    print_text(LivebookCLI.usage())
+    log_info(LivebookCLI.usage())
 
     System.halt(1)
-  end
-
-  defp log_error(message) do
-    [:red, message]
-    |> IO.ANSI.format()
-    |> IO.puts()
   end
 
   @spec log_exception(Exception.t(), String.t(), Exception.stacktrace()) :: no_return()

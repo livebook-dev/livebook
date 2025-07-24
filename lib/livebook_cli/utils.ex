@@ -1,11 +1,8 @@
 defmodule LivebookCLI.Utils do
-  def option_parse(argv, opts \\ []) do
-    {parsed, argv, errors} = OptionParser.parse(argv, opts)
-    {Enum.into(parsed, %{}), argv, errors}
-  end
-
   def log_info(message) do
-    IO.puts(message)
+    message
+    |> IO.ANSI.format()
+    |> IO.puts()
   end
 
   if Mix.env() == :dev do
@@ -26,8 +23,8 @@ defmodule LivebookCLI.Utils do
     |> IO.puts()
   end
 
-  def print_text(message) do
-    message
+  def log_error(message) do
+    [:red, message]
     |> IO.ANSI.format()
     |> IO.puts()
   end

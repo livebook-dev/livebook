@@ -31,14 +31,14 @@ defmodule LivebookCLI do
       [arg] when arg in @version_args -> display_version()
       [name, arg] when arg in @help_args -> Task.usage(name)
       [name | args] -> Task.call(name, List.delete(args, name))
-      _args -> Utils.print_text(usage())
+      _args -> Utils.log_info(usage())
     end
   end
 
   defp unix?(), do: match?({:unix, _}, :os.type())
 
   defp display_help() do
-    Utils.print_text("""
+    Utils.log_info("""
     Livebook is an interactive notebook system for Elixir
 
     #{usage()}\
@@ -46,7 +46,7 @@ defmodule LivebookCLI do
   end
 
   defp display_version() do
-    Utils.print_text("""
+    Utils.log_info("""
     #{:erlang.system_info(:system_version)}
     Elixir #{System.build_info()[:build]}
 

@@ -224,7 +224,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       {key, _} = TeamsRPC.create_deploy_key(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
 
-      assert_raise LivebookCLI.Error, ~r/Path must be a valid path/s, fn ->
+      assert_raise LivebookCLI.Error, ~r/File Paths must be a valid path/s, fn ->
         deploy(
           key,
           team.teams_key,
@@ -238,7 +238,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       {key, _} = TeamsRPC.create_deploy_key(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
 
-      assert_raise LivebookCLI.Error, ~r/Path must be a file path/s, fn ->
+      assert_raise LivebookCLI.Error, ~r/File Paths must be a file path/s, fn ->
         deploy(
           key,
           team.teams_key,
@@ -250,16 +250,22 @@ defmodule LivebookCLI.Integration.DeployTest do
   end
 
   defp deploy(deploy_key, teams_key, deployment_group_name, path) do
-    path = if Path.wildcard(path) == [], do: path, else: Path.wildcard(path)
+    paths =
+      case Path.wildcard(path) do
+        [] -> [path]
+        [path] -> [path]
+        paths -> paths
+      end
 
-    LivebookCLI.Deploy.call([
-      "--deploy-key",
-      deploy_key,
-      "--teams-key",
-      teams_key,
-      "--deployment-group",
-      deployment_group_name,
-      path
-    ])
+    LivebookCLI.Deploy.call(
+      [
+        "--deploy-key",
+        deploy_key,
+        "--teams-key",
+        teams_key,
+        "--deployment-group",
+        deployment_group_name
+      ] ++ paths
+    )
   end
 end

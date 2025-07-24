@@ -50,10 +50,10 @@ defmodule LivebookCLI.Deploy do
   end
 
   defp config_from_args(args) do
-    {opts, path} = OptionParser.parse!(args, strict: @switches)
+    {opts, paths} = OptionParser.parse!(args, strict: @switches)
 
     %{
-      path: List.flatten(path),
+      paths: paths,
       session_token: opts[:deploy_key],
       teams_key: opts[:teams_key],
       deployment_group: opts[:deployment_group]
@@ -82,8 +82,8 @@ defmodule LivebookCLI.Deploy do
             acc
           end
 
-        {:path, value}, acc ->
-          Enum.reduce_while(value, acc, &validate_path/2)
+        {:paths, values}, acc ->
+          Enum.reduce_while(values, acc, &validate_path/2)
 
         _otherwise, acc ->
           acc
@@ -103,10 +103,10 @@ defmodule LivebookCLI.Deploy do
   defp validate_path(value, acc) do
     cond do
       not File.exists?(value) ->
-        {:halt, add_error(acc, normalize_key(:path), "must be a valid path")}
+        {:halt, add_error(acc, normalize_key(:paths), "must be a valid path")}
 
       File.dir?(value) ->
-        {:halt, add_error(acc, normalize_key(:path), "must be a file path")}
+        {:halt, add_error(acc, normalize_key(:paths), "must be a file path")}
 
       true ->
         {:cont, acc}
@@ -124,15 +124,15 @@ defmodule LivebookCLI.Deploy do
   end
 
   defp deploy_to_teams(team, config) do
-    if length(config.path) == 1 do
+    if length(config.paths) == 1 do
       log_debug("Found 1 notebook")
     else
-      log_debug("Found #{length(config.path)} notebooks")
+      log_debug("Found #{length(config.paths)} notebooks")
     end
 
     log_info("Deploying notebooks:")
 
-    for path <- config.path do
+    for path <- config.paths do
       log_info(" * Preparing to deploy notebook #{Path.basename(path)}")
       files_dir = Livebook.FileSystem.File.local(path)
 
@@ -140,10 +140,10 @@ defmodule LivebookCLI.Deploy do
            {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir) do
         case Livebook.Teams.deploy_app_from_cli(team, app_deployment, config.deployment_group) do
           {:ok, url} ->
-            print_text([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
+            log_info([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
 
           {:error, errors} ->
-            print_text([:red, "  * #{app_deployment.title} failed to deploy."])
+            log_error("  * #{app_deployment.title} failed to deploy.")
             errors = normalize_errors(errors)
 
             raise LivebookCLI.Error, """
@@ -153,7 +153,7 @@ defmodule LivebookCLI.Deploy do
             """
 
           {:transport_error, reason} ->
-            print_text([:red, "  * #{app_deployment.title} failed to deploy."])
+            log_error("  * #{app_deployment.title} failed to deploy.")
             raise LivebookCLI.Error, reason
         end
       end
@@ -192,7 +192,7 @@ defmodule LivebookCLI.Deploy do
   defp normalize_key("session_token"), do: "Deploy Key"
   defp normalize_key("teams_key"), do: "Teams Key"
   defp normalize_key("deployment_group"), do: "Deployment Group"
-  defp normalize_key("path"), do: "Path"
+  defp normalize_key("paths"), do: "File Paths"
 
   defp format_errors(errors, prefix) do
     errors
