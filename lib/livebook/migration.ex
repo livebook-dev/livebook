@@ -30,7 +30,7 @@ defmodule Livebook.Migration do
       Livebook.Hubs.save_hub(%Livebook.Hubs.Personal{
         id: Livebook.Hubs.Personal.id(),
         hub_name: "Personal",
-        hub_emoji: "🝠",
+        hub_emoji: "🏠",
         secret_key: Livebook.Hubs.Personal.generate_secret_key()
       })
     end
