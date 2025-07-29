@@ -10,12 +10,12 @@ defmodule LivebookCLI.Deploy do
   @impl true
   def usage() do
     """
-    Usage: livebook deploy [options] filename|directory
+    Usage: livebook deploy [options] filename|glob pattern
 
     ## Available options
 
-      --deploy-key        Sets the deploy key to authenticate with Livebook Teams
-      --teams-key         Sets the Teams key to authenticate with Livebook Teams and encrypt the Livebook app
+      --deploy-key        Deploy key from your Livebook Teams organization
+      --teams-key         Teams key from your Teams workspace
       --deployment-group  The deployment group name which you want to deploy to
 
     The --help option can be given to print this notice.
@@ -24,11 +24,11 @@ defmodule LivebookCLI.Deploy do
 
     Deploys a single notebook:
 
-        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group "online" path/to/app1.livemd
+        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group="production" path/to/app1.livemd
 
     Deploys multiple notebooks:
 
-        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group "online" path/to/*.livemd\
+        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group="production" path/to/*.livemd\
     """
   end
 
