@@ -199,16 +199,19 @@ defmodule LivebookCLI.Integration.DeployTest do
       ```
       """)
 
-      assert_raise LivebookCLI.Error, ~r/Deployment Group does not exist/s, fn ->
+      output =
         ExUnit.CaptureIO.capture_io(fn ->
-          deploy(
-            key,
-            team.teams_key,
-            Utils.random_short_id(),
-            app_path
-          )
+          assert_raise LivebookCLI.Error, "Some app deployments failed.", fn ->
+            deploy(
+              key,
+              team.teams_key,
+              Utils.random_short_id(),
+              app_path
+            )
+          end
         end)
-      end
+
+      assert output =~ ~r/Deployment Group does not exist/
 
       refute_receive {:app_deployment_started,
                       %{
@@ -247,14 +250,88 @@ defmodule LivebookCLI.Integration.DeployTest do
         )
       end
     end
+
+    test "handles partial failure when deploying multiple notebooks",
+         %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
+      {deploy_key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
+      hub_id = team.id
+
+      # Notebook without app settings (deploymeny should fail)
+      invalid_title = "Invalid App"
+      invalid_slug = "invalid-#{Utils.random_short_id()}"
+      invalid_app_path = Path.join(tmp_dir, "#{invalid_slug}.livemd")
+
+      File.write!(invalid_app_path, """
+      <!-- livebook:{"hub_id":"#{hub_id}"} -->
+
+      # #{invalid_title}
+
+      ```elixir
+      1 + 1
+      ```
+      """)
+
+      # Second notebook should succeed
+      valid_title = "Valid App"
+      valid_slug = "valid-#{Utils.random_short_id()}"
+      valid_app_path = Path.join(tmp_dir, "#{valid_slug}.livemd")
+
+      stamp_notebook(valid_app_path, """
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{valid_slug}"},"hub_id":"#{hub_id}"} -->
+
+      # #{valid_title}
+
+      ```elixir
+      1 + 1
+      ```
+      """)
+
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert_raise(LivebookCLI.Error, "Some app deployments failed.", fn ->
+            deploy(
+              deploy_key,
+              team.teams_key,
+              deployment_group.name,
+              [invalid_app_path, valid_app_path]
+            )
+          end)
+        end)
+
+      # The valid notebook should have been deployed successfully
+      assert output =~
+               "#{valid_title} deployed successfully. (#{@url}/apps/#{valid_slug})"
+
+      deployment_group_id = to_string(deployment_group.id)
+
+      assert_receive {:app_deployment_started,
+                      %{
+                        title: ^valid_title,
+                        slug: ^valid_slug,
+                        deployment_group_id: ^deployment_group_id,
+                        hub_id: ^hub_id,
+                        deployed_by: "CLI"
+                      }}
+
+      # And deployment of the invalide notebook shows an error message
+      invalid_app_filename = Path.basename(invalid_app_path)
+
+      assert output =~
+               "Deployment for notebook #{invalid_app_filename} failed"
+    end
   end
 
   defp deploy(deploy_key, teams_key, deployment_group_name, path) do
     paths =
-      case Path.wildcard(path) do
-        [] -> [path]
-        [path] -> [path]
-        paths -> paths
+      if is_list(path) do
+        path
+      else
+        case Path.wildcard(path) do
+          [] -> [path]
+          [path] -> [path]
+          paths -> paths
+        end
       end
 
     LivebookCLI.Deploy.call(
