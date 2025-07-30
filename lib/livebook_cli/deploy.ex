@@ -10,7 +10,7 @@ defmodule LivebookCLI.Deploy do
   @impl true
   def usage() do
     """
-    Usage: livebook deploy [options] filename|glob pattern
+    Usage: livebook deploy [options] filename [filename...]
 
     ## Available options
 
