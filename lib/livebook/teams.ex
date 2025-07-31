@@ -264,10 +264,14 @@ defmodule Livebook.Teams do
   @doc """
   Deploys the given app deployment to given deployment group using a deploy key.
   """
-  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), String.t()) ::
+  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), integer()) ::
           {:ok, String.t()} | {:error, map()} | {:transport_error, String.t()}
-  def deploy_app_from_cli(%Team{} = team, %Teams.AppDeployment{} = app_deployment, name) do
-    case Requests.deploy_app_from_cli(team, app_deployment, name) do
+  def deploy_app_from_cli(
+        %Team{} = team,
+        %Teams.AppDeployment{} = app_deployment,
+        deployment_group_id
+      ) do
+    case Requests.deploy_app_from_cli(team, app_deployment, deployment_group_id) do
       {:ok, %{"url" => url}} -> {:ok, url}
       {:error, %{"errors" => errors}} -> {:error, errors}
       any -> any

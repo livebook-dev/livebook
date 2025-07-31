@@ -43,7 +43,7 @@ defmodule LivebookCLI.Integration.DeployTest do
           assert deploy(
                    key,
                    team.teams_key,
-                   deployment_group.name,
+                   deployment_group.id,
                    app_path
                  ) == :ok
         end)
@@ -92,7 +92,7 @@ defmodule LivebookCLI.Integration.DeployTest do
           assert deploy(
                    key,
                    team.teams_key,
-                   deployment_group.name,
+                   deployment_group.id,
                    Path.join(tmp_dir, "*.livemd")
                  ) == :ok
         end)
@@ -127,7 +127,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         deploy(
           "invalid_key",
           team.teams_key,
-          deployment_group.name,
+          deployment_group.id,
           app_path
         )
       end
@@ -149,7 +149,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         deploy(
           key,
           "invalid-key",
-          deployment_group.name,
+          deployment_group.id,
           app_path
         )
       end
@@ -167,14 +167,16 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise LivebookCLI.Error, ~r/Deployment Group can't be blank/s, fn ->
-        deploy(
-          key,
-          team.teams_key,
-          "",
-          app_path
-        )
-      end
+      assert_raise OptionParser.ParseError,
+                   ~r/--deployment-group-id : Expected type integer, got ""/s,
+                   fn ->
+                     deploy(
+                       key,
+                       team.teams_key,
+                       "",
+                       app_path
+                     )
+                   end
     end
 
     test "fails with invalid deployment group",
@@ -199,12 +201,12 @@ defmodule LivebookCLI.Integration.DeployTest do
       ```
       """)
 
-      assert_raise LivebookCLI.Error, ~r/Deployment Group does not exist/s, fn ->
+      assert_raise LivebookCLI.Error, ~r/Deployment Group ID does not exist/s, fn ->
         ExUnit.CaptureIO.capture_io(fn ->
           deploy(
             key,
             team.teams_key,
-            Utils.random_short_id(),
+            999_999,
             app_path
           )
         end)
@@ -228,7 +230,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         deploy(
           key,
           team.teams_key,
-          deployment_group.name,
+          deployment_group.id,
           Path.join(tmp_dir, "app.livemd")
         )
       end
@@ -242,19 +244,25 @@ defmodule LivebookCLI.Integration.DeployTest do
         deploy(
           key,
           team.teams_key,
-          deployment_group.name,
+          deployment_group.id,
           tmp_dir
         )
       end
     end
   end
 
-  defp deploy(deploy_key, teams_key, deployment_group_name, path) do
+  defp deploy(deploy_key, teams_key, deployment_group_id, path) do
     paths =
       case Path.wildcard(path) do
         [] -> [path]
         [path] -> [path]
         paths -> paths
+      end
+
+    deployment_group_id =
+      cond do
+        deployment_group_id == "" -> ""
+        true -> Integer.to_string(deployment_group_id)
       end
 
     LivebookCLI.Deploy.call(
@@ -263,8 +271,8 @@ defmodule LivebookCLI.Integration.DeployTest do
         deploy_key,
         "--teams-key",
         teams_key,
-        "--deployment-group",
-        deployment_group_name
+        "--deployment-group-id",
+        deployment_group_id
       ] ++ paths
     )
   end

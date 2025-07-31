@@ -239,8 +239,8 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to deploy an app using a deploy key.
   """
-  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), String.t()) :: api_result()
-  def deploy_app_from_cli(team, app_deployment, deployment_group_name) do
+  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), integer()) :: api_result()
+  def deploy_app_from_cli(team, app_deployment, deployment_group_id) do
     secret_key = Teams.derive_key(team.teams_key)
 
     params = %{
@@ -248,7 +248,7 @@ defmodule Livebook.Teams.Requests do
       slug: app_deployment.slug,
       multi_session: app_deployment.multi_session,
       access_type: app_deployment.access_type,
-      deployment_group_name: deployment_group_name,
+      deployment_group_id: deployment_group_id,
       sha: app_deployment.sha
     }
 
