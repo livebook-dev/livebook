@@ -132,9 +132,10 @@ defmodule LivebookCLI.Deploy do
 
     log_info("Deploying notebooks:")
 
-    for path <- config.paths do
-      log_info(" * Preparing to deploy notebook #{Path.basename(path)}")
-      files_dir = Livebook.FileSystem.File.local(path)
+    deploy_results =
+      for path <- config.paths do
+        log_info(" * Preparing to deploy notebook #{Path.basename(path)}")
+        files_dir = Livebook.FileSystem.File.local(path)
 
       with {:ok, content} <- File.read(path),
            {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir) do
@@ -142,24 +143,33 @@ defmodule LivebookCLI.Deploy do
           {:ok, url} ->
             log_info([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
 
-          {:error, errors} ->
-            log_error("  * #{app_deployment.title} failed to deploy.")
-            errors = normalize_errors(errors)
+            {:error, errors} ->
+              log_error("  * #{app_deployment.title} failed to deploy.")
 
-            raise LivebookCLI.Error, """
-            #{format_errors(errors, "  * ")}
+              error_message =
+                errors
+                |> normalize_errors
+                |> format_errors("    * ")
 
-            #{Teams.Requests.error_message()}\
-            """
+              log_error(error_message)
 
-          {:transport_error, reason} ->
-            log_error("  * #{app_deployment.title} failed to deploy.")
-            raise LivebookCLI.Error, reason
+              :error
+
+            {:transport_error, reason} ->
+              log_error(
+                "  * #{app_deployment.title} failed to deploy. Transport error: #{reason}"
+              )
+
+              :error
+          end
         end
       end
-    end
 
-    :ok
+    if Enum.any?(deploy_results, fn result -> result != :ok end) do
+      raise LivebookCLI.Error, "Some app deployments failed."
+    else
+      :ok
+    end
   end
 
   defp prepare_app_deployment(path, content, files_dir) do
@@ -168,13 +178,19 @@ defmodule LivebookCLI.Deploy do
         {:ok, app_deployment}
 
       {:warning, warnings} ->
-        raise LivebookCLI.Error, """
-        Deployment for notebook #{Path.basename(path)} failed because the notebook has some warnings:
-        #{format_list(warnings, " * ")}
+        error_message = """
+          * Deployment for notebook #{Path.basename(path)} failed because the notebook has some warnings:
+          #{format_list(warnings, " * ")}
         """
 
+        log_error(error_message)
+
+        :error
+
       {:error, reason} ->
-        raise LivebookCLI.Error, "Failed to handle I/O operations: #{reason}"
+        log_error("  * Failed to handle I/O operations: #{reason}")
+
+        :error
     end
   end
 

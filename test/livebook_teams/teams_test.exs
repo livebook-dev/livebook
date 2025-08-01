@@ -304,7 +304,7 @@ defmodule Livebook.TeamsTest do
     @tag :tmp_dir
     test "deploys app to Teams using a CLI session",
          %{team: team, node: node, tmp_dir: tmp_dir, org: org} do
-      %{id: id, name: name} =
+      %{id: id} =
         TeamsRPC.create_deployment_group(node,
           name: "angry-cat-#{Ecto.UUID.generate()}",
           url: "http://localhost:4123",
@@ -337,7 +337,7 @@ defmodule Livebook.TeamsTest do
       assert {:ok, team} = Teams.fetch_cli_session(config)
 
       # deploy the app
-      assert {:ok, _url} = Teams.deploy_app_from_cli(team, app_deployment, name)
+      assert {:ok, _url} = Teams.deploy_app_from_cli(team, app_deployment, id)
 
       sha = app_deployment.sha
       multi_session = app_settings.multi_session
@@ -354,19 +354,19 @@ defmodule Livebook.TeamsTest do
                         deployment_group_id: ^id
                       } = app_deployment2}
 
-      assert Teams.deploy_app_from_cli(team, app_deployment, "foo") ==
-               {:error, %{"deployment_group" => ["does not exist"]}}
+      assert Teams.deploy_app_from_cli(team, app_deployment, 999) ==
+               {:error, %{"deployment_group_id" => ["does not exist"]}}
 
-      assert Teams.deploy_app_from_cli(team, %{app_deployment | slug: "@abc"}, name) ==
+      assert Teams.deploy_app_from_cli(team, %{app_deployment | slug: "@abc"}, id) ==
                {:error, %{"slug" => ["should only contain alphanumeric characters and dashes"]}}
 
-      assert Teams.deploy_app_from_cli(team, %{app_deployment | multi_session: nil}, name) ==
+      assert Teams.deploy_app_from_cli(team, %{app_deployment | multi_session: nil}, id) ==
                {:error, %{"multi_session" => ["can't be blank"]}}
 
-      assert Teams.deploy_app_from_cli(team, %{app_deployment | access_type: nil}, name) ==
+      assert Teams.deploy_app_from_cli(team, %{app_deployment | access_type: nil}, id) ==
                {:error, %{"access_type" => ["can't be blank"]}}
 
-      assert Teams.deploy_app_from_cli(team, %{app_deployment | access_type: :abc}, name) ==
+      assert Teams.deploy_app_from_cli(team, %{app_deployment | access_type: :abc}, id) ==
                {:error, %{"access_type" => ["is invalid"]}}
 
       # force app deployment to be stopped
