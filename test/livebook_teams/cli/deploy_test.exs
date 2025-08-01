@@ -43,7 +43,7 @@ defmodule LivebookCLI.Integration.DeployTest do
           assert deploy(
                    key,
                    team.teams_key,
-                   deployment_group.name,
+                   deployment_group.id,
                    app_path
                  ) == :ok
         end)
@@ -92,7 +92,7 @@ defmodule LivebookCLI.Integration.DeployTest do
           assert deploy(
                    key,
                    team.teams_key,
-                   deployment_group.name,
+                   deployment_group.id,
                    Path.join(tmp_dir, "*.livemd")
                  ) == :ok
         end)
@@ -127,7 +127,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         deploy(
           "invalid_key",
           team.teams_key,
-          deployment_group.name,
+          deployment_group.id,
           app_path
         )
       end
@@ -149,7 +149,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         deploy(
           key,
           "invalid-key",
-          deployment_group.name,
+          deployment_group.id,
           app_path
         )
       end
@@ -167,14 +167,16 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise LivebookCLI.Error, ~r/Deployment Group can't be blank/s, fn ->
-        deploy(
-          key,
-          team.teams_key,
-          "",
-          app_path
-        )
-      end
+      assert_raise OptionParser.ParseError,
+                   ~r/--deployment-group-id : Expected type integer, got ""/s,
+                   fn ->
+                     deploy(
+                       key,
+                       team.teams_key,
+                       "",
+                       app_path
+                     )
+                   end
     end
 
     test "fails with invalid deployment group",
@@ -201,17 +203,17 @@ defmodule LivebookCLI.Integration.DeployTest do
 
       output =
         ExUnit.CaptureIO.capture_io(fn ->
-          assert_raise LivebookCLI.Error, "Some app deployments failed.", fn ->
+          assert_raise(LivebookCLI.Error, ~r/Some app deployments failed./s, fn ->
             deploy(
               key,
               team.teams_key,
-              Utils.random_short_id(),
+              999_999,
               app_path
             )
-          end
+          end)
         end)
 
-      assert output =~ ~r/Deployment Group does not exist/
+      assert output =~ ~r/Deployment Group ID does not exist/
 
       refute_receive {:app_deployment_started,
                       %{
@@ -231,7 +233,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         deploy(
           key,
           team.teams_key,
-          deployment_group.name,
+          deployment_group.id,
           Path.join(tmp_dir, "app.livemd")
         )
       end
@@ -245,7 +247,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         deploy(
           key,
           team.teams_key,
-          deployment_group.name,
+          deployment_group.id,
           tmp_dir
         )
       end
@@ -293,7 +295,7 @@ defmodule LivebookCLI.Integration.DeployTest do
             deploy(
               deploy_key,
               team.teams_key,
-              deployment_group.name,
+              deployment_group.id,
               [invalid_app_path, valid_app_path]
             )
           end)
@@ -322,7 +324,7 @@ defmodule LivebookCLI.Integration.DeployTest do
     end
   end
 
-  defp deploy(deploy_key, teams_key, deployment_group_name, path) do
+  defp deploy(deploy_key, teams_key, deployment_group_id, path) do
     paths =
       if is_list(path) do
         path
@@ -334,14 +336,20 @@ defmodule LivebookCLI.Integration.DeployTest do
         end
       end
 
+    deployment_group_id =
+      cond do
+        deployment_group_id == "" -> ""
+        true -> Integer.to_string(deployment_group_id)
+      end
+
     LivebookCLI.Deploy.call(
       [
         "--deploy-key",
         deploy_key,
         "--teams-key",
         teams_key,
-        "--deployment-group",
-        deployment_group_name
+        "--deployment-group-id",
+        deployment_group_id
       ] ++ paths
     )
   end

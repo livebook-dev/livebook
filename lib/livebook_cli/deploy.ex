@@ -14,9 +14,9 @@ defmodule LivebookCLI.Deploy do
 
     ## Available options
 
-      --deploy-key        Deploy key from your Livebook Teams organization
-      --teams-key         Teams key from your Teams workspace
-      --deployment-group  The deployment group name which you want to deploy to
+      --deploy-key            Deploy key from your Livebook Teams organization
+      --teams-key             Teams key from your Teams workspace
+      --deployment-group-id   The ID of the deployment group you want to deploy to
 
     The --help option can be given to print this notice.
 
@@ -24,18 +24,18 @@ defmodule LivebookCLI.Deploy do
 
     Deploys a single notebook:
 
-        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group="production" path/to/app1.livemd
+        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/app1.livemd
 
     Deploys multiple notebooks:
 
-        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group="production" path/to/*.livemd\
+        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/*.livemd\
     """
   end
 
   @switches [
     deploy_key: :string,
     teams_key: :string,
-    deployment_group: :string
+    deployment_group_id: :integer
   ]
 
   @impl true
@@ -56,7 +56,7 @@ defmodule LivebookCLI.Deploy do
       paths: paths,
       session_token: opts[:deploy_key],
       teams_key: opts[:teams_key],
-      deployment_group: opts[:deployment_group]
+      deployment_group_id: opts[:deployment_group_id]
     }
   end
 
@@ -139,10 +139,13 @@ defmodule LivebookCLI.Deploy do
 
         with {:ok, content} <- File.read(path),
              {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir) do
-          case Livebook.Teams.deploy_app_from_cli(team, app_deployment, config.deployment_group) do
+          case Livebook.Teams.deploy_app_from_cli(
+                 team,
+                 app_deployment,
+                 config.deployment_group_id
+               ) do
             {:ok, url} ->
               log_info([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
-              :ok
 
             {:error, errors} ->
               log_error("  * #{app_deployment.title} failed to deploy.")
@@ -208,7 +211,8 @@ defmodule LivebookCLI.Deploy do
   defp normalize_key(key) when is_atom(key), do: to_string(key) |> normalize_key()
   defp normalize_key("session_token"), do: "Deploy Key"
   defp normalize_key("teams_key"), do: "Teams Key"
-  defp normalize_key("deployment_group"), do: "Deployment Group"
+  defp normalize_key("deployment_group_id"), do: "Deployment Group ID"
+
   defp normalize_key("paths"), do: "File Paths"
 
   defp format_errors(errors, prefix) do
