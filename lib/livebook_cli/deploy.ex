@@ -137,11 +137,15 @@ defmodule LivebookCLI.Deploy do
         log_info(" * Preparing to deploy notebook #{Path.basename(path)}")
         files_dir = Livebook.FileSystem.File.local(path)
 
-      with {:ok, content} <- File.read(path),
-           {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir) do
-        case Livebook.Teams.deploy_app_from_cli(team, app_deployment, config.deployment_group_id) do
-          {:ok, url} ->
-            log_info([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
+        with {:ok, content} <- File.read(path),
+             {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir) do
+          case Livebook.Teams.deploy_app_from_cli(
+                 team,
+                 app_deployment,
+                 config.deployment_group_id
+               ) do
+            {:ok, url} ->
+              log_info([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
 
             {:error, errors} ->
               log_error("  * #{app_deployment.title} failed to deploy.")
