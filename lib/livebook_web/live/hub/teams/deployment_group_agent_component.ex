@@ -346,6 +346,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
       namespace: livebook-namespace
     type: Opaque
     data:
+      # Notice the values below are Base64 encoded
       # LIVEBOOK_PASSWORD: <base64_encoded_password><%= for {k, v} <- secrets do %>
       <%= k %>: <%= Base.encode64(v) %><% end %>
     """,
