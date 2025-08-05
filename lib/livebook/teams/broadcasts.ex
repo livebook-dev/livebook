@@ -138,7 +138,7 @@ defmodule Livebook.Teams.Broadcasts do
   end
 
   @doc """
-  Broadcasts under `#{@app_server_topic}` topic when hub received a updated deployment group that changed which groups have access to the server.
+  Broadcasts under `#{@app_server_topic}` topic when hub received an updated deployment group that changed which groups have access to the server.
   """
   @spec server_authorization_updated(Teams.DeploymentGroup.t()) :: broadcast()
   def server_authorization_updated(%Teams.DeploymentGroup{} = deployment_group) do
