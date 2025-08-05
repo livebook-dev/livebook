@@ -15,6 +15,7 @@ defmodule Livebook.Teams.DeploymentGroup do
           teams_auth: boolean(),
           groups_auth: boolean(),
           authorization_groups: Ecto.Schema.embeds_many(Teams.AuthorizationGroup.t()),
+          deployment_users: Ecto.Schema.embeds_many(Teams.DeploymentUser.t()),
           secrets: Ecto.Schema.has_many(Secrets.Secret.t()),
           agent_keys: Ecto.Schema.has_many(Teams.AgentKey.t()),
           environment_variables: Ecto.Schema.has_many(Teams.EnvironmentVariable.t())
@@ -29,11 +30,13 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :url, :string
     field :teams_auth, :boolean, default: true
     field :groups_auth, :boolean, default: false
+    field :deploy_auth, :boolean, default: false
 
     has_many :secrets, Secrets.Secret
     has_many :agent_keys, Teams.AgentKey
     has_many :environment_variables, Teams.EnvironmentVariable
     embeds_many :authorization_groups, Teams.AuthorizationGroup
+    embeds_many :deployment_users, Teams.DeploymentUser
   end
 
   def changeset(deployment_group, attrs \\ %{}) do

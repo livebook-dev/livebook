@@ -499,6 +499,7 @@ defmodule Livebook.Hubs.TeamClient do
     agent_keys = Enum.map(deployment_group.agent_keys, &build_agent_key/1)
     environment_variables = build_environment_variables(state, deployment_group)
     authorization_groups = build_authorization_groups(deployment_group)
+    deployment_users = build_deployment_users(deployment_group)
 
     %Teams.DeploymentGroup{
       id: deployment_group.id,
@@ -512,7 +513,9 @@ defmodule Livebook.Hubs.TeamClient do
       url: nullify(deployment_group.url),
       teams_auth: deployment_group.teams_auth,
       groups_auth: deployment_group.groups_auth,
-      authorization_groups: authorization_groups
+      deploy_auth: deployment_group.deploy_auth,
+      authorization_groups: authorization_groups,
+      deployment_users: deployment_users
     }
   end
 
@@ -530,7 +533,8 @@ defmodule Livebook.Hubs.TeamClient do
       clustering: nullify(deployment_group_created.clustering),
       url: nullify(deployment_group_created.url),
       teams_auth: deployment_group_created.teams_auth,
-      authorization_groups: []
+      authorization_groups: [],
+      deployment_users: []
     }
   end
 
@@ -539,6 +543,7 @@ defmodule Livebook.Hubs.TeamClient do
     agent_keys = Enum.map(deployment_group_updated.agent_keys, &build_agent_key/1)
     environment_variables = build_environment_variables(state, deployment_group_updated)
     authorization_groups = build_authorization_groups(deployment_group_updated)
+    deployment_users = build_deployment_users(deployment_group_updated)
 
     {:ok, deployment_group} = fetch_deployment_group(deployment_group_updated.id, state)
 
@@ -552,7 +557,9 @@ defmodule Livebook.Hubs.TeamClient do
         url: nullify(deployment_group_updated.url),
         teams_auth: deployment_group_updated.teams_auth,
         groups_auth: deployment_group_updated.groups_auth,
-        authorization_groups: authorization_groups
+        deploy_auth: deployment_group_updated.deploy_auth,
+        authorization_groups: authorization_groups,
+        deployment_users: deployment_users
     }
   end
 
@@ -592,6 +599,15 @@ defmodule Livebook.Hubs.TeamClient do
       %Teams.AuthorizationGroup{
         provider_id: authorization_group.provider_id,
         group_name: authorization_group.group_name
+      }
+    end
+  end
+
+  defp build_deployment_users(%{deployment_users: deployment_users}) do
+    for deployment_user <- deployment_users do
+      %Teams.DeploymentUser{
+        user_id: deployment_user.user_id,
+        deployment_group_id: deployment_user.deployment_group_id
       }
     end
   end
