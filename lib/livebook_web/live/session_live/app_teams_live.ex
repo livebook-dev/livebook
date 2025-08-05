@@ -250,7 +250,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
               deployment_group={deployment_group}
               num_agents={@num_agents}
               num_app_deployments={@num_app_deployments}
-              authorized={authorized_for_deployment_group?(deployment_group)}
+              authorized={Teams.authorized_user_to_deploy?(@hub, deployment_group)}
               selectable
             />
           </div>
@@ -572,11 +572,5 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     Enum.reduce(opts, msg, fn {key, value}, acc ->
       String.replace(acc, "%{#{key}}", to_string(value))
     end)
-  end
-
-  # TODO: Replace with actual authorization logic from Livebook Teams
-  # For now, simulate that "production" and "staging" deployment groups require authorization
-  defp authorized_for_deployment_group?(deployment_group) do
-    deployment_group.name not in ["production", "staging"]
   end
 end

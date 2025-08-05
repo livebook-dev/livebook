@@ -165,6 +165,17 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns if the given user has access to deploy apps to Teams.
+  """
+  @spec authorized_user_to_deploy?(String.t(), pos_integer() | nil, String.t()) :: boolean()
+  def authorized_user_to_deploy?(id, user_id, deployment_group_id) do
+    GenServer.call(
+      registry_name(id),
+      {:check_deployment_authorization, user_id, deployment_group_id}
+    )
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -335,6 +346,30 @@ defmodule Livebook.Hubs.TeamClient do
       end
     else
       {:reply, true, state}
+    end
+  end
+
+  def handle_call({:check_deployment_authorization, user_id, id}, _caller, state) do
+    # App servers/Offline instances should not be able to deploy apps
+    if state.deployment_group_id || user_id == nil do
+      {:reply, false, state}
+    else
+      case fetch_deployment_group(id, state) do
+        {:ok, deployment_group} ->
+          deployment_user = %Teams.DeploymentUser{
+            user_id: to_string(user_id),
+            deployment_group_id: id
+          }
+
+          authorized? =
+            not deployment_group.deploy_auth or
+              deployment_user in deployment_group.deployment_users
+
+          {:reply, authorized?, state}
+
+        _ ->
+          {:reply, false, state}
+      end
     end
   end
 
