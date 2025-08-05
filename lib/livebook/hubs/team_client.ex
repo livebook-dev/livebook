@@ -746,11 +746,22 @@ defmodule Livebook.Hubs.TeamClient do
     Teams.Broadcasts.deployment_group_updated(deployment_group)
 
     with {:ok, current_deployment_group} <- fetch_deployment_group(deployment_group.id, state) do
-      if state.deployment_group_id == deployment_group.id and
-           (current_deployment_group.authorization_groups != deployment_group.authorization_groups or
-              current_deployment_group.groups_auth != deployment_group.groups_auth or
-              current_deployment_group.teams_auth != deployment_group.teams_auth) do
-        Teams.Broadcasts.server_authorization_updated(deployment_group)
+      cond do
+        state.deployment_group_id == deployment_group.id and
+            (current_deployment_group.authorization_groups !=
+               deployment_group.authorization_groups or
+               current_deployment_group.groups_auth != deployment_group.groups_auth or
+               current_deployment_group.teams_auth != deployment_group.teams_auth) ->
+          Teams.Broadcasts.server_authorization_updated(deployment_group)
+
+        state.deployment_group_id == nil and
+            (current_deployment_group.deployment_users !=
+               deployment_group.deployment_users or
+               current_deployment_group.deploy_auth != deployment_group.deploy_auth) ->
+          Teams.Broadcasts.deployment_authorization_updated(deployment_group)
+
+        true ->
+          :noop
       end
     end
 

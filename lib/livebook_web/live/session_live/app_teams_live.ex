@@ -462,6 +462,11 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     {:noreply, socket |> assign_app_deployments() |> assign_app_deployment()}
   end
 
+  def handle_info({:deployment_authorization_updated, deployment_group}, socket)
+      when deployment_group.hub_id == socket.assigns.hub.id do
+    {:noreply, assign_deployment_groups(socket)}
+  end
+
   def handle_info(
         {:operation, {:set_notebook_deployment_group, _client_id, deployment_group_id}},
         socket
