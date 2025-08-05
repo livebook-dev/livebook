@@ -68,6 +68,8 @@ message DeploymentGroup {
   bool teams_auth = 11;
   repeated AuthorizationGroup authorization_groups = 12;
   bool groups_auth = 13;
+  bool deploy_auth = 14;
+  repeated DeploymentUser deployment_users = 15;
 }
 
 message DeploymentGroupCreated {
@@ -95,6 +97,8 @@ message DeploymentGroupUpdated {
   bool teams_auth = 10;
   repeated AuthorizationGroup authorization_groups = 11;
   bool groups_auth = 12;
+  bool deploy_auth = 13;
+  repeated DeploymentUser deployment_users = 14;
 }
 
 message DeploymentGroupDeleted {
@@ -213,6 +217,11 @@ message AuthorizationGroup {
   string group_name = 2;
 }
 
+message DeploymentUser {
+  string user_id = 1;
+  string deployment_group_id = 2;
+}
+
 message Event {
   oneof type {
     SecretCreated secret_created = 1;
@@ -258,5 +267,4 @@ message BillingStatusCanceling {
   int64 cancel_at = 1;
 }
 
-message BillingStatusCanceled {
-}
+message BillingStatusCanceled {}
