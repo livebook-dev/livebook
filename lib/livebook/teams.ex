@@ -294,4 +294,12 @@ defmodule Livebook.Teams do
   defp add_external_errors(struct, errors_map) do
     struct |> Ecto.Changeset.change() |> add_external_errors(errors_map)
   end
+
+  @doc """
+  Deploys the given app deployment to given deployment group using a deploy key.
+  """
+  @spec authorized_user_to_deploy?(Team.t(), Teams.DeploymentGroup.t()) :: boolean()
+  def authorized_user_to_deploy?(%Team{} = team, %Teams.DeploymentGroup{} = deployment_group) do
+    TeamClient.authorized_user_to_deploy?(team.id, team.user_id, deployment_group.id)
+  end
 end
