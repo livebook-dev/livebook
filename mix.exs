@@ -18,7 +18,7 @@ defmodule Livebook.MixProject do
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
       test_elixirc_options: [docs: true],
-      compilers: Mix.compilers() ++ [:livebook_priv],
+      compilers: [:phoenix_live_view] ++ Mix.compilers() ++ [:livebook_priv],
       start_permanent: Mix.env() == :prod,
       listeners: [Phoenix.CodeReloader],
       aliases: aliases(),
@@ -102,10 +102,8 @@ defmodule Livebook.MixProject do
   #
   defp deps do
     [
-      # {:phoenix, "~> 1.7.8"},
-      {:phoenix, github: "phoenixframework/phoenix", override: true},
-      # {:phoenix_live_view, "~> 1.0.0"},
-      {:phoenix_live_view, github: "phoenixframework/phoenix_live_view", override: true},
+      {:phoenix, "~> 1.8", override: true},
+      {:phoenix_live_view, "~> 1.1.0"},
       {:phoenix_html, "~> 4.0"},
       {:phoenix_live_dashboard, "~> 0.8.4"},
       {:telemetry_metrics, "~> 1.0"},
@@ -123,7 +121,7 @@ defmodule Livebook.MixProject do
       {:kubereq, "~> 0.3.0"},
       {:yaml_elixir, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:tidewave, "~> 0.1", only: :dev},
+      {:tidewave, "~> 0.3", only: :dev},
       {:lazy_html, "~> 0.1.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
       {:logger_json, "~> 6.1"},
