@@ -226,7 +226,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
 
     example_dir =
       "lb-server-#{hub_name}-#{deployment_group_name}"
-      |> String.replace(~r/[^\w-]/, "")
+      |> String.replace(~r/[^\w\-]/, "")
       |> String.downcase()
 
     %{
