@@ -258,6 +258,7 @@ defmodule Livebook.MixProject do
       "docs/deployment/nginx_https.md",
       "docs/teams/intro_to_teams.md",
       {"docs/teams/deploy_app.md", title: "Deploy Livebook apps"},
+      {"docs/teams/deploy_via_cli.md", title: "Deploy Livebook apps via CLI"},
       {"docs/teams/email_domain.md", title: "Email domain auth"},
       {"docs/teams/oidc_sso.md", title: "OIDC SSO"},
       "docs/teams/oidc_groups.md",
