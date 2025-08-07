@@ -135,7 +135,9 @@ defmodule LivebookCLI.Deploy do
     deploy_results =
       for path <- config.paths do
         log_info(" * Preparing to deploy notebook #{Path.basename(path)}")
-        files_dir = Livebook.FileSystem.File.local(path)
+
+        absolute_path = Path.expand(path)
+        files_dir = Livebook.FileSystem.File.local(absolute_path)
 
         with {:ok, content} <- File.read(path),
              {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir) do
