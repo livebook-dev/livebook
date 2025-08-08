@@ -112,6 +112,58 @@ defmodule LivebookCLI.Integration.DeployTest do
       end
     end
 
+    test "fails with unauthorized deploy key",
+         %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
+      title = "Test CLI Deploy App"
+      slug = Utils.random_short_id()
+      app_path = Path.join(tmp_dir, "#{slug}.livemd")
+      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+
+      deployment_group =
+        TeamsRPC.create_deployment_group(node, org: org, url: @url, deploy_auth: true)
+
+      hub_id = team.id
+      deployment_group_id = to_string(deployment_group.id)
+
+      stamp_notebook(app_path, """
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"hub_id":"#{hub_id}"} -->
+
+      # #{title}
+
+      ## Test Section
+
+      ```elixir
+      IO.puts("Hello from CLI deployed app!")
+      ```
+      """)
+
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert_raise(LivebookCLI.Error, "Some app deployments failed.", fn ->
+            assert deploy(
+                     key,
+                     team.teams_key,
+                     deployment_group.id,
+                     app_path
+                   ) == :ok
+          end)
+        end)
+
+      assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
+
+      assert output =~
+               "* Test CLI Deploy App failed to deploy. Transport error: You are not authorized to perform this action, make sure you have the access to deploy apps to this deployment group"
+
+      refute_receive {:app_deployment_started,
+                      %{
+                        title: ^title,
+                        slug: ^slug,
+                        deployment_group_id: ^deployment_group_id,
+                        hub_id: ^hub_id,
+                        deployed_by: "CLI"
+                      }}
+    end
+
     test "fails with invalid deploy key", %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
       slug = Utils.random_short_id()
       app_path = Path.join(tmp_dir, "#{slug}.livemd")

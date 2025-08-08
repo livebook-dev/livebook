@@ -603,5 +603,41 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert render(view) =~
                "Failed to pack files: the notebook and its attachments have exceeded the maximum size of 20MB"
     end
+
+    test "shows an error when the deployment is unauthorized",
+         %{team: team, org: org, node: node, conn: conn, session: session} do
+      Session.set_notebook_hub(session.pid, team.id)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      deployment_group =
+        TeamsRPC.create_deployment_group(node, mode: :online, org: org, deploy_auth: true)
+
+      id = to_string(deployment_group.id)
+      assert_receive {:deployment_group_created, %{id: ^id}}
+
+      Session.set_notebook_deployment_group(session.pid, id)
+      assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, :crypto.strong_rand_bytes(1024 * 1024))
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-teams")
+
+      # From this point forward we are in a child LV
+      view = find_live_child(view, "app-teams")
+      assert render(view) =~ "App deployment with Livebook Teams"
+
+      view
+      |> element("button", "Deploy")
+      |> render_click()
+
+      assert render(view) =~
+               "You are not authorized to perform this action, make sure you have the access to deploy apps to this deployment group"
+    end
   end
 end
