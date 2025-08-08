@@ -208,4 +208,8 @@ defmodule Livebook.TeamsRPC do
   def toggle_groups_authorization(node, deployment_group) do
     :erpc.call(node, TeamsRPC, :toggle_groups_authorization, [deployment_group])
   end
+
+  def toggle_deployment_authorization(node, deployment_group) do
+    :erpc.call(node, TeamsRPC, :toggle_deployment_authorization, [deployment_group])
+  end
 end
