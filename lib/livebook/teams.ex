@@ -296,10 +296,10 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Deploys the given app deployment to given deployment group using a deploy key.
+  Checks if the given user has access to deploy apps to given deployment group.
   """
-  @spec authorized_user_to_deploy?(Team.t(), Teams.DeploymentGroup.t()) :: boolean()
-  def authorized_user_to_deploy?(%Team{} = team, %Teams.DeploymentGroup{} = deployment_group) do
-    TeamClient.authorized_user_to_deploy?(team.id, team.user_id, deployment_group.id)
+  @spec user_can_deploy?(Team.t(), Teams.DeploymentGroup.t()) :: boolean()
+  def user_can_deploy?(%Team{} = team, %Teams.DeploymentGroup{} = deployment_group) do
+    TeamClient.user_can_deploy?(team.id, team.user_id, deployment_group.id)
   end
 end

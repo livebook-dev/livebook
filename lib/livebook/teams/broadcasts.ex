@@ -34,7 +34,7 @@ defmodule Livebook.Teams.Broadcasts do
     * `{:deployment_group_created, DeploymentGroup.t()}`
     * `{:deployment_group_updated, DeploymentGroup.t()}`
     * `{:deployment_group_deleted, DeploymentGroup.t()}`
-    * `{:deployment_authorization_updated, DeploymentGroup.t()}`
+    * `{:deployment_users_updated, DeploymentGroup.t()}`
 
   Topic `#{@app_server_topic}`:
 
@@ -101,9 +101,9 @@ defmodule Livebook.Teams.Broadcasts do
   @doc """
   Broadcasts under `#{@deployment_groups_topic}` topic when hub received an updated deployment group that changed which users have access to deploy apps.
   """
-  @spec deployment_authorization_updated(Teams.DeploymentGroup.t()) :: broadcast()
-  def deployment_authorization_updated(%Teams.DeploymentGroup{} = deployment_group) do
-    broadcast(@deployment_groups_topic, {:deployment_authorization_updated, deployment_group})
+  @spec deployment_users_updated(Teams.DeploymentGroup.t()) :: broadcast()
+  def deployment_users_updated(%Teams.DeploymentGroup{} = deployment_group) do
+    broadcast(@deployment_groups_topic, {:deployment_users_updated, deployment_group})
   end
 
   @doc """

@@ -165,14 +165,11 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
-  Returns if the given user has access to deploy apps to Teams.
+  Returns if the given user has access to deploy apps to given deployment group.
   """
-  @spec authorized_user_to_deploy?(String.t(), pos_integer() | nil, String.t()) :: boolean()
-  def authorized_user_to_deploy?(id, user_id, deployment_group_id) do
-    GenServer.call(
-      registry_name(id),
-      {:check_deployment_authorization, user_id, deployment_group_id}
-    )
+  @spec user_can_deploy?(String.t(), pos_integer() | nil, String.t()) :: boolean()
+  def user_can_deploy?(id, user_id, deployment_group_id) do
+    GenServer.call(registry_name(id), {:user_can_deploy?, user_id, deployment_group_id})
   end
 
   @doc """
@@ -349,7 +346,7 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
-  def handle_call({:check_deployment_authorization, user_id, id}, _caller, state) do
+  def handle_call({:user_can_deploy?, user_id, id}, _caller, state) do
     # App servers/Offline instances should not be able to deploy apps
     if state.deployment_group_id || user_id == nil do
       {:reply, false, state}
@@ -746,22 +743,19 @@ defmodule Livebook.Hubs.TeamClient do
     Teams.Broadcasts.deployment_group_updated(deployment_group)
 
     with {:ok, current_deployment_group} <- fetch_deployment_group(deployment_group.id, state) do
-      cond do
-        state.deployment_group_id == deployment_group.id and
-            (current_deployment_group.authorization_groups !=
-               deployment_group.authorization_groups or
-               current_deployment_group.groups_auth != deployment_group.groups_auth or
-               current_deployment_group.teams_auth != deployment_group.teams_auth) ->
-          Teams.Broadcasts.server_authorization_updated(deployment_group)
+      if state.deployment_group_id == deployment_group.id and
+           (current_deployment_group.authorization_groups !=
+              deployment_group.authorization_groups or
+              current_deployment_group.groups_auth != deployment_group.groups_auth or
+              current_deployment_group.teams_auth != deployment_group.teams_auth) do
+        Teams.Broadcasts.server_authorization_updated(deployment_group)
+      end
 
-        state.deployment_group_id == nil and
-            (current_deployment_group.deployment_users !=
-               deployment_group.deployment_users or
-               current_deployment_group.deploy_auth != deployment_group.deploy_auth) ->
-          Teams.Broadcasts.deployment_authorization_updated(deployment_group)
-
-        true ->
-          :noop
+      if state.deployment_group_id == nil and
+           (current_deployment_group.deployment_users !=
+              deployment_group.deployment_users or
+              current_deployment_group.deploy_auth != deployment_group.deploy_auth) do
+        Teams.Broadcasts.deployment_users_updated(deployment_group)
       end
     end
 
