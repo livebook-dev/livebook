@@ -165,6 +165,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns if the given user has access to deploy apps to given deployment group.
+  """
+  @spec user_can_deploy?(String.t(), pos_integer() | nil, String.t()) :: boolean()
+  def user_can_deploy?(id, user_id, deployment_group_id) do
+    GenServer.call(registry_name(id), {:user_can_deploy?, user_id, deployment_group_id})
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -338,6 +346,30 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
+  def handle_call({:user_can_deploy?, user_id, id}, _caller, state) do
+    # App servers/Offline instances should not be able to deploy apps
+    if state.deployment_group_id || user_id == nil do
+      {:reply, false, state}
+    else
+      case fetch_deployment_group(id, state) do
+        {:ok, deployment_group} ->
+          deployment_user = %Teams.DeploymentUser{
+            user_id: to_string(user_id),
+            deployment_group_id: id
+          }
+
+          authorized? =
+            not deployment_group.deploy_auth or
+              deployment_user in deployment_group.deployment_users
+
+          {:reply, authorized?, state}
+
+        _ ->
+          {:reply, false, state}
+      end
+    end
+  end
+
   @impl true
   def handle_info(:connected, state) do
     Hubs.Broadcasts.hub_connected(state.hub.id)
@@ -499,6 +531,7 @@ defmodule Livebook.Hubs.TeamClient do
     agent_keys = Enum.map(deployment_group.agent_keys, &build_agent_key/1)
     environment_variables = build_environment_variables(state, deployment_group)
     authorization_groups = build_authorization_groups(deployment_group)
+    deployment_users = build_deployment_users(deployment_group)
 
     %Teams.DeploymentGroup{
       id: deployment_group.id,
@@ -512,7 +545,9 @@ defmodule Livebook.Hubs.TeamClient do
       url: nullify(deployment_group.url),
       teams_auth: deployment_group.teams_auth,
       groups_auth: deployment_group.groups_auth,
-      authorization_groups: authorization_groups
+      deploy_auth: deployment_group.deploy_auth,
+      authorization_groups: authorization_groups,
+      deployment_users: deployment_users
     }
   end
 
@@ -530,7 +565,8 @@ defmodule Livebook.Hubs.TeamClient do
       clustering: nullify(deployment_group_created.clustering),
       url: nullify(deployment_group_created.url),
       teams_auth: deployment_group_created.teams_auth,
-      authorization_groups: []
+      authorization_groups: [],
+      deployment_users: []
     }
   end
 
@@ -539,6 +575,7 @@ defmodule Livebook.Hubs.TeamClient do
     agent_keys = Enum.map(deployment_group_updated.agent_keys, &build_agent_key/1)
     environment_variables = build_environment_variables(state, deployment_group_updated)
     authorization_groups = build_authorization_groups(deployment_group_updated)
+    deployment_users = build_deployment_users(deployment_group_updated)
 
     {:ok, deployment_group} = fetch_deployment_group(deployment_group_updated.id, state)
 
@@ -552,7 +589,9 @@ defmodule Livebook.Hubs.TeamClient do
         url: nullify(deployment_group_updated.url),
         teams_auth: deployment_group_updated.teams_auth,
         groups_auth: deployment_group_updated.groups_auth,
-        authorization_groups: authorization_groups
+        deploy_auth: deployment_group_updated.deploy_auth,
+        authorization_groups: authorization_groups,
+        deployment_users: deployment_users
     }
   end
 
@@ -592,6 +631,15 @@ defmodule Livebook.Hubs.TeamClient do
       %Teams.AuthorizationGroup{
         provider_id: authorization_group.provider_id,
         group_name: authorization_group.group_name
+      }
+    end
+  end
+
+  defp build_deployment_users(%{deployment_users: deployment_users}) do
+    for deployment_user <- deployment_users do
+      %Teams.DeploymentUser{
+        user_id: deployment_user.user_id,
+        deployment_group_id: deployment_user.deployment_group_id
       }
     end
   end
@@ -696,10 +744,18 @@ defmodule Livebook.Hubs.TeamClient do
 
     with {:ok, current_deployment_group} <- fetch_deployment_group(deployment_group.id, state) do
       if state.deployment_group_id == deployment_group.id and
-           (current_deployment_group.authorization_groups != deployment_group.authorization_groups or
+           (current_deployment_group.authorization_groups !=
+              deployment_group.authorization_groups or
               current_deployment_group.groups_auth != deployment_group.groups_auth or
               current_deployment_group.teams_auth != deployment_group.teams_auth) do
         Teams.Broadcasts.server_authorization_updated(deployment_group)
+      end
+
+      if state.deployment_group_id == nil and
+           (current_deployment_group.deployment_users !=
+              deployment_group.deployment_users or
+              current_deployment_group.deploy_auth != deployment_group.deploy_auth) do
+        Teams.Broadcasts.deployment_users_updated(deployment_group)
       end
     end
 

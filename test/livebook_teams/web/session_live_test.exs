@@ -571,6 +571,56 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
                "App deployment created successfully"
     end
 
+    test "shows tooltip message if user is unauthorized to deploy apps",
+         %{team: team, node: node, org: org, conn: conn, session: session} do
+      Session.set_notebook_hub(session.pid, team.id)
+
+      deployment_group = TeamsRPC.create_deployment_group(node, mode: :online, org: org)
+      id = to_string(deployment_group.id)
+      assert_receive {:deployment_group_created, %{id: ^id, deploy_auth: false}}
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element("a", "Deploy with Livebook Teams")
+      |> render_click()
+
+      # Step: configuring valid app settings
+
+      assert render(view) =~ "You must configure your app before deploying it."
+
+      slug = Livebook.Utils.random_short_id()
+
+      view
+      |> element(~s/#app-settings-modal form/)
+      |> render_submit(%{"app_settings" => %{"slug" => slug}})
+
+      # From this point forward we are in a child LV
+      view = find_live_child(view, "app-teams")
+      assert render(view) =~ "App deployment with Livebook Teams"
+
+      # show the deployment group being able to select to deploy an app
+      assert has_element?(
+               view,
+               ~s/[phx-click="select_deployment_group"][phx-value-id="#{deployment_group.id}"]/
+             )
+
+      # then, we update the deployment group, so it will
+      # update the view and show the tooltip with unauthorized error message
+      {:ok, deployment_group} = TeamsRPC.toggle_deployment_authorization(node, deployment_group)
+      assert_receive {:deployment_group_updated, %{id: ^id, deploy_auth: true}}
+
+      refute has_element?(
+               view,
+               ~s/[phx-click="select_deployment_group"][phx-value-id="#{deployment_group.id}"]/
+             )
+
+      assert has_element?(
+               view,
+               ~s/[data-tooltip="You are not authorized to deploy to this deployment group"][phx-value-id="#{deployment_group.id}"]/
+             )
+    end
+
     test "shows an error when the deployment size is higher than the maximum size of 20MB",
          %{team: team, conn: conn, session: session} do
       Session.set_notebook_hub(session.pid, team.id)
@@ -602,6 +652,43 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       assert render(view) =~
                "Failed to pack files: the notebook and its attachments have exceeded the maximum size of 20MB"
+    end
+
+    test "shows an error when the deployment is unauthorized",
+         %{team: team, org: org, node: node, conn: conn, session: session} do
+      Session.set_notebook_hub(session.pid, team.id)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      deployment_group = TeamsRPC.create_deployment_group(node, mode: :online, org: org)
+      id = to_string(deployment_group.id)
+      assert_receive {:deployment_group_created, %{id: ^id, deploy_auth: false}}
+
+      {:ok, _} = TeamsRPC.toggle_deployment_authorization(node, deployment_group)
+      assert_receive {:deployment_group_updated, %{id: ^id, deploy_auth: true}}
+
+      Session.set_notebook_deployment_group(session.pid, id)
+      assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, :crypto.strong_rand_bytes(1024 * 1024))
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-teams")
+
+      # From this point forward we are in a child LV
+      view = find_live_child(view, "app-teams")
+      assert render(view) =~ "App deployment with Livebook Teams"
+
+      view
+      |> element("button", "Deploy")
+      |> render_click()
+
+      assert render(view) =~
+               "You are not authorized to perform this action, make sure you have the access to deploy apps to this deployment group"
     end
   end
 end

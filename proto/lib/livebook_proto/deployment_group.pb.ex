@@ -24,4 +24,10 @@ defmodule LivebookProto.DeploymentGroup do
     json_name: "authorizationGroups"
 
   field :groups_auth, 13, type: :bool, json_name: "groupsAuth"
+  field :deploy_auth, 14, type: :bool, json_name: "deployAuth"
+
+  field :deployment_users, 15,
+    repeated: true,
+    type: LivebookProto.DeploymentUser,
+    json_name: "deploymentUsers"
 end

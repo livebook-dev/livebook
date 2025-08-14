@@ -8,6 +8,7 @@ defmodule Livebook.Teams.Requests do
   @deploy_key_prefix Teams.Constants.deploy_key_prefix()
   @error_message "Something went wrong, try again later or please file a bug if it persists"
   @unauthorized_error_message "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
+  @unauthorized_app_deployment_error_message "You are not authorized to perform this action, make sure you have the access to deploy apps to this deployment group"
 
   @typep api_result :: {:ok, map()} | error_result()
   @typep error_result :: {:error, map() | String.t()} | {:transport_error, String.t()}
@@ -300,6 +301,11 @@ defmodule Livebook.Teams.Requests do
   defp upload(path, content, params, team) do
     build_req(team)
     |> Req.Request.put_header("content-length", "#{byte_size(content)}")
+    |> Req.Request.append_response_steps(
+      livebook_put_private: fn {request, response} ->
+        {request, Req.Response.put_private(response, :livebook_app_deployment, true)}
+      end
+    )
     |> Req.post(url: path, params: params, body: content)
     |> handle_response()
     |> dispatch_messages(team)
@@ -337,10 +343,20 @@ defmodule Livebook.Teams.Requests do
 
   defp handle_response(response) do
     case response do
-      {:ok, %{status: status} = response} when status in 200..299 -> {:ok, response.body}
-      {:ok, %{status: status} = response} when status in [410, 422] -> return_error(response)
-      {:ok, %{status: 401}} -> {:transport_error, @unauthorized_error_message}
-      _otherwise -> {:transport_error, @error_message}
+      {:ok, %{status: status} = response} when status in 200..299 ->
+        {:ok, response.body}
+
+      {:ok, %{status: status} = response} when status in [410, 422] ->
+        return_error(response)
+
+      {:ok, %{status: 401, private: %{livebook_app_deployment: true}}} ->
+        {:transport_error, @unauthorized_app_deployment_error_message}
+
+      {:ok, %{status: 401}} ->
+        {:transport_error, @unauthorized_error_message}
+
+      _otherwise ->
+        {:transport_error, @error_message}
     end
   end
 

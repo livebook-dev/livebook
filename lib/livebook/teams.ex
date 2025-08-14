@@ -294,4 +294,12 @@ defmodule Livebook.Teams do
   defp add_external_errors(struct, errors_map) do
     struct |> Ecto.Changeset.change() |> add_external_errors(errors_map)
   end
+
+  @doc """
+  Checks if the given user has access to deploy apps to given deployment group.
+  """
+  @spec user_can_deploy?(Team.t(), Teams.DeploymentGroup.t()) :: boolean()
+  def user_can_deploy?(%Team{} = team, %Teams.DeploymentGroup{} = deployment_group) do
+    TeamClient.user_can_deploy?(team.id, team.user_id, deployment_group.id)
+  end
 end

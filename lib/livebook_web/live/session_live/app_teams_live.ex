@@ -81,6 +81,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         messages={@messages}
         action={@action}
         initial?={@initial?}
+        authorized={@authorized}
       />
     </div>
     """
@@ -162,7 +163,12 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
                 <.remix_icon icon="rocket-line" /> Deploy
               </.button>
             <% else %>
-              <.button color="blue" outlined phx-click="deploy_app">
+              <.button
+                disabled={!@authorized[@deployment_group.id]}
+                color="blue"
+                outlined
+                phx-click="deploy_app"
+              >
                 <.remix_icon icon="rocket-line" /> Deploy anyway
               </.button>
             <% end %>
@@ -198,6 +204,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
               deployment_group={@deployment_group}
               num_agents={@num_agents}
               num_app_deployments={@num_app_deployments}
+              authorized={@authorized[@deployment_group.id]}
               active
             />
           </div>
@@ -224,7 +231,12 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
             <.button color="blue" phx-click="go_add_agent">
               <.remix_icon icon="add-line" /> Add app server
             </.button>
-            <.button color="blue" outlined phx-click="deploy_app">
+            <.button
+              disabled={!@authorized[@deployment_group.id]}
+              color="blue"
+              outlined
+              phx-click="deploy_app"
+            >
               <.remix_icon icon="rocket-line" /> Deploy anyway
             </.button>
           </div>
@@ -250,6 +262,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
               deployment_group={deployment_group}
               num_agents={@num_agents}
               num_app_deployments={@num_app_deployments}
+              authorized={@authorized[deployment_group.id]}
               selectable
             />
           </div>
@@ -301,6 +314,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
 
   attr :active, :boolean, default: false
   attr :selectable, :boolean, default: false
+  attr :authorized, :boolean, default: true
   attr :deployment_group, :map, required: true
   attr :num_agents, :map, required: true
   attr :num_app_deployments, :map, required: true
@@ -310,29 +324,45 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     ~H"""
     <div
       class={[
-        "border p-3 rounded-lg",
-        @selectable && "cursor-pointer",
-        if(@active,
-          do: "border-blue-600 bg-blue-50",
-          else: "border-gray-200"
-        )
+        "border p-3 rounded-lg relative",
+        cond do
+          !@authorized -> "!block cursor-not-allowed tooltip top opacity-50 bg-gray-50"
+          @selectable -> "cursor-pointer border-blue-600 bg-blue-50"
+          true -> "cursor-pointer border-gray-200"
+        end
       ]}
-      phx-click={@selectable && "select_deployment_group"}
+      data-tooltip={!@authorized && "You are not authorized to deploy to this deployment group"}
+      phx-click={@selectable && @authorized && "select_deployment_group"}
       phx-value-id={@deployment_group.id}
       {@rest}
     >
       <div class="flex justify-between items-center">
-        <div class="flex gap-2 items-center text-gray-700">
-          <h3 class="text-sm">
+        <div class="flex gap-2 items-center">
+          <h3 class={[
+            "text-sm",
+            if(@authorized, do: "text-gray-700", else: "text-gray-500")
+          ]}>
             <span class="font-semibold">{@deployment_group.name}</span>
             <span :if={url = @deployment_group.url}>({url})</span>
           </h3>
         </div>
-        <div class="flex gap-2">
-          <div class="text-sm text-gray-700 border-l border-gray-300 pl-2">
+        <div class="flex gap-2 flex-shrink-0">
+          <div class={[
+            "text-sm border-l pl-2",
+            if(@authorized,
+              do: "border-gray-300 text-gray-700",
+              else: "border-gray-300 text-gray-500"
+            )
+          ]}>
             App servers: {@num_agents[@deployment_group.id] || 0}
           </div>
-          <div class="text-sm text-gray-700 border-l border-gray-300 pl-2">
+          <div class={[
+            "text-sm border-l pl-2",
+            if(@authorized,
+              do: "border-gray-300 text-gray-700",
+              else: "border-gray-300 text-gray-500"
+            )
+          ]}>
             Apps deployed: {@num_app_deployments[@deployment_group.id] || 0}
           </div>
         </div>
@@ -440,6 +470,11 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     {:noreply, socket |> assign_app_deployments() |> assign_app_deployment()}
   end
 
+  def handle_info({:deployment_users_updated, deployment_group}, socket)
+      when deployment_group.hub_id == socket.assigns.hub.id do
+    {:noreply, assign_deployment_groups(socket)}
+  end
+
   def handle_info(
         {:operation, {:set_notebook_deployment_group, _client_id, deployment_group_id}},
         socket
@@ -453,13 +488,20 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp assign_deployment_groups(socket) do
+    hub = socket.assigns.hub
+
     deployment_groups =
-      socket.assigns.hub
+      hub
       |> Teams.get_deployment_groups()
       |> Enum.filter(&(&1.mode == :online))
       |> Enum.sort_by(& &1.name)
 
-    assign(socket, deployment_groups: deployment_groups)
+    authorized =
+      for deployment_group <- deployment_groups, into: %{} do
+        {deployment_group.id, Teams.user_can_deploy?(hub, deployment_group)}
+      end
+
+    assign(socket, deployment_groups: deployment_groups, authorized: authorized)
   end
 
   defp assign_app_deployments(socket) do

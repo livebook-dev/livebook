@@ -34,6 +34,7 @@ defmodule Livebook.Teams.Broadcasts do
     * `{:deployment_group_created, DeploymentGroup.t()}`
     * `{:deployment_group_updated, DeploymentGroup.t()}`
     * `{:deployment_group_deleted, DeploymentGroup.t()}`
+    * `{:deployment_users_updated, DeploymentGroup.t()}`
 
   Topic `#{@app_server_topic}`:
 
@@ -98,6 +99,14 @@ defmodule Livebook.Teams.Broadcasts do
   end
 
   @doc """
+  Broadcasts under `#{@deployment_groups_topic}` topic when hub received an updated deployment group that changed which users have access to deploy apps.
+  """
+  @spec deployment_users_updated(Teams.DeploymentGroup.t()) :: broadcast()
+  def deployment_users_updated(%Teams.DeploymentGroup{} = deployment_group) do
+    broadcast(@deployment_groups_topic, {:deployment_users_updated, deployment_group})
+  end
+
+  @doc """
   Broadcasts under `#{@app_deployments_topic}` topic when hub received to start a new app deployment.
   """
   @spec app_deployment_started(Teams.AppDeployment.t()) :: broadcast()
@@ -138,7 +147,7 @@ defmodule Livebook.Teams.Broadcasts do
   end
 
   @doc """
-  Broadcasts under `#{@app_server_topic}` topic when hub received a updated deployment group that changed which groups have access to the server.
+  Broadcasts under `#{@app_server_topic}` topic when hub received an updated deployment group that changed which groups have access to the server.
   """
   @spec server_authorization_updated(Teams.DeploymentGroup.t()) :: broadcast()
   def server_authorization_updated(%Teams.DeploymentGroup{} = deployment_group) do
