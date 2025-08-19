@@ -8,7 +8,7 @@ defmodule Livebook.Teams.Requests do
   @deploy_key_prefix Teams.Constants.deploy_key_prefix()
   @error_message "Something went wrong, try again later or please file a bug if it persists"
   @unauthorized_error_message "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
-  @unauthorized_app_deployment_error_message "You are not authorized to perform this action, make sure you have the access to deploy apps to this deployment group"
+  @unauthorized_app_deployment_error_message "Deployment not authorized, check deploy permissions for this deployment group"
 
   @typep api_result :: {:ok, map()} | error_result()
   @typep error_result :: {:error, map() | String.t()} | {:transport_error, String.t()}
