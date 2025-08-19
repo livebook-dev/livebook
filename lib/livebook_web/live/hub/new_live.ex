@@ -56,7 +56,7 @@ defmodule LivebookWeb.Hub.NewLive do
               target="_blank"
               phx-no-format
             >
-              Livebook Teams</a> enables you to deploy Livebook apps to your own infrastructure.
+              Livebook Teams</a> enables you to deploy notebooks as internal apps or turn Livebook into a controlled environment for runbooks and production operations.
           </p>
           <p class="mt-4 text-gray-700">
             To use it, you need to create or join a Teams organization.
