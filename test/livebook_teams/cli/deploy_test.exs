@@ -152,7 +152,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
 
       assert output =~
-               "* Test CLI Deploy App failed to deploy. Transport error: You are not authorized to perform this action, make sure you have the access to deploy apps to this deployment group"
+               "* Test CLI Deploy App failed to deploy. Transport error: Deployment not authorized, check deploy permissions for this deployment group"
 
       refute_receive {:app_deployment_started,
                       %{

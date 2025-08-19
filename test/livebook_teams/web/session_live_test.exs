@@ -688,7 +688,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> render_click()
 
       assert render(view) =~
-               "You are not authorized to perform this action, make sure you have the access to deploy apps to this deployment group"
+               "Deployment not authorized, check deploy permissions for this deployment group"
     end
   end
 end
