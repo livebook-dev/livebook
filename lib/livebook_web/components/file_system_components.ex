@@ -10,6 +10,7 @@ defmodule LivebookWeb.FileSystemComponents do
 
   def file_system_name(FileSystem.Local), do: "Disk"
   def file_system_name(FileSystem.S3), do: "S3"
+  def file_system_name(FileSystem.Git), do: "Git"
 
   @doc """
   Formats the given file system into a descriptive label.
@@ -18,6 +19,7 @@ defmodule LivebookWeb.FileSystemComponents do
 
   def file_system_label(%FileSystem.Local{}), do: "Disk"
   def file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
+  def file_system_label(%FileSystem.Git{} = fs), do: fs.repo_url
 
   @doc """
   Renders an icon representing the given file system.
@@ -35,6 +37,12 @@ defmodule LivebookWeb.FileSystemComponents do
     <i class="not-italic">
       <span class="text-[0.75em] font-semibold align-middle">S3</span>
     </i>
+    """
+  end
+
+  def file_system_icon(%{file_system: %FileSystem.Git{}} = assigns) do
+    ~H"""
+    <.remix_icon icon="git-repository-line leading-none" />
     """
   end
 end

@@ -140,7 +140,10 @@ defmodule Livebook.Hubs.Personal do
   @spec get_file_systems() :: list(FileSystem.t())
   def get_file_systems() do
     Storage.all(@file_systems_namespace)
-    |> Enum.sort_by(& &1.bucket_url)
+    |> Enum.sort_by(fn
+      %{repo_url: repo_url} -> repo_url
+      %{bucket_url: bucket_url} -> bucket_url
+    end)
     |> Enum.map(&to_file_system/1)
   end
 
