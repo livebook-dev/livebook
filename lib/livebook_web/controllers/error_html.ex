@@ -15,7 +15,11 @@ defmodule LivebookWeb.ErrorHTML do
 
   def render("error.html", assigns) do
     ~H"""
-    <.error_page status={@status} title="Something went wrong." details={@details} />
+    <.error_page
+      status={@status}
+      title={assigns[:title] || "Something went wrong."}
+      details={@details}
+    />
     """
   end
 
@@ -29,14 +33,13 @@ defmodule LivebookWeb.ErrorHTML do
     ~H"""
     <.error_page
       status={@status}
-      title="Something went wrong."
       details="Check out the console for logs for more information."
     />
     """
   end
 
   attr :status, :integer, required: true
-  attr :title, :string, required: true
+  attr :title, :string, default: "Something went wrong."
   attr :details, :string, default: nil
 
   def error_page(assigns) do
