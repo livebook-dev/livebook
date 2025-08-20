@@ -39,7 +39,7 @@ defmodule Livebook.TeamsIntegrationHelper do
   defp new_user_hub(node) do
     {teams_key, key_hash} = generate_key_hash()
 
-    org = TeamsRPC.create_org(node)
+    org = TeamsRPC.create_org(node, trial_ends_on: Date.add(Date.utc_today(), 1))
     user = TeamsRPC.create_user(node)
     org_key = TeamsRPC.create_org_key(node, org: org, key_hash: key_hash)
     org_key_pair = TeamsRPC.create_org_key_pair(node, org: org)
@@ -84,7 +84,7 @@ defmodule Livebook.TeamsIntegrationHelper do
   defp new_agent_hub(node, opts \\ []) do
     {teams_key, key_hash} = generate_key_hash()
 
-    org = TeamsRPC.create_org(node)
+    org = TeamsRPC.create_org(node, trial_ends_on: Date.add(Date.utc_today(), 1))
     org_key = TeamsRPC.create_org_key(node, org: org, key_hash: key_hash)
     org_key_pair = TeamsRPC.create_org_key_pair(node, org: org)
 
@@ -137,7 +137,7 @@ defmodule Livebook.TeamsIntegrationHelper do
   def new_cli_hub(node, opts \\ []) do
     {teams_key, key_hash} = generate_key_hash()
 
-    org = TeamsRPC.create_org(node)
+    org = TeamsRPC.create_org(node, trial_ends_on: Date.add(Date.utc_today(), 1))
     org_key = TeamsRPC.create_org_key(node, org: org, key_hash: key_hash)
     org_key_pair = TeamsRPC.create_org_key_pair(node, org: org)
 

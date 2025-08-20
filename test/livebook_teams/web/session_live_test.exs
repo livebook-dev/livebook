@@ -683,12 +683,10 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       view = find_live_child(view, "app-teams")
       assert render(view) =~ "App deployment with Livebook Teams"
 
-      view
-      |> element("button", "Deploy")
-      |> render_click()
-
-      assert render(view) =~
-               "Deployment not authorized, check deploy permissions for this deployment group"
+      # Don't allow to click, because the button is disabled
+      assert_raise ArgumentError, ~s/cannot click element "button" because it is disabled/, fn ->
+        view |> element("button", "Deploy") |> render_click()
+      end
     end
   end
 end
