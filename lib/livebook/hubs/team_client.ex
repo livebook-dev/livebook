@@ -979,14 +979,6 @@ defmodule Livebook.Hubs.TeamClient do
     put_in(state.hub, hub)
   end
 
-  # TODO: Remove when Billing is public
-  defp put_billing_status(hub, nil = _status) do
-    put_in(
-      hub.billing_status,
-      %{disabled: false, type: nil}
-    )
-  end
-
   defp put_billing_status(hub, %LivebookProto.BillingStatus{} = status) do
     put_in(
       hub.billing_status,
