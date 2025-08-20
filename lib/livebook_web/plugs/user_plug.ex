@@ -53,6 +53,7 @@ defmodule LivebookWeb.UserPlug do
         conn
         |> put_status(:forbidden)
         |> put_view(LivebookWeb.ErrorHTML)
+        |> put_root_layout(false)
         |> render("403.html", %{status: 403})
         |> halt()
     end
