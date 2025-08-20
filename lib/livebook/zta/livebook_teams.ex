@@ -87,6 +87,7 @@ defmodule Livebook.ZTA.LivebookTeams do
          |> put_status(:bad_request)
          |> delete_session(:teams_error)
          |> put_view(LivebookWeb.ErrorHTML)
+         |> put_root_layout(false)
          |> render("400.html", %{status: 400})
          |> halt(), nil}
 
@@ -95,6 +96,7 @@ defmodule Livebook.ZTA.LivebookTeams do
          |> put_status(:forbidden)
          |> delete_session(:teams_failed_reason)
          |> put_view(LivebookWeb.ErrorHTML)
+         |> put_root_layout(false)
          |> render("error.html", %{
            status: 403,
            details: "Failed to authenticate with Livebook Teams: #{reason}"
