@@ -18,15 +18,20 @@ defmodule Livebook.ZTA.LivebookTeams do
   def start_link(opts) do
     name = Keyword.fetch!(opts, :name)
     identity_key = Keyword.fetch!(opts, :identity_key)
-    team = Livebook.Hubs.fetch_hub!(identity_key)
 
-    Livebook.ZTA.put(name, team)
+    # we need to guarantee the hub exists
+    # otherwise, it should raise an exception
+    _ = Livebook.Hubs.fetch_hub!(identity_key)
+    Livebook.ZTA.put(name, identity_key)
+
     :ignore
   end
 
   @impl true
   def authenticate(name, conn, _opts) do
-    team = Livebook.ZTA.get(name)
+    id = Livebook.ZTA.get(name)
+    # fetch the hub everytime, so we will have the `billing_status` updated
+    team = Livebook.Hubs.fetch_hub!(id)
 
     if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
       handle_request(conn, team, conn.params)
@@ -38,7 +43,8 @@ defmodule Livebook.ZTA.LivebookTeams do
   # Our extension to Livebook.ZTA to deal with logouts
   def logout(name, conn) do
     token = get_session(conn, :livebook_teams_access_token)
-    team = Livebook.ZTA.get(name)
+    id = Livebook.ZTA.get(name)
+    team = Livebook.Hubs.fetch_hub!(id)
 
     url =
       Livebook.Config.teams_url()
