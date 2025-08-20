@@ -236,7 +236,7 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Fetches the CLI session using a deploy key.
+  Fetches the CLI session using a org token.
   """
   @spec fetch_cli_session(map()) ::
           {:ok, Team.t()} | {:error, String.t()} | {:transport_error, String.t()}
@@ -262,7 +262,7 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Deploys the given app deployment to given deployment group using a deploy key.
+  Deploys the given app deployment to given deployment group using an org token.
   """
   @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), integer()) ::
           {:ok, String.t()} | {:error, map()} | {:transport_error, String.t()}

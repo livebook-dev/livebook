@@ -151,7 +151,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       )
 
     deployment_group = TeamsRPC.create_deployment_group(node, attrs)
-    {key, deploy_key} = TeamsRPC.create_deploy_key(node, org: org)
+    {key, org_token} = TeamsRPC.create_org_token(node, org: org)
 
     TeamsRPC.create_billing_subscription(node, org)
 
@@ -169,7 +169,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       )
 
     %{
-      deploy_key: Map.replace!(deploy_key, :key_hash, key),
+      org_token: Map.replace!(org_token, :key_hash, key),
       deployment_group: deployment_group,
       org: org,
       org_key: org_key,

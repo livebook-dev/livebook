@@ -255,7 +255,7 @@ defmodule Livebook.TeamsTest do
     @describetag teams_for: :cli
 
     @tag teams_persisted: false
-    test "authenticates the deploy key", %{team: team} do
+    test "authenticates the org token", %{team: team} do
       config = %{teams_key: team.teams_key, session_token: team.session_token}
 
       refute Livebook.Hubs.hub_exists?(team.id)
@@ -264,9 +264,9 @@ defmodule Livebook.TeamsTest do
     end
 
     @tag teams_for: :user
-    test "authenticates the deploy key when hub already exists",
+    test "authenticates the org token when hub already exists",
          %{team: team, org: org, node: node} do
-      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
       config = %{teams_key: team.teams_key, session_token: key}
 
       assert Teams.fetch_cli_session(config) ==
@@ -291,7 +291,7 @@ defmodule Livebook.TeamsTest do
 
     @tag teams_persisted: false
     test "returns error with invalid credentials", %{team: team} do
-      config = %{teams_key: team.teams_key, session_token: "lb_dk_foo"}
+      config = %{teams_key: team.teams_key, session_token: "lb_ok_foo"}
 
       assert {:transport_error, "You are not authorized" <> _} = Teams.fetch_cli_session(config)
       refute Livebook.Hubs.hub_exists?(team.id)
@@ -332,7 +332,7 @@ defmodule Livebook.TeamsTest do
       assert {:ok, app_deployment} = Teams.AppDeployment.new(notebook, files_dir)
 
       # fetch the cli session
-      {key, _deploy_key} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _org_token} = TeamsRPC.create_org_token(node, org: org)
       config = %{teams_key: team.teams_key, session_token: key}
       assert {:ok, team} = Teams.fetch_cli_session(config)
 

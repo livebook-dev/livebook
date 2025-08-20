@@ -21,7 +21,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       title = "Test CLI Deploy App"
       slug = Utils.random_short_id()
       app_path = Path.join(tmp_dir, "#{slug}.livemd")
-      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
       hub_id = team.id
       deployment_group_id = to_string(deployment_group.id)
@@ -63,7 +63,7 @@ defmodule LivebookCLI.Integration.DeployTest do
 
     test "successfully deploys multiple notebooks from directory",
          %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
-      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
       hub_id = team.id
       deployment_group_id = to_string(deployment_group.id)
@@ -112,12 +112,12 @@ defmodule LivebookCLI.Integration.DeployTest do
       end
     end
 
-    test "fails with unauthorized deploy key",
+    test "fails with unauthorized org token",
          %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
       title = "Test CLI Deploy App"
       slug = Utils.random_short_id()
       app_path = Path.join(tmp_dir, "#{slug}.livemd")
-      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
 
       deployment_group =
         TeamsRPC.create_deployment_group(node, org: org, url: @url, deploy_auth: true)
@@ -164,7 +164,7 @@ defmodule LivebookCLI.Integration.DeployTest do
                       }}
     end
 
-    test "fails with invalid deploy key", %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
+    test "fails with invalid org token", %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
       slug = Utils.random_short_id()
       app_path = Path.join(tmp_dir, "#{slug}.livemd")
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
@@ -175,20 +175,22 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise LivebookCLI.Error, ~r/Deploy Key must be a Livebook Teams Deploy Key/s, fn ->
-        deploy(
-          "invalid_key",
-          team.teams_key,
-          deployment_group.id,
-          app_path
-        )
-      end
+      assert_raise LivebookCLI.Error,
+                   ~r/Token must be a Livebook Teams organization token/s,
+                   fn ->
+                     deploy(
+                       "invalid_key",
+                       team.teams_key,
+                       deployment_group.id,
+                       app_path
+                     )
+                   end
     end
 
     test "fails with invalid teams key", %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
       slug = Utils.random_short_id()
       app_path = Path.join(tmp_dir, "#{slug}.livemd")
-      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
 
       stamp_notebook(app_path, """
@@ -197,7 +199,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       # Test App
       """)
 
-      assert_raise LivebookCLI.Error, ~r/Teams Key must be a Livebook Teams Key/s, fn ->
+      assert_raise LivebookCLI.Error, ~r/Teams key must be a Livebook Teams key/s, fn ->
         deploy(
           key,
           "invalid-key",
@@ -211,7 +213,7 @@ defmodule LivebookCLI.Integration.DeployTest do
          %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
       slug = Utils.random_short_id()
       app_path = Path.join(tmp_dir, "#{slug}.livemd")
-      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
 
       stamp_notebook(app_path, """
       <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"hub_id":"#{team.id}"} -->
@@ -236,7 +238,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       title = "Test CLI Deploy App"
       slug = Utils.random_short_id()
       app_path = Path.join(tmp_dir, "#{slug}.livemd")
-      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
       hub_id = team.id
       deployment_group_id = to_string(deployment_group.id)
@@ -265,7 +267,7 @@ defmodule LivebookCLI.Integration.DeployTest do
           end)
         end)
 
-      assert output =~ ~r/Deployment Group ID does not exist/
+      assert output =~ ~r/Deployment group id does not exist/
 
       refute_receive {:app_deployment_started,
                       %{
@@ -278,10 +280,10 @@ defmodule LivebookCLI.Integration.DeployTest do
     end
 
     test "fails with non-existent file", %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
-      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
 
-      assert_raise LivebookCLI.Error, ~r/File Paths must be a valid path/s, fn ->
+      assert_raise LivebookCLI.Error, ~r/File paths must be a valid path/s, fn ->
         deploy(
           key,
           team.teams_key,
@@ -292,10 +294,10 @@ defmodule LivebookCLI.Integration.DeployTest do
     end
 
     test "fails with directory argument", %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
-      {key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
 
-      assert_raise LivebookCLI.Error, ~r/File Paths must be a file path/s, fn ->
+      assert_raise LivebookCLI.Error, ~r/File paths must be a file path/s, fn ->
         deploy(
           key,
           team.teams_key,
@@ -307,7 +309,7 @@ defmodule LivebookCLI.Integration.DeployTest do
 
     test "handles partial failure when deploying multiple notebooks",
          %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
-      {deploy_key, _} = TeamsRPC.create_deploy_key(node, org: org)
+      {org_token, _} = TeamsRPC.create_org_token(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
       hub_id = team.id
 
@@ -345,7 +347,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         ExUnit.CaptureIO.capture_io(fn ->
           assert_raise(LivebookCLI.Error, "Some app deployments failed.", fn ->
             deploy(
-              deploy_key,
+              org_token,
               team.teams_key,
               deployment_group.id,
               [invalid_app_path, valid_app_path]
@@ -376,7 +378,7 @@ defmodule LivebookCLI.Integration.DeployTest do
     end
   end
 
-  defp deploy(deploy_key, teams_key, deployment_group_id, path) do
+  defp deploy(org_token, teams_key, deployment_group_id, path) do
     paths =
       if is_list(path) do
         path
@@ -396,8 +398,8 @@ defmodule LivebookCLI.Integration.DeployTest do
 
     LivebookCLI.Deploy.call(
       [
-        "--deploy-key",
-        deploy_key,
+        "--org-token",
+        org_token,
         "--teams-key",
         teams_key,
         "--deployment-group-id",

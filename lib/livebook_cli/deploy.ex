@@ -4,7 +4,7 @@ defmodule LivebookCLI.Deploy do
 
   @behaviour LivebookCLI.Task
 
-  @deploy_key_prefix Teams.Constants.deploy_key_prefix()
+  @org_token_prefix Teams.Constants.org_token_prefix()
   @teams_key_prefix Teams.Constants.teams_key_prefix()
 
   @impl true
@@ -14,7 +14,7 @@ defmodule LivebookCLI.Deploy do
 
     ## Available options
 
-      --deploy-key            Deploy key from your Livebook Teams organization
+      --org-token             Token from your Livebook Teams organization
       --teams-key             Teams key from your Teams workspace
       --deployment-group-id   The ID of the deployment group you want to deploy to
 
@@ -24,16 +24,16 @@ defmodule LivebookCLI.Deploy do
 
     Deploys a single notebook:
 
-        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/app1.livemd
+        livebook deploy --org-token="lb_ok_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/app1.livemd
 
     Deploys multiple notebooks:
 
-        livebook deploy --deploy-key="lb_dk_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/*.livemd\
+        livebook deploy --org-token="lb_ok_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/*.livemd\
     """
   end
 
   @switches [
-    deploy_key: :string,
+    org_token: :string,
     teams_key: :string,
     deployment_group_id: :integer
   ]
@@ -54,7 +54,7 @@ defmodule LivebookCLI.Deploy do
 
     %{
       paths: paths,
-      session_token: opts[:deploy_key],
+      session_token: opts[:org_token],
       teams_key: opts[:teams_key],
       deployment_group_id: opts[:deployment_group_id]
     }
@@ -69,15 +69,19 @@ defmodule LivebookCLI.Deploy do
           add_error(acc, normalize_key(key), "can't be blank")
 
         {:session_token, value}, acc ->
-          if not String.starts_with?(value, @deploy_key_prefix) do
-            add_error(acc, normalize_key(:session_token), "must be a Livebook Teams Deploy Key")
+          if not String.starts_with?(value, @org_token_prefix) do
+            add_error(
+              acc,
+              normalize_key(:session_token),
+              "must be a Livebook Teams organization token"
+            )
           else
             acc
           end
 
         {:teams_key, value}, acc ->
           if not String.starts_with?(value, @teams_key_prefix) do
-            add_error(acc, normalize_key(:teams_key), "must be a Livebook Teams Key")
+            add_error(acc, normalize_key(:teams_key), "must be a Livebook Teams key")
           else
             acc
           end
@@ -211,11 +215,11 @@ defmodule LivebookCLI.Deploy do
   end
 
   defp normalize_key(key) when is_atom(key), do: to_string(key) |> normalize_key()
-  defp normalize_key("session_token"), do: "Deploy Key"
-  defp normalize_key("teams_key"), do: "Teams Key"
-  defp normalize_key("deployment_group_id"), do: "Deployment Group ID"
+  defp normalize_key("session_token"), do: "Token"
+  defp normalize_key("teams_key"), do: "Teams key"
+  defp normalize_key("deployment_group_id"), do: "Deployment group id"
 
-  defp normalize_key("paths"), do: "File Paths"
+  defp normalize_key("paths"), do: "File paths"
 
   defp format_errors(errors, prefix) do
     errors

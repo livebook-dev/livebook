@@ -5,7 +5,7 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
 
-  @deploy_key_prefix Teams.Constants.deploy_key_prefix()
+  @org_token_prefix Teams.Constants.org_token_prefix()
   @error_message "Something went wrong, try again later or please file a bug if it persists"
   @unauthorized_error_message "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
   @unauthorized_app_deployment_error_message "Deployment not authorized, check deploy permissions for this deployment group"
@@ -230,7 +230,7 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
-  Send a request to Livebook Team API to return a session using a deploy key.
+  Send a request to Livebook Team API to return a session using an org token.
   """
   @spec fetch_cli_session(map()) :: api_result()
   def fetch_cli_session(config) do
@@ -238,7 +238,7 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
-  Send a request to Livebook Team API to deploy an app using a deploy key.
+  Send a request to Livebook Team API to deploy an app using an org token.
   """
   @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), integer()) :: api_result()
   def deploy_app_from_cli(team, app_deployment, deployment_group_id) do
@@ -324,7 +324,7 @@ defmodule Livebook.Teams.Requests do
     Req.Request.append_request_steps(req, unauthorized: &{&1, Req.Response.new(status: 401)})
   end
 
-  defp add_team_auth(req, %{session_token: @deploy_key_prefix <> _} = team) do
+  defp add_team_auth(req, %{session_token: @org_token_prefix <> _} = team) do
     token = "#{team.session_token}:#{Teams.Org.key_hash(%Teams.Org{teams_key: team.teams_key})}"
     Req.Request.merge_options(req, auth: {:bearer, token})
   end

@@ -12,10 +12,10 @@ defmodule Livebook.Teams.Constants do
   def agent_key_prefix, do: "lb_ak_"
 
   @doc """
-  Returns the Deploy Key prefix
+  Returns the Org Token prefix
   """
-  @spec deploy_key_prefix() :: String.t()
-  def deploy_key_prefix, do: "lb_dk_"
+  @spec org_token_prefix() :: String.t()
+  def org_token_prefix, do: "lb_ok_"
 
   @doc """
   Returns the Teams Key prefix

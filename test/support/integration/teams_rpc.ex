@@ -137,9 +137,9 @@ defmodule Livebook.TeamsRPC do
     :erpc.call(node, TeamsRPC, :create_authorization_group, [attrs])
   end
 
-  def create_deploy_key(node, attrs \\ []) do
-    key = :erpc.call(node, TeamsRPC, :generate_deploy_key, [])
-    {key, :erpc.call(node, TeamsRPC, :create_deploy_key, [key, attrs])}
+  def create_org_token(node, attrs \\ []) do
+    key = :erpc.call(node, TeamsRPC, :generate_org_token, [])
+    {key, :erpc.call(node, TeamsRPC, :create_org_token, [key, attrs])}
   end
 
   # Update resource

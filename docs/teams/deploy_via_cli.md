@@ -8,7 +8,7 @@ Deploying via CLI is as simple as calling `livebook deploy` with your configurat
 
 ```shell
 livebook deploy
-  --deploy-key="lb_dk_your_deploy_key_here"
+  --org-token="lb_ok_your_org_token_here"
   --teams-key="lb_tk_your_teams_key_here"
   --deployment-group-id="13"
   path/to/notebook.livemd
@@ -38,17 +38,17 @@ Before using CLI deployment, ensure you have:
 
 CLI deployment requires two authentication tokens:
 
-### Deploy key
+### Org token
 
-Deploy keys are organization-level authentication tokens that allow CLI access for deployments.
+Org tokens are organization-level authentication tokens that allow CLI access for deployments.
 
-To create a deploy key, follow these steps:
+To create a org token, follow these steps:
 
 1. Log in to Livebook Teams
 2. Navigate to your organization
-3. Go to the **Deploy keys** page in the menu
-4. Click the **Create deploy key** button
-5. Provide a descriptive name (e.g., "CI/CD Pipeline" or "Local CLI") and copy the generated key
+3. Go to the **Tokens** page in the menu
+4. Click the **Create org token** button
+5. Provide a descriptive name (e.g., "CI/CD Pipeline" or "Local CLI") and copy the generated token
 
 ### Teams key
 
@@ -68,7 +68,7 @@ Deploy a single notebook:
 
 ```bash
 livebook deploy \
-  --deploy-key="lb_dk_..." \
+  --org-token="lb_ok_..." \
   --teams-key="lb_tk_..." \
   --deployment-group-id="17" \
   path/to/notebook.livemd
@@ -80,7 +80,7 @@ Deploy multiple notebooks:
 
 ```bash
 livebook deploy \
-  --deploy-key="lb_dk_..." \
+  --org-token="lb_ok_..." \
   --teams-key="lb_tk_..." \
   --deployment-group-id="13" \
   app1.livemd app2.livemd app3.livemd
@@ -90,7 +90,7 @@ Use glob patterns for convenience:
 
 ```bash
 livebook deploy \
-  --deploy-key="lb_dk_..." \
+  --org-token="lb_ok_..." \
   --teams-key="lb_tk_..." \
   --deployment-group-id="7" \
   notebooks/*.livemd
@@ -98,7 +98,7 @@ livebook deploy \
 
 ### Available options
 
-- `--deploy-key`: A deploy key from your Livebook Teams organization (required)
+- `--org-token`: A token from your Livebook Teams organization (required)
 - `--teams-key`: Teams key from your Teams organization (required)
 - `--deployment-group-id`: ID of the target deployment group (required)
 
@@ -134,13 +134,13 @@ jobs:
       - name: Deploy notebooks
         run: |
           livebook deploy \
-            --deploy-key="${{ secrets.LIVEBOOK_DEPLOY_KEY }}" \
+            --org-token="${{ secrets.LIVEBOOK_TEAMS_ORG_TOKEN }}" \
             --teams-key="${{ secrets.LIVEBOOK_TEAMS_KEY }}" \
             --deployment-group-id="3" \
             ./notebooks/*.livemd
 ```
 
-Store your deploy key and teams key as repository secrets for secure access.
+Store your org token and teams key as repository secrets for secure access.
 
 ## FAQ
 
