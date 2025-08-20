@@ -173,6 +173,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns if the Livebook Teams organization billing status is in good standing.
+  """
+  @spec billing_good_standing?(String.t()) :: boolean()
+  def billing_good_standing?(id) do
+    GenServer.call(registry_name(id), :billing_good_standing?)
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -368,6 +376,10 @@ defmodule Livebook.Hubs.TeamClient do
           {:reply, false, state}
       end
     end
+  end
+
+  def handle_call(:billing_good_standing?, _caller, state) do
+    {:reply, not state.hub.billing_status.disabled, state}
   end
 
   @impl true
