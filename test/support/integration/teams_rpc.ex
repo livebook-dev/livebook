@@ -156,6 +156,10 @@ defmodule Livebook.TeamsRPC do
     :erpc.call(node, TeamsRPC, :update_deployment_group, [deployment_group, attrs])
   end
 
+  def update_billing_subscription(node, subscription, attrs) do
+    :erpc.call(node, TeamsRPC, :update_billing_subscription, [subscription, attrs])
+  end
+
   # Delete resource
 
   def delete_user_org(node, user_id, org_id) do

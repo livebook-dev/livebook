@@ -6,7 +6,7 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
   @moduletag teams_for: :agent
   setup :teams
 
-  @moduletag subscribe_to_hubs_topics: [:connection]
+  @moduletag subscribe_to_hubs_topics: [:connection, :crud]
   @moduletag subscribe_to_teams_topics: [:clients, :agents, :app_deployments, :app_server]
 
   describe "authorization" do
@@ -154,6 +154,27 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/settings")
       assert render(view) =~ "System settings"
+    end
+
+    test "renders payment required if org is in bad standing",
+         %{conn: conn, node: node, subscription: subscription, team: %{id: id}} do
+      # Assert the event from test setup
+      assert_receive {:hub_changed, ^id}, 3_000
+
+      # Then, assert the event sent after receiving the connected event,
+      # so we can assert when the `{:org_updated, org_updated}` event
+      # is sent to Team client.
+      assert_receive {:hub_changed, ^id}, 3_000
+
+      {:ok, view, _html} = live(conn, ~p"/settings")
+      assert render(view) =~ "System settings"
+
+      TeamsRPC.update_billing_subscription(node, subscription, stripe_status: :canceled)
+      assert_receive {:hub_changed, ^id}, 3_000
+
+      assert conn
+             |> get(~p"/")
+             |> html_response(402) =~ "Your plan has been canceled."
     end
   end
 

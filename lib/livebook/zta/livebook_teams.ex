@@ -34,7 +34,20 @@ defmodule Livebook.ZTA.LivebookTeams do
     team = Livebook.Hubs.fetch_hub!(id)
 
     if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
-      handle_request(conn, team, conn.params)
+      if Livebook.Hubs.TeamClient.billing_good_standing?(team.id) do
+        handle_request(conn, team, conn.params)
+      else
+        {conn
+         |> put_status(:payment_required)
+         |> put_view(LivebookWeb.ErrorHTML)
+         |> put_root_layout(false)
+         |> render("error.html", %{
+           status: 402,
+           title: billing_status_title(team.billing_status.type),
+           details: billing_status_message(team.billing_status.type)
+         })
+         |> halt(), nil}
+      end
     else
       {conn, %{}}
     end
@@ -157,7 +170,19 @@ defmodule Livebook.ZTA.LivebookTeams do
 
         {halt(conn), nil}
 
-      _ ->
+      {:error, %{"errors" => %{"detail" => "Payment Required"}}} ->
+        {conn
+         |> put_status(:payment_required)
+         |> put_view(LivebookWeb.ErrorHTML)
+         |> put_root_layout(false)
+         |> render("error.html", %{
+           status: 402,
+           title: billing_status_title(team.billing_status.type),
+           details: billing_status_message(team.billing_status.type)
+         })
+         |> halt(), nil}
+
+      _otherwise ->
         {conn
          |> put_session(:teams_error, true)
          |> redirect(to: conn.request_path)
@@ -198,5 +223,17 @@ defmodule Livebook.ZTA.LivebookTeams do
       email: email,
       payload: payload
     }
+  end
+
+  # TODO: this is just a placeholder, so the copy must be improved
+  defp billing_status_title(:canceled), do: "Your plan has been canceled."
+  defp billing_status_title(:trial_ended), do: "Your trial has ended."
+
+  defp billing_status_message(:canceled) do
+    "An admin of your organization needs to subscribe again to a paid plan."
+  end
+
+  defp billing_status_message(:trial_ended) do
+    "An admin of your organization needs to subscribe to a paid plan."
   end
 end
