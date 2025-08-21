@@ -8,7 +8,7 @@ Deploying via CLI is as simple as calling `livebook deploy` with your configurat
 
 ```shell
 livebook deploy
-  --org-token="lb_ok_your_org_token_here"
+  --org-token="lb_ot_your_org_token_here"
   --teams-key="lb_tk_your_teams_key_here"
   --deployment-group-id="13"
   path/to/notebook.livemd
@@ -68,7 +68,7 @@ Deploy a single notebook:
 
 ```bash
 livebook deploy \
-  --org-token="lb_ok_..." \
+  --org-token="lb_ot_..." \
   --teams-key="lb_tk_..." \
   --deployment-group-id="17" \
   path/to/notebook.livemd
@@ -80,7 +80,7 @@ Deploy multiple notebooks:
 
 ```bash
 livebook deploy \
-  --org-token="lb_ok_..." \
+  --org-token="lb_ot_..." \
   --teams-key="lb_tk_..." \
   --deployment-group-id="13" \
   app1.livemd app2.livemd app3.livemd
@@ -90,7 +90,7 @@ Use glob patterns for convenience:
 
 ```bash
 livebook deploy \
-  --org-token="lb_ok_..." \
+  --org-token="lb_ot_..." \
   --teams-key="lb_tk_..." \
   --deployment-group-id="7" \
   notebooks/*.livemd

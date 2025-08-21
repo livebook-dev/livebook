@@ -24,11 +24,11 @@ defmodule LivebookCLI.Deploy do
 
     Deploys a single notebook:
 
-        livebook deploy --org-token="lb_ok_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/app1.livemd
+        livebook deploy --org-token="lb_ot_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/app1.livemd
 
     Deploys multiple notebooks:
 
-        livebook deploy --org-token="lb_ok_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/*.livemd\
+        livebook deploy --org-token="lb_ot_..." --teams-key="lb_tk_..." --deployment-group-id=123 path/to/*.livemd\
     """
   end
 

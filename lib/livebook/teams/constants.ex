@@ -15,7 +15,7 @@ defmodule Livebook.Teams.Constants do
   Returns the Org Token prefix
   """
   @spec org_token_prefix() :: String.t()
-  def org_token_prefix, do: "lb_ok_"
+  def org_token_prefix, do: "lb_ot_"
 
   @doc """
   Returns the Teams Key prefix

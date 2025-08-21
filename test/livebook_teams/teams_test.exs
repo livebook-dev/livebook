@@ -291,7 +291,7 @@ defmodule Livebook.TeamsTest do
 
     @tag teams_persisted: false
     test "returns error with invalid credentials", %{team: team} do
-      config = %{teams_key: team.teams_key, session_token: "lb_ok_foo"}
+      config = %{teams_key: team.teams_key, session_token: "lb_ot_foo"}
 
       assert {:transport_error, "You are not authorized" <> _} = Teams.fetch_cli_session(config)
       refute Livebook.Hubs.hub_exists?(team.id)
