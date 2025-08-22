@@ -45,7 +45,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           secrets: [],
           file_systems: [],
           deployment_groups: [],
-          app_deployments: []
+          app_deployments: [],
+          billing_status: %LivebookProto.BillingStatus{disabled: false}
         }
 
       pid = TeamClient.get_pid(team.id)
@@ -318,7 +319,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           file_systems: [],
           deployment_groups: [],
           app_deployments: [],
-          agents: []
+          agents: [],
+          billing_status: %LivebookProto.BillingStatus{disabled: false}
         }
 
       pid = TeamClient.get_pid(context.team.id)

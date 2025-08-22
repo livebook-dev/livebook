@@ -25,7 +25,8 @@ defmodule Livebook.Factory do
         Livebook.Teams.Constants.public_key_prefix() <> Livebook.Utils.random_long_id(),
       teams_key: org.teams_key,
       session_token: Livebook.Utils.random_short_id(),
-      offline: nil
+      offline: nil,
+      billing_status: %{disabled: false, type: nil}
     }
   end
 

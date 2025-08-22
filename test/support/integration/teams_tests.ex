@@ -44,7 +44,7 @@ defmodule Livebook.TeamsIntegrationHelper do
     org_key = TeamsRPC.create_org_key(node, org: org, key_hash: key_hash)
     org_key_pair = TeamsRPC.create_org_key_pair(node, org: org)
     token = TeamsRPC.associate_user_with_org(node, user, org)
-    TeamsRPC.create_billing_subscription(node, org)
+    subscription = TeamsRPC.create_billing_subscription(node, org)
 
     team =
       Factory.build(:team,
@@ -56,8 +56,7 @@ defmodule Livebook.TeamsIntegrationHelper do
         org_key_id: org_key.id,
         org_public_key: org_key_pair.public_key,
         session_token: token,
-        teams_key: teams_key,
-        billing_status: %{disabled: false, type: nil}
+        teams_key: teams_key
       )
 
     %{
@@ -66,6 +65,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       org_key: org_key,
       org_key_pair: org_key_pair,
       session_token: token,
+      subscription: subscription,
       team: team
     }
   end
@@ -99,8 +99,7 @@ defmodule Livebook.TeamsIntegrationHelper do
 
     deployment_group = TeamsRPC.create_deployment_group(node, attrs)
     agent_key = TeamsRPC.create_agent_key(node, deployment_group: deployment_group)
-
-    TeamsRPC.create_billing_subscription(node, org)
+    subscription = TeamsRPC.create_billing_subscription(node, org)
 
     team =
       Factory.build(:team,
@@ -121,6 +120,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       org: org,
       org_key: org_key,
       org_key_pair: org_key_pair,
+      subscription: subscription,
       team: team
     }
   end
@@ -152,8 +152,7 @@ defmodule Livebook.TeamsIntegrationHelper do
 
     deployment_group = TeamsRPC.create_deployment_group(node, attrs)
     {key, org_token} = TeamsRPC.create_org_token(node, org: org)
-
-    TeamsRPC.create_billing_subscription(node, org)
+    subscription = TeamsRPC.create_billing_subscription(node, org)
 
     team =
       Factory.build(:team,
@@ -174,6 +173,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       org: org,
       org_key: org_key,
       org_key_pair: org_key_pair,
+      subscription: subscription,
       team: team
     }
   end
