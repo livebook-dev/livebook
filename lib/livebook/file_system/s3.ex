@@ -108,7 +108,7 @@ defmodule Livebook.FileSystem.S3 do
   If the credentials are not specified by the file system, they are
   fetched from environment variables or AWS instance if applicable.
   """
-  @spec credentials(S3.t()) :: S3.credentials()
+  @spec credentials(t()) :: credentials()
   def credentials(%__MODULE__{} = file_system) do
     case {file_system.access_key_id, file_system.secret_access_key} do
       {nil, nil} ->
