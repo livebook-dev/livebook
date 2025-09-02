@@ -59,6 +59,14 @@ defmodule Livebook.TeamsRPC do
     :erpc.call(node, TeamsRPC, :create_org, [attrs])
   end
 
+  def update_org(node, org, attrs \\ []) do
+    :erpc.call(node, TeamsRPC, :update_org, [org, attrs])
+  end
+
+  def delete_subscription(node, org) do
+    :erpc.call(node, TeamsRPC, :delete_subscription, [org])
+  end
+
   def create_org_key(node, attrs \\ []) do
     :erpc.call(node, TeamsRPC, :create_org_key, [attrs])
   end

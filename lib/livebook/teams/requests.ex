@@ -346,6 +346,9 @@ defmodule Livebook.Teams.Requests do
       {:ok, %{status: status} = response} when status in 200..299 ->
         {:ok, response.body}
 
+      {:ok, %{status: status} = response} when status == 403 ->
+        return_error(response)
+
       {:ok, %{status: status} = response} when status in [410, 422] ->
         return_error(response)
 
