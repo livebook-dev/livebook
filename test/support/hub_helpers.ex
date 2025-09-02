@@ -154,7 +154,7 @@ defmodule Livebook.HubHelpers do
 
     file_system =
       build(:fs_s3,
-        id: Livebook.FileSystem.S3.id(hub_id, bucket_url),
+        id: Livebook.FileSystemHelpers.s3_id(hub_id, bucket_url),
         bucket_url: bucket_url,
         region: "auto",
         hub_id: hub_id

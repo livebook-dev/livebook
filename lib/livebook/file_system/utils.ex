@@ -104,6 +104,26 @@ defmodule Livebook.FileSystem.Utils do
     |> Enum.join("/")
   end
 
+  @doc """
+  Returns the id based on given hub id and data with given prefix.
+  """
+  def id(prefix, hub_id, data)
+
+  def id(_, _, nil), do: nil
+
+  def id(prefix, hub_id, data) do
+    if hub_id == nil or hub_id == Livebook.Hubs.Personal.id() do
+      hashed_id(prefix, data)
+    else
+      "#{hub_id}-#{hashed_id(prefix, data)}"
+    end
+  end
+
+  defp hashed_id(prefix, data) do
+    hash = :crypto.hash(:sha256, data)
+    "#{prefix}-#{Base.url_encode64(hash, padding: false)}"
+  end
+
   defp remove_in_middle([], _elem), do: []
   defp remove_in_middle([head], _elem), do: [head]
   defp remove_in_middle([head | tail], elem), do: remove_in_middle(tail, elem, [head])
