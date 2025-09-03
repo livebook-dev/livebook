@@ -258,6 +258,9 @@ defmodule Livebook.Teams do
         })
 
       {:ok, hub}
+    else
+      {:error, %{"errors" => %{"detail" => error_message}}} -> {:error, error_message}
+      api_result -> api_result
     end
   end
 

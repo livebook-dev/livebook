@@ -125,8 +125,7 @@ defmodule LivebookCLI.Deploy do
         team
 
       {:error, error} ->
-        %{"errors" => %{"detail" => error_message}} = error
-        raise LivebookCLI.Error, error_message
+        raise LivebookCLI.Error, error
 
       {:transport_error, error} ->
         raise LivebookCLI.Error, error
