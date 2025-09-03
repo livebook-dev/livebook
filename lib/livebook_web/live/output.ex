@@ -64,6 +64,19 @@ defmodule LivebookWeb.Output do
     """
   end
 
+  defp render_output(%{type: :markdown_static} = output, %{id: id, session_id: session_id}) do
+    assigns = %{id: id, session_id: session_id, output: output}
+
+    ~H"""
+    <.live_component
+      module={Output.MarkdownStaticComponent}
+      id={@id}
+      session_id={@session_id}
+      output={@output}
+    />
+    """
+  end
+
   defp render_output(%{type: :image} = output, %{id: id}) do
     assigns = %{id: id, content: output.content, mime_type: output.mime_type}
 
