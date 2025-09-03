@@ -376,6 +376,44 @@ defmodule LivebookCLI.Integration.DeployTest do
       assert output =~
                "Deployment for notebook #{invalid_app_filename} failed"
     end
+
+    test "fails when org does not have an active subscription",
+         %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
+      deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
+
+      hub_id = team.id
+      app_path = Path.join(tmp_dir, "some-slug.livemd")
+
+      stamp_notebook(app_path, """
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"some-slug"},"hub_id":"#{hub_id}"} -->
+
+      # Some title
+
+      ## Section name
+
+      ```elixir
+      IO.puts("Hello from CLI deployed app!")
+      ```
+      """)
+
+      TeamsRPC.update_org(node, org, %{
+        trial_ends_on: Date.add(Date.utc_today(), -1)
+      })
+
+      TeamsRPC.delete_subscription(node, org)
+
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert_raise(LivebookCLI.Error, ~r/Teams subscription not active/s, fn ->
+          deploy(
+            key,
+            team.teams_key,
+            deployment_group.id,
+            app_path
+          )
+        end)
+      end)
+    end
   end
 
   defp deploy(org_token, teams_key, deployment_group_id, path) do

@@ -121,9 +121,14 @@ defmodule LivebookCLI.Deploy do
     log_debug("Authenticating CLI...")
 
     case Teams.fetch_cli_session(config) do
-      {:ok, team} -> team
-      {:error, error} -> raise LivebookCLI.Error, error
-      {:transport_error, error} -> raise LivebookCLI.Error, error
+      {:ok, team} ->
+        team
+
+      {:error, error} ->
+        raise LivebookCLI.Error, error
+
+      {:transport_error, error} ->
+        raise LivebookCLI.Error, error
     end
   end
 
