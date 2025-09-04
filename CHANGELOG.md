@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Updated
 
-* Bumped LiveVive version
+* Bumped LiveView version
 
 ## [v0.17.0](https://github.com/livebook-dev/livebook/tree/v0.17.0) (2025-09-04)
 
