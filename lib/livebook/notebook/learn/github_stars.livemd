@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.16.0"},
+  {:kino, "~> 0.17.0"},
   {:req, "~> 0.5.10"},
   {:kino_vega_lite, "~> 0.1.13"}
 ])

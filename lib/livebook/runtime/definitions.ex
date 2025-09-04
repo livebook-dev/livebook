@@ -1,5 +1,5 @@
 defmodule Livebook.Runtime.Definitions do
-  @kino_requirement "~> 0.16.0"
+  @kino_requirement "~> 0.17.0"
 
   def kino_requirement do
     @kino_requirement
