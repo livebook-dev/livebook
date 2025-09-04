@@ -102,7 +102,7 @@ defmodule Livebook.MixProject do
   #
   defp deps do
     [
-      {:phoenix, "~> 1.8", override: true},
+      {:phoenix, "~> 1.8"},
       {:phoenix_live_view, "~> 1.1.0"},
       {:phoenix_html, "~> 4.0"},
       {:phoenix_live_dashboard, "~> 0.8.4"},
