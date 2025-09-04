@@ -6,7 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-* Deploying notebooks from CLI via Teams ([#3034](https://github.com/livebook-dev/livebook/pull/3034), [#3044](https://github.com/livebook-dev/livebook/pull/3044))
+* Deploying notebooks from CLI via Teams ([#3034](https://github.com/livebook-dev/livebook/pull/3034))
+* Deployment permissions ([#3044](https://github.com/livebook-dev/livebook/pull/3044))
 
 ### Fixed
 
