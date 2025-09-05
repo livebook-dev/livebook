@@ -18,7 +18,7 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
         >
           <div class="flex items-center space-x-12">
             <.labeled_text label="Type">{type(file_system)}</.labeled_text>
-            <.labeled_text label="Bucket URL">{name(file_system)}</.labeled_text>
+            <.labeled_text label="URL">{name(file_system)}</.labeled_text>
           </div>
           <div class="flex items-center space-x-2">
             <.menu id={"hub-file-system-#{file_system.id}-menu"}>
