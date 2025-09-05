@@ -407,7 +407,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     S3.Client.multipart_get_object(file_system, key, collectable)
   end
 
-  def load(file_system, %{"bucket_url" => _} = fields) do
+  def load(file_system, %{"hub_id" => _} = fields) do
     load(file_system, %{
       bucket_url: fields["bucket_url"],
       external_id: fields["external_id"],

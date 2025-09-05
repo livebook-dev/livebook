@@ -144,11 +144,6 @@ defmodule Livebook.HubHelpers do
     send(pid, {:event, :file_system_deleted, file_system_deleted})
   end
 
-  def create_teams_file_system(hub, node, org_key \\ nil) do
-    org_key = if org_key, do: org_key, else: erpc_call(node, :get_org_key!, [hub.org_key_id])
-    erpc_call(node, :create_file_system, [[org_key: org_key]])
-  end
-
   def build_bypass_file_system(bypass, hub_id \\ Livebook.Hubs.Personal.id()) do
     bucket_url = "http://localhost:#{bypass.port}/mybucket"
 
