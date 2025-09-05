@@ -127,7 +127,7 @@ defmodule Livebook.Hubs.Broadcasts do
     broadcast(@secrets_topic, {:secret_deleted, secret})
   end
 
-  @allowed_file_systems [FileSystem.S3]
+  @allowed_file_systems [FileSystem.S3, FileSystem.Git]
 
   @doc """
   Broadcasts under `#{@file_systems_topic}` topic when hub received a new file system.
