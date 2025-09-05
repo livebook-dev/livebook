@@ -40,6 +40,7 @@ defmodule LivebookWeb.FileSelectComponent do
        # Component default attribute values
        inner_block: nil,
        file_system_select_disabled: false,
+       writable: true,
        on_submit: nil,
        # State
        current_dir: nil,
@@ -119,11 +120,11 @@ defmodule LivebookWeb.FileSelectComponent do
         </div>
         <.menu
           id={"#{@id}-new-item-menu"}
-          disabled={@file_system_select_disabled}
+          disabled={@file_system_select_disabled or not @writable}
           position="bottom-right"
         >
           <:toggle>
-            <.icon_button tabindex="-1" aria-label="add">
+            <.icon_button disabled={not @writable} tabindex="-1" aria-label="add">
               <.remix_icon icon="add-line" />
             </.icon_button>
           </:toggle>
