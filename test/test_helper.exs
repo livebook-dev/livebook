@@ -73,8 +73,10 @@ teams_exclude =
   end
 
 fly_exclude = if System.get_env("TEST_FLY_API_TOKEN"), do: [], else: [:fly]
+git_exclude = if System.get_env("TEST_GIT_SSH_KEY"), do: [], else: [:git]
 
 ExUnit.start(
   assert_receive_timeout: if(windows?, do: 5_000, else: 1_500),
-  exclude: erl_docs_exclude ++ windows_exclude ++ teams_exclude ++ fly_exclude ++ [:k8s]
+  exclude:
+    erl_docs_exclude ++ windows_exclude ++ teams_exclude ++ fly_exclude ++ [:k8s] ++ git_exclude
 )
