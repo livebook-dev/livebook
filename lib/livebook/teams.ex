@@ -230,7 +230,7 @@ defmodule Livebook.Teams do
   @doc """
   Gets a list of environment variables for a given Hub.
   """
-  @spec get_environment_variables(Team.t()) :: list(Teams.EnvironmentVariable.t())
+  @spec get_environment_variables(Team.t()) :: list(Teams.Agent.t())
   def get_environment_variables(team) do
     TeamClient.get_environment_variables(team.id)
   end

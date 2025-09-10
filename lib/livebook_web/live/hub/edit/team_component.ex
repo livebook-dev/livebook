@@ -21,7 +21,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
     default? = default_hub?(assigns.hub)
-    connection_status = Provider.connection_status(assigns.hub)
 
     secret_value =
       if assigns.live_action == :edit_secret do
@@ -51,8 +50,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secret_name: secret_name,
        secret_value: secret_value,
        hub_metadata: Provider.to_metadata(assigns.hub),
-       default?: default?,
-       connection_status: connection_status
+       default?: default?
      )
      |> assign_form(changeset)}
   end
@@ -61,8 +59,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <LayoutComponents.topbar :if={@connection_status} variant="warning">
-        {@connection_status}
+      <LayoutComponents.topbar :if={Provider.connection_status(@hub)} variant="warning">
+        {Provider.connection_status(@hub)}
       </LayoutComponents.topbar>
 
       <LayoutComponents.topbar :if={@hub.billing_status.type == :trialing} variant="warning">
