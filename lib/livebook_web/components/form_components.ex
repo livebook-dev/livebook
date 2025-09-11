@@ -26,19 +26,34 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <div :if={@prefix} class="relative flex focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-opacity-50 rounded-lg">
-        <span class="inline-flex items-center px-3 text-sm text-gray-400 bg-gray-100 border border-gray-200 rounded-l-lg font-normal opacity-75">
+      <div
+        :if={@prefix}
+        class={[
+          "relative flex items-stretch rounded-lg bg-gray-50",
+          if @errors == [] do
+            "border border-gray-200 focus-within:border-blue-600"
+          else
+            "bg-red-50 border border-red-600"
+          end
+        ]}
+      >
+        <span class="inline-flex items-center rounded-l-lg bg-gray-100 px-3 text-sm text-gray-400 opacity-75 border-r border-gray-200">
           {@prefix}
         </span>
+
         <input
           type={@type}
           name={@name}
           id={@id || @name}
           value={Phoenix.HTML.Form.normalize_value("text", @value)}
-          class={[input_classes(@errors), @class, "rounded-l-none focus:ring-0 focus:border-gray-200"]}
+          class={[
+            input_classes_inside_prefix(@errors),
+            @class
+          ]}
           {@rest}
         />
       </div>
+
       <input
         :if={!@prefix}
         type={@type}
@@ -61,6 +76,21 @@ defmodule LivebookWeb.FormComponents do
         "bg-red-50 border-red-600 text-red-600"
       end,
       "invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
+    ]
+  end
+
+  defp input_classes_inside_prefix(errors) do
+    [
+      # no outer border here — wrapper owns it
+      "w-full px-3 py-2 text-sm font-normal rounded-none rounded-r-lg border-0 bg-transparent
+       placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed
+       focus:ring-0 focus:outline-none focus-visible:outline-none",
+      if errors == [] do
+        "text-gray-600"
+      else
+        "text-red-600"
+      end,
+      "invalid:text-red-600"
     ]
   end
 
