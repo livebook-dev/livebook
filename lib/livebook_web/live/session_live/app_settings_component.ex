@@ -42,6 +42,24 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
       >
         <div class="flex flex-col space-y-4">
           <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce />
+          <.select_field
+            field={f[:group]}
+            label="Folder"
+            prompt="Select a folder..."
+            options={[
+              {"Data Science", "data_science"},
+              {"Machine Learning", "machine_learning"},
+              {"Analytics", "analytics"},
+              {"Visualization", "visualization"},
+              {"Prototypes", "prototypes"},
+              {"Utilities", "utilities"}
+            ]}
+            help={
+              ~S'''
+              Use folders to organize how how apps are displayed.
+              '''
+            }
+          />
           <div class="flex flex-col space-y-1">
             <.checkbox_field
               field={f[:access_type]}
