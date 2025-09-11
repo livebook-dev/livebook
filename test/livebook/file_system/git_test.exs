@@ -6,12 +6,17 @@ defmodule Livebook.FileSystem.GitTest do
   alias Livebook.FileSystem
   alias Livebook.FileSystem.Git
 
-  setup %{test: test} do
-    repo_url = "git@github.com:livebook-dev/test.git"
-    hub_id = test |> to_string() |> Base.encode32(padding: false)
-    id = Livebook.FileSystem.Utils.id("git", hub_id, repo_url)
+  setup %{test: test} = tags do
+    data = test |> to_string() |> Base.encode32(padding: false, case: :lower)
+    hub_id = Livebook.Hubs.Personal.id()
+    id = Livebook.FileSystem.Utils.id("git", hub_id, data)
+    file_system = build(:fs_git, id: id, hub_id: hub_id)
 
-    {:ok, file_system: build(:fs_git, id: id, repo_url: repo_url, hub_id: hub_id)}
+    if tags[:init] do
+      Git.Client.init(file_system)
+    end
+
+    {:ok, file_system: file_system}
   end
 
   describe "FileSystem.default_path/1" do
@@ -24,12 +29,14 @@ defmodule Livebook.FileSystem.GitTest do
     test "authorization failure", %{file_system: file_system} do
       file_system = %{file_system | key: "foo"}
 
-      assert {:error, reason} = FileSystem.list(file_system, "/dir/", false)
+      assert {:error, reason} = Git.Client.init(file_system)
       assert reason =~ "Permission denied (publickey)."
     end
   end
 
   describe "FileSystem.list/3" do
+    @describetag init: true
+
     test "returns an empty list with invalid path", %{file_system: file_system} do
       assert FileSystem.list(file_system, "/path/", false) ==
                {:error, "no such file or directory"}
@@ -43,6 +50,7 @@ defmodule Livebook.FileSystem.GitTest do
   end
 
   describe "FileSystem.read/2" do
+    @describetag init: true
     test "returns an error when a nonexistent key is given", %{file_system: file_system} do
       assert FileSystem.read(file_system, "/another_file.txt") ==
                {:error, "path 'another_file.txt' does not exist in 'main'"}
@@ -95,6 +103,7 @@ defmodule Livebook.FileSystem.GitTest do
   end
 
   describe "FileSystem.etag_for/2" do
+    @describetag init: true
     test "returns an error when a nonexistent key is given", %{file_system: file_system} do
       assert {:error, reason} = FileSystem.etag_for(file_system, "/another_file.txt")
       assert reason =~ "path 'another_file.txt' does not exist in 'main'"
@@ -106,6 +115,7 @@ defmodule Livebook.FileSystem.GitTest do
   end
 
   describe "FileSystem.exists?/2" do
+    @describetag init: true
     test "returns valid response", %{file_system: file_system} do
       assert {:ok, true} = FileSystem.exists?(file_system, "/file.txt")
       assert {:ok, false} = FileSystem.exists?(file_system, "/another_file.txt")
@@ -208,7 +218,8 @@ defmodule Livebook.FileSystem.GitTest do
           repo_url: repo_url,
           branch: "main",
           key: "foo",
-          hub_id: hub_id
+          hub_id: hub_id,
+          external_id: "1"
         )
 
       assert FileSystem.dump(file_system) == %{

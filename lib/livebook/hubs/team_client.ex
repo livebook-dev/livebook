@@ -697,11 +697,6 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:file_system_created, %{external_id: _} = file_system, state) do
     Hubs.Broadcasts.file_system_created(file_system)
-
-    if match?(%FileSystem.Git{}, file_system) do
-      FileSystem.Git.Client.fetch(file_system)
-    end
-
     put_file_system(state, file_system)
   end
 
@@ -711,15 +706,6 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:file_system_updated, %{external_id: _} = file_system, state) do
     Hubs.Broadcasts.file_system_updated(file_system)
-
-    with {:ok, %FileSystem.Git{} = current_file_system} <-
-           fetch_file_system(file_system.external_id, state) do
-      if current_file_system.repo_url != file_system.repo_url or
-           current_file_system.branch != file_system.branch do
-        FileSystem.Git.Client.fetch(file_system)
-      end
-    end
-
     put_file_system(state, file_system)
   end
 
@@ -729,11 +715,6 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:file_system_deleted, %{external_id: _} = file_system, state) do
     Hubs.Broadcasts.file_system_deleted(file_system)
-
-    if match?(%FileSystem.Git{}, file_system) do
-      FileSystem.Git.Client.remove_repository(file_system)
-    end
-
     remove_file_system(state, file_system)
   end
 

@@ -18,19 +18,19 @@ defmodule LivebookWeb.Integration.OpenLiveTest do
   describe "git file storage" do
     @describetag :git
 
-    setup %{team: team, node: node, org_key: org_key} do
-      repo_url = "git@github.com:livebook-dev/test.git"
+    setup %{test: test, team: team, node: node, org_key: org_key} do
+      data = test |> to_string() |> Base.encode32(padding: false, case: :lower)
 
       file_system =
         build(:fs_git,
-          id: Livebook.FileSystem.Utils.id("git", team.id, repo_url),
-          repo_url: repo_url,
+          id: Livebook.FileSystem.Utils.id("git", team.id, data),
           hub_id: team.id,
           external_id: nil
         )
 
       file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
       assert_receive {:file_system_created, ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 5_000
 
       {:ok, file_system: file_system}
     end

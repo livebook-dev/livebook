@@ -219,12 +219,12 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
     @tag :git
     test "creates a Git file system", %{conn: conn, team: team} do
-      file_system = build(:fs_git)
-      id = file_system.id
+      id = Livebook.FileSystem.Utils.id("git", team.id, "git@github.com:livebook-dev/test.git")
+      file_system = build(:fs_git, id: id, hub_id: team.id)
       attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
-      refute render(view) =~ file_system.repo_url
+      refute render(view) =~ file_system.id
 
       view
       |> element("#add-file-system")
@@ -251,9 +251,11 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{id: ^id} = file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
+
       assert_patch(view, "/hub/#{team.id}")
       assert render(view) =~ "File storage added successfully"
-      assert render(element(view, "#hub-file-systems-list")) =~ file_system.repo_url
+      assert render(element(view, "#hub-file-systems-list")) =~ file_system.id
       assert file_system in Livebook.Hubs.get_file_systems(team)
     end
 
@@ -305,6 +307,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       file_system = build(:fs_git)
       file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
 
       # guarantee the branch is "main" and "file.txt" exists 
       {:ok, paths} = Livebook.FileSystem.list(file_system, "/", false)
@@ -340,8 +343,9 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       updated_file_system = %{file_system | branch: "test"}
       assert_receive {:file_system_updated, ^updated_file_system}
+      assert_receive {:file_system_mounted, ^updated_file_system}, 10_000
 
-      assert render(element(view, "#hub-file-systems-list")) =~ file_system.repo_url
+      assert render(element(view, "#hub-file-systems-list")) =~ file_system.id
       assert updated_file_system in Livebook.Hubs.get_file_systems(team)
 
       # guarantee the branch has changed and the repository is updated
@@ -383,10 +387,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       file_system = build(:fs_git)
       file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
-
-      # wait for the repo to be cloned
-      # TODO: remove this sleep
-      Process.sleep(100)
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
 
       # guarantee the folder exists
       repo_dir = Livebook.FileSystem.Git.git_dir(file_system)
@@ -401,10 +402,11 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:file_system_deleted, ^file_system}
+      assert_receive {:file_system_umounted, ^file_system}, 10_000
 
       assert_patch(view, "/hub/#{team.id}")
       assert render(view) =~ "File storage deleted successfully"
-      refute render(element(view, "#hub-file-systems-list")) =~ file_system.repo_url
+      refute render(element(view, "#hub-file-systems-list")) =~ file_system.id
       refute file_system in Livebook.Hubs.get_file_systems(team)
 
       # guarantee the folder were deleted

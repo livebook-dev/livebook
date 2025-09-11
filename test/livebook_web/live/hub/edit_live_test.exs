@@ -198,7 +198,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-      refute render(view) =~ file_system.repo_url
+      refute render(view) =~ file_system.id
 
       view
       |> element("#add-file-system")
@@ -225,11 +225,11 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{id: ^id} = file_system}
-      assert_receive {:file_system_mounted, ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 20_000
 
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage added successfully"
-      assert render(element(view, "#hub-file-systems-list")) =~ file_system.repo_url
+      assert render(element(view, "#hub-file-systems-list")) =~ file_system.id
       assert file_system in Livebook.Hubs.get_file_systems(hub)
     end
 
@@ -266,6 +266,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       updated_file_system = %{file_system | access_key_id: "new key"}
 
       assert_receive {:file_system_updated, ^updated_file_system}
+
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage updated successfully"
       assert render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
@@ -273,12 +274,18 @@ defmodule LivebookWeb.Hub.EditLiveTest do
     end
 
     @tag :git
-    test "updates existing Git file system", %{conn: conn, hub: hub} do
-      file_system = build(:fs_git)
+    test "updates existing Git file system", %{test: test, conn: conn, hub: hub} do
+      id = to_string(test)
+
+      file_system =
+        build(:fs_git,
+          id: "git-#{String.replace(id, " ", "-")}-#{Livebook.Utils.random_short_id()}"
+        )
+
       :ok = Hubs.create_file_system(hub, file_system)
 
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
-      assert_receive {:file_system_mounted, ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 20_000
 
       # guarantee the branch is "main" and "file.txt" exists 
       {:ok, paths} = Livebook.FileSystem.list(file_system, "/", false)
@@ -314,15 +321,17 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       updated_file_system = %{file_system | branch: "test"}
       assert_receive {:file_system_updated, ^updated_file_system}
-      assert_receive {:file_system_mounted, ^updated_file_system}
+      assert_receive {:file_system_mounted, ^updated_file_system}, 20_000
 
-      assert render(element(view, "#hub-file-systems-list")) =~ file_system.repo_url
+      assert render(element(view, "#hub-file-systems-list")) =~ file_system.id
       assert updated_file_system in Livebook.Hubs.get_file_systems(hub)
 
       # guarantee the branch has changed and the repository is updated
       {:ok, paths} = Livebook.FileSystem.list(updated_file_system, "/", false)
       refute "/file.txt" in paths
       assert "/another_file.txt" in paths
+
+      assert Livebook.FileSystem.umount(file_system) == :ok
     end
 
     test "detaches existing S3 file system", %{conn: conn, hub: hub} do
@@ -351,12 +360,18 @@ defmodule LivebookWeb.Hub.EditLiveTest do
     end
 
     @tag :git
-    test "detaches existing Git file system", %{conn: conn, hub: hub} do
-      file_system = build(:fs_git)
+    test "detaches existing Git file system", %{test: test, conn: conn, hub: hub} do
+      id = to_string(test)
+
+      file_system =
+        build(:fs_git,
+          id: "git-#{String.replace(id, " ", "-")}-#{Livebook.Utils.random_short_id()}"
+        )
+
       :ok = Hubs.create_file_system(hub, file_system)
 
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
-      assert_receive {:file_system_mounted, ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 20_000
 
       # guarantee the folder exists
       repo_dir = Livebook.FileSystem.Git.git_dir(file_system)
@@ -371,11 +386,11 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:file_system_deleted, ^file_system}
-      assert_receive {:file_system_unmounted, ^file_system}
+      assert_receive {:file_system_umounted, ^file_system}, 20_000
 
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage deleted successfully"
-      refute render(element(view, "#hub-file-systems-list")) =~ file_system.repo_url
+      refute render(element(view, "#hub-file-systems-list")) =~ file_system.id
       refute file_system in Livebook.Hubs.get_file_systems(hub)
 
       # guarantee the folder were deleted

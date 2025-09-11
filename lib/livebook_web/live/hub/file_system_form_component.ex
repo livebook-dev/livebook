@@ -208,15 +208,33 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
   defp check_file_system_connectivity(file_system, socket) do
     default_path = FileSystem.default_path(file_system)
 
-    if socket.assigns.type == "git" and socket.assigns.mode == :edit and
-         (socket.assigns.file_system.repo_url != file_system.repo_url or
-            socket.assigns.file_system.branch != file_system.branch) do
-      FileSystem.Git.Client.fetch(file_system)
-    end
+    with :ok <- init_file_system(file_system, socket),
+         {:ok, _} <- FileSystem.list(file_system, default_path, false) do
+      if FileSystem.mountable?(file_system) and FileSystem.mounted?(file_system) and
+           socket.assigns.mode == :new do
+        FileSystem.umount(file_system)
+      end
 
-    case FileSystem.list(file_system, default_path, false) do
-      {:ok, _} -> :ok
+      :ok
+    else
       {:error, message} -> {:error, "Connection test failed: " <> message}
+    end
+  end
+
+  defp init_file_system(file_system, socket) do
+    cond do
+      FileSystem.mountable?(file_system) and not FileSystem.mounted?(file_system) and
+          socket.assigns.mode == :edit ->
+        {:error, "repository not found"}
+
+      FileSystem.mountable?(file_system) and FileSystem.mounted?(file_system) ->
+        FileSystem.remount(file_system)
+
+      FileSystem.mountable?(file_system) and not FileSystem.mounted?(file_system) ->
+        FileSystem.mount(file_system)
+
+      true ->
+        :ok
     end
   end
 

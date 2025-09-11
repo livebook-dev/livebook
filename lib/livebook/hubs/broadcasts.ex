@@ -36,6 +36,8 @@ defmodule Livebook.Hubs.Broadcasts do
     * `{:file_system_created, FileSystem.t()}`
     * `{:file_system_updated, FileSystem.t()}`
     * `{:file_system_deleted, FileSystem.t()}`
+    * `{:file_system_mounted, FileSystem.t()}`
+    * `{:file_system_umounted, FileSystem.t()}`
 
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
@@ -151,6 +153,24 @@ defmodule Livebook.Hubs.Broadcasts do
   @spec file_system_deleted(FileSystem.t()) :: broadcast()
   def file_system_deleted(%struct{} = file_system) when struct in @allowed_file_systems do
     broadcast(@file_systems_topic, {:file_system_deleted, file_system})
+  end
+
+  @mountable_file_systems [FileSystem.Git]
+
+  @doc """
+  Broadcasts under `#{@file_systems_topic}` topic when a file system is mounted.
+  """
+  @spec file_system_mounted(FileSystem.t()) :: broadcast()
+  def file_system_mounted(%struct{} = file_system) when struct in @mountable_file_systems do
+    broadcast(@file_systems_topic, {:file_system_mounted, file_system})
+  end
+
+  @doc """
+  Broadcasts under `#{@file_systems_topic}` topic when a file system is umounted.
+  """
+  @spec file_system_umounted(FileSystem.t()) :: broadcast()
+  def file_system_umounted(%struct{} = file_system) when struct in @mountable_file_systems do
+    broadcast(@file_systems_topic, {:file_system_umounted, file_system})
   end
 
   defp broadcast(topic, message) do

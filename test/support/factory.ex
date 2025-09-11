@@ -99,7 +99,7 @@ defmodule Livebook.Factory do
     key = System.get_env("TEST_GIT_SSH_KEY")
 
     %Livebook.FileSystem.Git{
-      id: Livebook.FileSystem.Utils.id("git", hub_id, unique_value(repo_url)),
+      id: Livebook.FileSystem.Utils.id("git", hub_id, repo_url),
       repo_url: repo_url,
       branch: "main",
       key: key,
