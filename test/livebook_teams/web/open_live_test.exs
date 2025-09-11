@@ -44,7 +44,7 @@ defmodule LivebookWeb.Integration.OpenLiveTest do
       |> element(~s{button[id*="file-system-#{file_system.id}"]})
       |> render_click()
 
-      # guarantee the write functions were disabled
+      # guarantee the write functions are disabled
       assert has_element?(view, ~s{div[id*="new-item-menu"] button[disabled]})
       assert render(view) =~ "notebook_files"
 

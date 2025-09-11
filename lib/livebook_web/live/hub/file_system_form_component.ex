@@ -22,7 +22,6 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     {:ok,
      socket
      |> assign_new(:hub, fn -> assigns.hub end)
-     |> assign_new(:teams?, fn -> assigns.hub.id != Livebook.Hubs.Personal.id() end)
      |> assign_new(:file_system, fn -> file_system end)
      |> assign_new(:type, fn -> FileSystems.type(file_system) end)
      |> assign_new(:mode, fn -> mode end)
@@ -41,17 +40,11 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
         {@title}
       </h3>
 
-      <p :if={not @teams?} class="text-gray-700">
-        Configure an AWS S3 bucket as a Livebook file storage.
-        Many storage services offer an S3-compatible API and
-        those work as well.
-      </p>
-
       <div :if={@error_message} class="error-box">
         {@error_message}
       </div>
 
-      <div :if={@teams?}>
+      <div>
         <label class="mb-2 flex items-center gap-1 text-sm text-gray-800 font-medium">
           Type
         </label>
@@ -146,7 +139,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     """
   end
 
-  defp file_system_form_fields(%{file_system: %FileSystem.Git{}, teams?: true} = assigns) do
+  defp file_system_form_fields(%{file_system: %FileSystem.Git{}} = assigns) do
     ~H"""
     <div class="flex flex-col space-y-4">
       <.text_field

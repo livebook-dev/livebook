@@ -45,7 +45,7 @@ defmodule Livebook.FileSystem.GitTest do
   describe "FileSystem.read/2" do
     test "returns an error when a nonexistent key is given", %{file_system: file_system} do
       assert FileSystem.read(file_system, "/another_file.txt") ==
-               {:error, "fatal: path 'another_file.txt' does not exist in 'main'"}
+               {:error, "path 'another_file.txt' does not exist in 'main'"}
     end
 
     test "returns object contents under the given key", %{file_system: file_system} do
@@ -97,7 +97,7 @@ defmodule Livebook.FileSystem.GitTest do
   describe "FileSystem.etag_for/2" do
     test "returns an error when a nonexistent key is given", %{file_system: file_system} do
       assert {:error, reason} = FileSystem.etag_for(file_system, "/another_file.txt")
-      assert reason =~ "fatal: path 'another_file.txt' does not exist in 'main'"
+      assert reason =~ "path 'another_file.txt' does not exist in 'main'"
     end
 
     test "returns the ETag value received from the server", %{file_system: file_system} do
@@ -112,7 +112,7 @@ defmodule Livebook.FileSystem.GitTest do
     end
 
     test "returns error with invalid path", %{file_system: file_system} do
-      assert {:error, "fatal: ../../.bashrc: '../../.bashrc' is outside repository at" <> _} =
+      assert {:error, "../../.bashrc: '../../.bashrc' is outside repository at" <> _} =
                FileSystem.exists?(file_system, "../../.bashrc")
     end
   end

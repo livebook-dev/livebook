@@ -2,6 +2,26 @@ defmodule Livebook.FileSystem.Git.Client do
   alias Livebook.FileSystem
 
   @doc """
+  Clones the given repository to your local file system.
+  """
+  @spec init(FileSystem.Git.t()) :: :ok | {:error, FileSystem.error()}
+  def init(%FileSystem.Git{} = file_system) do
+    case fetch_repository(file_system) do
+      {:ok, _} ->
+        :ok
+
+      {:error, _reason} ->
+        git_dir = FileSystem.Git.git_dir(file_system)
+
+        with_ssh_key_file(file_system, fn key_path ->
+          with {:ok, _} <- clone(git_dir, file_system.repo_url, key_path) do
+            fetch(git_dir, file_system.branch, key_path)
+          end
+        end)
+    end
+  end
+
+  @doc """
   Returns a list of files from given repository and given path.
   """
   @spec list_files(FileSystem.Git.t(), String.t()) ::
@@ -50,31 +70,12 @@ defmodule Livebook.FileSystem.Git.Client do
   end
 
   @doc """
-  Fetches the repository with latest changes and checkout branch.
+  Fetches the repository with latest changes from branch.
   """
   @spec fetch(FileSystem.Git.t()) :: :ok | {:error, FileSystem.error()}
   def fetch(%FileSystem.Git{} = file_system) do
     with {:ok, git_dir} <- fetch_repository(file_system) do
-      with_ssh_key_file(file_system, fn key_path ->
-        fetch(git_dir, file_system.branch, key_path)
-      end)
-    end
-  end
-
-  @doc """
-  Removes the repository locally.
-  """
-  @spec remove_repository(FileSystem.Git.t()) :: :ok | {:error, FileSystem.error()}
-  def remove_repository(%FileSystem.Git{} = file_system) do
-    git_dir = FileSystem.Git.git_dir(file_system)
-    key_path = FileSystem.Git.key_path(file_system)
-
-    with {:ok, _} <- File.rm_rf(git_dir),
-         :ok <- File.rm(key_path) do
-      :ok
-    else
-      {:error, reason, _file} -> FileSystem.Utils.posix_error(reason)
-      error -> error
+      with_ssh_key_file(file_system, &fetch(git_dir, file_system.branch, &1))
     end
   end
 
@@ -100,15 +101,15 @@ defmodule Livebook.FileSystem.Git.Client do
   end
 
   defp clone(git_dir, repo_url, key_path) do
-    with {:ok, ssh} <- fetch_executable("ssh") do
-      git(git_dir, ["clone", "--bare", "--depth=1", repo_url, git_dir], env_opts(ssh, key_path))
+    with {:ok, _ssh} <- fetch_executable("ssh") do
+      git(git_dir, ["clone", "--bare", "--depth=1", repo_url, git_dir], env_opts(key_path))
     end
   end
 
   defp fetch(git_dir, branch, key_path) do
-    with {:ok, ssh} <- fetch_executable("ssh"),
+    with {:ok, _ssh} <- fetch_executable("ssh"),
          {:ok, _} <-
-           git(git_dir, ["fetch", "origin", "#{branch}:#{branch}"], env_opts(ssh, key_path)) do
+           git(git_dir, ["fetch", "origin", "#{branch}:#{branch}"], env_opts(key_path)) do
       :ok
     end
   end
@@ -117,12 +118,12 @@ defmodule Livebook.FileSystem.Git.Client do
     with {:ok, git} <- fetch_executable("git") do
       case System.cmd(git, args, cmd_opts(git_dir, opts)) do
         {result, 0} -> {:ok, result}
-        {error, _} -> {:error, String.trim(error)}
+        {error, _} -> {:error, normalize_error_message(error)}
       end
     end
   end
 
-  @cmd_opts [use_stdio: true, stderr_to_stdout: true]
+  @cmd_opts [stderr_to_stdout: true]
 
   defp cmd_opts(git_dir, opts) do
     opts = Keyword.merge(@cmd_opts, opts)
@@ -134,8 +135,8 @@ defmodule Livebook.FileSystem.Git.Client do
     end
   end
 
-  defp env_opts(ssh, key_path) do
-    [env: %{"GIT_SSH_COMMAND" => "#{ssh} -i #{key_path}"}]
+  defp env_opts(key_path) do
+    [env: %{"GIT_SSH_COMMAND" => "ssh -i '#{key_path}'"}]
   end
 
   defp fetch_repository(file_system) do
@@ -144,30 +145,19 @@ defmodule Livebook.FileSystem.Git.Client do
     if File.exists?(git_dir) do
       {:ok, git_dir}
     else
-      with_ssh_key_file(file_system, fn key_path ->
-        with {:ok, _} <- clone(git_dir, file_system.repo_url, key_path) do
-          {:ok, git_dir}
-        end
-      end)
+      {:error, "repository not found"}
     end
   end
 
-  @begin_key "-----BEGIN OPENSSH PRIVATE KEY-----"
-  @end_key "-----END OPENSSH PRIVATE KEY-----"
-
   defp with_ssh_key_file(file_system, fun) when is_function(fun, 1) do
     File.mkdir_p!(FileSystem.Git.ssh_path())
+
     key_path = FileSystem.Git.key_path(file_system)
+    pem_entry = :public_key.pem_decode(file_system.key)
+    ssh_key = :public_key.pem_encode(pem_entry)
 
-    if not File.exists?(key_path) do
-      File.write!(key_path, """
-      #{@begin_key}
-      #{normalize_ssh_key(file_system.key)}
-      #{@end_key}
-      """)
-
-      File.chmod!(key_path, 0o600)
-    end
+    File.write!(key_path, ssh_key)
+    File.chmod!(key_path, 0o600)
 
     result = fun.(key_path)
 
@@ -178,21 +168,27 @@ defmodule Livebook.FileSystem.Git.Client do
     result
   end
 
-  defp normalize_ssh_key(key) do
-    key
-    |> String.replace_prefix(@begin_key, "")
-    |> String.replace_suffix(@end_key, "")
+  defp normalize_error_message("Cloning" <> _ = error) do
+    [_, error] = String.split(error, "Permission denied", trim: true)
+
+    ("Permission denied" <> error)
+    |> String.replace("\r\n", "\s")
+    |> String.replace("\n\n", "\s")
+    |> String.replace("\n", "\s")
+    |> String.replace("fatal: ", "")
     |> String.trim()
-    |> String.split("\s")
-    |> Enum.join("\n")
   end
 
-  defp normalize_dir_path(<<"blob ", path::binary>>), do: normalize_path(path)
-  defp normalize_dir_path(<<"tree ", path::binary>>), do: normalize_path(path <> "/")
+  defp normalize_error_message(error) do
+    [error] = String.split(error, "fatal: ", trim: true)
+    # avoid MatchError when it has only one part
+    [error | _] = String.split(error, "\n", trim: true)
 
-  defp normalize_path("/"), do: "."
-  defp normalize_path("/" <> _ = path), do: path
-  defp normalize_path(path), do: "/" <> path
+    String.trim(error)
+  end
+
+  defp normalize_dir_path(<<"blob ", path::binary>>), do: "/" <> path
+  defp normalize_dir_path(<<"tree ", path::binary>>), do: "/" <> path <> "/"
 
   defp relative_path("/"), do: "."
   defp relative_path("/" <> path), do: path

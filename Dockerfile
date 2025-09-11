@@ -83,7 +83,7 @@ RUN apt-get update && apt-get upgrade -y && \
     # In case someone uses `Mix.install/2` and point to a git repo
     git \
     # In case someone uses the Git file storage
-    ssh \
+    openssh-client \
     # Additional standard tools
     wget \
     # In case someone uses Torchx for Nx
