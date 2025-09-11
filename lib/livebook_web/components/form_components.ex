@@ -17,6 +17,7 @@ defmodule LivebookWeb.FormComponents do
   attr :help, :string, default: nil
   attr :type, :string, default: "text"
   attr :class, :string, default: nil
+  attr :prefix, :string, default: nil
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled step min max)
 
@@ -25,7 +26,21 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
+      <div :if={@prefix} class="relative flex focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-opacity-50 rounded-lg">
+        <span class="inline-flex items-center px-3 text-sm text-gray-400 bg-gray-100 border border-gray-200 rounded-l-lg font-normal opacity-75">
+          {@prefix}
+        </span>
+        <input
+          type={@type}
+          name={@name}
+          id={@id || @name}
+          value={Phoenix.HTML.Form.normalize_value("text", @value)}
+          class={[input_classes(@errors), @class, "rounded-l-none focus:ring-0 focus:border-gray-200"]}
+          {@rest}
+        />
+      </div>
       <input
+        :if={!@prefix}
         type={@type}
         name={@name}
         id={@id || @name}

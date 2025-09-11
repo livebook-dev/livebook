@@ -56,6 +56,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
             <.text_field
               field={f[:name]}
               label="Name (alphanumeric and underscore)"
+              prefix="LB_"
               autofocus={@secret_name == nil}
               spellcheck="false"
               autocomplete="off"
