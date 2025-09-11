@@ -85,25 +85,25 @@ defmodule Livebook.Factory do
     %Livebook.FileSystem.S3{
       id: Livebook.FileSystem.Utils.id("s3", hub_id, bucket_url),
       bucket_url: bucket_url,
-      external_id: nil,
       region: "us-east-1",
       access_key_id: "key",
       secret_access_key: "secret",
+      external_id: nil,
       hub_id: hub_id
     }
   end
 
   def build(:fs_git) do
     repo_url = "git@github.com:livebook-dev/test.git"
-    hub_id = unique_value("team-")
+    hub_id = Livebook.Hubs.Personal.id()
     key = System.get_env("TEST_GIT_SSH_KEY")
 
     %Livebook.FileSystem.Git{
-      id: Livebook.FileSystem.Utils.id("git", hub_id, repo_url),
+      id: Livebook.FileSystem.Utils.id("git", hub_id, unique_value(repo_url)),
       repo_url: repo_url,
       branch: "main",
       key: key,
-      external_id: "1",
+      external_id: nil,
       hub_id: hub_id
     }
   end
