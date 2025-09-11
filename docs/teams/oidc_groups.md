@@ -12,7 +12,6 @@ Livebook Teams allows you to control access to your app servers and Livebook app
 OIDC groups authorization enables you to:
 
 - Restrict access to your Livebook apps and app servers based on group membership
-- Control which users can access specific apps using slug prefix filtering
 - Integrate seamlessly with your existing OIDC SSO provider (Okta, Microsoft Entra, etc.)
 
 ## Prerequisites
@@ -33,7 +32,7 @@ To enable authorization via OIDC SSO groups for a deployment group:
 1. Log in to Livebook Teams
 2. Navigate to the **Deployments** panel
 3. Click **Edit** on the deployment group where you want to enable authorization
-4. Go to the **IAM** section (requires "admin" role in the organization)
+4. Go to the **App server access** section (requires "admin" role in the organization)
 5. Ensure that **Authenticate via Livebook Teams** is enabled
 6. Enable **Authorize via OIDC SSO groups**
 
@@ -44,10 +43,7 @@ Once authorization is enabled, you can add group access rules:
 1. Click the **Add group** button
 2. Select one of your configured OIDC identity providers
 3. Enter the name of a group from your identity provider
-4. Choose the **Access type**:
-   - Full access
-   - Slug prefix access
-5. Click the **Add group** button to save the rule
+4. Click the **Add group** button to save the rule
 
 You can add multiple groups with different access types to configure your authorization strategy.
 
@@ -60,14 +56,6 @@ Users who belong to groups with full access can access:
 - All Livebook apps deployed to this deployment group
 
 **Notice that [Admin authentication](authentication.md#admin-authentication) configs will also apply if configured.*
-
-### Slug prefix access
-
-Users who belong to groups with slug prefix access can only access Livebook apps whose URL slugs start with the specified prefix.
-
-For example, with the slug prefix "**finance-**", users can access an app whose slug is "**finance-**budget", but not one with the slug "**hr-**budget".
-
-This allows you to create role-based access control based on your organization's existing group structure.
 
 ## Testing the Configuration
 
