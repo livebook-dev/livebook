@@ -18,7 +18,7 @@ defmodule Livebook.FileSystem.Git do
   embedded_schema do
     field :repo_url, :string
     field :branch, :string
-    field :key, :string
+    field :key, :string, redact: true
     field :external_id, :string
     field :hub_id, :string
   end
