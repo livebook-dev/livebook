@@ -98,7 +98,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         </h3>
 
         <div class="flex flex-col mt-2 space-y-4">
-          <div :if={@app} class="flex flex-col space-y-3">
+          <div :if={app_has_sessions?(@app)} class="flex flex-col space-y-3">
             <.labeled_text label="URL" one_line>
               <a href={~p"/apps/#{@app.slug}"}>
                 {~p"/apps/#{@app.slug}"}
@@ -118,9 +118,9 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             </div>
           </div>
 
-          <div class={["grid gap-2", @app && "grid-cols-2"]}>
+          <div class={["grid gap-2", app_has_sessions?(@app) && "grid-cols-2"]}>
             <span class="flex flex-col">
-              <%= if @app do %>
+              <%= if app_has_sessions?(@app) do %>
                 <.button color="gray" outlined phx-click="deploy_app">
                   <.remix_icon icon="slideshow-4-line" /> Relaunch
                 </.button>
@@ -131,7 +131,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               <% end %>
             </span>
             <.button
-              :if={@app}
+              :if={app_has_sessions?(@app)}
               color="red"
               outlined
               type="button"
@@ -213,6 +213,10 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
       </div>
     </div>
     """
+  end
+
+  defp app_has_sessions?(app) do
+    app && app.sessions != []
   end
 
   defp app_info_icon(assigns) do
