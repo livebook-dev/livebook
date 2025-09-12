@@ -172,6 +172,9 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert_patch(view, ~p"/hub/#{hub.id}/file-systems/new")
       assert render(view) =~ "Add file storage"
 
+      # Guarantee Git isn't available for Personal hub
+      refute render(view) =~ "Git"
+
       view
       |> element("#file-systems-form")
       |> render_change(attrs)

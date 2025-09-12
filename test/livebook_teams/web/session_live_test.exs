@@ -272,7 +272,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       team_file_system =
         build(:fs_s3,
-          id: FileSystem.S3.id(team_id, bucket_url),
+          id: Livebook.FileSystemHelpers.s3_id(team_id, bucket_url),
           bucket_url: bucket_url,
           hub_id: team_id
         )
@@ -312,7 +312,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       file_system =
         build(:fs_s3,
-          id: FileSystem.S3.id(hub_id, bucket_url),
+          id: Livebook.FileSystemHelpers.s3_id(hub_id, bucket_url),
           bucket_url: bucket_url,
           hub_id: hub_id,
           external_id: "123"

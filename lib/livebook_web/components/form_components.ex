@@ -731,6 +731,66 @@ defmodule LivebookWeb.FormComponents do
   end
 
   @doc """
+  Renders selectable radio cards with title and inner body.
+  """
+  attr :id, :any, default: nil
+  attr :name, :any
+  attr :title, :string, default: nil
+  attr :value, :any
+  attr :class, :string, default: ""
+  attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
+  attr :disabled, :boolean, default: false
+  attr :checked_value, :any
+
+  attr :rest, :global
+
+  slot :inner_block, required: true
+
+  def radio_card_input(assigns) do
+    assigns = assigns_from_field(assigns)
+
+    ~H"""
+    <label class={[
+      "relative flex rounded-lg border p-4 w-1/2",
+      if(to_string(@value) == to_string(@checked_value),
+        do: "border-blue-500",
+        else: "border-gray-200"
+      ),
+      if(@disabled, do: "opacity-70", else: "cursor-pointer")
+    ]}>
+      <input
+        id={@id}
+        type="radio"
+        name={@name}
+        value={@value}
+        checked={to_string(@value) == to_string(@checked_value)}
+        class="sr-only"
+        disabled={@disabled}
+        {@rest}
+      />
+      <span class="flex flex-1">
+        <span class="flex flex-col">
+          <span class="block text-sm font-medium text-gray-900">
+            {@title}
+          </span>
+          <span class="mt-1 flex items-center text-sm text-gray-700">
+            {render_slot(@inner_block)}
+          </span>
+        </span>
+      </span>
+      <.remix_icon
+        icon="checkbox-circle-fill"
+        class={[
+          "text-blue-600 h-5 w-5",
+          if(to_string(@value) == to_string(@checked_value), do: "visible", else: "invisible")
+        ]}
+      />
+    </label>
+    """
+  end
+
+  @doc """
   Checks if the given upload makes the form disabled.
   """
   @spec upload_disabled?(Phoenix.LiveView.UploadConfig.t()) :: boolean()

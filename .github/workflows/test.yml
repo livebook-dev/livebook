@@ -41,6 +41,8 @@ jobs:
         run: mix compile --warnings-as-errors
       - name: Run tests
         run: mix test
+        env:
+          TEST_GIT_SSH_KEY: ${{ secrets.TEST_GIT_SSH_KEY }}
       - name: Install Node
         uses: actions/setup-node@v4
         with:
@@ -105,6 +107,8 @@ jobs:
         run: mix deps.get
       - name: Run tests
         run: mix test
+        env:
+          TEST_GIT_SSH_KEY: ${{ secrets.TEST_GIT_SSH_KEY }}
       - name: Build the app
         run: bash .github/scripts/app/build_windows.sh
 

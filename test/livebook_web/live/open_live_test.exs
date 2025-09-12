@@ -23,7 +23,7 @@ defmodule LivebookWeb.OpenLiveTest do
       |> render_change(%{path: path})
 
       # Render the view separately to make sure it received the :set_file event
-      render(view) =~ "livebook_web"
+      assert render(view) =~ "livebook_web"
     end
 
     test "allows importing when a notebook file is selected", %{conn: conn} do

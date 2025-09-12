@@ -84,17 +84,22 @@ defmodule Livebook.TeamsRPC do
   end
 
   def create_file_system(node, team, org_key, file_system \\ nil) do
-    file_system = if file_system, do: file_system, else: Factory.build(:fs_s3)
-    derived_key = Livebook.Teams.derive_key(team.teams_key)
-    name = Livebook.FileSystem.external_metadata(file_system).name
-    type = Livebook.FileSystems.type(file_system)
-    attrs = Livebook.FileSystem.dump(file_system)
-    json = JSON.encode!(attrs)
-    value = Livebook.Teams.encrypt(json, derived_key)
+    file_system =
+      if file_system,
+        do: file_system,
+        else: Factory.build(:fs_s3)
 
-    attrs = %{name: name, type: String.to_atom(type), value: value, org_key: org_key}
+    type = Livebook.FileSystems.type(file_system)
+
+    attrs = %{
+      name: Livebook.FileSystem.external_metadata(file_system).name,
+      type: String.to_atom(type),
+      value: Livebook.HubHelpers.generate_file_system_json(team, file_system),
+      org_key: org_key
+    }
+
     external_id = :erpc.call(node, TeamsRPC, :create_file_system, [attrs]).id
-    Map.replace!(file_system, :external_id, external_id)
+    Map.replace!(file_system, :external_id, to_string(external_id))
   end
 
   def create_deployment_group(node, attrs \\ []) do

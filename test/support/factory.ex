@@ -80,16 +80,30 @@ defmodule Livebook.Factory do
 
   def build(:fs_s3) do
     bucket_url = "https://#{unique_value("mybucket-")}.s3.amazonaws.com"
-    hash = :crypto.hash(:sha256, bucket_url)
     hub_id = Livebook.Hubs.Personal.id()
 
     %Livebook.FileSystem.S3{
-      id: "#{hub_id}-s3-#{Base.url_encode64(hash, padding: false)}",
+      id: Livebook.FileSystem.Utils.id("s3", hub_id, bucket_url),
       bucket_url: bucket_url,
       external_id: nil,
       region: "us-east-1",
       access_key_id: "key",
       secret_access_key: "secret",
+      hub_id: hub_id
+    }
+  end
+
+  def build(:fs_git) do
+    repo_url = "git@github.com:livebook-dev/test.git"
+    hub_id = unique_value("team-")
+    key = System.get_env("TEST_GIT_SSH_KEY")
+
+    %Livebook.FileSystem.Git{
+      id: Livebook.FileSystem.Utils.id("git", hub_id, repo_url),
+      repo_url: repo_url,
+      branch: "main",
+      key: key,
+      external_id: "1",
       hub_id: hub_id
     }
   end
