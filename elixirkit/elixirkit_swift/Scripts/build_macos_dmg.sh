@@ -13,7 +13,17 @@ if [ -n "$identity" ]; then
   files=`find $app_dir -perm +111 -type f -exec sh -c "file {} | grep --silent Mach-O" \; -print`
   files="$files `find $app_dir -name '*.a'`"
   files="$files $app_dir/Contents/MacOS/$app_name"
-  codesign --sign="$identity" --options=runtime --entitlements=App.entitlements --force --timestamp --verbose=2 $files
+
+  codesign \
+    --sign="$identity" \
+    --options=runtime \
+    --entitlements=App.entitlements \
+    --force \
+    --timestamp \
+    --verbose=4 \
+    $files
+
+  codesign --verify --verbose=4 "${app_dir}"
 else
   echo "[warning] skipping codesign. Please set ELIXIRKIT_CODESIGN_IDENTITY environment variable"
 fi
@@ -33,6 +43,8 @@ if [ -n "$team_id" ]; then
     --progress \
     --wait \
     $dmg_path
+
+  spctl -a -t exec -vvv "$app_dir"
 else
   echo "[warning] skipping notarization. Please set ELIXIRKIT_NOTARY_{TEAM_ID,APPLE_ID,PASSWORD} environment variables"
 fi

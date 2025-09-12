@@ -73,5 +73,9 @@
   <string>Allow microphone access for Elixir code</string>
   <key>NSCameraUsageDescription</key>
   <string>Allow camera access for Elixir code</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>11.0</string>
 </dict>
 </plist>
