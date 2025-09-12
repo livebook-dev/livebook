@@ -38,7 +38,7 @@ defmodule LivebookWeb.FormComponents do
             id={@id || @name}
             value={Phoenix.HTML.Form.normalize_value("text", @value)}
             class={[
-              input_classes(@errors, outer_prefix: true),
+                outer_prefixed_input_classes(@errors),
               @class
             ]}
             {@rest}
