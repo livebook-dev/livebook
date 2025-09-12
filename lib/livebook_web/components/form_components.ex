@@ -28,7 +28,7 @@ defmodule LivebookWeb.FormComponents do
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <%= if @outer_prefix do %>
         <div class={outer_prefixed_input_wrapper_classes(@errors)}>
-          <span class="inline-flex items-center rounded-l-lg bg-gray-100 px-3 text-sm text-gray-400 opacity-75 border-r border-gray-200">
+          <span class="inline-flex items-center rounded-l-lg bg-gray-100 px-3 text-sm text-gray-400 opacity-70 border-r border-gray-200">
             {@outer_prefix}
           </span>
 
@@ -69,18 +69,14 @@ defmodule LivebookWeb.FormComponents do
     ]
   end
 
-  defp input_classes(errors, opts \\ [])
-
-  defp input_classes(errors, outer_prefix: true) do
-    [
-      base_input_classes(),
-      "border-0 rounded-none rounded-r-lg focus:ring-0 focus:outline-none",
-      error_state_classes(errors, :no_border),
-      "invalid:text-red-600"
-    ]
+  defp input_classes(errors, opts \\ []) do
+    case Keyword.get(opts, :outer_prefix, false) do
+      true -> outer_prefixed_input_classes(errors)
+      false -> standard_input_classes(errors)
+    end
   end
 
-  defp input_classes(errors, []) do
+  defp standard_input_classes(errors) do
     [
       base_input_classes(),
       "border rounded-lg focus:border-blue-600",
@@ -89,23 +85,35 @@ defmodule LivebookWeb.FormComponents do
     ]
   end
 
+  defp outer_prefixed_input_classes(errors) do
+    [
+      base_input_classes(),
+      "border-0 rounded-none rounded-r-lg focus:ring-0 focus:outline-none",
+      error_state_classes(errors, :no_border),
+      "invalid:text-red-600"
+    ]
+  end
+
   defp base_input_classes do
     "w-full px-3 py-2 text-sm font-normal placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus-visible:outline-none"
   end
 
   defp error_state_classes(errors, :with_border) do
-    if errors == [] do
-      "bg-gray-50 text-gray-600 border-gray-200"
-    else
-      "text-red-600 bg-red-50 border-red-600"
-    end
+    [
+      error_color_classes(errors),
+      if(errors == [], do: "border-gray-200 ", else: "border-red-600")
+    ]
   end
 
   defp error_state_classes(errors, :no_border) do
+    error_color_classes(errors)
+  end
+
+  defp error_color_classes(errors) do
     if errors == [] do
       "bg-gray-50 text-gray-600"
     else
-      "text-red-600 bg-red-50"
+      "bg-red-50 text-red-600"
     end
   end
 
