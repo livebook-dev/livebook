@@ -60,7 +60,7 @@ jobs:
         run: npm test --prefix assets
 
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
     if: github.event_name == 'push'
     env:
       MIX_ENV: test
