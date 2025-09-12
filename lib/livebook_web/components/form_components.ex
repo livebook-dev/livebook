@@ -17,6 +17,7 @@ defmodule LivebookWeb.FormComponents do
   attr :help, :string, default: nil
   attr :type, :string, default: "text"
   attr :class, :string, default: nil
+  attr :outer_prefix, :string, default: nil
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled step min max)
 
@@ -25,28 +26,78 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <input
-        type={@type}
-        name={@name}
-        id={@id || @name}
-        value={Phoenix.HTML.Form.normalize_value("text", @value)}
-        class={[input_classes(@errors), @class]}
-        {@rest}
-      />
+      <%= if @outer_prefix do %>
+        <div class={outer_prefixed_input_wrapper_classes(@errors)}>
+          <span class="inline-flex items-center rounded-l-lg bg-gray-100 px-3 text-sm text-gray-400 opacity-70 border-r border-gray-200">
+            {@outer_prefix}
+          </span>
+
+          <input
+            type={@type}
+            name={@name}
+            id={@id || @name}
+            value={Phoenix.HTML.Form.normalize_value("text", @value)}
+            class={[
+              outer_prefixed_input_classes(@errors),
+              @class
+            ]}
+            {@rest}
+          />
+        </div>
+      <% else %>
+        <input
+          type={@type}
+          name={@name}
+          id={@id || @name}
+          value={Phoenix.HTML.Form.normalize_value("text", @value)}
+          class={[input_classes(@errors), @class]}
+          {@rest}
+        />
+      <% end %>
     </.field_wrapper>
     """
   end
 
+  defp outer_prefixed_input_wrapper_classes(errors) do
+    [
+      "relative flex items-stretch rounded-lg border focus-within:border-blue-600",
+      if errors == [] do
+        "border-gray-200"
+      else
+        "border-red-600"
+      end
+    ]
+  end
+
   defp input_classes(errors) do
     [
-      "w-full px-3 py-2 text-sm font-normal border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus:border-blue-600 focus-visible:outline-none",
-      if errors == [] do
-        "bg-gray-50 border-gray-200 text-gray-600"
-      else
-        "bg-red-50 border-red-600 text-red-600"
-      end,
+      base_input_classes(),
+      "border rounded-lg focus:border-blue-600",
+      error_color_classes(errors),
+      if(errors != [], do: "border-red-600"),
       "invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
     ]
+  end
+
+  defp outer_prefixed_input_classes(errors) do
+    [
+      base_input_classes(),
+      "border-0 rounded-none rounded-r-lg focus:ring-0 focus:outline-none",
+      error_color_classes(errors),
+      "invalid:text-red-600"
+    ]
+  end
+
+  defp base_input_classes do
+    "w-full px-3 py-2 text-sm font-normal placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus-visible:outline-none"
+  end
+
+  defp error_color_classes(errors) do
+    if errors == [] do
+      "bg-gray-50 text-gray-600"
+    else
+      "bg-red-50 text-red-600"
+    end
   end
 
   @doc """
