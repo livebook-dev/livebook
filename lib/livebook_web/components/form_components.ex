@@ -29,11 +29,11 @@ defmodule LivebookWeb.FormComponents do
       <div
         :if={@prefix}
         class={[
-          "relative flex items-stretch rounded-lg bg-gray-50",
+          "relative flex items-stretch rounded-lg border",
           if @errors == [] do
-            "border border-gray-200 focus-within:border-blue-600"
+            "border-gray-200 focus-within:border-blue-600"
           else
-            "bg-red-50 border border-red-600"
+            "border-red-600"
           end
         ]}
       >
@@ -47,7 +47,7 @@ defmodule LivebookWeb.FormComponents do
           id={@id || @name}
           value={Phoenix.HTML.Form.normalize_value("text", @value)}
           class={[
-            input_classes_inside_prefix(@errors),
+            input_with_prefix_classes(@errors),
             @class
           ]}
           {@rest}
@@ -69,26 +69,26 @@ defmodule LivebookWeb.FormComponents do
 
   defp input_classes(errors) do
     [
-      "w-full px-3 py-2 text-sm font-normal border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus:border-blue-600 focus-visible:outline-none",
+      "w-full px-3 py-2 text-sm font-normal placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus-visible:outline-none",
+      "border rounded-lg focus:border-blue-600",
       if errors == [] do
-        "bg-gray-50 border-gray-200 text-gray-600"
+        "bg-gray-50 text-gray-600 border-gray-200"
       else
-        "bg-red-50 border-red-600 text-red-600"
+        "text-red-600 bg-red-50 border-red-600"
       end,
       "invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
     ]
   end
 
-  defp input_classes_inside_prefix(errors) do
+  defp input_with_prefix_classes(errors) do
     [
       # no outer border here — wrapper owns it
-      "w-full px-3 py-2 text-sm font-normal rounded-none rounded-r-lg border-0 bg-transparent
-       placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed
-       focus:ring-0 focus:outline-none focus-visible:outline-none",
+      "w-full px-3 py-2 text-sm font-normal placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus-visible:outline-none",
+      "border-0 rounded-none rounded-r-lg focus:ring-0 focus:outline-none",
       if errors == [] do
-        "text-gray-600"
+        "bg-gray-50 text-gray-600"
       else
-        "text-red-600"
+        "text-red-600 bg-red-50"
       end,
       "invalid:text-red-600"
     ]
