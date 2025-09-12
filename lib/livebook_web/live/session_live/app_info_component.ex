@@ -216,7 +216,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
   end
 
   defp app_has_sessions?(app) do
-    app && length(app.sessions) > 0
+    app && app.sessions != []
   end
 
   defp app_info_icon(assigns) do
