@@ -69,14 +69,7 @@ defmodule LivebookWeb.FormComponents do
     ]
   end
 
-  defp input_classes(errors, opts \\ []) do
-    case Keyword.get(opts, :outer_prefix, false) do
-      true -> outer_prefixed_input_classes(errors)
-      false -> standard_input_classes(errors)
-    end
-  end
-
-  defp standard_input_classes(errors) do
+  defp input_classes(errors) do
     [
       base_input_classes(),
       "border rounded-lg focus:border-blue-600",
