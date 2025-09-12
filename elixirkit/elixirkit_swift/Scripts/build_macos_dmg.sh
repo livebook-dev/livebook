@@ -37,12 +37,12 @@ cp -r $app_dir $dmg_dir/
 
 hdiutil create $dmg_path -ov -volname ${app_name}Install -fs HFS+ -srcfolder $dmg_dir
 
-if [ -n "$team_id" ]; then
-  codesign --verify --verbose=4 "${app_dir}"
-
-  codesign --sign="$identity" "$dmg_path"
+if [ -n "$identity" ]; then
+  codesign --sign "$identity" "$dmg_path"
   codesign --verify --verbose=4 "$dmg_path"
+fi
 
+if [ -n "$team_id" ]; then
   xcrun notarytool submit \
     --team-id "${team_id}" \
     --apple-id "${apple_id}" \
@@ -51,6 +51,8 @@ if [ -n "$team_id" ]; then
     --wait \
     "$dmg_path"
 
+  xcrun stapler staple "$dmg_path"
+  xcrun stapler staple "$app_dir"
   spctl -a -t exec -vvv "$app_dir"
 else
   echo "[warning] skipping notarization. Please set ELIXIRKIT_NOTARY_{TEAM_ID,APPLE_ID,PASSWORD} environment variables"
