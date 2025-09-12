@@ -107,6 +107,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             <.text_field
               field={f[:name]}
               label="Name (alphanumeric and underscore)"
+              outer_prefix="LB_"
               autofocus={@prefill_secret_name == nil}
               spellcheck="false"
               autocomplete="off"
