@@ -38,11 +38,18 @@ cp -r $app_dir $dmg_dir/
 hdiutil create $dmg_path -ov -volname ${app_name}Install -fs HFS+ -srcfolder $dmg_dir
 
 if [ -n "$team_id" ]; then
+  codesign --verify --verbose=4 "${app_dir}"
+
+  codesign --sign="$identity" "$dmg_path"
+  codesign --verify --verbose=4 "$dmg_path"
+
   xcrun notarytool submit \
-    --team-id "${team_id}" --apple-id "${apple_id}" --password "${password}" \
+    --team-id "${team_id}" \
+    --apple-id "${apple_id}" \
+    --password "${password}" \
     --progress \
     --wait \
-    $dmg_path
+    "$dmg_path"
 
   spctl -a -t exec -vvv "$app_dir"
 else
