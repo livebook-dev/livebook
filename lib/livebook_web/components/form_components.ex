@@ -38,7 +38,7 @@ defmodule LivebookWeb.FormComponents do
             id={@id || @name}
             value={Phoenix.HTML.Form.normalize_value("text", @value)}
             class={[
-                outer_prefixed_input_classes(@errors),
+              outer_prefixed_input_classes(@errors),
               @class
             ]}
             {@rest}
@@ -60,9 +60,9 @@ defmodule LivebookWeb.FormComponents do
 
   defp outer_prefixed_input_wrapper_classes(errors) do
     [
-      "relative flex items-stretch rounded-lg border",
+      "relative flex items-stretch rounded-lg border focus-within:border-blue-600",
       if errors == [] do
-        "border-gray-200 focus-within:border-blue-600"
+        "border-gray-200"
       else
         "border-red-600"
       end
@@ -73,7 +73,8 @@ defmodule LivebookWeb.FormComponents do
     [
       base_input_classes(),
       "border rounded-lg focus:border-blue-600",
-      error_state_classes(errors, :with_border),
+      error_color_classes(errors),
+      if(errors != [], do: "border-red-600"),
       "invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
     ]
   end
