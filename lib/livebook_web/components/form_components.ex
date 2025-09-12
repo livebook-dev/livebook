@@ -17,7 +17,7 @@ defmodule LivebookWeb.FormComponents do
   attr :help, :string, default: nil
   attr :type, :string, default: "text"
   attr :class, :string, default: nil
-  attr :prefix, :string, default: nil
+  attr :outer_prefix, :string, default: nil
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled step min max)
 
@@ -26,72 +26,87 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <div
-        :if={@prefix}
-        class={[
-          "relative flex items-stretch rounded-lg border",
-          if @errors == [] do
-            "border-gray-200 focus-within:border-blue-600"
-          else
-            "border-red-600"
-          end
-        ]}
-      >
-        <span class="inline-flex items-center rounded-l-lg bg-gray-100 px-3 text-sm text-gray-400 opacity-75 border-r border-gray-200">
-          {@prefix}
-        </span>
+      <%= if @outer_prefix do %>
+        <div class={outer_prefixed_input_wrapper_classes(@errors)}>
+          <span class="inline-flex items-center rounded-l-lg bg-gray-100 px-3 text-sm text-gray-400 opacity-75 border-r border-gray-200">
+            {@outer_prefix}
+          </span>
 
+          <input
+            type={@type}
+            name={@name}
+            id={@id || @name}
+            value={Phoenix.HTML.Form.normalize_value("text", @value)}
+            class={[
+              input_classes(@errors, outer_prefix: true),
+              @class
+            ]}
+            {@rest}
+          />
+        </div>
+      <% else %>
         <input
           type={@type}
           name={@name}
           id={@id || @name}
           value={Phoenix.HTML.Form.normalize_value("text", @value)}
-          class={[
-            input_with_prefix_classes(@errors),
-            @class
-          ]}
+          class={[input_classes(@errors), @class]}
           {@rest}
         />
-      </div>
-
-      <input
-        :if={!@prefix}
-        type={@type}
-        name={@name}
-        id={@id || @name}
-        value={Phoenix.HTML.Form.normalize_value("text", @value)}
-        class={[input_classes(@errors), @class]}
-        {@rest}
-      />
+      <% end %>
     </.field_wrapper>
     """
   end
 
-  defp input_classes(errors) do
+  defp outer_prefixed_input_wrapper_classes(errors) do
     [
-      "w-full px-3 py-2 text-sm font-normal placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus-visible:outline-none",
-      "border rounded-lg focus:border-blue-600",
+      "relative flex items-stretch rounded-lg border",
       if errors == [] do
-        "bg-gray-50 text-gray-600 border-gray-200"
+        "border-gray-200 focus-within:border-blue-600"
       else
-        "text-red-600 bg-red-50 border-red-600"
-      end,
+        "border-red-600"
+      end
+    ]
+  end
+
+  defp input_classes(errors, opts \\ [])
+
+  defp input_classes(errors, outer_prefix: true) do
+    [
+      base_input_classes(),
+      "border-0 rounded-none rounded-r-lg focus:ring-0 focus:outline-none",
+      error_state_classes(errors, :no_border),
+      "invalid:text-red-600"
+    ]
+  end
+
+  defp input_classes(errors, []) do
+    [
+      base_input_classes(),
+      "border rounded-lg focus:border-blue-600",
+      error_state_classes(errors, :with_border),
       "invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
     ]
   end
 
-  defp input_with_prefix_classes(errors) do
-    [
-      # no outer border here — wrapper owns it
-      "w-full px-3 py-2 text-sm font-normal placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus-visible:outline-none",
-      "border-0 rounded-none rounded-r-lg focus:ring-0 focus:outline-none",
-      if errors == [] do
-        "bg-gray-50 text-gray-600"
-      else
-        "text-red-600 bg-red-50"
-      end,
-      "invalid:text-red-600"
-    ]
+  defp base_input_classes do
+    "w-full px-3 py-2 text-sm font-normal placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus-visible:outline-none"
+  end
+
+  defp error_state_classes(errors, :with_border) do
+    if errors == [] do
+      "bg-gray-50 text-gray-600 border-gray-200"
+    else
+      "text-red-600 bg-red-50 border-red-600"
+    end
+  end
+
+  defp error_state_classes(errors, :no_border) do
+    if errors == [] do
+      "bg-gray-50 text-gray-600"
+    else
+      "text-red-600 bg-red-50"
+    end
   end
 
   @doc """
