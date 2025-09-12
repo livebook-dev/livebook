@@ -82,7 +82,7 @@ defmodule LivebookWeb.FormComponents do
     [
       base_input_classes(),
       "border-0 rounded-none rounded-r-lg focus:ring-0 focus:outline-none",
-      error_state_classes(errors, :no_border),
+      error_color_classes(errors),
       "invalid:text-red-600"
     ]
   end
