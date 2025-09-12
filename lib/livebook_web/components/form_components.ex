@@ -91,17 +91,6 @@ defmodule LivebookWeb.FormComponents do
     "w-full px-3 py-2 text-sm font-normal placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus-visible:outline-none"
   end
 
-  defp error_state_classes(errors, :with_border) do
-    [
-      error_color_classes(errors),
-      if(errors == [], do: "border-gray-200 ", else: "border-red-600")
-    ]
-  end
-
-  defp error_state_classes(errors, :no_border) do
-    error_color_classes(errors)
-  end
-
   defp error_color_classes(errors) do
     if errors == [] do
       "bg-gray-50 text-gray-600"
