@@ -90,9 +90,16 @@ defmodule Livebook.TeamsRPC do
         else: Factory.build(:fs_s3)
 
     type = Livebook.FileSystems.type(file_system)
+    name = Livebook.FileSystem.external_metadata(file_system).name
+
+    file_system = %{
+      file_system
+      | id: Livebook.FileSystem.Utils.id(type, team.id, name),
+        hub_id: team.id
+    }
 
     attrs = %{
-      name: Livebook.FileSystem.external_metadata(file_system).name,
+      name: name,
       type: String.to_atom(type),
       value: Livebook.HubHelpers.generate_file_system_json(team, file_system),
       org_key: org_key
