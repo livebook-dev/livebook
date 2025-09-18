@@ -153,4 +153,34 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Git do
   def external_metadata(file_system) do
     %{name: file_system.repo_url, error_field: "repo_url"}
   end
+
+  def mountable?(_file_system), do: true
+
+  def mounted?(file_system) do
+    file_system
+    |> FileSystem.Git.git_dir()
+    |> File.exists?()
+  end
+
+  def mount(file_system) do
+    FileSystem.Git.Client.init(file_system)
+  end
+
+  def remount(file_system) do
+    FileSystem.Git.Client.fetch(file_system)
+  end
+
+  def umount(file_system) do
+    path = FileSystem.Git.git_dir(file_system)
+    key_path = FileSystem.Git.key_path(file_system)
+
+    if File.exists?(key_path) do
+      File.rm!(key_path)
+    end
+
+    case File.rm_rf(path) do
+      {:ok, _} -> :ok
+      {:error, reason, _file} -> FileSystem.Utils.posix_error(reason)
+    end
+  end
 end

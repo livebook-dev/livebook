@@ -246,4 +246,34 @@ defprotocol Livebook.FileSystem do
   """
   @spec external_metadata(t()) :: %{name: String.t(), error_field: String.t()}
   def external_metadata(file_system)
+
+  @doc """
+  Returns if file system is mountable.
+  """
+  @spec mountable?(t()) :: boolean()
+  def mountable?(file_system)
+
+  @doc """
+  Returns if file system is already mounted.
+  """
+  @spec mounted?(t()) :: boolean()
+  def mounted?(file_system)
+
+  @doc """
+  Mounts the given file system to be used furthermore.
+  """
+  @spec mount(t()) :: :ok | {:error, error()}
+  def mount(file_system)
+
+  @doc """
+  Remounts the given file system to be used furthermore.
+  """
+  @spec remount(t()) :: :ok | {:error, error()}
+  def remount(file_system)
+
+  @doc """
+  Umounts the given file system from being used.
+  """
+  @spec umount(t()) :: :ok | {:error, error()}
+  def umount(file_system)
 end

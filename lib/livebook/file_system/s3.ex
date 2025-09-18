@@ -449,4 +449,14 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   def external_metadata(file_system) do
     %{name: file_system.bucket_url, error_field: "bucket_url"}
   end
+
+  def mountable?(_file_system), do: false
+
+  def mounted?(_file_system), do: false
+
+  def mount(_file_system), do: raise("not implemented")
+
+  def remount(_file_system), do: raise("not implemented")
+
+  def umount(_file_system), do: raise("not implemented")
 end
