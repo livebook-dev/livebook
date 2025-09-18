@@ -19,6 +19,8 @@ defmodule Livebook.K8s.Pod do
             memory: 1Gi\
   """
 
+  alias Livebook.Config
+
   @doc """
   Returns the default pod template.
   """
@@ -73,7 +75,8 @@ defmodule Livebook.K8s.Pod do
   """
   @spec set_docker_tag(map(), String.t()) :: map()
   def set_docker_tag(manifest, docker_tag) do
-    image = "ghcr.io/livebook-dev/livebook:#{docker_tag}"
+    image_registry_url = Config.image_registry_url()
+    image = "#{image_registry_url}:#{docker_tag}"
     put_in(manifest, ["spec", "containers", access_main_container(), "image"], image)
   end
 

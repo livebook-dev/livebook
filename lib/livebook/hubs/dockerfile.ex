@@ -3,6 +3,7 @@ defmodule Livebook.Hubs.Dockerfile do
 
   import Ecto.Changeset
 
+  alias Livebook.Config
   alias Livebook.Hubs
 
   @type config :: %{
@@ -82,8 +83,10 @@ defmodule Livebook.Hubs.Dockerfile do
       ) do
     base_image = Enum.find(Livebook.Config.docker_images(), &(&1.tag == config.docker_tag))
 
+    image_registry_url = Config.image_registry_url()
+
     image = """
-    FROM ghcr.io/livebook-dev/livebook:#{base_image.tag}
+    FROM #{image_registry_url}:#{base_image.tag}
     """
 
     image_envs = format_envs(base_image.env)
@@ -316,7 +319,8 @@ defmodule Livebook.Hubs.Dockerfile do
   def online_docker_info(config, %Hubs.Team{} = hub, agent_key) do
     base_image = Enum.find(Livebook.Config.docker_images(), &(&1.tag == config.docker_tag))
 
-    image = "ghcr.io/livebook-dev/livebook:#{base_image.tag}"
+    image_registry_url = Config.image_registry_url()
+    image = "#{image_registry_url}:#{base_image.tag}"
 
     env = [
       {"LIVEBOOK_AGENT_NAME", "default"},
