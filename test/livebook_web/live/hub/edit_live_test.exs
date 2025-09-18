@@ -225,7 +225,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{id: ^id} = file_system}
-      assert_receive {:file_system_mounted, ^file_system}, 20_000
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
 
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage added successfully"
@@ -285,7 +285,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       :ok = Hubs.create_file_system(hub, file_system)
 
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
-      assert_receive {:file_system_mounted, ^file_system}, 20_000
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
 
       # guarantee the branch is "main" and "file.txt" exists 
       {:ok, paths} = Livebook.FileSystem.list(file_system, "/", false)
@@ -321,7 +321,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       updated_file_system = %{file_system | branch: "test"}
       assert_receive {:file_system_updated, ^updated_file_system}
-      assert_receive {:file_system_mounted, ^updated_file_system}, 20_000
+      assert_receive {:file_system_mounted, ^updated_file_system}, 10_000
 
       assert render(element(view, "#hub-file-systems-list")) =~ file_system.id
       assert updated_file_system in Livebook.Hubs.get_file_systems(hub)
@@ -371,7 +371,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       :ok = Hubs.create_file_system(hub, file_system)
 
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
-      assert_receive {:file_system_mounted, ^file_system}, 20_000
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
 
       # guarantee the folder exists
       repo_dir = Livebook.FileSystem.Git.git_dir(file_system)
@@ -386,7 +386,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:file_system_deleted, ^file_system}
-      assert_receive {:file_system_umounted, ^file_system}, 20_000
+      assert_receive {:file_system_umounted, ^file_system}, 10_000
 
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage deleted successfully"
