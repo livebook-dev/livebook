@@ -51,6 +51,7 @@ defmodule Livebook.Runtime.Fly do
 
   use GenServer, restart: :temporary
 
+  alias Livebook.Config
   alias Livebook.Runtime.RemoteUtils
 
   @type t :: %__MODULE__{
@@ -200,7 +201,10 @@ defmodule Livebook.Runtime.Fly do
 
   defp create_machine(config, runtime_data) do
     base_image = Enum.find(Livebook.Config.docker_images(), &(&1.tag == config.docker_tag))
-    image = "ghcr.io/livebook-dev/livebook:#{base_image.tag}"
+
+    image_registry_url = Config.image_registry_url()
+
+    image = "#{image_registry_url}:#{base_image.tag}"
 
     env =
       Map.merge(

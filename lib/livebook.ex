@@ -264,6 +264,10 @@ defmodule Livebook do
       config :livebook, :agent_name, agent_name
     end
 
+    if image_registry_url = Livebook.Config.image_registry_url!("LIVEBOOK_IMAGE_REGISTRY_URL") do
+      config :livebook, :image_registry_url, image_registry_url
+    end
+
     if Livebook.Config.boolean!("LIVEBOOK_FIPS", false) do
       if :crypto.enable_fips_mode(true) do
         IO.puts("[Livebook] FIPS mode enabled")

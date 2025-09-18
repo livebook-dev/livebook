@@ -255,6 +255,9 @@ The following environment variables can be used to configure Livebook on boot:
     By default iframes are loaded from local `LIVEBOOK_IFRAME_PORT` when accessing
     Livebook over http:// and from https://livebookusercontent.com when accessing over https://.
 
+  * `LIVEBOOK_IMAGE_REGISTRY_URL` - sets the container image registry used to fetch livebook images from.
+    By default uses `ghcr.io/livebook-dev/livebook`.
+
   * `LIVEBOOK_IP` - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
 

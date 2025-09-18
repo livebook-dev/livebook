@@ -21,6 +21,16 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns container image registry URL.
+
+  This returns the usual container image registry URL, and allows users to specify a custom URL.
+  """
+  @spec image_registry_url() :: String.t()
+  def image_registry_url() do
+    Application.get_env(:livebook, :image_registry_url) || "ghcr.io/livebook-dev/livebook"
+  end
+
+  @doc """
   Returns docker images to be used when generating sample Dockerfiles.
   """
   @spec docker_images() ::
@@ -661,6 +671,13 @@ defmodule Livebook.Config do
 
       agent_name
     end
+  end
+
+  @doc """
+  Parses image registry from env.
+  """
+  def image_registry_url!(env) do
+    System.get_env(env)
   end
 
   @doc """
