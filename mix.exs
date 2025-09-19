@@ -253,7 +253,7 @@ defmodule Livebook.MixProject do
       "docs/use_cases.md",
       "docs/authentication.md",
       "docs/stamping.md",
-      {"docs/cluster_notebook.md", title: "How-to cluster with Phoenix app"},
+      {"docs/cluster_notebook.md", title: "How-to call code from a Phoenix app"},
       "docs/deployment/docker.md",
       "docs/deployment/clustering.md",
       "docs/deployment/fips.md",
