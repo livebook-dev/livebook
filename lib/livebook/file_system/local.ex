@@ -287,13 +287,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
 
   def external_metadata(_file_system), do: raise("not implemented")
 
-  def mountable?(_file_system), do: false
+  def mount(_file_system), do: :ok
 
-  def mounted?(_file_system), do: false
-
-  def mount(_file_system), do: raise("not implemented")
-
-  def remount(_file_system), do: raise("not implemented")
-
-  def umount(_file_system), do: raise("not implemented")
+  def unmount(_file_system), do: :ok
 end

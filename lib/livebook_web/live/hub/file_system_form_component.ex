@@ -208,33 +208,15 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
   defp check_file_system_connectivity(file_system, socket) do
     default_path = FileSystem.default_path(file_system)
 
-    with :ok <- init_file_system(file_system, socket),
+    with :ok <- FileSystem.mount(file_system),
          {:ok, _} <- FileSystem.list(file_system, default_path, false) do
-      if FileSystem.mountable?(file_system) and FileSystem.mounted?(file_system) and
-           socket.assigns.mode == :new do
-        FileSystem.umount(file_system)
+      if socket.assigns.mode == :new do
+        FileSystem.unmount(file_system)
       end
 
       :ok
     else
       {:error, message} -> {:error, "Connection test failed: " <> message}
-    end
-  end
-
-  defp init_file_system(file_system, socket) do
-    cond do
-      FileSystem.mountable?(file_system) and not FileSystem.mounted?(file_system) and
-          socket.assigns.mode == :edit ->
-        {:error, "repository not found"}
-
-      FileSystem.mountable?(file_system) and FileSystem.mounted?(file_system) ->
-        FileSystem.remount(file_system)
-
-      FileSystem.mountable?(file_system) and not FileSystem.mounted?(file_system) ->
-        FileSystem.mount(file_system)
-
-      true ->
-        :ok
     end
   end
 

@@ -8,9 +8,15 @@ defmodule LivebookWeb.Hub.EditLiveTest do
   alias Livebook.Hubs
 
   describe "personal" do
-    setup do
+    setup tags do
       Livebook.Hubs.Broadcasts.subscribe([:crud, :secrets, :file_systems])
-      {:ok, hub: Hubs.fetch_hub!(Hubs.Personal.id())}
+      hub = Hubs.fetch_hub!(Hubs.Personal.id())
+
+      if tags[:git] do
+        Livebook.FileSystem.Mounter.subscribe(hub.id)
+      end
+
+      {:ok, hub: hub}
     end
 
     test "updates the hub", %{conn: conn, hub: hub} do
@@ -283,7 +289,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
         )
 
       :ok = Hubs.create_file_system(hub, file_system)
-
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
       assert_receive {:file_system_mounted, ^file_system}, 10_000
 
@@ -331,7 +336,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       refute "/file.txt" in paths
       assert "/another_file.txt" in paths
 
-      assert Livebook.FileSystem.umount(file_system) == :ok
+      assert Livebook.FileSystem.unmount(file_system) == :ok
     end
 
     test "detaches existing S3 file system", %{conn: conn, hub: hub} do
@@ -369,7 +374,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
         )
 
       :ok = Hubs.create_file_system(hub, file_system)
-
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
       assert_receive {:file_system_mounted, ^file_system}, 10_000
 
@@ -386,7 +390,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:file_system_deleted, ^file_system}
-      assert_receive {:file_system_umounted, ^file_system}, 10_000
+      assert_receive {:file_system_unmounted, ^file_system}, 10_000
 
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage deleted successfully"

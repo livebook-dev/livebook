@@ -14,6 +14,12 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   describe "user" do
     @describetag teams_for: :user
 
+    setup %{team: team} = tags do
+      if tags[:git] do
+        Livebook.FileSystem.Mounter.subscribe(team.id)
+      end
+    end
+
     test "updates the hub", %{conn: conn, team: team} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
       attrs = %{"hub_emoji" => "🐈"}
@@ -304,8 +310,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     @tag :git
     test "updates existing Git file system",
          %{conn: conn, team: team, node: node, org_key: org_key} do
-      file_system = build(:fs_git)
-      file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
+      file_system = TeamsRPC.create_file_system(node, team, org_key, build(:fs_git))
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
       assert_receive {:file_system_mounted, ^file_system}, 10_000
 
@@ -384,8 +389,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     @tag :git
     test "detaches existing Git file system",
          %{conn: conn, team: team, node: node, org_key: org_key} do
-      file_system = build(:fs_git)
-      file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
+      file_system = TeamsRPC.create_file_system(node, team, org_key, build(:fs_git))
       assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
       assert_receive {:file_system_mounted, ^file_system}, 10_000
 
@@ -402,7 +406,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:file_system_deleted, ^file_system}
-      assert_receive {:file_system_umounted, ^file_system}, 10_000
+      assert_receive {:file_system_unmounted, ^file_system}, 10_000
 
       assert_patch(view, "/hub/#{team.id}")
       assert render(view) =~ "File storage deleted successfully"

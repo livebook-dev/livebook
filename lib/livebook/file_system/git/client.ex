@@ -118,7 +118,7 @@ defmodule Livebook.FileSystem.Git.Client do
     with {:ok, git} <- fetch_executable("git") do
       case System.cmd(git, args, cmd_opts(git_dir, opts)) do
         {result, 0} -> {:ok, result}
-        {error, _} -> {:error, normalize_error_message(error)}
+        {error, _} -> {:error, String.trim(error)}
       end
     end
   end
@@ -166,25 +166,6 @@ defmodule Livebook.FileSystem.Git.Client do
     end
 
     result
-  end
-
-  defp normalize_error_message("Cloning" <> _ = error) do
-    [_, error] = String.split(error, "Permission denied", trim: true)
-
-    ("Permission denied" <> error)
-    |> String.replace("\r\n", "\s")
-    |> String.replace("\n\n", "\s")
-    |> String.replace("\n", "\s")
-    |> String.replace("fatal: ", "")
-    |> String.trim()
-  end
-
-  defp normalize_error_message(error) do
-    [error] = String.split(error, "fatal: ", trim: true)
-    # avoid MatchError when it has only one part
-    [error | _] = String.split(error, "\n", trim: true)
-
-    String.trim(error)
   end
 
   defp normalize_dir_path(<<"blob ", path::binary>>), do: "/" <> path

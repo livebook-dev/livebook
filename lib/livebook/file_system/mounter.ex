@@ -5,11 +5,17 @@ defmodule Livebook.FileSystem.Mounter do
   alias Livebook.{FileSystem, Hubs}
 
   @name __MODULE__
-  @loop_delay 60 * 60
+  @loop_delay to_timeout(hour: 1)
 
   def start_link(opts \\ []) do
     {name, opts} = Keyword.pop(opts, :name, @name)
     GenServer.start_link(__MODULE__, opts, name: name)
+  end
+
+  if Mix.env() == :test do
+    def subscribe(hub_id) do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "file_systems:#{hub_id}")
+    end
   end
 
   @impl GenServer
@@ -21,12 +27,14 @@ defmodule Livebook.FileSystem.Mounter do
   @impl GenServer
   def handle_continue(:boot, state) do
     Hubs.Broadcasts.subscribe([:connection, :crud, :file_systems])
-    {:noreply, init_hub_file_systems(state, Hubs.Personal.id())}
+    Process.send_after(self(), :remount, state.loop_delay)
+
+    {:noreply, mount_file_systems(state, Hubs.Personal.id())}
   end
 
   @impl GenServer
   def handle_info({:hub_connected, hub_id}, state) do
-    {:noreply, init_hub_file_systems(state, hub_id)}
+    {:noreply, mount_file_systems(state, hub_id)}
   end
 
   def handle_info({:file_system_created, file_system}, state) do
@@ -38,102 +46,60 @@ defmodule Livebook.FileSystem.Mounter do
   end
 
   def handle_info({:file_system_deleted, file_system}, state) do
-    {:noreply, umount_file_system(state, file_system)}
+    {:noreply, unmount_file_system(state, file_system)}
   end
 
   def handle_info({:hub_changed, hub_id}, state) do
-    if not Map.has_key?(state.hubs, hub_id) do
-      {:noreply, init_hub_file_systems(state, hub_id)}
-    else
-      {:noreply, state}
-    end
+    {:noreply, mount_file_systems(state, hub_id)}
   end
 
   def handle_info({:hub_deleted, hub_id}, state) do
-    {:noreply, umount_hub_file_systems(state, hub_id)}
+    {:noreply, unmount_file_systems(state, hub_id)}
   end
 
-  def handle_info({:update_file_system, file_system}, state) do
-    {:noreply, update_file_system(state, file_system)}
+  def handle_info(:remount, state) do
+    Process.send_after(self(), :remount, state.loop_delay)
+    {:noreply, remount_file_systems(state)}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
 
-  defp init_hub_file_systems(state, hub_id) do
+  defp mount_file_systems(state, hub_id) do
     case Hubs.fetch_hub(hub_id) do
       {:ok, hub} ->
-        file_systems = get_mountable_file_systems(hub)
-        dispatch_file_systems(:file_system_created, file_systems)
-        %{state | hubs: Map.put(state.hubs, hub_id, %{file_systems: [], versions: %{}})}
+        file_systems = Hubs.get_file_systems(hub, hub_only: true)
+        state = put_hub(state, hub.id)
+        Enum.reduce(file_systems, state, &mount_file_system(&2, &1))
 
       :error ->
-        send(self(), {:hub_deleted, hub_id})
         state
     end
   end
 
-  defp umount_hub_file_systems(state, hub_id) do
+  defp remount_file_systems(state) do
+    Enum.reduce(state.hubs, state, fn {hub_id, hub_data}, acc ->
+      case Hubs.fetch_hub(hub_id) do
+        {:ok, _} -> Enum.reduce(hub_data.file_systems, acc, &update_file_system(&2, &1))
+        :error -> unmount_file_systems(acc, hub_id)
+      end
+    end)
+  end
+
+  defp unmount_file_systems(state, hub_id) do
     if metadata = state.hubs[hub_id] do
-      state = Enum.reduce(metadata.file_systems, state, &umount_file_system(&2, &1))
-      %{state | hubs: Map.delete(state.hubs, hub_id)}
+      metadata.file_systems
+      |> Enum.reduce(state, &unmount_file_system(&2, &1))
+      |> remove_hub(hub_id)
     else
       state
     end
   end
 
-  def get_mountable_file_systems(hub) do
-    hub
-    |> Hubs.get_file_systems(hub_only: true)
-    |> Enum.filter(&FileSystem.mountable?/1)
-  end
-
-  defp dispatch_file_systems(event, file_systems) do
-    for file_system <- file_systems do
-      send(self(), {event, file_system})
-    end
-  end
-
-  defp updatable?(state, file_system) do
-    case Map.get(state.hubs, file_system.hub_id) do
-      %{versions: versions} ->
-        if version = versions[file_system.id] do
-          :erlang.phash2(file_system) != version
-        else
-          false
-        end
-
-      _otherwise ->
-        false
-    end
-  end
-
   defp mount_file_system(state, file_system) do
-    cond do
-      not Map.has_key?(state.hubs, file_system.hub_id) ->
-        init_hub_file_systems(state, file_system.hub_id)
-
-      FileSystem.mountable?(file_system) and not FileSystem.mounted?(file_system) ->
-        do_mount_file_system(state, file_system)
-
-      true ->
-        state
-    end
-  end
-
-  defp do_mount_file_system(state, file_system) do
     case FileSystem.mount(file_system) do
       :ok ->
-        Hubs.Broadcasts.file_system_mounted(file_system)
-        Process.send_after(self(), {:update_file_system, file_system}, state.loop_delay)
-        metadata = Map.fetch!(state.hubs, file_system.hub_id)
-
-        metadata = %{
-          metadata
-          | file_systems: [file_system | metadata.file_systems],
-            versions: Map.put_new(metadata.versions, file_system.id, :erlang.phash2(file_system))
-        }
-
-        %{state | hubs: Map.replace!(state.hubs, file_system.hub_id, metadata)}
+        broadcast({:file_system_mounted, file_system})
+        put_hub_file_system(state, file_system)
 
       {:error, _reason} ->
         state
@@ -141,66 +107,70 @@ defmodule Livebook.FileSystem.Mounter do
   end
 
   defp update_file_system(state, file_system) do
-    cond do
-      not Map.has_key?(state.hubs, file_system.hub_id) ->
-        init_hub_file_systems(state, file_system.hub_id)
-
-      FileSystem.mountable?(file_system) and FileSystem.mounted?(file_system) and
-          updatable?(state, file_system) ->
-        do_update_file_system(state, file_system)
-
-      true ->
-        state
-    end
-  end
-
-  defp do_update_file_system(state, file_system) do
-    case FileSystem.remount(file_system) do
+    case FileSystem.mount(file_system) do
       :ok ->
-        Hubs.Broadcasts.file_system_mounted(file_system)
-        Process.send_after(self(), {:update_file_system, file_system}, state.loop_delay)
-        metadata = Map.fetch!(state.hubs, file_system.hub_id)
-
-        metadata = %{
-          metadata
-          | file_systems: [
-              file_system | Enum.reject(metadata.file_systems, &(&1.id == file_system.id))
-            ],
-            versions: Map.replace!(metadata.versions, file_system.id, :erlang.phash2(file_system))
-        }
-
-        %{state | hubs: Map.replace!(state.hubs, file_system.hub_id, metadata)}
+        broadcast({:file_system_mounted, file_system})
+        put_hub_file_system(state, file_system)
 
       {:error, _reason} ->
         state
     end
   end
 
-  defp umount_file_system(state, file_system) do
-    if Map.has_key?(state.hubs, file_system.hub_id) and FileSystem.mountable?(file_system) and
-         FileSystem.mounted?(file_system) do
-      do_umount_file_system(state, file_system)
+  defp unmount_file_system(state, file_system) do
+    case FileSystem.unmount(file_system) do
+      :ok ->
+        broadcast({:file_system_unmounted, file_system})
+        remove_hub_file_system(state, file_system)
+
+      {:error, _reason} ->
+        state
+    end
+  end
+
+  defp put_hub_file_system(state, file_system) do
+    if state.hubs[file_system.hub_id] do
+      update_in(state.hubs[file_system.hub_id], fn metadata ->
+        metadata
+        |> remove_file_system(file_system)
+        |> put_file_system(file_system)
+      end)
     else
       state
     end
   end
 
-  defp do_umount_file_system(state, file_system) do
-    case FileSystem.umount(file_system) do
-      :ok ->
-        Hubs.Broadcasts.file_system_umounted(file_system)
-        metadata = Map.fetch!(state.hubs, file_system.hub_id)
-
-        metadata = %{
-          metadata
-          | file_systems: Enum.reject(metadata.file_systems, &(&1.id == file_system.id)),
-            versions: Map.delete(metadata.versions, file_system.id)
-        }
-
-        %{state | hubs: Map.replace!(state.hubs, file_system.hub_id, metadata)}
-
-      {:error, _reason} ->
-        state
+  defp remove_hub_file_system(state, file_system) do
+    if state.hubs[file_system.hub_id] do
+      update_in(state.hubs[file_system.hub_id], &remove_file_system(&1, file_system))
+    else
+      state
     end
+  end
+
+  defp put_hub(state, hub_id) do
+    update_in(state.hubs, &Map.put_new(&1, hub_id, %{file_systems: []}))
+  end
+
+  defp put_file_system(hub_data, file_system) do
+    hub_data = remove_file_system(hub_data, file_system)
+    put_in(hub_data.file_systems, [file_system | hub_data.file_systems])
+  end
+
+  defp remove_hub(state, hub_id) do
+    update_in(state.hubs, &Map.delete(&1, hub_id))
+  end
+
+  defp remove_file_system(hub_data, file_system) do
+    file_systems = Enum.reject(hub_data.file_systems, &(&1.id == file_system.id))
+    put_in(hub_data.file_systems, file_systems)
+  end
+
+  if Mix.env() == :test do
+    defp broadcast({_, %{external_id: _, hub_id: id}} = message) do
+      Phoenix.PubSub.broadcast(Livebook.PubSub, "file_systems:#{id}", message)
+    end
+  else
+    defp broadcast(_), do: :ok
   end
 end

@@ -19,6 +19,7 @@ defmodule LivebookWeb.Integration.OpenLiveTest do
     @describetag :git
 
     setup %{test: test, team: team, node: node, org_key: org_key} do
+      Livebook.FileSystem.Mounter.subscribe(team.id)
       data = test |> to_string() |> Base.encode32(padding: false, case: :lower)
 
       file_system =
@@ -30,7 +31,7 @@ defmodule LivebookWeb.Integration.OpenLiveTest do
 
       file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
       assert_receive {:file_system_created, ^file_system}
-      assert_receive {:file_system_mounted, ^file_system}, 5_000
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
 
       {:ok, file_system: file_system}
     end
