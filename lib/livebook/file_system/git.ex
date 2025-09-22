@@ -67,10 +67,7 @@ defmodule Livebook.FileSystem.Git do
   def git_dir(%__MODULE__{id: id}), do: Path.join(Livebook.Config.tmp_path(), id)
 
   @doc false
-  def ssh_path, do: Path.join(Livebook.Config.home(), ".ssh")
-
-  @doc false
-  def key_path(%__MODULE__{id: id}), do: Path.join(ssh_path(), "#{id}_key")
+  def key_path(%__MODULE__{id: id}), do: Path.join(Livebook.Config.tmp_path(), "#{id}_key")
 end
 
 defimpl Livebook.FileSystem, for: Livebook.FileSystem.Git do

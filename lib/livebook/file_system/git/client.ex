@@ -150,8 +150,6 @@ defmodule Livebook.FileSystem.Git.Client do
   end
 
   defp with_ssh_key_file(file_system, fun) when is_function(fun, 1) do
-    File.mkdir_p!(FileSystem.Git.ssh_path())
-
     key_path = FileSystem.Git.key_path(file_system)
     pem_entry = :public_key.pem_decode(file_system.key)
     ssh_key = :public_key.pem_encode(pem_entry)
