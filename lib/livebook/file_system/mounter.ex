@@ -42,7 +42,7 @@ defmodule Livebook.FileSystem.Mounter do
   end
 
   def handle_info({:file_system_updated, file_system}, state) do
-    {:noreply, update_file_system(state, file_system)}
+    {:noreply, mount_file_system(state, file_system)}
   end
 
   def handle_info({:file_system_deleted, file_system}, state) do
@@ -79,7 +79,7 @@ defmodule Livebook.FileSystem.Mounter do
   defp remount_file_systems(state) do
     Enum.reduce(state.hubs, state, fn {hub_id, hub_data}, acc ->
       case Hubs.fetch_hub(hub_id) do
-        {:ok, _} -> Enum.reduce(hub_data.file_systems, acc, &update_file_system(&2, &1))
+        {:ok, _} -> Enum.reduce(hub_data.file_systems, acc, &mount_file_system(&2, &1))
         :error -> unmount_file_systems(acc, hub_id)
       end
     end)
@@ -96,17 +96,6 @@ defmodule Livebook.FileSystem.Mounter do
   end
 
   defp mount_file_system(state, file_system) do
-    case FileSystem.mount(file_system) do
-      :ok ->
-        broadcast({:file_system_mounted, file_system})
-        put_hub_file_system(state, file_system)
-
-      {:error, _reason} ->
-        state
-    end
-  end
-
-  defp update_file_system(state, file_system) do
     case FileSystem.mount(file_system) do
       :ok ->
         broadcast({:file_system_mounted, file_system})
