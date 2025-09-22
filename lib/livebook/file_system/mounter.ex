@@ -67,22 +67,19 @@ defmodule Livebook.FileSystem.Mounter do
   defp mount_file_systems(state, hub_id) do
     case Hubs.fetch_hub(hub_id) do
       {:ok, hub} ->
-        file_systems = Hubs.get_file_systems(hub, hub_only: true)
-        state = put_hub(state, hub.id)
-        Enum.reduce(file_systems, state, &mount_file_system(&2, &1))
+        hub
+        |> Hubs.get_file_systems(hub_only: true)
+        |> Enum.reduce(put_hub(state, hub.id), &mount_file_system(&2, &1))
 
       :error ->
-        state
+        unmount_file_systems(state, hub_id)
     end
   end
 
   defp remount_file_systems(state) do
-    Enum.reduce(state.hubs, state, fn {hub_id, hub_data}, acc ->
-      case Hubs.fetch_hub(hub_id) do
-        {:ok, _} -> Enum.reduce(hub_data.file_systems, acc, &mount_file_system(&2, &1))
-        :error -> unmount_file_systems(acc, hub_id)
-      end
-    end)
+    state.hubs
+    |> Map.keys()
+    |> Enum.reduce(state, &mount_file_systems(&2, &1))
   end
 
   defp unmount_file_systems(state, hub_id) do
