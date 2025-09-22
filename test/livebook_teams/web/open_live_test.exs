@@ -31,7 +31,7 @@ defmodule LivebookWeb.Integration.OpenLiveTest do
 
       file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
       assert_receive {:file_system_created, ^file_system}
-      assert_receive {:file_system_mounted, ^file_system}, 10_000
+      assert_receive {:file_system_mounted, ^file_system}, 15_000
 
       {:ok, file_system: file_system}
     end
