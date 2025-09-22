@@ -2,6 +2,8 @@ defmodule Livebook.FileSystem.S3 do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Livebook.FileSystem
+
   # File system backed by an S3 bucket.
 
   @type t :: %__MODULE__{
@@ -81,25 +83,8 @@ defmodule Livebook.FileSystem.S3 do
     if get_field(changeset, :id) do
       changeset
     else
-      put_change(changeset, :id, id(hub_id, bucket_url))
+      put_change(changeset, :id, FileSystem.Utils.id("s3", hub_id, bucket_url))
     end
-  end
-
-  def id(_, nil), do: nil
-
-  def id(hub_id, bucket_url) do
-    if hub_id == nil or hub_id == Livebook.Hubs.Personal.id() do
-      hashed_id(bucket_url)
-    else
-      "#{hub_id}-#{hashed_id(bucket_url)}"
-    end
-  end
-
-  defp hashed_id(bucket_url) do
-    hash = :crypto.hash(:sha256, bucket_url)
-    encrypted_hash = Base.url_encode64(hash, padding: false)
-
-    "s3-#{encrypted_hash}"
   end
 
   @doc """
@@ -422,7 +407,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     S3.Client.multipart_get_object(file_system, key, collectable)
   end
 
-  def load(file_system, %{"bucket_url" => _} = fields) do
+  def load(file_system, %{"hub_id" => _} = fields) do
     load(file_system, %{
       bucket_url: fields["bucket_url"],
       external_id: fields["external_id"],
@@ -464,4 +449,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   def external_metadata(file_system) do
     %{name: file_system.bucket_url, error_field: "bucket_url"}
   end
+
+  def mount(_file_system), do: :ok
+
+  def unmount(_file_system), do: :ok
 end

@@ -697,7 +697,6 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:file_system_created, %{external_id: _} = file_system, state) do
     Hubs.Broadcasts.file_system_created(file_system)
-
     put_file_system(state, file_system)
   end
 
@@ -707,7 +706,6 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:file_system_updated, %{external_id: _} = file_system, state) do
     Hubs.Broadcasts.file_system_updated(file_system)
-
     put_file_system(state, file_system)
   end
 

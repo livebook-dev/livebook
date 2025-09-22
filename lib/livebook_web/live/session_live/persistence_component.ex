@@ -49,10 +49,13 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
       |> assign_new(:new_attrs, fn -> attrs end)
       |> assign_new(:draft_file, fn ->
         file ||
-          case assigns.session.origin do
-            # If it's a forked notebook, default to the same folder
-            {:file, file} -> FileSystem.File.containing_dir(file)
-            _ -> Livebook.Settings.default_dir(assigns.hub)
+          with {:file, file} <- assigns.session.origin,
+               {:ok, file_system} <- FileSystem.File.fetch_file_system(file),
+               true <- FileSystem.Utils.writable?(file_system) do
+            # If it's a fork and a writable file system, default to the same folder
+            FileSystem.File.containing_dir(file)
+          else
+            _otherwise -> Livebook.Settings.default_dir(assigns.hub)
           end
       end)
       |> assign_new(:saved_file, fn -> file end)
@@ -78,6 +81,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             running_files={@running_files}
             on_submit={JS.push("save", target: @myself)}
             target={{__MODULE__, @id}}
+            show_only_writable={true}
           />
         </div>
         <div>

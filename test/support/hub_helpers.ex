@@ -119,18 +119,14 @@ defmodule Livebook.HubHelpers do
   def put_offline_hub_file_system(file_system) do
     hub = offline_hub()
     {:ok, pid} = hub_pid(hub)
-    secret_key = Livebook.Teams.derive_key(hub.teams_key)
     %{name: name} = Livebook.FileSystem.external_metadata(file_system)
-    attrs = Livebook.FileSystem.dump(file_system)
-    json = JSON.encode!(attrs)
-    value = Livebook.Teams.encrypt(json, secret_key)
 
     file_system_created =
       %LivebookProto.FileSystemCreated{
         id: file_system.external_id,
         name: name,
         type: Livebook.FileSystems.type(file_system),
-        value: value
+        value: generate_file_system_json(hub, file_system)
       }
 
     send(pid, {:event, :file_system_created, file_system_created})
@@ -144,17 +140,12 @@ defmodule Livebook.HubHelpers do
     send(pid, {:event, :file_system_deleted, file_system_deleted})
   end
 
-  def create_teams_file_system(hub, node, org_key \\ nil) do
-    org_key = if org_key, do: org_key, else: erpc_call(node, :get_org_key!, [hub.org_key_id])
-    erpc_call(node, :create_file_system, [[org_key: org_key]])
-  end
-
   def build_bypass_file_system(bypass, hub_id \\ Livebook.Hubs.Personal.id()) do
     bucket_url = "http://localhost:#{bypass.port}/mybucket"
 
     file_system =
       build(:fs_s3,
-        id: Livebook.FileSystem.S3.id(hub_id, bucket_url),
+        id: Livebook.FileSystemHelpers.s3_id(hub_id, bucket_url),
         bucket_url: bucket_url,
         region: "auto",
         hub_id: hub_id
@@ -197,6 +188,14 @@ defmodule Livebook.HubHelpers do
     send(pid, {:event, :agent_joined, livebook_proto_agent_joined})
 
     assert_receive {:agent_joined, ^agent}
+  end
+
+  def generate_file_system_json(team, file_system) do
+    secret_key = Livebook.Teams.derive_key(team.teams_key)
+    attrs = Livebook.FileSystem.dump(file_system)
+    json = JSON.encode!(attrs)
+
+    Livebook.Teams.encrypt(json, secret_key)
   end
 
   defp hub_pid(hub) do

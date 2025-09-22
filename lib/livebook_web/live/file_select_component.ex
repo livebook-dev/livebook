@@ -40,6 +40,7 @@ defmodule LivebookWeb.FileSelectComponent do
        # Component default attribute values
        inner_block: nil,
        file_system_select_disabled: false,
+       writable: true,
        on_submit: nil,
        # State
        current_dir: nil,
@@ -65,6 +66,7 @@ defmodule LivebookWeb.FileSelectComponent do
   @impl true
   def update(assigns, socket) do
     {force_reload?, assigns} = Map.pop(assigns, :force_reload, false)
+    {show_only_writable?, assigns} = Map.pop(assigns, :show_only_writable, false)
 
     running_files_changed? = assigns.running_files != (socket.assigns[:running_files] || [])
 
@@ -77,6 +79,13 @@ defmodule LivebookWeb.FileSelectComponent do
       if hub = socket.assigns[:hub],
         do: {Livebook.Hubs.get_file_systems(hub), hub.id},
         else: {Livebook.Hubs.get_file_systems(), Livebook.Hubs.Personal.id()}
+
+    file_systems =
+      if show_only_writable? do
+        Enum.filter(file_systems, &FileSystem.Utils.writable?/1)
+      else
+        file_systems
+      end
 
     configure_path = ~p"/hub/#{configure_hub_id}/file-systems/new"
 
@@ -119,11 +128,11 @@ defmodule LivebookWeb.FileSelectComponent do
         </div>
         <.menu
           id={"#{@id}-new-item-menu"}
-          disabled={@file_system_select_disabled}
+          disabled={@file_system_select_disabled or not @writable}
           position="bottom-right"
         >
           <:toggle>
-            <.icon_button tabindex="-1" aria-label="add">
+            <.icon_button disabled={not @writable} tabindex="-1" aria-label="add">
               <.remix_icon icon="add-line" />
             </.icon_button>
           </:toggle>

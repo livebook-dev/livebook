@@ -58,6 +58,10 @@ defmodule Livebook.Application do
           {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
           # Run startup logic relying on the supervision tree
           {Livebook.Utils.SupervisionStep, {:boot, boot(create_teams_hub)}},
+          # Start the server responsible for initializing
+          # mountable file systems. We do it after boot, because
+          # file systems and this depends on hubs being started
+          Livebook.FileSystem.Mounter,
           # App manager supervision tree. We do it after boot, because
           # permanent apps are going to be started right away and this
           # depends on hubs being started

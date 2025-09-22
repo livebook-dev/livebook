@@ -14,6 +14,12 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   describe "user" do
     @describetag teams_for: :user
 
+    setup %{team: team} = tags do
+      if tags[:git] do
+        Livebook.FileSystem.Mounter.subscribe(team.id)
+      end
+    end
+
     test "updates the hub", %{conn: conn, team: team} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
       attrs = %{"hub_emoji" => "🐈"}
@@ -179,7 +185,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       end
     end
 
-    test "creates a file system", %{conn: conn, team: team} do
+    test "creates a S3 file system", %{conn: conn, team: team} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
 
       bypass = Bypass.open()
@@ -188,7 +194,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
 
       expect_s3_listing(bypass)
-
       refute render(view) =~ file_system.bucket_url
 
       view
@@ -197,6 +202,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       assert_patch(view, ~p"/hub/#{team.id}/file-systems/new")
       assert render(view) =~ "Add file storage"
+      assert has_element?(view, "#file_system_type-s3")
 
       view
       |> element("#file-systems-form")
@@ -210,14 +216,66 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> element("#file-systems-form")
       |> render_submit(attrs)
 
-      assert_receive {:file_system_created, %{id: ^id} = file_system}
+      assert_receive {:file_system_created, %Livebook.FileSystem.S3{id: ^id} = file_system}
       assert_patch(view, "/hub/#{team.id}")
       assert render(view) =~ "File storage added successfully"
       assert render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       assert file_system in Livebook.Hubs.get_file_systems(team)
     end
 
-    test "updates existing file system", %{conn: conn, team: team, node: node, org_key: org_key} do
+    @tag :git
+    test "creates a Git file system", %{conn: conn, team: team} do
+      id = Livebook.FileSystem.Utils.id("git", team.id, "git@github.com:livebook-dev/test.git")
+      file_system = build(:fs_git, id: id, hub_id: team.id)
+
+      # When the user paste the ssh key to the password input, it will remove the break lines.
+      # So, the changeset need to normalize it before persisting. That said, the ssh key from
+      # factory must be "denormalized" so we can test the user scenario.
+      file_system = %{
+        file_system
+        | key: file_system.key |> String.replace("\n", "\s") |> String.trim()
+      }
+
+      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
+      refute render(view) =~ file_system.id
+
+      view
+      |> element("#add-file-system")
+      |> render_click()
+
+      assert_patch(view, ~p"/hub/#{team.id}/file-systems/new")
+      assert render(view) =~ "Add file storage"
+
+      # change the file system type from S3 to git
+      view
+      |> element("#file_system_type-git")
+      |> render_click()
+
+      view
+      |> element("#file-systems-form")
+      |> render_change(attrs)
+
+      refute view
+             |> element("#file-systems-form button[disabled]")
+             |> has_element?()
+
+      view
+      |> element("#file-systems-form")
+      |> render_submit(attrs)
+
+      assert_receive {:file_system_created, %Livebook.FileSystem.Git{id: ^id} = file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
+
+      assert_patch(view, "/hub/#{team.id}")
+      assert render(view) =~ "File storage added successfully"
+      assert render(element(view, "#hub-file-systems-list")) =~ file_system.id
+      assert file_system in Livebook.Hubs.get_file_systems(team)
+    end
+
+    test "updates existing S3 file system",
+         %{conn: conn, team: team, node: node, org_key: org_key} do
       bypass = Bypass.open()
 
       file_system = build_bypass_file_system(bypass, team.id)
@@ -248,16 +306,70 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> element("#file-systems-form")
       |> render_submit(put_in(attrs.file_system.access_key_id, "new key"))
 
-      updated_file_system = %{file_system | access_key_id: "new key"}
-
-      assert_receive {:file_system_updated, ^updated_file_system}
       assert_patch(view, "/hub/#{team.id}")
       assert render(view) =~ "File storage updated successfully"
+
+      updated_file_system = %{file_system | access_key_id: "new key"}
+      assert_receive {:file_system_updated, ^updated_file_system}
+
       assert render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       assert updated_file_system in Livebook.Hubs.get_file_systems(team)
     end
 
-    test "detaches existing file system", %{conn: conn, team: team, node: node, org_key: org_key} do
+    @tag :git
+    test "updates existing Git file system",
+         %{conn: conn, team: team, node: node, org_key: org_key} do
+      file_system = TeamsRPC.create_file_system(node, team, org_key, build(:fs_git))
+      assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
+
+      # guarantee the branch is "main" and "file.txt" exists 
+      {:ok, paths} = Livebook.FileSystem.list(file_system, "/", false)
+      assert "/file.txt" in paths
+      refute "/another_file.txt" in paths
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
+      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+      attrs = put_in(attrs.file_system.branch, "test")
+
+      view
+      |> element("#hub-file-system-#{file_system.id}-edit")
+      |> render_click(%{"file_system" => file_system})
+
+      assert_patch(view, ~p"/hub/#{team.id}/file-systems/edit/#{file_system.id}")
+      assert render(view) =~ "Edit file storage"
+      assert has_element?(view, "#file_system_type-git")
+
+      view
+      |> element("#file-systems-form")
+      |> render_change(attrs)
+
+      refute view
+             |> element("#file-systems-form button[disabled]")
+             |> has_element?()
+
+      refute view
+             |> element("#file-systems-form")
+             |> render_submit(attrs) =~ "Connection test failed"
+
+      assert_patch(view, "/hub/#{team.id}")
+      assert render(view) =~ "File storage updated successfully"
+
+      updated_file_system = %{file_system | branch: "test"}
+      assert_receive {:file_system_updated, ^updated_file_system}
+      assert_receive {:file_system_mounted, ^updated_file_system}, 10_000
+
+      assert render(element(view, "#hub-file-systems-list")) =~ file_system.id
+      assert updated_file_system in Livebook.Hubs.get_file_systems(team)
+
+      # guarantee the branch has changed and the repository is updated
+      {:ok, paths} = Livebook.FileSystem.list(updated_file_system, "/", false)
+      refute "/file.txt" in paths
+      assert "/another_file.txt" in paths
+    end
+
+    test "detaches existing S3 file system",
+         %{conn: conn, team: team, node: node, org_key: org_key} do
       bypass = Bypass.open()
 
       file_system = build_bypass_file_system(bypass, team.id)
@@ -281,6 +393,37 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert render(view) =~ "File storage deleted successfully"
       refute render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       refute file_system in Livebook.Hubs.get_file_systems(team)
+    end
+
+    @tag :git
+    test "detaches existing Git file system",
+         %{conn: conn, team: team, node: node, org_key: org_key} do
+      file_system = TeamsRPC.create_file_system(node, team, org_key, build(:fs_git))
+      assert_receive {:file_system_created, %Livebook.FileSystem.Git{} = ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 10_000
+
+      # guarantee the folder exists
+      repo_dir = Livebook.FileSystem.Git.git_dir(file_system)
+      assert File.exists?(repo_dir)
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
+
+      view
+      |> element("#hub-file-system-#{file_system.id}-detach", "Detach")
+      |> render_click()
+
+      render_confirm(view)
+
+      assert_receive {:file_system_deleted, ^file_system}
+      assert_receive {:file_system_unmounted, ^file_system}, 10_000
+
+      assert_patch(view, "/hub/#{team.id}")
+      assert render(view) =~ "File storage deleted successfully"
+      refute render(element(view, "#hub-file-systems-list")) =~ file_system.id
+      refute file_system in Livebook.Hubs.get_file_systems(team)
+
+      # guarantee the folder were deleted
+      refute File.exists?(repo_dir)
     end
   end
 

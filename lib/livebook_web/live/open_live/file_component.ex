@@ -34,6 +34,7 @@ defmodule LivebookWeb.OpenLive.FileComponent do
         file={@file}
         extnames={[LiveMarkdown.extension()]}
         running_files={files(@sessions)}
+        writable={writable?(@file_info)}
         target={{__MODULE__, @id}}
       >
         <div class="flex justify-end space-x-2">

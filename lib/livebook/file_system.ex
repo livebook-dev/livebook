@@ -246,4 +246,16 @@ defprotocol Livebook.FileSystem do
   """
   @spec external_metadata(t()) :: %{name: String.t(), error_field: String.t()}
   def external_metadata(file_system)
+
+  @doc """
+  Mounts the given file system to be used furthermore.
+  """
+  @spec mount(t()) :: :ok | {:error, error()}
+  def mount(file_system)
+
+  @doc """
+  Unmounts the given file system from being used.
+  """
+  @spec unmount(t()) :: :ok | {:error, error()}
+  def unmount(file_system)
 end

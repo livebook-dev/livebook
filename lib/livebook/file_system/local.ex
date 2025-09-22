@@ -286,4 +286,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   def dump(_file_system), do: raise("not implemented")
 
   def external_metadata(_file_system), do: raise("not implemented")
+
+  def mount(_file_system), do: :ok
+
+  def unmount(_file_system), do: :ok
 end

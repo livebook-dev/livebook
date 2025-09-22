@@ -17,6 +17,10 @@ defmodule Livebook.FileSystems do
     FileSystem.S3.change_file_system(file_system, attrs)
   end
 
+  def change_file_system(%FileSystem.Git{} = file_system, attrs) do
+    FileSystem.Git.change_file_system(file_system, attrs)
+  end
+
   @doc """
   Loads the file system from given type and dumped data.
   """
@@ -35,6 +39,7 @@ defmodule Livebook.FileSystems do
   def type_to_module(type)
   def type_to_module("local"), do: FileSystem.Local
   def type_to_module("s3"), do: FileSystem.S3
+  def type_to_module("git"), do: FileSystem.Git
 
   @doc """
   Returns a serializable type for corresponding to the given file
@@ -44,4 +49,5 @@ defmodule Livebook.FileSystems do
   def module_to_type(module)
   def module_to_type(FileSystem.Local), do: "local"
   def module_to_type(FileSystem.S3), do: "s3"
+  def module_to_type(FileSystem.Git), do: "git"
 end
