@@ -78,6 +78,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             running_files={@running_files}
             on_submit={JS.push("save", target: @myself)}
             target={{__MODULE__, @id}}
+            show_only_writable={true}
           />
         </div>
         <div>

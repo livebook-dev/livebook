@@ -105,6 +105,17 @@ defmodule Livebook.FileSystem.Utils do
   end
 
   @doc """
+  Returns if given file system is writable.
+  """
+  @spec writable?(FileSystem.t()) :: boolean()
+  def writable?(file_system) do
+    case FileSystem.access(file_system, FileSystem.default_path(file_system)) do
+      {:ok, access} -> access in [:read_write, :write]
+      _otherwise -> false
+    end
+  end
+
+  @doc """
   Returns the id based on given hub id and data with given prefix.
   """
   @spec id(String.t(), String.t() | nil, String.t() | nil) :: String.t() | nil

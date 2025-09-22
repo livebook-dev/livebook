@@ -66,6 +66,7 @@ defmodule LivebookWeb.FileSelectComponent do
   @impl true
   def update(assigns, socket) do
     {force_reload?, assigns} = Map.pop(assigns, :force_reload, false)
+    {show_only_writable?, assigns} = Map.pop(assigns, :show_only_writable, false)
 
     running_files_changed? = assigns.running_files != (socket.assigns[:running_files] || [])
 
@@ -78,6 +79,13 @@ defmodule LivebookWeb.FileSelectComponent do
       if hub = socket.assigns[:hub],
         do: {Livebook.Hubs.get_file_systems(hub), hub.id},
         else: {Livebook.Hubs.get_file_systems(), Livebook.Hubs.Personal.id()}
+
+    file_systems =
+      if show_only_writable? do
+        Enum.filter(file_systems, &FileSystem.Utils.writable?/1)
+      else
+        file_systems
+      end
 
     configure_path = ~p"/hub/#{configure_hub_id}/file-systems/new"
 
