@@ -107,6 +107,7 @@ defmodule Livebook.FileSystem.Utils do
   @doc """
   Returns the id based on given hub id and data with given prefix.
   """
+  @spec id(String.t(), String.t() | nil, String.t() | nil) :: String.t() | nil
   def id(prefix, hub_id, data)
 
   def id(_, _, nil), do: nil
