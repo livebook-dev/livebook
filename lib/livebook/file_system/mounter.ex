@@ -130,11 +130,7 @@ defmodule Livebook.FileSystem.Mounter do
 
   defp put_hub_file_system(state, file_system) do
     if state.hubs[file_system.hub_id] do
-      update_in(state.hubs[file_system.hub_id], fn metadata ->
-        metadata
-        |> remove_file_system(file_system)
-        |> put_file_system(file_system)
-      end)
+      update_in(state.hubs[file_system.hub_id], &put_file_system(&1, file_system))
     else
       state
     end

@@ -73,7 +73,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
             checked_value={:git}
             disabled={@mode == :edit}
           >
-            Configure a read-only Git repository as a Livebook file storage. Many version control systems offer a Git-compatible API and those work as well.
+            Configure a read-only Git repository as a Livebook file storage. You will need a valid SSH key to access your Git repository.
           </.radio_card_input>
         </div>
       </div>
