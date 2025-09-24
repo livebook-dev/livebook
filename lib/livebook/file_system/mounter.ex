@@ -97,6 +97,8 @@ defmodule Livebook.FileSystem.Mounter do
 
       {:error, reason} ->
         Logger.error("[file_system=#{name(file_system)}] failed to mount: #{reason}")
+        Process.send_after(self(), {:file_system_created, file_system}, to_timeout(second: 10))
+
         state
     end
   end
@@ -109,6 +111,8 @@ defmodule Livebook.FileSystem.Mounter do
 
       {:error, reason} ->
         Logger.error("[file_system=#{name(file_system)}] failed to unmount: #{reason}")
+        Process.send_after(self(), {:file_system_deleted, file_system}, to_timeout(second: 10))
+
         state
     end
   end
