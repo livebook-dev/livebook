@@ -6,7 +6,7 @@ In this tutorial, you'll learn how to do that, the building blocks, and some bes
 
 ## The two approaches to call code from a running app
 
-In a Livebook notebook, there are two ways to call code from a running Phoenix app:
+In a notebook, there are two ways to call code from a running Phoenix app:
 
 - **Standalone runtime**: running specific pieces of code in the context of your Phoenix app via remote procedure calls
 - **Attached runtime**: running all code in the context of your Phoenix app
@@ -119,7 +119,7 @@ Node.set_cookie(phoenix_app_cookie)
 Node.connect(phoenix_app_node)
 ```
 
-Once this runs inside the notebook, the notebook's node will be clustered with the node of our Phoenix app. Now we can call `MyApp.Accounts.count_users/0` using remote procedure calls via the [`erpc`](https://www.erlang.org/doc/apps/kernel/erpc.html) module:
+After running that code inside your notebook, the notebook's node will be clustered with the node of our Phoenix app. Now we can call `MyApp.Accounts.count_users/0` using remote procedure calls via the [`erpc`](https://www.erlang.org/doc/apps/kernel/erpc.html) module:
 
 ```elixir
 :erpc.call(phoenix_app_node, MyApp.Accounts, :count_users, [])
@@ -131,23 +131,19 @@ So far, we've shown how to cluster with a local Phoenix app using hardcoded valu
 
 The usual workflow is to develop a notebook locally and then deploy it as an app to a Livebook app server running in the same infrastructure as the production environment of your Phoenix app.
 
-To support this workflow, we need to make the node name and cookie configurable. We'll use Livebook secrets for those configs.
-
-We'll use two secrets:
+To support this workflow, we need to make the node name and cookie configurable. We'll use Livebook secrets for those configs. We'll use two secrets:
 
 - `PHOENIX_APP_ENV`: to hold the env name of the Phoenix app
 - `PHOENIX_APP_COOKIE`: to hold the value of the cookie of the node running our Phoenix app
 
-To have a different value for each of those two secrets, you can leverage the "additional secrets" feature from deployment groups. The setup would work like this:
-
-You can store the values for "dev environment" inside the regular secrets of your Teams organization:
+For "dev environment", we can use the regular secrets of your Teams organization:
 
 ![](images/clustering_dev.png)
 
 - For the `PHOENIX_APP_ENV`, you can store the value `dev`
 - For the `PHOENIX_APP_COOKIE`, you can store the value `secret` (or whichever other cookie value you're going to use in localhost dev)
 
-And then, you can override each of those secrets for the deployment groups of your production and staging environment:
+For the "production environment", we can use the "additional secrets" feature from deployment groups to override each of those secrets for the deployment group of your production environment:
 
 ![](images/clustering_config_per_env.png)
 
@@ -166,7 +162,7 @@ defmodule NodeConnection do
       _ -> {:error, "Failed to connect to #{inspect(target_node())}"}
     end
   end
-  
+
   def cookie() do
     String.to_atom(System.fetch_env!("LB_PHOENIX_APP_COOKIE"))
   end
@@ -205,6 +201,8 @@ In production, the cookie is set differently and depends on how you're deploying
 
 For example, let's say you're using Elixir's releases for the deployment of your app. By default, the cookie is dynamically generated when the release is created. To make it static, set a value to the environment variable `RELEASE_COOKIE` in the machines where your app is being deployed and restart or redeploy your app.
 
+You learn more about [cookies in Elixir's releases here](https://hexdocs.pm/mix/Mix.Tasks.Release.html#module-options).
+
 ### Node name config
 
 Livebook always runs using long names distribution, so the node of your Phoenix app must use the long name config as well.
@@ -214,15 +212,16 @@ Let's say you're using Elixir's releases for the deployment of your app. You can
 
 ```
 # rel/env.sh.eex
+
 export RELEASE_DISTRIBUTION=name
 ```
 
 
 ## Node name discovery
 
-In production, the node names of your Phoenix app are likely dynamic. So, to cluster a notebook with them, you need to discover that name.
+In production, the node names of your Phoenix app are likely dynamic. So, to cluster a notebook with them, you need to programatically discover that name.
 
-The name and the IP/hostname of your app's node depend on where you're deploying your app. Given you're app is already configured to use distributed Erlang, and you're using Elixir's releases, you have a config similar to that inside the  `rel/env.sh.eex` file:
+The name and the IP/hostname of your app's node depend on where you're deploying your app. Given your app is already configured to use distributed Erlang, and you're using Elixir's releases, you have a config similar to that inside the  `rel/env.sh.eex` file:
 
 ```
 # rel/env.sh.eex
@@ -245,11 +244,14 @@ When deploying a Phoenix app to Fly.io, the default value `RELEASE_NODE` is conf
 export RELEASE_NODE="${FLY_APP_NAME}-${FLY_IMAGE_REF##*-}@${FLY_PRIVATE_IP}"
 ```
 
-We can create a simple module that will use Fly's API to get that, and use that module inside our notebook.
+We can write a module that will use Fly's API to discover the node name, and use that module inside our notebook.
 
-First, go to your Fly account, and generate an API token. Save that inside a Livebook secret of of Teams organization using the name `FLY_TOKEN`.
+First, go to your Fly account, and generate an API token. Second, get the name of your Fly app. Now, save both of those values inside Livebook secrets of your Teams organization using the following names:
 
-Now, copy the following module to your notebook:
+- `FLY_TOKEN`
+- `FLY_APP`
+
+Now, copy the module below to your notebook:
 
 ```elixir
 defmodule Fly do
@@ -287,12 +289,12 @@ defmodule Fly do
   end
 
   defp fly_app_name do
-    System.fetch_env!("LB_TEAMS_FLY_APP")
+    System.fetch_env!("LB_FLY_APP")
   end
 end
 ```
 
-Now we can use that when for clustering, by calling the `Fly.discover_node/0` function from our `NodeConnection` module:
+Now we can use that `Fly.discover_node/0` function inside the `NodeConnection/discover_node/0` function:
 
 ```elixir
 defmodule NodeConnection do
@@ -304,7 +306,7 @@ defmodule NodeConnection do
       _ -> {:error, "Failed to connect to #{inspect(target_node())}"}
     end
   end
-  
+
   def cookie() do
     String.to_atom(System.fetch_env!("LB_PHOENIX_APP_COOKIE"))
   end
@@ -319,19 +321,87 @@ defmodule NodeConnection do
   end
 
   defp discover_node() do
-    discover_node()
+    # We're using the Fly module here for discovering the phoenix app node name
+    Fly.discover_node()
   end
 end
 
 NodeConnection.connect()
 ```
 
-## Remote execution smart cell
+## Conveniences for working with remote code
 
-TO-DO
-- smart execution cell
-- what is executing where
+When working with remote code (code defined in a remote node), Livebook offers two mechanisms that improve the developer experience.
 
-## Kino.RPC
+### Remote execution smart cell
 
-TO-DO
+The remote execution smart cell is a built-in smart cell that simplifies calling functions from remote Elixir nodes. Here's what it gives you.
+
+First, instead of needing to use the `Node` module yourself to connect to the remote node, you
+can set the node name and cookie as configs inside that smart cell.
+
+![some caption](images/remote-smart-cell-node-cookie-config.png)
+
+Second, it gives you autocomplete for the remote code. Which makes it much easier to explore and work with the remote codebase directly from your notebook.
+
+![](images/remote-cell-autocomplete.png)
+
+Third, instead of writing one `:erpc.call` per remote function call, you can run multiple lines of code in the context of the remote node.
+
+![](images/remote-cell-multiple-lines.png)
+
+Fourth, code inside the remote cell can reference "local variables" from the cells before, and
+assign the value of the last line to a variable, so subsequent cells can use the result of the
+remote cell:
+
+![](images/remote-cell-and-code-cell.png)
+
+### Kino.RPC
+
+If you need more flexibility than what the remote execution smart cell gives you, you can direcly use the same mechanism it uses behind the scences, the [`Kino.RPC`](https://hexdocs.pm/kino/Kino.RPC.html) module. Let's see an example.
+
+Let's say you're building a simple Livebook app to show the number users of your Phoenix app. Imagine your Phoenix app has a function like this, `MyApp.Users.count_by_status/1`.
+
+You can call that remote function using the remote execution smart cell:
+
+![](images/remote_execution_with_argument.png)
+
+But what if we want the `status` variable to be something that's an input of the user of your Livebook app? Like in this form:
+
+![](images/form_with_needed_remote_call.png)
+
+Now we need a way to call the `MyApp.Users.count_by_status/1` remote function passing an argument
+that's coming from the form.
+
+In order do that, first we can convert our remote execution smart cell into a regular code cell. If you click in the smart cell, you'll see there's a pencil icon saying "Convert to Code cell":
+
+![](images/convert_remote_executio_smart_cell.png)
+
+Once you convert the smart cell into a code cell, you'll see this is the code it was generating:
+
+```eliixir
+require Kino.RPC
+node = my_app_node
+Node.set_cookie(node, my_app_cookie)
+Kino.RPC.eval_string(node, ~S"MyApp.Users.count_by_status(status)", file: __ENV__.file)
+```
+
+We can extract that code into a module and function and so we can pass the `status` value as an
+argument. Here's one way to do this:
+
+```elixir
+Node.set_cookie(my_app_node, my_app_cookie)
+
+defmodule MyAppRPC.Users do
+  require Kino.RPC
+
+  def count_by_status(node, status) do
+    Kino.RPC.eval_string(node, ~S"MyApp.Users.count_by_status(status)", file: __ENV__.file)
+  end
+end
+```
+
+Now we can use that module in our form, so that when the form is submitted, the status coming
+from the form will be used in the remote call:
+
+![](images/form_with_app_rpc_module.png)
