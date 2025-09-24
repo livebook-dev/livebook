@@ -136,7 +136,7 @@ defmodule Livebook.FileSystem.Git.Client do
   end
 
   defp env_opts(key_path) do
-    [env: %{"GIT_SSH_COMMAND" => "ssh -i '#{key_path}'"}]
+    [env: %{"GIT_SSH_COMMAND" => "ssh -o StrictHostKeyChecking=no -i '#{key_path}'"}]
   end
 
   defp fetch_repository(file_system) do
