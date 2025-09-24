@@ -1,6 +1,7 @@
 defmodule Livebook.FileSystem.Mounter do
   # This server is responsible to handle file systems that are mountable
   use GenServer
+  require Logger
 
   alias Livebook.{FileSystem, Hubs}
 
@@ -98,7 +99,8 @@ defmodule Livebook.FileSystem.Mounter do
         broadcast({:file_system_mounted, file_system})
         put_hub_file_system(state, file_system)
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        Logger.error("[file_system=#{name(file_system)}] failed to mount: #{reason}")
         state
     end
   end
@@ -109,7 +111,8 @@ defmodule Livebook.FileSystem.Mounter do
         broadcast({:file_system_unmounted, file_system})
         remove_hub_file_system(state, file_system)
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        Logger.error("[file_system=#{name(file_system)}] failed to unmount: #{reason}")
         state
     end
   end
@@ -146,6 +149,10 @@ defmodule Livebook.FileSystem.Mounter do
   defp remove_file_system(hub_data, file_system) do
     file_systems = Enum.reject(hub_data.file_systems, &(&1.id == file_system.id))
     put_in(hub_data.file_systems, file_systems)
+  end
+
+  defp name(file_system) do
+    FileSystem.external_metadata(file_system).name
   end
 
   if Mix.env() == :test do
