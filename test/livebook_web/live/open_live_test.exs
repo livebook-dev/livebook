@@ -99,7 +99,9 @@ defmodule LivebookWeb.OpenLiveTest do
              |> has_element?()
 
       assert view
-             |> element(~s{[data-tooltip="This file is write-protected, please fork instead"]})
+             |> element(
+               ~s{[data-tooltip="This file is write-protected, fork to create an editable copy"]}
+             )
              |> has_element?()
     end
   end
