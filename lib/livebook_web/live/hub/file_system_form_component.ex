@@ -91,7 +91,11 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
           <.file_system_form_fields {assigns} />
 
           <div class="flex space-x-2">
-            <.button type="submit" disabled={@disabled or not @form.source.valid?}>
+            <.button
+              type="submit"
+              disabled={@disabled or not @form.source.valid?}
+            >
+              <.spinner class="hidden phx-submit-loading:block mr-1" />
               <.remix_icon icon={@button.icon} />
               <span class="font-normal">{@button.label}</span>
             </.button>
