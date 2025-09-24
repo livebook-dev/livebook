@@ -18,6 +18,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       if tags[:git] do
         Livebook.FileSystem.Mounter.subscribe(team.id)
       end
+
+      :ok
     end
 
     test "updates the hub", %{conn: conn, team: team} do
