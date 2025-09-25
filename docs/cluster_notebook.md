@@ -93,9 +93,20 @@ To call code from a running Phoenix app using the attached runtime, you can [fol
 
 This tutorial will focus on calling code from a running Phoenix app using the standalone runtime and remote procedure calls.
 
-> #### Calling code from an app: standalone runtime vs attached runtime {: .info}
+> #### When to use the standalone runtime vs attached runtime while doing remote code call? {: .info}
 >
-> TO-DO: explain the trade-offs, when to use one versus the other.
+> When you want to call code from a running Elixir/Phoenix app from withing a notebook, most of
+> the times we suggest doing this while using the standalone runtime. That's because running the
+> notebook in its own Erlang VM node brings some isolation benefits.
+>
+> One of them is that your notebook can now has its own dependencies independetly of the remote app.
+>
+> Another one is that by default, the code inside the notebook will not run in the context of the
+> remote app, which reduces the chance of running some code in the other node you didn't want to.
+>
+> Now, if need is the same experience of having an IEx session connected to your app, that's when
+> you want to use the attached runtime. This is useful if you're using Livebook as an alternative
+> to IEX during the development of your Phoenix app, for example.
 
 ## Calling code from a Phoenix app using remote procedure calls
 
