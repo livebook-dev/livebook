@@ -1,4 +1,4 @@
-# How to call code from a running Phoenix app
+# How to call functions from a running Phoenix app
 
 When using Livebook for internal tools, runbooks, or engineering support, a common need is to call code from a running Phoenix app.
 
