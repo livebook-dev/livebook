@@ -151,7 +151,7 @@ Let's build a solution that uses Fly's API to discover that node name.
 2. Add this Fly.io discovery module to your notebook:
 
 ```elixir
-# Add {:req, "~> 0.4"} to your notebook dependencies
+# Add {:req, "~> 0.5"} to your notebook dependencies
 
 defmodule Fly do
   def discover_node() do
@@ -207,6 +207,8 @@ Your Phoenix app needs specific configuration to support clustering.
 Set the `RELEASE_COOKIE` environment variable on your production machines to ensure a static cookie value across deployments, then restart or redeploy your app.
 
 Use the same value for your `PHOENIX_APP_COOKIE` [Livebook secret](#set-up-environment-secrets).
+
+Learn more about [setting the cookie of an Elixir release here](https://hexdocs.pm/mix/Mix.Tasks.Release.html#module-options).
 
 #### Enable long node names
 
