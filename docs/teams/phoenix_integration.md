@@ -32,7 +32,7 @@ Now you can call functions from your Phoenix app using [`erpc`](https://www.erla
 > #### Understanding the multiple Erlang VM nodes involved {: .info}
 >
 By default, Livebook starts a new Erlang VM node for each notebook. This is
-> the **standalone runtime**.
+> the [standalone runtime](runtime.md#standalone-runtime).
 >
 > Since your Phoenix app is running on another node, you need to use remote procedure
 > calls to execute functions from your Phoenix app:
