@@ -57,8 +57,8 @@ By default, Livebook starts a new Erlang VM node for each notebook. This is
 
 ## Connect to your Phoenix app in production
 
-When [developing and deploying Livebook app](deploy_app.md) that integrates with a Phoenix app, we need a way
-to handle the connection between them both during development and also in production.
+When [developing and deploying a Livebook app](deploy_app.md) that integrates with a Phoenix app, you need a way
+to handle the connection between them during both development and production.
 
 To support both environments, use Livebook secrets to make the connection between your notebook
 and your Phoenix app configurable.
@@ -127,7 +127,7 @@ Now you can call functions from your Phoenix app regardless of the environment:
 
 ### Discovery of node names in production
 
-In production environment, you need to programmatically discover your app's node name.
+In a production environment, you need to programmatically discover your app's node name.
 
 The approach depends on your deployment platform and node naming strategy. Here's an example:
 
@@ -141,7 +141,7 @@ When deploying to Fly.io, your Phoenix app node is typically named using the `RE
 export RELEASE_NODE="${FLY_APP_NAME}-${FLY_IMAGE_REF##*-}@${FLY_PRIVATE_IP}"
 ```
 
-Let's build a solution that will use Fly's API to discover that node name.
+Let's build a solution that uses Fly's API to discover that node name.
 
 1. Create these additional secrets inside your Teams workspace:
 
@@ -186,7 +186,7 @@ defmodule Fly do
 end
 ```
 
-3. Update your [`NodeConnection`](#create-a-connection-module) module to use Fly discovery.
+3. Update your [`NodeConnection`](#create-a-connection-module) module to use Fly discovery:
 
 ```
 defmodule NodeConnection do
@@ -208,9 +208,9 @@ Set the `RELEASE_COOKIE` environment variable on your production machines to ens
 
 Use the same value for your `PHOENIX_APP_COOKIE` [Livebook secret](#set-up-environment-secrets).
 
-####  Enable long node names
+#### Enable long node names
 
-Livebook requires long node names. Configure the `RELEASE_DISTRIBUTION` env var inside your app's `rel/env.sh.eex` like this:
+Livebook requires long node names. Configure the `RELEASE_DISTRIBUTION` environment variable inside your app's `rel/env.sh.eex` like this:
 
 ```bash
 # rel/env.sh.eex
@@ -228,10 +228,9 @@ The remote execution smart cell offers several advantages over manual `:erpc.cal
 
 #### Built-in connection management
 
-Set node name and cookie directly in the smart cell.
+Set the node name and cookie directly in the smart cell.
 
-![some caption](images/remote-smart-cell-node-cookie-config.png)
-
+![](images/remote-smart-cell-node-cookie-config.png)
 
 #### Code autocomplete
 
