@@ -45,7 +45,7 @@ graph LR
         C[Phoenix app]
     end
 
-    A -.-|clusters with| standalone_node
+    livebook_node -.-|clusters with| standalone_node
 ```
 
 When using the attached runtime, your notebook's code cells execute within the same node as the external application. This is similar to attaching an IEx session to a running node.
