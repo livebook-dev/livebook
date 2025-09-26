@@ -28,7 +28,7 @@ graph LR
 
 The code inside your notebook runs in the context of this specific node started for your notebook, isolated from Livebook and other running notebook sessions.
 
-Since your notebook has its own node, it can declare its own Hex package dependencies via `Mix.install/2`.
+Since your notebook has its own node, it can declare its own package dependencies via `Mix.install/2`.
 
 ## Attached runtime
 
