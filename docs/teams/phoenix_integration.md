@@ -43,7 +43,7 @@ By default, Livebook starts a new Erlang VM node for each notebook. This is
 >         A[Livebook]
 >     end
 >
->    subgraph standalone_node["Erlang VM node Livebook started for your notebook"]
+>    subgraph standalone_node["Erlang VM node per notebook"]
 >         B[code inside the notebook]
 >     end
 >
