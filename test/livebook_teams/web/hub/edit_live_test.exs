@@ -229,15 +229,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     test "creates a Git file system", %{conn: conn, team: team} do
       id = Livebook.FileSystem.Utils.id("git", team.id, "git@github.com:livebook-dev/test.git")
       file_system = build(:fs_git, id: id, hub_id: team.id)
-
-      # When the user paste the ssh key to the password input, it will remove the break lines.
-      # So, the changeset need to normalize it before persisting. That said, the ssh key from
-      # factory must be "denormalized" so we can test the user scenario.
-      file_system = %{
-        file_system
-        | key: file_system.key |> String.replace("\n", "\s") |> String.trim()
-      }
-
       attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")

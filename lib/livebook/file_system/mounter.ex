@@ -1,6 +1,7 @@
 defmodule Livebook.FileSystem.Mounter do
   # This server is responsible to handle file systems that are mountable
   use GenServer
+  require Logger
 
   alias Livebook.{FileSystem, Hubs}
 
@@ -26,7 +27,7 @@ defmodule Livebook.FileSystem.Mounter do
 
   @impl GenServer
   def handle_continue(:boot, state) do
-    Hubs.Broadcasts.subscribe([:connection, :crud, :file_systems])
+    Hubs.Broadcasts.subscribe([:crud, :file_systems])
     Process.send_after(self(), :remount, state.loop_delay)
 
     {:noreply, mount_file_systems(state, Hubs.Personal.id())}
@@ -47,10 +48,6 @@ defmodule Livebook.FileSystem.Mounter do
 
   def handle_info({:file_system_deleted, file_system}, state) do
     {:noreply, unmount_file_system(state, file_system)}
-  end
-
-  def handle_info({:hub_changed, hub_id}, state) do
-    {:noreply, mount_file_systems(state, hub_id)}
   end
 
   def handle_info({:hub_deleted, hub_id}, state) do
@@ -98,7 +95,10 @@ defmodule Livebook.FileSystem.Mounter do
         broadcast({:file_system_mounted, file_system})
         put_hub_file_system(state, file_system)
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        Logger.error("[file_system=#{name(file_system)}] failed to mount: #{reason}")
+        Process.send_after(self(), {:file_system_created, file_system}, to_timeout(second: 10))
+
         state
     end
   end
@@ -109,7 +109,10 @@ defmodule Livebook.FileSystem.Mounter do
         broadcast({:file_system_unmounted, file_system})
         remove_hub_file_system(state, file_system)
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        Logger.error("[file_system=#{name(file_system)}] failed to unmount: #{reason}")
+        Process.send_after(self(), {:file_system_deleted, file_system}, to_timeout(second: 10))
+
         state
     end
   end
@@ -146,6 +149,10 @@ defmodule Livebook.FileSystem.Mounter do
   defp remove_file_system(hub_data, file_system) do
     file_systems = Enum.reject(hub_data.file_systems, &(&1.id == file_system.id))
     put_in(hub_data.file_systems, file_systems)
+  end
+
+  defp name(file_system) do
+    FileSystem.external_metadata(file_system).name
   end
 
   if Mix.env() == :test do

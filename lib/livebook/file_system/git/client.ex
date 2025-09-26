@@ -136,7 +136,7 @@ defmodule Livebook.FileSystem.Git.Client do
   end
 
   defp env_opts(key_path) do
-    [env: %{"GIT_SSH_COMMAND" => "ssh -i '#{key_path}'"}]
+    [env: %{"GIT_SSH_COMMAND" => "ssh -o StrictHostKeyChecking=no -i '#{key_path}'"}]
   end
 
   defp fetch_repository(file_system) do
@@ -151,10 +151,16 @@ defmodule Livebook.FileSystem.Git.Client do
 
   defp with_ssh_key_file(file_system, fun) when is_function(fun, 1) do
     File.mkdir_p!(Livebook.Config.tmp_path())
-
     key_path = FileSystem.Git.key_path(file_system)
-    pem_entry = :public_key.pem_decode(file_system.key)
-    ssh_key = :public_key.pem_encode(pem_entry)
+
+    ssh_key =
+      file_system.key
+      |> String.replace(
+        ~r/ (?!(?:OPENSSH |RSA |EC |DSA |PRIVATE )?(?:PRIVATE )?KEY-----)/,
+        "\n"
+      )
+      |> :public_key.pem_decode()
+      |> :public_key.pem_encode()
 
     File.write!(key_path, ssh_key)
     File.chmod!(key_path, 0o600)
