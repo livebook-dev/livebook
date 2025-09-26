@@ -65,7 +65,7 @@ graph LR
         C[Phoenix app]
     end
 
-    A -.-|clusters with| standalone_node
+    livebook_node -.-|clusters with| standalone_node
     B -.->|direct function call|C
 ```
 
