@@ -23,7 +23,7 @@ graph LR
         B[standalone runtime code evaluator]
     end
 
-    A -.->|starts and clusters with| standalone_node
+    livebook_node -.->|starts and clusters with| standalone_node
 ```
 
 The code inside your notebook runs in the context of this specific node started for your notebook, isolated from Livebook and other running notebook sessions.
