@@ -19,7 +19,7 @@ graph LR
         A[Livebook]
     end
 
-    subgraph standalone_node["Erlang VM Node started for a notebook"]
+    subgraph standalone_node["Erlang VM node per notebook"]
         B[standalone runtime code evaluator]
     end
 
