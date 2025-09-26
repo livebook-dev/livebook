@@ -69,7 +69,7 @@ graph LR
     B -.->|direct function call|C
 ```
 
-However, your notebook cannot have its own Hex package dependencies, it only has access to what's already loaded in the external node.
+However, your notebook cannot invoke `Mix.install`, it only has access to what's already loaded in the external node.
 
 ## Fly.io runtime
 
