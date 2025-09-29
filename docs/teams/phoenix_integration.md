@@ -12,30 +12,28 @@ First, start your Phoenix app with a named node and cookie:
 $ iex --name my_app@127.0.0.1 --cookie secret -S mix phx.server
 ```
 
-In your notebook, use the `Node` module to connect to your Phoenix app:
+Now, create a new notebook, and add a remote execution smart cell:
 
-```elixir
-phoenix_app_node = :"my_app@127.0.0.1"
-phoenix_app_cookie = :secret
+![](images/add-remote-executionsmart-cell.png)
 
-Node.set_cookie(phoenix_app_cookie)
-Node.connect(phoenix_app_node)
-```
+Set the node and cookie configs to the values you set when starting your Phoenix app:
 
-Now you can call functions from your Phoenix app using [`erpc`](https://www.erlang.org/doc/apps/kernel/erpc.html):
+![](images/set-node-cookie-smart-cell.png)
 
-```elixir
-# Calling a function from your Phoenix app
-:erpc.call(phoenix_app_node, MyApp.Accounts, :get_user, [123])
-```
+Now you can write code inside that smart cell, and it will be evaluated in the context of your Phoenix app's node:
 
-> #### Understanding the multiple Erlang VM nodes involved {: .info}
+![](images/running-code-with-remote-execution-smart-cell.png)
+
+> #### Understanding how Livebook leverages distributed Erlang {: .info}
 >
 By default, Livebook starts a new Erlang VM node for each notebook. This is
 > the [standalone runtime](runtime.md#standalone-runtime).
 >
-> Since your Phoenix app is running on another node, you need to use remote procedure
-> calls to execute functions from your Phoenix app:
+> Under the hood, the remote execution smart cell leverages distributed Erlang to call functions
+> from your Phoenix app.
+>
+> It clusters your notebook's node with your Phoenix's app node, and evaluates the code inside
+> the smart cell in the context of your Phoenix's app node.
 >
 > ```mermaid
 > graph LR
@@ -52,7 +50,7 @@ By default, Livebook starts a new Erlang VM node for each notebook. This is
 >     end
 >
 >    A -.-|starts and clusters with| standalone_node
->     B -.->|remote procedure call| C
+>    standalone_node -.-|clusters with| app_node
 > ```
 
 ## Connect to your Phoenix app in production
@@ -113,17 +111,19 @@ defmodule NodeConnection do
     # See platform-specific examples below
   end
 end
-
-# Connect to your Phoenix app
-NodeConnection.connect()
 ```
 
-Now you can call functions from your Phoenix app regardless of the environment:
+Using that new `NodeConnection` module, get the node and cookie values and assign them to variables to be used as configs in the remote execution smart cell:
 
 ```elixir
-# This works in both dev and production
-:erpc.call(NodeConnection.target_node(), MyApp.Accounts, :count_users, [])
+my_app_node = NodeConnection.target_node()
+my_app_cookie = NodeConnection.cookie()
 ```
+
+Now you're ready to use the remote execution smart cell, with the node and cookies being set
+dynamically:
+
+![](images/remote-smart-cell-node-cookie-as-vars.png)
 
 ### Discovery of node names in production
 
