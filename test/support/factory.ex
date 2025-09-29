@@ -96,7 +96,14 @@ defmodule Livebook.Factory do
   def build(:fs_git) do
     repo_url = "git@github.com:livebook-dev/test.git"
     hub_id = Livebook.Hubs.Personal.id()
-    key = System.get_env("TEST_GIT_SSH_KEY")
+
+    # When the user paste the ssh key to the password input, it will remove the break lines.
+    # So, the changeset need to normalize it before persisting. That said, the ssh key from
+    # factory must be "denormalized" so we can test the user scenario.
+    key =
+      System.get_env("TEST_GIT_SSH_KEY")
+      |> String.replace("\n", "\s")
+      |> String.trim()
 
     %Livebook.FileSystem.Git{
       id: Livebook.FileSystem.Utils.id("git", hub_id, repo_url),

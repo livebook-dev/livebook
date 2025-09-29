@@ -38,17 +38,6 @@ defmodule Livebook.FileSystem.Git do
       message: "must be a valid repo URL"
     )
     |> validate_required([:repo_url, :branch, :key, :hub_id])
-    |> update_change(:key, fn key ->
-      if key =~ "\n" do
-        key
-      else
-        String.replace(
-          key,
-          ~r/ (?!(?:OPENSSH |RSA |EC |DSA |PRIVATE )?(?:PRIVATE )?KEY-----)/,
-          "\n"
-        )
-      end
-    end)
     |> put_id()
   end
 
