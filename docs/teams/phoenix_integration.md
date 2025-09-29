@@ -26,14 +26,14 @@ Now you can write code inside that smart cell, and it will be evaluated in the c
 
 > #### Understanding how Livebook leverages distributed Erlang {: .info}
 >
-By default, Livebook starts a new Erlang VM node for each notebook. This is
+> By default, Livebook starts a new Erlang VM node for each notebook. This is
 > the [standalone runtime](runtime.md#standalone-runtime).
 >
 > Under the hood, the remote execution smart cell leverages distributed Erlang to call functions
 > from your Phoenix app.
 >
-> It clusters your notebook's node with your Phoenix's app node, and evaluates the code inside
-> the smart cell in the context of your Phoenix's app node.
+> It clusters your notebook's node with your Phoenix app's node, and evaluates the code inside
+> the smart cell in the context of your Phoenix app's node.
 >
 > ```mermaid
 > graph LR
@@ -71,7 +71,7 @@ Create these secrets in your Livebook Teams workspace:
 
 ![](images/clustering_dev.png)
 
-**For production:** use additional secrets in your Teams workspace deployment group to override these values:
+**For production:** Use additional secrets in your Teams workspace deployment group to override these values:
 
 - `PHOENIX_APP_ENV`: Set to `production`
 - `PHOENIX_APP_COOKIE`: Set to your production cookie value
@@ -113,14 +113,14 @@ defmodule NodeConnection do
 end
 ```
 
-Using that new `NodeConnection` module, get the node and cookie values and assign them to variables to be used as configs in the remote execution smart cell:
+Using the new `NodeConnection` module, get the node and cookie values and assign them to variables to be used as configurations in the remote execution smart cell:
 
 ```elixir
 my_app_node = NodeConnection.target_node()
 my_app_cookie = NodeConnection.cookie()
 ```
 
-Now you're ready to use the remote execution smart cell, with the node and cookies being set
+Now you're ready to use the remote execution smart cell, with the node and cookie being set
 dynamically:
 
 ![](images/remote-smart-cell-node-cookie-as-vars.png)
@@ -266,7 +266,7 @@ But what if you want the `status` variable to come from a form input?
 
 Now we need a way to call the remote function passing an argument that's coming from the form. To do that, we can extract the remote function call into a reusable module.
 
-First, convert your remote execution smart cell to a regular code cell by clicking in the pencil icon:
+First, convert your remote execution smart cell to a regular code cell by clicking on the pencil icon:
 
 ![](images/convert_remote_executio_smart_cell.png)
 
