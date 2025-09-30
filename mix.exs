@@ -238,6 +238,7 @@ defmodule Livebook.MixProject do
       extras: extras(),
       filter_modules: fn mod, _ -> mod in [Livebook] end,
       assets: %{Path.expand("./docs/images") => "images"},
+      before_closing_head_tag: &before_closing_head_tag/1,
       groups_for_extras: [
         "Livebook Teams": Path.wildcard("docs/teams/*"),
         Deployment: Path.wildcard("docs/deployment/*"),
@@ -251,6 +252,7 @@ defmodule Livebook.MixProject do
       {"README.md", title: "Welcome to Livebook"},
       "docs/use_cases.md",
       "docs/authentication.md",
+      {"docs/runtime.md", title: "Runtimes"},
       "docs/stamping.md",
       "docs/deployment/docker.md",
       "docs/deployment/clustering.md",
@@ -265,6 +267,7 @@ defmodule Livebook.MixProject do
       "docs/teams/oidc_groups.md",
       "docs/teams/shared_secrets.md",
       "docs/teams/shared_file_storages.md",
+      {"docs/teams/phoenix_integration.md", title: "How-to integrate with a Phoenix app"},
       {"docs/teams/teams_concepts.md", title: "Livebook Teams concepts"},
       "docs/authentication/basic_auth.md",
       "docs/authentication/cloudflare.md",
@@ -273,4 +276,39 @@ defmodule Livebook.MixProject do
       "docs/authentication/custom_auth.md"
     ]
   end
+
+  defp before_closing_head_tag(:html) do
+    """
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js"></script>
+    <script>
+      let initialized = false;
+
+      window.addEventListener("exdoc:loaded", () => {
+        if (!initialized) {
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: document.body.className.includes("dark") ? "dark" : "default"
+          });
+          initialized = true;
+        }
+
+        let id = 0;
+        for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+          const preEl = codeEl.parentElement;
+          const graphDefinition = codeEl.textContent;
+          const graphEl = document.createElement("div");
+          const graphId = "mermaid-graph-" + id++;
+          mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+            graphEl.innerHTML = svg;
+            bindFunctions?.(graphEl);
+            preEl.insertAdjacentElement("afterend", graphEl);
+            preEl.remove();
+          });
+        }
+      });
+    </script>
+    """
+  end
+
+  defp before_closing_head_tag(_), do: ""
 end
