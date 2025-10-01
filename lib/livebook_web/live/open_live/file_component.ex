@@ -71,7 +71,10 @@ defmodule LivebookWeb.OpenLive.FileComponent do
 
   defp open_button_tooltip_attrs(file, file_info) do
     if regular?(file, file_info) and not writable?(file_info) do
-      [class: "tooltip top", "data-tooltip": "This file is write-protected, please fork instead"]
+      [
+        class: "tooltip top",
+        "data-tooltip": "This file is write-protected, fork to create an editable copy"
+      ]
     else
       []
     end

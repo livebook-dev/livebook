@@ -73,7 +73,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
             checked_value={:git}
             disabled={@mode == :edit}
           >
-            Configure a read-only Git repository as a Livebook file storage. You will need a valid SSH key to access your Git repository.
+            Configure a Git repository as a read-only Livebook file storage. You will need a valid SSH key to access your Git repository.
           </.radio_card_input>
         </div>
       </div>
@@ -91,7 +91,11 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
           <.file_system_form_fields {assigns} />
 
           <div class="flex space-x-2">
-            <.button type="submit" disabled={@disabled or not @form.source.valid?}>
+            <.button
+              type="submit"
+              disabled={@disabled or not @form.source.valid?}
+            >
+              <.spinner class="hidden phx-submit-loading:block mr-1" />
               <.remix_icon icon={@button.icon} />
               <span class="font-normal">{@button.label}</span>
             </.button>
@@ -145,7 +149,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
       <.text_field
         field={@form[:repo_url]}
         label="Repository URL"
-        placeholder="git@[provider]:[username]/[repo_name].git"
+        placeholder="git@[provider_host]:[owner]/[repo_name].git"
       />
       <.text_field
         field={@form[:branch]}
@@ -154,9 +158,8 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
       />
       <.password_field field={@form[:key]} label="SSH Private Key" />
       <p class="text-xs text-gray-700">
-        You can use your own SSH Private Key or you can set up the Deploy Key
-        only for this repository. Check the documentation from your
-        version control system to create your Deploy Key.
+        An SSH private key with repository access. You may use a personal key or a deploy key.
+        See your Git provider’s documentation to create a deploy key.
       </p>
     </div>
     """
