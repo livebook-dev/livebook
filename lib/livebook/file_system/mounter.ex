@@ -27,7 +27,7 @@ defmodule Livebook.FileSystem.Mounter do
 
   @impl GenServer
   def handle_continue(:boot, state) do
-    Hubs.Broadcasts.subscribe([:crud, :file_systems])
+    Hubs.Broadcasts.subscribe([:crud, :file_systems, :connection])
     Process.send_after(self(), :remount, state.loop_delay)
 
     {:noreply, mount_file_systems(state, Hubs.Personal.id())}
