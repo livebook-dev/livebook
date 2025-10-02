@@ -16,7 +16,8 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     mode = mode(file_system)
     title = title(file_system)
     button = button_attrs(file_system)
-    file_system = file_system || %FileSystem.S3{hub_id: assigns.hub}
+    file_system = file_system || %FileSystem.S3{hub_id: assigns.hub.id}
+
     changeset = FileSystems.change_file_system(file_system)
 
     {:ok,
