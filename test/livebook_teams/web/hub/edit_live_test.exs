@@ -193,7 +193,12 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       bypass = Bypass.open()
       file_system = build_bypass_file_system(bypass, team.id)
       id = file_system.id
-      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+
+      form_values =
+        Map.from_struct(file_system)
+        |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
+
+      attrs = %{file_system: form_values}
 
       expect_s3_listing(bypass)
       refute render(view) =~ file_system.bucket_url
@@ -229,7 +234,12 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     test "creates a Git file system", %{conn: conn, team: team} do
       id = Livebook.FileSystem.Utils.id("git", team.id, "git@github.com:livebook-dev/test.git")
       file_system = build(:fs_git, id: id, hub_id: team.id)
-      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+
+      form_values =
+        Map.from_struct(file_system)
+        |> Map.take([:repo_url, :branch, :key])
+
+      attrs = %{file_system: form_values}
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
       refute render(view) =~ file_system.id
@@ -277,7 +287,11 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
 
-      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+      form_values =
+        Map.from_struct(file_system)
+        |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
+
+      attrs = %{file_system: form_values}
       expect_s3_listing(bypass)
 
       view
@@ -322,7 +336,12 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       refute "/another_file.txt" in paths
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
-      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+
+      form_values =
+        Map.from_struct(file_system)
+        |> Map.take([:repo_url, :branch, :key])
+
+      attrs = %{file_system: form_values}
       attrs = put_in(attrs.file_system.branch, "test")
 
       view

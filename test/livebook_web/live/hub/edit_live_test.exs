@@ -165,7 +165,11 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       bypass = Bypass.open()
       file_system = build_bypass_file_system(bypass)
 
-      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+      form_values =
+        Map.from_struct(file_system)
+        |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
+
+      attrs = %{file_system: form_values}
 
       expect_s3_listing(bypass)
 
@@ -201,7 +205,12 @@ defmodule LivebookWeb.Hub.EditLiveTest do
     test "creates a Git file system", %{conn: conn, hub: hub} do
       file_system = build(:fs_git)
       id = file_system.id
-      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+
+      form_values =
+        Map.from_struct(file_system)
+        |> Map.take([:repo_url, :branch, :key])
+
+      attrs = %{file_system: form_values}
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       refute render(view) =~ file_system.id
@@ -246,7 +255,11 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
-      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+      form_values =
+        Map.from_struct(file_system)
+        |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
+
+      attrs = %{file_system: form_values}
 
       expect_s3_listing(bypass)
 
@@ -298,7 +311,12 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       refute "/another_file.txt" in paths
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+
+      form_values =
+        Map.from_struct(file_system)
+        |> Map.take([:repo_url, :branch, :key])
+
+      attrs = %{file_system: form_values}
       attrs = put_in(attrs.file_system.branch, "test")
 
       view
