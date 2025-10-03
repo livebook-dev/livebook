@@ -132,6 +132,7 @@ defmodule Livebook.Session do
           deployment_ref: reference() | nil,
           deployed_app_monitor_ref: reference() | nil,
           app_pid: pid() | nil,
+          app_permanent: boolean() | nil,
           auto_shutdown_ms: non_neg_integer() | nil,
           auto_shutdown_timer_ref: reference() | nil,
           started_by: Users.User.t() | nil,
@@ -190,6 +191,8 @@ defmodule Livebook.Session do
       or `:app`. Defaults to `:default`
 
     * `:app_pid` - the parent app process, when in running in `:app` mode
+
+    * `:app_permanent` - whether the app is permanent or a preview app
 
     * `:auto_shutdown_ms` - the inactivity period (no clients) after which
       the session should close automatically
@@ -962,6 +965,7 @@ defmodule Livebook.Session do
         deployment_ref: nil,
         deployed_app_monitor_ref: nil,
         app_pid: opts[:app_pid],
+        app_permanent: opts[:app_permanent],
         auto_shutdown_ms: opts[:auto_shutdown_ms],
         auto_shutdown_timer_ref: nil,
         started_by: opts[:started_by],
@@ -2638,23 +2642,10 @@ defmodule Livebook.Session do
   defp handle_action(state, _action), do: state
 
   defp start_evaluation(state, cell, section, evaluation_opts) do
-    evaluation_users =
-      case state.data.mode do
-        :default -> Map.values(state.data.users_map)
-        :app -> if(state.deployed_by, do: [state.deployed_by], else: [])
-      end
-
-    Logger.info(
-      [
-        """
-        Evaluating code
-          Session mode: #{state.data.mode}
-          Code: \
-        """,
-        inspect(cell.source, printable_limit: :infinity)
-      ],
-      Livebook.Utils.logger_users_metadata(evaluation_users)
-    )
+    # Only log code evaluation if inside a regular notebook session or a preview app
+    if state.data.mode == :default or state.app_permanent == false do
+      log_code_evaluation(cell, state)
+    end
 
     path =
       case state.data.file || default_notebook_file(state) do
@@ -2691,6 +2682,26 @@ defmodule Livebook.Session do
     )
 
     state
+  end
+
+  def log_code_evaluation(cell, state) do
+    evaluation_users =
+      case state.data.mode do
+        :default -> Map.values(state.data.users_map)
+        :app -> if(state.deployed_by, do: [state.deployed_by], else: [])
+      end
+
+    Logger.info(
+      [
+        """
+        Evaluating code
+          Session mode: #{state.data.mode}
+          Code: \
+        """,
+        inspect(cell.source, printable_limit: :infinity)
+      ],
+      Livebook.Utils.logger_users_metadata(evaluation_users)
+    )
   end
 
   defp hydrate_cell_source_digest(state, cell_id, tag) do
