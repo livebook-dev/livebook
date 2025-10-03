@@ -104,6 +104,8 @@ defmodule Livebook do
     log_metadata = Livebook.Config.log_metadata!("LIVEBOOK_LOG_METADATA")
     log_format = Livebook.Config.log_format!("LIVEBOOK_LOG_FORMAT") || :text
 
+    config :livebook, :log_format, log_format
+
     case {log_format, log_metadata} do
       {:json, log_metadata} ->
         config :logger, :default_handler,

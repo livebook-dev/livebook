@@ -265,9 +265,13 @@ The following environment variables can be used to configure Livebook on boot:
     logging, either of: error, warning, notice, info, debug. Defaults to warning.
 
   * `LIVEBOOK_LOG_METADATA` - a comma-separated list of metadata keys that should
-    be included in the log messages. Currently the only Livebook-spcecific key is
-    users (attached to evaluation and request logs). By default includes only
-    request_id.
+    be included in the log messages. Livebook-specific keys include:
+    - `users` (attached to evaluation and request logs)
+    - `session_mode` (attached to evaluation logs, either "default" or "app")
+    - `code` (attached to evaluation logs, the code being evaluated)
+    - `event` (attached to evaluation logs, currently always "code.evaluate")
+
+    By default includes only `request_id`.
 
   * `LIVEBOOK_LOG_FORMAT` - sets the log output format, either "text" (default)
     for human-readable logs or "json" for structured JSON.
