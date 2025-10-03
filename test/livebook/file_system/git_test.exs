@@ -51,6 +51,7 @@ defmodule Livebook.FileSystem.GitTest do
 
   describe "FileSystem.read/2" do
     @describetag init: true
+
     test "returns an error when a nonexistent key is given", %{file_system: file_system} do
       assert FileSystem.read(file_system, "/another_file.txt") ==
                {:error, "fatal: path 'another_file.txt' does not exist in 'main'"}
@@ -104,6 +105,7 @@ defmodule Livebook.FileSystem.GitTest do
 
   describe "FileSystem.etag_for/2" do
     @describetag init: true
+
     test "returns an error when a nonexistent key is given", %{file_system: file_system} do
       assert {:error, reason} = FileSystem.etag_for(file_system, "/another_file.txt")
       assert reason =~ "path 'another_file.txt' does not exist in 'main'"
@@ -116,6 +118,7 @@ defmodule Livebook.FileSystem.GitTest do
 
   describe "FileSystem.exists?/2" do
     @describetag init: true
+
     test "returns valid response", %{file_system: file_system} do
       assert {:ok, true} = FileSystem.exists?(file_system, "/file.txt")
       assert {:ok, false} = FileSystem.exists?(file_system, "/another_file.txt")
@@ -158,10 +161,27 @@ defmodule Livebook.FileSystem.GitTest do
   end
 
   describe "FileSystem.read_stream_into/2" do
-    test "not implemented", %{file_system: file_system} do
-      assert_raise RuntimeError, "not implemented", fn ->
-        FileSystem.read_stream_into(file_system, "/file.txt", <<>>)
-      end
+    @describetag init: true
+
+    test "returns an error when a nonexistent key is given", %{file_system: file_system} do
+      assert FileSystem.read_stream_into(file_system, "/another_file.txt", <<>>) ==
+               {:error, "fatal: path 'another_file.txt' does not exist in 'main'"}
+    end
+
+    test "returns object contents under the given key", %{file_system: file_system} do
+      assert {:ok, content} = FileSystem.read_stream_into(file_system, "/file.txt", <<>>)
+      assert content =~ "git file storage works"
+    end
+
+    @tag :tmp_dir
+    test "collects file contents into another file", %{file_system: file_system, tmp_dir: tmp_dir} do
+      file_path = Path.join(tmp_dir, "myfile.txt")
+      collectable = FileSystem.File.new(FileSystem.Local.new(), file_path)
+
+      assert {:ok, %FileSystem.File{path: ^file_path}} =
+               FileSystem.read_stream_into(file_system, "/file.txt", collectable)
+
+      assert File.read!(file_path) =~ "git file storage works"
     end
   end
 

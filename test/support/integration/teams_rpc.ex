@@ -98,12 +98,13 @@ defmodule Livebook.TeamsRPC do
         hub_id: team.id
     }
 
-    attrs = %{
+    attrs = [
       name: name,
       type: String.to_atom(type),
       value: Livebook.HubHelpers.generate_file_system_json(team, file_system),
-      org_key: org_key
-    }
+      org_key: org_key,
+      livebook_version: Livebook.Config.app_version()
+    ]
 
     external_id = :erpc.call(node, TeamsRPC, :create_file_system, [attrs]).id
     Map.replace!(file_system, :external_id, to_string(external_id))
