@@ -269,6 +269,7 @@ defmodule Livebook.MixProject do
       "docs/teams/shared_file_storages.md",
       {"docs/teams/git_file_storage.md", title: "Open notebooks from a private Git"},
       {"docs/teams/phoenix_integration.md", title: "How-to integrate with a Phoenix app"},
+      "docs/teams/audit_logs.md",
       {"docs/teams/teams_concepts.md", title: "Livebook Teams concepts"},
       "docs/authentication/basic_auth.md",
       "docs/authentication/cloudflare.md",
