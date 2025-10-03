@@ -2684,7 +2684,7 @@ defmodule Livebook.Session do
     state
   end
 
-  def log_code_evaluation(cell, state) do
+  defp log_code_evaluation(cell, state) do
     inspected_code = inspect(cell.source, printable_limit: :infinity)
 
     # For metadata code, we try to use use the raw source, so it's easier to process
