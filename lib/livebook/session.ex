@@ -2685,8 +2685,20 @@ defmodule Livebook.Session do
   end
 
   def log_code_evaluation(cell, state) do
+    inspected_code = inspect(cell.source, printable_limit: :infinity)
+
+    # For metadata code, we try to use use the raw source, so it's easier to process
+    # the logged code in a external log aggregator.
+    metadata_code =
+      case cell.source do
+        source when is_binary(source) -> source
+        _ -> inspected_code
+      end
+
+    session_mode = state.data.mode
+
     evaluation_users =
-      case state.data.mode do
+      case session_mode do
         :default -> Map.values(state.data.users_map)
         :app -> if(state.deployed_by, do: [state.deployed_by], else: [])
       end
@@ -2695,12 +2707,17 @@ defmodule Livebook.Session do
       [
         """
         Evaluating code
-          Session mode: #{state.data.mode}
+          Session mode: #{session_mode}
           Code: \
         """,
-        inspect(cell.source, printable_limit: :infinity)
+        inspected_code
       ],
-      Livebook.Utils.logger_users_metadata(evaluation_users)
+      Keyword.merge(
+        Livebook.Utils.logger_users_metadata(evaluation_users),
+        session_mode: session_mode,
+        code: metadata_code,
+        event: "code.evaluate"
+      )
     )
   end
 

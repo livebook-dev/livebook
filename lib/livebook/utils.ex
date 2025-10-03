@@ -854,6 +854,9 @@ defmodule Livebook.Utils do
             into: %{}
       end
 
-    [users: inspect(list)]
+    case Application.get_env(:livebook, :log_format) do
+      :text -> [users: inspect(list)]
+      :json -> [users: list]
+    end
   end
 end
