@@ -2703,6 +2703,10 @@ defmodule Livebook.Session do
         :app -> if(state.deployed_by, do: [state.deployed_by], else: [])
       end
 
+    # We plan to deprecate this one in favor of the log call below.
+    # We're keeping this here because users may be depending on this already.
+    # Once the new log below, we ask users to migrate, and eventually delete
+    # this one.
     Logger.info(
       [
         """
@@ -2712,6 +2716,10 @@ defmodule Livebook.Session do
         """,
         inspected_code
       ],
+      Livebook.Utils.logger_users_metadata(evaluation_users)
+    )
+
+    Logger.info(
       Keyword.merge(
         Livebook.Utils.logger_users_metadata(evaluation_users),
         session_mode: session_mode,
