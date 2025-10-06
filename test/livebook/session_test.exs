@@ -2102,16 +2102,19 @@ defmodule Livebook.SessionTest do
 
       unique_id = Utils.random_short_id()
       # Use random ID to uniquely identify the source code of this cell
-      Session.set_cell_attributes(session.pid, cell_id, %{source: "# #{unique_id}"})
+      Session.set_cell_attributes(session.pid, cell_id, %{source: "#{unique_id}"})
 
       log =
-        capture_log(fn ->
+        capture_log([level: :info, metadata: [:session_mode, :code, :event]], fn ->
           Session.queue_cell_evaluation(session.pid, cell_id)
           assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
         end)
 
       # Logs from other test might be captured, so we're using an unique_id
-      assert log =~ ~s(Evaluating code\n  Session mode: default\n  Code: "# #{unique_id}")
+      assert log =~ "code=#{unique_id}"
+      assert log =~ "Evaluating code"
+      assert log =~ "session_mode=default"
+      assert log =~ "event=code.evaluate"
     end
 
     test "logs code evaluation for preview apps" do
@@ -2128,6 +2131,10 @@ defmodule Livebook.SessionTest do
       Session.deploy_app(session.pid)
       assert_receive {:app_created, %{slug: ^slug, pid: app_pid}}
 
+      on_exit(fn ->
+        App.close(app_pid)
+      end)
+
       session_id = App.get_session_id(app_pid)
       {:ok, app_session} = Livebook.Sessions.fetch_session(session_id)
 
@@ -2135,19 +2142,20 @@ defmodule Livebook.SessionTest do
 
       unique_id = Utils.random_short_id()
       # Use random ID to uniquely identify the source code of this cell
-      Session.insert_cell(app_session.pid, section_id, 0, :code, %{source: "# #{unique_id}"})
+      Session.insert_cell(app_session.pid, section_id, 0, :code, %{source: "#{unique_id}"})
       assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :code, cell_id, _}}
 
       log =
-        capture_log(fn ->
+        capture_log([level: :info, metadata: [:session_mode, :code, :event]], fn ->
           Session.queue_cell_evaluation(app_session.pid, cell_id)
           assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
         end)
 
       # Logs from other test might be captured, so we're using an unique_id
-      assert log =~ ~s(Evaluating code\n  Session mode: app\n  Code: "# #{unique_id}")
-
-      App.close(app_pid)
+      assert log =~ "code=#{unique_id}"
+      assert log =~ "Evaluating code"
+      assert log =~ "session_mode=app"
+      assert log =~ "event=code.evaluate"
     end
 
     test "does not log code evaluation for permanent apps" do
@@ -2156,7 +2164,7 @@ defmodule Livebook.SessionTest do
 
       unique_id = Utils.random_short_id()
       # Use random ID to uniquely identify the source code of this cell
-      code_cell = %{Notebook.Cell.new(:code) | source: "# #{unique_id}"}
+      code_cell = %{Notebook.Cell.new(:code) | source: "#{unique_id}"}
       section = %{Notebook.Section.new() | cells: [code_cell]}
       notebook = %{Notebook.new() | sections: [section], app_settings: app_settings}
 
@@ -2169,7 +2177,7 @@ defmodule Livebook.SessionTest do
       cell_id = code_cell.id
 
       log =
-        capture_log(fn ->
+        capture_log([level: :info, metadata: [:session_mode, :code, :event]], fn ->
           Session.queue_cell_evaluation(app_session.pid, cell_id)
           assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
         end)
