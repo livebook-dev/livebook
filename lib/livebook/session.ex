@@ -2720,6 +2720,7 @@ defmodule Livebook.Session do
     )
 
     Logger.info(
+      "Evaluating code",
       Keyword.merge(
         Livebook.Utils.logger_users_metadata(evaluation_users),
         session_mode: session_mode,
