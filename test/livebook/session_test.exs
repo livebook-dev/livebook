@@ -2160,19 +2160,9 @@ defmodule Livebook.SessionTest do
       section = %{Notebook.Section.new() | cells: [code_cell]}
       notebook = %{Notebook.new() | sections: [section], app_settings: app_settings}
 
-      # Deploy as a permanent app
-      app_spec = Livebook.Apps.NotebookAppSpec.new(notebook)
-      deployer_pid = Livebook.Apps.Deployer.local_deployer()
-      ref = Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec, permanent: true)
-
-      app_pid =
-        receive do
-          {:deploy_result, ^ref, {:ok, pid}} ->
-            Process.demonitor(ref, [:flush])
-            pid
-        end
-
+      app_pid = deploy_notebook_sync(notebook, permanent: true)
       session_id = App.get_session_id(app_pid)
+
       {:ok, app_session} = Livebook.Sessions.fetch_session(session_id)
 
       Session.subscribe(app_session.id)
@@ -2186,8 +2176,6 @@ defmodule Livebook.SessionTest do
 
       # Logs from other test might be captured, so we're using an unique_id
       refute log =~ unique_id
-
-      App.close(app_pid)
     end
   end
 
