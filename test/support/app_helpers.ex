@@ -3,11 +3,14 @@ defmodule Livebook.AppHelpers do
 
   alias Livebook.TeamsRPC
 
-  def deploy_notebook_sync(notebook) do
+  def deploy_notebook_sync(notebook, opts \\ []) do
+    opts = Keyword.validate!(opts, permanent: false)
+    permanent_opts = Keyword.take(opts, [:permanent])
+
     app_spec = Livebook.Apps.NotebookAppSpec.new(notebook)
 
     deployer_pid = Livebook.Apps.Deployer.local_deployer()
-    ref = Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
+    ref = Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec, permanent_opts)
 
     receive do
       {:deploy_result, ^ref, {:ok, pid}} ->

@@ -22,7 +22,9 @@ config :livebook, :logger, [
   {:handler, :json_log, :logger_std_h,
    %{
      config: %{file: ~c"#{path}"},
-     formatter: {LoggerJSON.Formatters.Basic, %{metadata: [:users, :request_id]}}
+     formatter:
+       {LoggerJSON.Formatters.Basic,
+        %{metadata: [:request_id, :users, :session_mode, :code, :event]}}
    }}
 ]
 

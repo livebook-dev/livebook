@@ -361,6 +361,7 @@ defmodule Livebook.App do
       files_source: {:dir, files_source},
       mode: :app,
       app_pid: self(),
+      app_permanent: state.deployment_bundle.permanent,
       auto_shutdown_ms: state.deployment_bundle.notebook.app_settings.auto_shutdown_ms,
       started_by: user,
       deployed_by: state.deployment_bundle.deployed_by
