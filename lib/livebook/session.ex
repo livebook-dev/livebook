@@ -2685,16 +2685,6 @@ defmodule Livebook.Session do
   end
 
   defp log_code_evaluation(cell, state) do
-    inspected_code = inspect(cell.source, printable_limit: :infinity)
-
-    # For metadata code, we try to use use the raw source, so it's easier to process
-    # the logged code in a external log aggregator.
-    metadata_code =
-      case cell.source do
-        source when is_binary(source) -> source
-        _ -> inspected_code
-      end
-
     session_mode = state.data.mode
 
     evaluation_users =
@@ -2714,7 +2704,7 @@ defmodule Livebook.Session do
           Session mode: #{session_mode}
           Code: \
         """,
-        inspected_code
+        inspect(cell.source, printable_limit: :infinity)
       ],
       Livebook.Utils.logger_users_metadata(evaluation_users)
     )
@@ -2724,7 +2714,7 @@ defmodule Livebook.Session do
       Keyword.merge(
         Livebook.Utils.logger_users_metadata(evaluation_users),
         session_mode: session_mode,
-        code: metadata_code,
+        code: cell.source,
         event: "code.evaluate"
       )
     )
