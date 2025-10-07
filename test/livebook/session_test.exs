@@ -2169,6 +2169,8 @@ defmodule Livebook.SessionTest do
 
           app_pid = deploy_notebook_sync(notebook, permanent: true)
 
+          assert_receive {:app_created, %{pid: ^app_pid}}
+
           assert_receive {:app_updated,
                           %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
         end)
