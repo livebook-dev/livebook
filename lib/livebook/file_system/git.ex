@@ -116,7 +116,13 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Git do
 
   def write_stream_halt(_file_system, _state), do: raise("not implemented")
 
-  def read_stream_into(_file_system, _path, _collectable), do: raise("not implemented")
+  def read_stream_into(file_system, path, collectable) do
+    try do
+      Git.Client.stream_file(file_system, path, collectable)
+    rescue
+      error in File.Error -> FileSystem.Utils.posix_error(error.reason)
+    end
+  end
 
   def load(file_system, %{"hub_id" => _} = fields) do
     load(file_system, %{

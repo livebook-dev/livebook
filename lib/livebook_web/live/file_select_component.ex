@@ -499,8 +499,8 @@ defmodule LivebookWeb.FileSelectComponent do
 
   def handle_event("set_file_system", %{"id" => file_system_id}, socket) do
     file_system = Enum.find(socket.assigns.file_systems, &(&1.id == file_system_id))
-
     file = FileSystem.File.new(file_system)
+    :ok = FileSystem.mount(file_system)
 
     send_event(socket.assigns.target, {:set_file, file, %{exists: true}})
 

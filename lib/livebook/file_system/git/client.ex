@@ -43,7 +43,20 @@ defmodule Livebook.FileSystem.Git.Client do
     path = relative_path(path)
 
     with {:ok, git_dir} <- fetch_repository(file_system) do
-      show(git_dir, file_system.branch, path)
+      git(git_dir, ["show", "#{file_system.branch}:#{path}"])
+    end
+  end
+
+  @doc """
+  Streams the content of the given file from given repository.
+  """
+  @spec stream_file(FileSystem.Git.t(), String.t(), Collectable.t()) ::
+          {:ok, String.t()} | {:error, FileSystem.error()}
+  def stream_file(%FileSystem.Git{} = file_system, path, collectable) do
+    path = relative_path(path)
+
+    with {:ok, git_dir} <- fetch_repository(file_system) do
+      git(git_dir, ["show", "#{file_system.branch}:#{path}"], into: collectable)
     end
   end
 
@@ -88,10 +101,6 @@ defmodule Livebook.FileSystem.Git.Client do
        |> String.split("\n", trim: true)
        |> Enum.map(&normalize_dir_path/1)}
     end
-  end
-
-  defp show(git_dir, branch, path) do
-    git(git_dir, ["show", "#{branch}:#{path}"])
   end
 
   defp rev_parse(git_dir, branch, path) do
