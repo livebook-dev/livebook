@@ -2171,8 +2171,11 @@ defmodule Livebook.SessionTest do
 
           assert_receive {:app_created, %{pid: ^app_pid}}
 
+          # The app takes a while to execute on Windows CI, with concurrent
+          # app deployments.
           assert_receive {:app_updated,
-                          %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
+                          %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}},
+                         10_000
         end)
 
       # Logs from other test might be captured, so we're using an unique_id
