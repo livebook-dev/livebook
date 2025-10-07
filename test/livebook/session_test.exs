@@ -2095,14 +2095,16 @@ defmodule Livebook.SessionTest do
 
   describe "code evaluation logging" do
     test "logs code evaluation for regular sessions" do
-      session = start_session()
-      Session.subscribe(session.id)
-
-      {_section_id, cell_id} = insert_section_and_cell(session.pid)
-
       unique_id = Utils.random_short_id()
       # Use random ID to uniquely identify the source code of this cell
-      Session.set_cell_attributes(session.pid, cell_id, %{source: "#{unique_id}"})
+      code_cell = %{Notebook.Cell.new(:code) | source: ~s/"#{unique_id}"/}
+      section = %{Notebook.Section.new() | cells: [code_cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+      Session.subscribe(session.id)
+
+      cell_id = code_cell.id
 
       log =
         capture_log([level: :info, metadata: [:session_mode, :code, :event]], fn ->
@@ -2111,48 +2113,41 @@ defmodule Livebook.SessionTest do
         end)
 
       # Logs from other test might be captured, so we're using an unique_id
-      assert log =~ "code=#{unique_id}"
+      assert log =~ ~s/code="#{unique_id}"/
       assert log =~ "Evaluating code"
       assert log =~ "session_mode=default"
       assert log =~ "event=code.evaluate"
     end
 
     test "logs code evaluation for preview apps" do
-      session = start_session()
-      Session.subscribe(session.id)
-
       slug = Utils.random_short_id()
       app_settings = %{Notebook.AppSettings.new() | slug: slug}
-      Session.set_app_settings(session.pid, app_settings)
-
-      {section_id, _cell_id} = insert_section_and_cell(session.pid)
-
-      Apps.subscribe()
-      Session.deploy_app(session.pid)
-      assert_receive {:app_created, %{slug: ^slug, pid: app_pid}}
-
-      on_exit(fn ->
-        App.close(app_pid)
-      end)
-
-      session_id = App.get_session_id(app_pid)
-      {:ok, app_session} = Livebook.Sessions.fetch_session(session_id)
-
-      Session.subscribe(app_session.id)
 
       unique_id = Utils.random_short_id()
       # Use random ID to uniquely identify the source code of this cell
-      Session.insert_cell(app_session.pid, section_id, 0, :code, %{source: "#{unique_id}"})
-      assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :code, cell_id, _}}
+      code_cell = %{Notebook.Cell.new(:code) | source: ~s/"#{unique_id}"/}
+      section = %{Notebook.Section.new() | cells: [code_cell]}
+      notebook = %{Notebook.new() | sections: [section], app_settings: app_settings}
+
+      session = start_session(notebook: notebook)
+      Session.subscribe(session.id)
 
       log =
         capture_log([level: :info, metadata: [:session_mode, :code, :event]], fn ->
-          Session.queue_cell_evaluation(app_session.pid, cell_id)
-          assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+          Apps.subscribe()
+          Session.deploy_app(session.pid)
+          assert_receive {:app_created, %{slug: ^slug, pid: app_pid}}
+
+          on_exit(fn ->
+            App.close(app_pid)
+          end)
+
+          assert_receive {:app_updated,
+                          %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
         end)
 
       # Logs from other test might be captured, so we're using an unique_id
-      assert log =~ "code=#{unique_id}"
+      assert log =~ ~s/code="#{unique_id}"/
       assert log =~ "Evaluating code"
       assert log =~ "session_mode=app"
       assert log =~ "event=code.evaluate"
@@ -2164,22 +2159,18 @@ defmodule Livebook.SessionTest do
 
       unique_id = Utils.random_short_id()
       # Use random ID to uniquely identify the source code of this cell
-      code_cell = %{Notebook.Cell.new(:code) | source: "#{unique_id}"}
+      code_cell = %{Notebook.Cell.new(:code) | source: ~s/"#{unique_id}"/}
       section = %{Notebook.Section.new() | cells: [code_cell]}
       notebook = %{Notebook.new() | sections: [section], app_settings: app_settings}
 
-      app_pid = deploy_notebook_sync(notebook, permanent: true)
-      session_id = App.get_session_id(app_pid)
-
-      {:ok, app_session} = Livebook.Sessions.fetch_session(session_id)
-
-      Session.subscribe(app_session.id)
-      cell_id = code_cell.id
-
       log =
         capture_log([level: :info, metadata: [:session_mode, :code, :event]], fn ->
-          Session.queue_cell_evaluation(app_session.pid, cell_id)
-          assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+          Apps.subscribe()
+
+          app_pid = deploy_notebook_sync(notebook, permanent: true)
+
+          assert_receive {:app_updated,
+                          %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
         end)
 
       # Logs from other test might be captured, so we're using an unique_id
