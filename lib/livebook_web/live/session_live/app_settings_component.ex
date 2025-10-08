@@ -105,6 +105,17 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
               '''
             }
           />
+          <.checkbox_field
+            field={f[:render_static]}
+            label="Render sections and Markdown blocks"
+            help={
+              ~S'''
+              When enabled, renders all the added
+              h2-sections and Markdown blocks of
+              the original notebook.
+              '''
+            }
+          />
           <%= if Ecto.Changeset.get_field(@changeset, :multi_session) do %>
             <.checkbox_field
               field={f[:show_existing_sessions]}
