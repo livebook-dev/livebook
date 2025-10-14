@@ -3,4 +3,5 @@ defmodule LivebookProto.AuthorizationGroup do
 
   field :provider_id, 1, type: :string, json_name: "providerId"
   field :group_name, 2, type: :string, json_name: "groupName"
+  field :app_folder_ids, 3, repeated: true, type: :string, json_name: "appFolderIds"
 end
