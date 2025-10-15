@@ -17,4 +17,6 @@ defmodule LivebookProto.AppDeployment do
     repeated: true,
     type: LivebookProto.AuthorizationGroup,
     json_name: "authorizationGroups"
+
+  field :app_folder_id, 13, type: :string, json_name: "appFolderId"
 end

@@ -119,6 +119,7 @@ message UserConnected {
   repeated AppDeployment app_deployments = 5;
   repeated Agent agents = 6;
   BillingStatus billing_status = 7;
+  repeated AppFolder app_folders = 8;
 }
 
 message AgentConnected {
@@ -131,6 +132,7 @@ message AgentConnected {
   repeated AppDeployment app_deployments = 8;
   repeated Agent agents = 9;
   BillingStatus billing_status = 10;
+  repeated AppFolder app_folders = 11;
 }
 
 message AppDeployment {
@@ -146,6 +148,7 @@ message AppDeployment {
   string access_type = 10;
   string version = 11;
   repeated AuthorizationGroup authorization_groups = 12;
+  string app_folder_id = 13;
 }
 
 message AppDeploymentStarted {
@@ -215,11 +218,29 @@ message EnvironmentVariable {
 message AuthorizationGroup {
   string provider_id = 1;
   string group_name = 2;
+  repeated string app_folder_ids = 3;
 }
 
 message DeploymentUser {
   string user_id = 1;
   string deployment_group_id = 2;
+}
+
+message AppFolderCreated {
+  AppFolder app_folder = 1;
+}
+
+message AppFolderUpdated {
+  AppFolder app_folder = 1;
+}
+
+message AppFolderDeleted {
+  string id = 1;
+}
+
+message AppFolder {
+  string id = 1;
+  string name = 2;
 }
 
 message Event {
@@ -242,6 +263,9 @@ message Event {
     AppDeploymentStopped app_deployment_stopped = 16;
     OrgUpdated org_updated = 17;
     AppDeploymentUpdated app_deployment_updated = 18;
+    AppFolderCreated app_folder_created = 19;
+    AppFolderUpdated app_folder_updated = 20;
+    AppFolderDeleted app_folder_deleted = 21;
   }
 }
 

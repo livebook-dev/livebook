@@ -78,4 +78,19 @@ defmodule LivebookProto.Event do
     type: LivebookProto.AppDeploymentUpdated,
     json_name: "appDeploymentUpdated",
     oneof: 0
+
+  field :app_folder_created, 19,
+    type: LivebookProto.AppFolderCreated,
+    json_name: "appFolderCreated",
+    oneof: 0
+
+  field :app_folder_updated, 20,
+    type: LivebookProto.AppFolderUpdated,
+    json_name: "appFolderUpdated",
+    oneof: 0
+
+  field :app_folder_deleted, 21,
+    type: LivebookProto.AppFolderDeleted,
+    json_name: "appFolderDeleted",
+    oneof: 0
 end
