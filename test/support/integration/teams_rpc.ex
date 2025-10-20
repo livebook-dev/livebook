@@ -191,6 +191,10 @@ defmodule Livebook.TeamsRPC do
     :erpc.call(node, TeamsRPC, :update_file_system, [file_system.external_id, org_key, attrs])
   end
 
+  def update_app_folder(node, app_folder, attrs \\ []) do
+    :erpc.call(node, TeamsRPC, :update_app_folder, [app_folder, attrs])
+  end
+
   # Delete resource
 
   def delete_user_org(node, user_id, org_id) do
@@ -204,6 +208,10 @@ defmodule Livebook.TeamsRPC do
   def delete_file_system(node, org_key, id) do
     livebook_version = Livebook.Config.app_version()
     :erpc.call(node, TeamsRPC, :delete_file_system, [id, org_key, livebook_version])
+  end
+
+  def delete_app_folder(node, app_folder) do
+    :erpc.call(node, TeamsRPC, :delete_app_folder, [app_folder])
   end
 
   # Actions

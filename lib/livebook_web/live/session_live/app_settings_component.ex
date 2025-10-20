@@ -12,10 +12,15 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
         _ -> AppSettings.change(assigns.settings)
       end
 
+    app_folder_options =
+      for app_folder <- assigns.app_folders do
+        {app_folder.name, app_folder.id}
+      end
+
     {:ok,
      socket
      |> assign(assigns)
-     |> assign(changeset: changeset)}
+     |> assign(app_folder_options: app_folder_options, changeset: changeset)}
   end
 
   @impl true
@@ -42,6 +47,18 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
       >
         <div class="flex flex-col space-y-4">
           <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce />
+          <.select_field
+            :if={@teams_enabled}
+            field={f[:group]}
+            label="Folder"
+            prompt="Select a folder..."
+            options={@app_folder_options}
+            help={
+              ~S'''
+              Use folders to organize how how apps are displayed.
+              '''
+            }
+          />
           <div class="flex flex-col space-y-1">
             <.checkbox_field
               field={f[:access_type]}

@@ -103,6 +103,8 @@ defmodule LivebookWeb.SessionLive.Render do
         settings={@data_view.app_settings}
         context={@action_assigns.context}
         deployed_app_slug={@data_view.deployed_app_slug}
+        app_folders={@data_view.hub_app_folders}
+        teams_enabled={@data_view.teams_enabled}
       />
     </.modal>
 

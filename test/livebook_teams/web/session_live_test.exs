@@ -740,4 +740,43 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       refute has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
     end
   end
+
+  describe "app settings" do
+    @describetag subscribe_to_teams_topics: [:clients, :app_folders]
+
+    test "updates the list of app folders",
+         %{team: team, conn: conn, node: node, session: session, org: org} do
+      Session.set_notebook_hub(session.pid, team.id)
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view
+             |> element(~s/[data-el-app-info] a/, "Configure")
+             |> render_click() =~ ~s(name="app_settings[app_folder_id]")
+
+      assert render(view) =~ ~s(<option value="">Select a folder...</option></select>)
+
+      app_folder = TeamsRPC.create_app_folder(node, name: "Tidewave", org: org)
+      id = to_string(app_folder.id)
+
+      assert_receive {:app_folder_created, %{id: ^id, name: "Tidewave"}}
+      assert_receive {:operation, {:sync_hub_app_folders, "__server__"}}
+
+      assert render(view) =~
+               ~s(<option value="">Select a folder...</option><option value="#{id}">Tidewave</option></select>)
+
+      {:ok, %{name: "Wavetide"}} = TeamsRPC.update_app_folder(node, app_folder, name: "Wavetide")
+
+      assert_receive {:app_folder_updated, %{id: ^id, name: "Wavetide"}}
+      assert_receive {:operation, {:sync_hub_app_folders, "__server__"}}
+      refute render(view) =~ ~s(<option value="#{id}">Tidewave</option>)
+      assert render(view) =~ ~s(<option value="#{id}">Wavetide</option>)
+
+      TeamsRPC.delete_app_folder(node, app_folder)
+
+      assert_receive {:app_folder_deleted, %{id: ^id, name: "Wavetide"}}
+      assert_receive {:operation, {:sync_hub_app_folders, "__server__"}}
+      refute render(view) =~ ~s(<option value="#{id}">Tidewave</option>)
+      refute render(view) =~ ~s(<option value="#{id}">Wavetide</option>)
+    end
+  end
 end
