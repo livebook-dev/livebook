@@ -162,6 +162,13 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:app_folder) do
+    %Livebook.Teams.AppFolder{
+      id: "#{unique_integer()}",
+      name: unique_value("app_folder")
+    }
+  end
+
   def build(factory_name, attrs) do
     factory_name |> build() |> struct!(attrs)
   end
