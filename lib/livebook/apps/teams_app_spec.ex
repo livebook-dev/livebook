@@ -3,7 +3,7 @@ defmodule Livebook.Apps.TeamsAppSpec do
 
   @enforce_keys [:slug, :version, :hub_id, :app_deployment_id]
 
-  defstruct [:slug, :version, :hub_id, :app_deployment_id]
+  defstruct [:slug, :version, :hub_id, :app_deployment_id, :app_folder_id]
 end
 
 defimpl Livebook.Apps.AppSpec, for: Livebook.Apps.TeamsAppSpec do
