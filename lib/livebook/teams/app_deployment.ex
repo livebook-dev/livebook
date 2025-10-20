@@ -14,6 +14,7 @@ defmodule Livebook.Teams.AppDeployment do
           access_type: Livebook.Notebook.AppSettings.access_type(),
           hub_id: String.t() | nil,
           deployment_group_id: String.t() | nil,
+          app_folder_id: String.t() | nil,
           file: binary() | nil,
           deployed_by: String.t() | nil,
           deployed_at: DateTime.t() | nil,
@@ -32,6 +33,7 @@ defmodule Livebook.Teams.AppDeployment do
     field :access_type, Ecto.Enum, values: @access_types
     field :hub_id, :string
     field :deployment_group_id, :string
+    field :app_folder_id, :string
     field :file, :string
     field :deployed_by, :string
     field :deployed_at, :utc_datetime
