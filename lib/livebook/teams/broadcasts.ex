@@ -7,6 +7,7 @@ defmodule Livebook.Teams.Broadcasts do
   @app_deployments_topic "teams:app_deployments"
   @clients_topic "teams:clients"
   @deployment_groups_topic "teams:deployment_groups"
+  @app_folders_topic "teams:app_folders"
   @app_server_topic "teams:app_server"
 
   @doc """
@@ -39,6 +40,12 @@ defmodule Livebook.Teams.Broadcasts do
   Topic `#{@app_server_topic}`:
 
     * `{:server_authorization_updated, DeploymentGroup.t()}`
+
+  Topic `#{@app_folders_topic}`:
+
+    * `{:app_folder_created, AppFolder.t()}`
+    * `{:app_folder_updated, AppFolder.t()}`
+    * `{:app_folder_deleted, AppFolder.t()}`
 
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
@@ -152,6 +159,30 @@ defmodule Livebook.Teams.Broadcasts do
   @spec server_authorization_updated(Teams.DeploymentGroup.t()) :: broadcast()
   def server_authorization_updated(%Teams.DeploymentGroup{} = deployment_group) do
     broadcast(@app_server_topic, {:server_authorization_updated, deployment_group})
+  end
+
+  @doc """
+  Broadcasts under `#{@app_folders_topic}` topic when hub received a new app folder.
+  """
+  @spec app_folder_created(Teams.AppFolder.t()) :: broadcast()
+  def app_folder_created(%Teams.AppFolder{} = app_folder) do
+    broadcast(@app_folders_topic, {:app_folder_created, app_folder})
+  end
+
+  @doc """
+  Broadcasts under `#{@app_folders_topic}` topic when hub received an updated app folder.
+  """
+  @spec app_folder_updated(Teams.AppFolder.t()) :: broadcast()
+  def app_folder_updated(%Teams.AppFolder{} = app_folder) do
+    broadcast(@app_folders_topic, {:app_folder_updated, app_folder})
+  end
+
+  @doc """
+  Broadcasts under `#{@app_folders_topic}` topic when hub received a deleted app folder.
+  """
+  @spec app_folder_deleted(Teams.AppFolder.t()) :: broadcast()
+  def app_folder_deleted(%Teams.AppFolder{} = app_folder) do
+    broadcast(@app_folders_topic, {:app_folder_deleted, app_folder})
   end
 
   defp broadcast(topic, message) do
