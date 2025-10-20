@@ -174,6 +174,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns a list of cached app folders.
+  """
+  @spec get_app_folders(String.t()) :: list(Teams.AppFolder.t())
+  def get_app_folders(id) do
+    GenServer.call(registry_name(id), :get_app_folders)
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -369,6 +377,10 @@ defmodule Livebook.Hubs.TeamClient do
           {:reply, false, state}
       end
     end
+  end
+
+  def handle_call(:get_app_folders, _caller, state) do
+    {:reply, state.app_folders, state}
   end
 
   @impl true
