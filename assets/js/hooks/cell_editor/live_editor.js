@@ -45,7 +45,7 @@ import { settingsStore } from "../../lib/settings";
 import Delta from "../../lib/delta";
 import Markdown from "../../lib/markdown";
 import { readOnlyHint } from "./live_editor/codemirror/read_only_hint";
-import { isMacOS, wait } from "../../lib/utils";
+import { isMacOS, wait, isSafari } from "../../lib/utils";
 import Emitter from "../../lib/emitter";
 import CollabClient from "./live_editor/collab_client";
 import { languages } from "./live_editor/codemirror/languages";
@@ -397,6 +397,33 @@ export default class LiveEditor {
         selectionChangeListener,
       ],
     });
+
+    // In Safari, when a contenteditable element (here the editor) is
+    // blurred in favour of non-input element, typing something still
+    // targets the contenteditable element. This is a known bug [1],
+    // with a corresponding CodeMirror thread [2]. A workaround is to
+    // create and focus a temporary input, to properly remove focus
+    // from the contenteditable element.
+    //
+    // This is particularly annoying in our case, because the user may
+    // blur the editor and then use a letter shortcut, such as "n" for
+    // a new cell, which ends up typing in the editor.
+    //
+    // [1]: https://bugs.webkit.org/show_bug.cgi?id=112854
+    // [2]: https://discuss.codemirror.net/t/how-to-force-unfocus-of-the-codemirror-element-in-safari/8095
+    if (isSafari()) {
+      this.view.contentDOM.addEventListener("blur", (event) => {
+        const input = document.createElement("input");
+        input.style.cssText =
+          "width: 1px; height: 1px; border: none; margin: 0; padding: 0;";
+        input.tabIndex = -1;
+        this.view.contentDOM.appendChild(input);
+        input.focus();
+        input.setSelectionRange(0, 0);
+        input.blur();
+        input.remove();
+      });
+    }
   }
 
   /** @private */
