@@ -112,6 +112,67 @@ defmodule LivebookCLI.Integration.DeployTest do
       end
     end
 
+    test "successfully deploys a notebook with attachments via CLI",
+         %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
+      title = "App with attachments"
+      slug = Utils.random_short_id()
+      app_path = Path.join(tmp_dir, "#{slug}.livemd")
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
+      deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
+      hub_id = team.id
+      deployment_group_id = to_string(deployment_group.id)
+
+      files_dir = Path.join(tmp_dir, "files")
+      File.mkdir!(files_dir)
+
+      attachment_path = Path.join(files_dir, "file.txt")
+      File.write!(attachment_path, "some content")
+
+      stamp_notebook(app_path, """
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"file_entries":[{"name":"file.txt","type":"attachment"}],"hub_id":"#{hub_id}"} -->
+
+      # #{title}
+
+      ```elixir
+      Mix.install([
+      {:kino, "~> 0.17.0"}
+      ])
+      ```
+
+      ## Section
+
+      ```elixir
+      path = Kino.FS.file_path("file.txt")
+      content = File.read!(path)
+      content = String.trim(content)
+
+      IO.puts(content)
+      ```
+      """)
+
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert deploy(
+                   key,
+                   team.teams_key,
+                   deployment_group.id,
+                   app_path
+                 ) == :ok
+        end)
+
+      assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
+      assert output =~ "  * #{title} deployed successfully. (#{@url}/apps/#{slug})"
+
+      assert_receive {:app_deployment_started,
+                      %{
+                        title: ^title,
+                        slug: ^slug,
+                        deployment_group_id: ^deployment_group_id,
+                        hub_id: ^hub_id,
+                        deployed_by: "CLI"
+                      }}
+    end
+
     test "fails with unauthorized org token",
          %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
       title = "Test CLI Deploy App"
