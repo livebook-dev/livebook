@@ -218,7 +218,7 @@ message EnvironmentVariable {
 message AuthorizationGroup {
   string provider_id = 1;
   string group_name = 2;
-  repeated string app_folder_ids = 3;
+  string app_folder_id = 3;
 }
 
 message DeploymentUser {
