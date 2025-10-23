@@ -1819,6 +1819,14 @@ defmodule LivebookWeb.SessionLive do
   # have to traverse the whole template tree and no diff is sent to the client.
   defp data_to_view(data) do
     changed_input_ids = Session.Data.changed_input_ids(data)
+    hub = Livebook.Hubs.fetch_hub!(data.notebook.hub_id)
+
+    app_folders =
+      if data.notebook.teams_enabled do
+        Livebook.Teams.get_app_folders(hub)
+      else
+        []
+      end
 
     %{
       file: data.file,
@@ -1861,7 +1869,7 @@ defmodule LivebookWeb.SessionLive do
       section_views: section_views(data.notebook.sections, data, changed_input_ids),
       bin_entries: data.bin_entries,
       secrets: data.secrets,
-      hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
+      hub: hub,
       hub_secrets: data.hub_secrets,
       any_session_secrets?:
         Session.Data.session_secrets(data.secrets, data.notebook.hub_id) != [],
@@ -1869,7 +1877,9 @@ defmodule LivebookWeb.SessionLive do
       quarantine_file_entry_names: data.notebook.quarantine_file_entry_names,
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug,
-      deployment_group_id: data.notebook.deployment_group_id
+      deployment_group_id: data.notebook.deployment_group_id,
+      app_folders: app_folders,
+      teams_enabled: data.notebook.teams_enabled
     }
   end
 

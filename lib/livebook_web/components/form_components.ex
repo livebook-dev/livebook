@@ -547,7 +547,7 @@ defmodule LivebookWeb.FormComponents do
           ]}
           {@rest}
         >
-          <option :if={@prompt} value="">{@prompt}</option>
+          <option :if={@prompt} value="" disabled selected>{@prompt}</option>
           <%!-- TODO: remove to_string/1 when fixed upstream, see https://github.com/phoenixframework/phoenix_html/issues/444#issuecomment-2713061480 --%>
           {Phoenix.HTML.Form.options_for_select(@options, to_string(@value))}
         </select>

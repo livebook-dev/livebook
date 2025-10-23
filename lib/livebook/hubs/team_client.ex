@@ -625,7 +625,7 @@ defmodule Livebook.Hubs.TeamClient do
       deployed_by: app_deployment.deployed_by,
       deployed_at: DateTime.from_gregorian_seconds(app_deployment.deployed_at),
       authorization_groups: authorization_groups,
-      app_folder_id: app_deployment.app_folder_id
+      app_folder_id: nullify(app_deployment.app_folder_id)
     }
   end
 
@@ -645,7 +645,7 @@ defmodule Livebook.Hubs.TeamClient do
       %Teams.AuthorizationGroup{
         provider_id: authorization_group.provider_id,
         group_name: authorization_group.group_name,
-        app_folder_ids: authorization_group.app_folder_ids
+        app_folder_id: nullify(authorization_group.app_folder_id)
       }
     end
   end
@@ -931,7 +931,7 @@ defmodule Livebook.Hubs.TeamClient do
     remove_app_folder(state, app_folder)
   end
 
-  defp handle_event(:file_system_deleted, %{id: id}, state) do
+  defp handle_event(:app_folder_deleted, %{id: id}, state) do
     with {:ok, app_folder} <- fetch_app_folder(id, state) do
       handle_event(:app_folder_deleted, app_folder, state)
     end
