@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.17.3](https://github.com/livebook-dev/livebook/tree/v0.17.3) (2025-10-23)
+
+### Fixed
+
+* Editor blur on Safari ([#3083](https://github.com/livebook-dev/livebook/pull/3083))
+* Deploying notebooks with attachments from CLI via Teams ([#3084](https://github.com/livebook-dev/livebook/pull/3084))
+
 ## [v0.17.2](https://github.com/livebook-dev/livebook/tree/v0.17.2) (2025-09-15)
 
 ### Added
