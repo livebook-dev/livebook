@@ -63,13 +63,6 @@ defmodule Livebook.Notebook.Learn do
       }
     },
     %{
-      path: Path.join(__DIR__, "learn/intro_to_explorer.livemd"),
-      details: %{
-        description: "Intuitive data visualizations and data pipelines on the fly.",
-        cover_filename: "explorer.png"
-      }
-    },
-    %{
       path: Path.join(__DIR__, "learn/intro_to_vega_lite.livemd"),
       details: %{
         description: "Learn how to quickly create numerous plots for your data.",

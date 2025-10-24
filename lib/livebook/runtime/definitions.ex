@@ -17,7 +17,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.3.0"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.4.0"}, config: []}
   }
 
   exqlite = %{
@@ -50,11 +50,6 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:torchx, ">= 0.0.0"}, config: [nx: [default_backend: Torchx.Backend]]}
   }
 
-  kino_explorer = %{
-    name: "kino_explorer",
-    dependency: %{dep: {:kino_explorer, "~> 0.1.20"}, config: []}
-  }
-
   kino_flame = %{
     name: "kino_flame",
     dependency: %{dep: {:kino_flame, "~> 0.1.5"}, config: []}
@@ -83,6 +78,11 @@ defmodule Livebook.Runtime.Definitions do
   yaml_elixir = %{
     name: "yaml_elixir",
     dependency: %{dep: {:yaml_elixir, "~> 2.0"}, config: []}
+  }
+
+  adbc = %{
+    name: "adbc",
+    dependency: %{dep: {:adbc, "~> 0.8"}, config: []}
   }
 
   windows? = match?({:win32, _}, :os.type())
@@ -119,7 +119,6 @@ defmodule Livebook.Runtime.Definitions do
           name: "DuckDB",
           packages: [
             kino_db,
-            kino_explorer,
             %{
               name: "adbc",
               dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:duckdb]]]}
@@ -130,7 +129,6 @@ defmodule Livebook.Runtime.Definitions do
           name: "Google BigQuery",
           packages: [
             kino_db,
-            kino_explorer,
             %{
               name: "adbc",
               dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:bigquery]]]}
@@ -155,7 +153,6 @@ defmodule Livebook.Runtime.Definitions do
           name: "Snowflake",
           packages: [
             kino_db,
-            kino_explorer,
             %{
               name: "adbc",
               dependency: %{dep: {:adbc, ">= 0.0.0"}, config: [adbc: [drivers: [:snowflake]]]}
@@ -222,16 +219,6 @@ defmodule Livebook.Runtime.Definitions do
         %{
           name: "Default",
           packages: [kino_bumblebee, nx_backend_package]
-        }
-      ]
-    },
-    %{
-      kind: "Elixir.KinoExplorer.DataTransformCell",
-      name: "Data transform",
-      requirement_presets: [
-        %{
-          name: "Default",
-          packages: [kino_explorer]
         }
       ]
     },
@@ -318,24 +305,28 @@ defmodule Livebook.Runtime.Definitions do
     %{
       type: :file_action,
       file_types: ["text/csv"],
-      description: "Create a dataframe",
+      description: "Load into DuckDB",
       source: """
-      df =
-        Kino.FS.file_path("{{NAME}}")
-        |> Explorer.DataFrame.from_csv!()\
+      Adbc.download_driver!(:duckdb)
+      db = Kino.start_child!({Adbc.Database, driver: :duckdb})
+      conn = Kino.start_child!({Adbc.Connection, database: db})
+      path = Kino.FS.file_path("{{NAME}}")
+      Adbc.Connection.query!(conn, "SELECT * FROM read_csv($1)", [path])
       """,
-      packages: [kino, kino_explorer]
+      packages: [kino, kino_db, adbc]
     },
     %{
       type: :file_action,
       file_types: [".parquet"],
-      description: "Create a dataframe",
+      description: "Load into DuckDB",
       source: """
-      df =
-        Kino.FS.file_spec("{{NAME}}")
-        |> Explorer.DataFrame.from_parquet!(lazy: true)\
+      Adbc.download_driver!(:duckdb)
+      db = Kino.start_child!({Adbc.Database, driver: :duckdb})
+      conn = Kino.start_child!({Adbc.Connection, database: db})
+      path = Kino.FS.file_path("{{NAME}}")
+      Adbc.Connection.query!(conn, "SELECT * FROM read_parquet($1)", [path])
       """,
-      packages: [kino, kino_explorer]
+      packages: [kino, kino_db, adbc]
     },
     %{
       type: :file_action,
