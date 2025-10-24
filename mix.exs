@@ -35,6 +35,8 @@ defmodule Livebook.MixProject do
   end
 
   def application do
+    env = Application.get_all_env(:livebook)
+
     [
       mod: {Livebook.Application, []},
       extra_applications: [
@@ -47,7 +49,9 @@ defmodule Livebook.MixProject do
         :crypto,
         :public_key
       ],
-      env: Application.get_all_env(:livebook)
+      # Erase live reload as it contains regexes which fails
+      # when loaded in the next run
+      env: put_in(env[LivebookWeb.Endpoint][:live_reload], [])
     ]
   end
 
@@ -196,7 +200,6 @@ defmodule Livebook.MixProject do
   defp write_runtime_modules(release) do
     # We copy the subset of Livebook modules that are injected into
     # the runtime node. See overlays/bin/server for more details
-
     app = release.applications[:livebook]
 
     source = Path.join([release.path, "lib", "livebook-#{app[:vsn]}", "ebin"])
