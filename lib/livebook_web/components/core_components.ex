@@ -493,6 +493,34 @@ defmodule LivebookWeb.CoreComponents do
   end
 
   @doc """
+  Renders a file content skeleton.
+  """
+  attr :empty, :boolean, default: false, doc: "if the source is empty"
+  attr :bg_class, :string, default: "bg-gray-200", doc: "the skeleton background color"
+
+  def file_skeleton(assigns) do
+    ~H"""
+    <%= if @empty do %>
+      <div class="h-4"></div>
+    <% else %>
+      <div class="max-w-2xl w-full animate-pulse">
+        <div class="flex-1 space-y-4">
+          <div class="w-full flex space-x-2 items-center p-2">
+            <div class={[@bg_class, "h-6 rounded-md w-5"]} />
+            <div class={[@bg_class, "h-4 rounded-lg", random_width(Enum.random(0..8))]} />
+          </div>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
+  defp random_width(seed) do
+    widths = ["w-1/2", "w-2/3", "w-3/4", "w-4/5", "w-full"]
+    Enum.at(widths, rem(seed * 7, length(widths)))
+  end
+
+  @doc """
   Renders a highlighted code snippet.
 
   ## Examples
