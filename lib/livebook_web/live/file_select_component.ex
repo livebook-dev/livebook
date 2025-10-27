@@ -235,34 +235,23 @@ defmodule LivebookWeb.FileSelectComponent do
             </div>
           </div>
 
-          <div
-            :if={@highlighted_file_infos != []}
+          <.file_infos
+            id={@id}
             class="grid grid-cols-2 lg:grid-cols-3 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
-          >
-            <%= for file_info <- Enum.take(@highlighted_file_infos, visible_files_limit()) do %>
-              <.file
-                id={"#{@id}-file-#{file_info.id}"}
-                file_info={file_info}
-                myself={@myself}
-                renaming_file={@renaming_file}
-                renamed_name={@renamed_name}
-              />
-            <% end %>
-            <.more_files_indicator length={length(@highlighted_file_infos)} />
-          </div>
+            file_infos={@highlighted_file_infos}
+            myself={@myself}
+            renaming_file={@renaming_file}
+            renamed_name={@renamed_name}
+          />
 
-          <div class="grid grid-cols-2 lg:grid-cols-3 gap-2">
-            <%= for file_info <- Enum.take(@unhighlighted_file_infos, visible_files_limit()) do %>
-              <.file
-                id={"#{@id}-file-#{file_info.id}"}
-                file_info={file_info}
-                myself={@myself}
-                renaming_file={@renaming_file}
-                renamed_name={@renamed_name}
-              />
-            <% end %>
-            <.more_files_indicator length={length(@unhighlighted_file_infos)} />
-          </div>
+          <.file_infos
+            id={@id}
+            class="grid grid-cols-2 lg:grid-cols-3 gap-2"
+            file_infos={@unhighlighted_file_infos}
+            myself={@myself}
+            renaming_file={@renaming_file}
+            renamed_name={@renamed_name}
+          />
         </form>
       </div>
     </div>
@@ -346,6 +335,23 @@ defmodule LivebookWeb.FileSelectComponent do
         </.link>
       </.menu_item>
     </.menu>
+    """
+  end
+
+  defp file_infos(assigns) do
+    ~H"""
+    <div :if={@file_infos != []} class={@class}>
+      <.file
+        :for={file_info <- Enum.take(@file_infos, visible_files_limit())}
+        id={"#{@id}-file-#{file_info.id}"}
+        file_info={file_info}
+        myself={@myself}
+        renaming_file={@renaming_file}
+        renamed_name={@renamed_name}
+      />
+
+      <.more_files_indicator length={length(@file_infos)} />
+    </div>
     """
   end
 
