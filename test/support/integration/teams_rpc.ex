@@ -177,6 +177,20 @@ defmodule Livebook.TeamsRPC do
     :erpc.call(node, TeamsRPC, :update_deployment_group, [deployment_group, attrs])
   end
 
+  def update_file_system(node, team, org_key, file_system) do
+    type = Livebook.FileSystems.type(file_system)
+    name = Livebook.FileSystem.external_metadata(file_system).name
+
+    attrs = [
+      name: name,
+      type: String.to_atom(type),
+      value: Livebook.HubHelpers.generate_file_system_json(team, file_system),
+      livebook_version: Livebook.Config.app_version()
+    ]
+
+    :erpc.call(node, TeamsRPC, :update_file_system, [file_system.external_id, org_key, attrs])
+  end
+
   # Delete resource
 
   def delete_user_org(node, user_id, org_id) do
@@ -185,6 +199,11 @@ defmodule Livebook.TeamsRPC do
 
   def delete_deployment_group(node, deployment_group) do
     :erpc.call(node, TeamsRPC, :delete_deployment_group, [deployment_group])
+  end
+
+  def delete_file_system(node, org_key, id) do
+    livebook_version = Livebook.Config.app_version()
+    :erpc.call(node, TeamsRPC, :delete_file_system, [id, org_key, livebook_version])
   end
 
   # Actions

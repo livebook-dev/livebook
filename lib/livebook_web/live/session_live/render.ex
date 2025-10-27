@@ -160,6 +160,7 @@ defmodule LivebookWeb.SessionLive.Render do
         hub={@data_view.hub}
         file_entries={@data_view.file_entries}
         tab={@action_assigns.tab}
+        counter={@counter}
       />
     </.modal>
 
@@ -968,6 +969,7 @@ defmodule LivebookWeb.SessionLive.Render do
           id="add-file-entry-from-file"
           hub={@hub}
           session={@session}
+          counter={@counter}
         />
         <.live_component
           :if={@tab == "url"}

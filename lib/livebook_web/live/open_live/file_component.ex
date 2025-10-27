@@ -6,7 +6,7 @@ defmodule LivebookWeb.OpenLive.FileComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, file_info: %{exists: true, access: :read_write})}
+    {:ok, assign(socket, file_info: %{exists: true, access: :read_write}, counter: 0)}
   end
 
   @impl true
@@ -36,6 +36,7 @@ defmodule LivebookWeb.OpenLive.FileComponent do
         running_files={files(@sessions)}
         writable={writable?(@file_info)}
         target={{__MODULE__, @id}}
+        counter={@counter}
       >
         <div class="flex justify-end space-x-2">
           <.button

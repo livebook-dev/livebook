@@ -24,6 +24,7 @@ defmodule LivebookWeb.SessionLive do
 
             Session.subscribe(session_id)
             Livebook.NotebookManager.subscribe_starred_notebooks()
+            Livebook.Hubs.Broadcasts.subscribe(:file_systems)
 
             {data, client_id}
           else
@@ -87,7 +88,8 @@ defmodule LivebookWeb.SessionLive do
            page_title: get_page_title(data.notebook.name),
            action_assigns: %{},
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
-           starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files()
+           starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files(),
+           counter: 0
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -1094,6 +1096,12 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info({:app_updated, app}, socket) when socket.assigns.app != nil do
     {:noreply, assign(socket, :app, app)}
+  end
+
+  def handle_info({type, %{hub_id: id}}, socket)
+      when type in [:file_system_created, :file_system_updated, :file_system_deleted] and
+             socket.assigns.data_view.hub.id == id do
+    {:noreply, assign(socket, counter: socket.assigns.counter + 1)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

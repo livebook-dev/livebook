@@ -18,7 +18,7 @@ defmodule LivebookWeb.Integration.OpenLiveTest do
   describe "git file storage" do
     @describetag :git
 
-    setup %{test: test, team: team, node: node, org_key: org_key} do
+    setup %{test: test, team: team} do
       Livebook.FileSystem.Mounter.subscribe(team.id)
       data = test |> to_string() |> Base.encode32(padding: false, case: :lower)
 
@@ -29,14 +29,15 @@ defmodule LivebookWeb.Integration.OpenLiveTest do
           external_id: nil
         )
 
-      file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
-      assert_receive {:file_system_created, ^file_system}
-      assert_receive {:file_system_mounted, ^file_system}, 15_000
-
       {:ok, file_system: file_system}
     end
 
-    test "lists files and folder on read-only mode", %{conn: conn, file_system: file_system} do
+    test "lists files and folder on read-only mode",
+         %{conn: conn, team: team, node: node, org_key: org_key, file_system: file_system} do
+      file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
+      assert_receive {:file_system_created, ^file_system}, 5_000
+      assert_receive {:file_system_mounted, ^file_system}, 15_000
+
       {:ok, view, html} = live(conn, ~p"/open/storage")
       assert html =~ file_system.repo_url
 
@@ -69,6 +70,28 @@ defmodule LivebookWeb.Integration.OpenLiveTest do
 
       # only fork is available
       assert has_element?(view, ~s{button[phx-click="fork"]:not([disabled])})
+    end
+
+    test "updates the list of file systems when receive events",
+         %{conn: conn, team: team, node: node, org_key: org_key, file_system: file_system} do
+      {:ok, view, _html} = live(conn, ~p"/open/storage")
+      refute has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
+
+      file_system = TeamsRPC.create_file_system(node, team, org_key, file_system)
+      assert_receive {:file_system_created, ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 15_000
+      assert has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
+
+      file_system = %{file_system | branch: "test"}
+      {:ok, _} = TeamsRPC.update_file_system(node, team, org_key, file_system)
+      assert_receive {:file_system_updated, ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 15_000
+      assert has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
+
+      TeamsRPC.delete_file_system(node, org_key, file_system.external_id)
+      assert_receive {:file_system_deleted, ^file_system}
+      assert_receive {:file_system_unmounted, ^file_system}, 15_000
+      refute has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
     end
   end
 end
