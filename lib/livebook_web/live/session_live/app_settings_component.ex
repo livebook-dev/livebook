@@ -49,7 +49,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce />
           <.select_field
             :if={@teams_enabled}
-            field={f[:group]}
+            field={f[:app_folder_id]}
             label="Folder"
             prompt="Select a folder..."
             options={@app_folder_options}

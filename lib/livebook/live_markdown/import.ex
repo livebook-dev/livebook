@@ -495,6 +495,9 @@ defmodule Livebook.LiveMarkdown.Import do
       {"show_source", show_source}, attrs ->
         Map.put(attrs, :show_source, show_source)
 
+      {"app_folder_id", app_folder_id}, attrs ->
+        Map.put(attrs, :app_folder_id, app_folder_id)
+
       {"output_type", output_type}, attrs when output_type in ["all", "rich"] ->
         Map.put(attrs, :output_type, String.to_atom(output_type))
 

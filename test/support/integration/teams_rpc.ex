@@ -163,6 +163,10 @@ defmodule Livebook.TeamsRPC do
     {key, :erpc.call(node, TeamsRPC, :create_org_token, [key, attrs])}
   end
 
+  def create_app_folder(node, attrs \\ []) do
+    :erpc.call(node, TeamsRPC, :create_app_folder, [attrs])
+  end
+
   # Update resource
 
   def update_authorization_group(node, authorization_group, attrs) do

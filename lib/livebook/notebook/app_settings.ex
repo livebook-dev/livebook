@@ -14,7 +14,8 @@ defmodule Livebook.Notebook.AppSettings do
           access_type: access_type(),
           password: String.t() | nil,
           show_source: boolean(),
-          output_type: output_type()
+          output_type: output_type(),
+          app_folder_id: String.t() | nil
         }
 
   @type access_type :: :public | :protected
@@ -33,6 +34,7 @@ defmodule Livebook.Notebook.AppSettings do
     field :password, :string
     field :show_source, :boolean
     field :output_type, Ecto.Enum, values: [:all, :rich]
+    field :app_folder_id, :string
   end
 
   @doc """
@@ -49,7 +51,8 @@ defmodule Livebook.Notebook.AppSettings do
       access_type: :protected,
       password: generate_password(),
       show_source: false,
-      output_type: :all
+      output_type: :all,
+      app_folder_id: nil
     }
   end
 
@@ -82,7 +85,8 @@ defmodule Livebook.Notebook.AppSettings do
       :auto_shutdown_ms,
       :access_type,
       :show_source,
-      :output_type
+      :output_type,
+      :app_folder_id
     ])
     |> validate_required([
       :slug,

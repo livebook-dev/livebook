@@ -77,6 +77,7 @@ defmodule Livebook.Teams.AppDeployment do
          title: notebook.name,
          multi_session: notebook.app_settings.multi_session,
          access_type: notebook.app_settings.access_type,
+         app_folder_id: notebook.app_settings.app_folder_id,
          hub_id: notebook.hub_id,
          deployment_group_id: notebook.deployment_group_id,
          file: zip_content
