@@ -201,7 +201,7 @@ defmodule Livebook.Hubs.TeamClient do
     headers =
       if team.user_id do
         [
-          {"x-lb-version", Livebook.Config.app_version()},
+          {"x-lb-version", app_version()},
           {"x-user", to_string(team.user_id)},
           {"x-org", to_string(team.org_id)},
           {"x-org-key", to_string(team.org_key_id)},
@@ -209,7 +209,7 @@ defmodule Livebook.Hubs.TeamClient do
         ]
       else
         [
-          {"x-lb-version", Livebook.Config.app_version()},
+          {"x-lb-version", app_version()},
           {"x-org", to_string(team.org_id)},
           {"x-org-key", to_string(team.org_key_id)},
           {"x-agent-name", Livebook.Config.agent_name()},
@@ -1096,5 +1096,10 @@ defmodule Livebook.Hubs.TeamClient do
     Enum.any?(authorization_groups, fn %{provider_id: id, group_name: name} ->
       %{"provider_id" => id, "group_name" => name} in groups
     end)
+  end
+
+  defp app_version do
+    Livebook.Config.app_version()
+    |> String.replace_suffix("-dev", "")
   end
 end

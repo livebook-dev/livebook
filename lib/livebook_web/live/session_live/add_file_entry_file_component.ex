@@ -26,6 +26,11 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
   end
 
   @impl true
+  def update(%{event: {:mount_file_system, file_system}}, socket) do
+    :ok = FileSystem.mount(file_system)
+    {:ok, socket}
+  end
+
   def update(%{event: {:set_file, file, info}}, socket) do
     file_info = %{exists: info.exists}
     name = if FileSystem.File.dir?(file), do: "", else: FileSystem.File.name(file)
@@ -57,6 +62,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
           extnames={:any}
           running_files={[]}
           target={{__MODULE__, @id}}
+          file_systems={@file_systems}
         >
         </.live_component>
       </div>

@@ -49,7 +49,8 @@ defmodule LivebookWeb.FileSelectComponent do
        renamed_name: nil,
        error_message: nil,
        configure_path: nil,
-       file_systems: []
+       file_systems: [],
+       loading: false
      )
      |> allow_upload(:folder,
        accept: :any,
@@ -67,6 +68,7 @@ defmodule LivebookWeb.FileSelectComponent do
   def update(assigns, socket) do
     {force_reload?, assigns} = Map.pop(assigns, :force_reload, false)
     {show_only_writable?, assigns} = Map.pop(assigns, :show_only_writable, false)
+    {file_systems, assigns} = Map.pop(assigns, :file_systems, [])
 
     running_files_changed? = assigns.running_files != (socket.assigns[:running_files] || [])
 
@@ -75,10 +77,7 @@ defmodule LivebookWeb.FileSelectComponent do
       |> assign(assigns)
       |> update_file_infos(force_reload? or running_files_changed?)
 
-    {file_systems, configure_hub_id} =
-      if hub = socket.assigns[:hub],
-        do: {Livebook.Hubs.get_file_systems(hub), hub.id},
-        else: {Livebook.Hubs.get_file_systems(), Livebook.Hubs.Personal.id()}
+    configure_hub_id = get_in(socket.assigns[:hub].id) || Livebook.Hubs.Personal.id()
 
     file_systems =
       if show_only_writable? do
@@ -95,7 +94,7 @@ defmodule LivebookWeb.FileSelectComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id} class="h-full flex flex-col">
+    <div id={@id} class="h-full flex flex-col relative">
       <h2 class="sr-only">File system</h2>
       <div class="flex space-x-3 items-center mb-4">
         <div class="grow flex space-x-1">
@@ -105,6 +104,7 @@ defmodule LivebookWeb.FileSelectComponent do
             file_systems={@file_systems}
             configure_path={@configure_path}
             file_system_select_disabled={@file_system_select_disabled}
+            loading={@loading}
             myself={@myself}
           />
           <form
@@ -123,12 +123,13 @@ defmodule LivebookWeb.FileSelectComponent do
               value={@file.path}
               spellcheck="false"
               autocomplete="off"
+              disabled={@loading}
             />
           </form>
         </div>
         <.menu
           id={"#{@id}-new-item-menu"}
-          disabled={@file_system_select_disabled or not @writable}
+          disabled={@file_system_select_disabled or not @writable or @loading}
           position="bottom-right"
         >
           <:toggle>
@@ -209,7 +210,22 @@ defmodule LivebookWeb.FileSelectComponent do
       />
 
       <div
-        class="grow -m-1 p-1 h-full rounded-lg overflow-y-auto tiny-scrollbar"
+        :if={@loading}
+        class="grid grid-cols-2 lg:grid-cols-3 gap-2 mb-2 pb-2"
+        role="status"
+        aria-live="polite"
+        tabindex="-1"
+      >
+        <.file_skeleton :for={_idx <- 1..12} />
+      </div>
+
+      <div
+        :if={not @loading}
+        class={[
+          "grow -m-1 p-1 h-full rounded-lg relative",
+          @loading && "overflow-y-hidden",
+          not @loading && "overflow-y-auto tiny-scrollbar"
+        ]}
         tabindex="-1"
         phx-hook="Dropzone"
         id={"#{@id}-file-select-upload-dropzone"}
@@ -235,34 +251,23 @@ defmodule LivebookWeb.FileSelectComponent do
             </div>
           </div>
 
-          <div
-            :if={@highlighted_file_infos != []}
+          <.file_infos
+            id={@id}
             class="grid grid-cols-2 lg:grid-cols-3 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
-          >
-            <%= for file_info <- Enum.take(@highlighted_file_infos, visible_files_limit()) do %>
-              <.file
-                id={"#{@id}-file-#{file_info.id}"}
-                file_info={file_info}
-                myself={@myself}
-                renaming_file={@renaming_file}
-                renamed_name={@renamed_name}
-              />
-            <% end %>
-            <.more_files_indicator length={length(@highlighted_file_infos)} />
-          </div>
+            file_infos={@highlighted_file_infos}
+            myself={@myself}
+            renaming_file={@renaming_file}
+            renamed_name={@renamed_name}
+          />
 
-          <div class="grid grid-cols-2 lg:grid-cols-3 gap-2">
-            <%= for file_info <- Enum.take(@unhighlighted_file_infos, visible_files_limit()) do %>
-              <.file
-                id={"#{@id}-file-#{file_info.id}"}
-                file_info={file_info}
-                myself={@myself}
-                renaming_file={@renaming_file}
-                renamed_name={@renamed_name}
-              />
-            <% end %>
-            <.more_files_indicator length={length(@unhighlighted_file_infos)} />
-          </div>
+          <.file_infos
+            id={@id}
+            class="grid grid-cols-2 lg:grid-cols-3 gap-2"
+            file_infos={@unhighlighted_file_infos}
+            myself={@myself}
+            renaming_file={@renaming_file}
+            renamed_name={@renamed_name}
+          />
         </form>
       </div>
     </div>
@@ -301,14 +306,14 @@ defmodule LivebookWeb.FileSelectComponent do
 
   defp file_system_menu_button(assigns) do
     ~H"""
-    <.menu id={@id} disabled={@file_system_select_disabled} position="bottom-left">
+    <.menu id={@id} disabled={@file_system_select_disabled or @loading} position="bottom-left">
       <:toggle>
         <.button
           color="gray"
           type="button"
           class="pl-3 pr-2"
           aria-label="switch file storage"
-          disabled={@file_system_select_disabled}
+          disabled={@file_system_select_disabled or @loading}
         >
           <span>{file_system_name(@file.file_system_module)}</span>
           <div class="pl-0.5 flex items-center">
@@ -346,6 +351,23 @@ defmodule LivebookWeb.FileSelectComponent do
         </.link>
       </.menu_item>
     </.menu>
+    """
+  end
+
+  defp file_infos(assigns) do
+    ~H"""
+    <div :if={@file_infos != []} class={@class}>
+      <.file
+        :for={file_info <- Enum.take(@file_infos, visible_files_limit())}
+        id={"#{@id}-file-#{file_info.id}"}
+        file_info={file_info}
+        myself={@myself}
+        renaming_file={@renaming_file}
+        renamed_name={@renamed_name}
+      />
+
+      <.more_files_indicator length={length(@file_infos)} />
+    </div>
     """
   end
 
@@ -500,11 +522,11 @@ defmodule LivebookWeb.FileSelectComponent do
   def handle_event("set_file_system", %{"id" => file_system_id}, socket) do
     file_system = Enum.find(socket.assigns.file_systems, &(&1.id == file_system_id))
     file = FileSystem.File.new(file_system)
-    :ok = FileSystem.mount(file_system)
 
+    send_event(socket.assigns.target, {:mount_file_system, file_system})
     send_event(socket.assigns.target, {:set_file, file, %{exists: true}})
 
-    {:noreply, socket}
+    {:noreply, assign(socket, loading: true)}
   end
 
   def handle_event("set_path", %{"path" => path}, socket) do
@@ -525,8 +547,7 @@ defmodule LivebookWeb.FileSelectComponent do
       end
 
     send_event(socket.assigns.target, {:set_file, file, info})
-
-    {:noreply, socket}
+    {:noreply, assign(socket, loading: true)}
   end
 
   def handle_event("clear_error", %{}, socket) do
@@ -647,7 +668,8 @@ defmodule LivebookWeb.FileSelectComponent do
     assign(socket,
       file_infos: file_infos,
       unhighlighted_file_infos: unhighlighted_file_infos,
-      highlighted_file_infos: highlighted_file_infos
+      highlighted_file_infos: highlighted_file_infos,
+      loading: false
     )
   end
 

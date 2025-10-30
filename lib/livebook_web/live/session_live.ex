@@ -87,7 +87,8 @@ defmodule LivebookWeb.SessionLive do
            page_title: get_page_title(data.notebook.name),
            action_assigns: %{},
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
-           starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files()
+           starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files(),
+           file_system_changes_counter: 0
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -1863,6 +1864,7 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
+      hub_file_systems: data.hub_file_systems,
       any_session_secrets?:
         Session.Data.session_secrets(data.secrets, data.notebook.hub_id) != [],
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),

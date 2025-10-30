@@ -36,6 +36,7 @@ defmodule Livebook.Session.Data do
     :users_map,
     :secrets,
     :hub_secrets,
+    :hub_file_systems,
     :mode,
     :deployed_app_slug,
     :app_data
@@ -70,6 +71,7 @@ defmodule Livebook.Session.Data do
           users_map: %{User.id() => User.t()},
           secrets: secrets(),
           hub_secrets: list(Secret.t()),
+          hub_file_systems: list(FileSystem.t()),
           mode: session_mode(),
           deployed_app_slug: String.t() | nil,
           app_data: nil | app_data()
@@ -244,6 +246,7 @@ defmodule Livebook.Session.Data do
           | {:unset_secret, client_id(), String.t()}
           | {:set_notebook_hub, client_id(), String.t()}
           | {:sync_hub_secrets, client_id()}
+          | {:sync_hub_file_systems, client_id()}
           | {:add_file_entries, client_id(), list(Notebook.file_entry())}
           | {:rename_file_entry, client_id(), name :: String.t(), new_name :: String.t()}
           | {:delete_file_entry, client_id(), String.t()}
@@ -301,6 +304,7 @@ defmodule Livebook.Session.Data do
 
     hub = Livebook.Hubs.fetch_hub!(notebook.hub_id)
     hub_secrets = Livebook.Hubs.get_secrets(hub)
+    hub_file_systems = Livebook.Hubs.get_file_systems(hub)
 
     startup_secrets =
       for secret <- Livebook.Secrets.get_startup_secrets(),
@@ -333,6 +337,7 @@ defmodule Livebook.Session.Data do
       users_map: %{},
       secrets: secrets,
       hub_secrets: hub_secrets,
+      hub_file_systems: hub_file_systems,
       mode: opts[:mode],
       deployed_app_slug: nil,
       app_data: app_data
@@ -1057,6 +1062,14 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> sync_hub_secrets()
     |> update_notebook_hub_secret_names()
+    |> set_dirty()
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:sync_hub_file_systems, _client_id}) do
+    data
+    |> with_actions()
+    |> sync_hub_file_systems()
     |> set_dirty()
     |> wrap_ok()
   end
@@ -1951,7 +1964,8 @@ defmodule Livebook.Session.Data do
         | hub_id: hub.id,
           teams_enabled: is_struct(hub, Livebook.Hubs.Team)
       },
-      hub_secrets: Livebook.Hubs.get_secrets(hub)
+      hub_secrets: Livebook.Hubs.get_secrets(hub),
+      hub_file_systems: Livebook.Hubs.get_file_systems(hub)
     )
   end
 
@@ -1963,6 +1977,12 @@ defmodule Livebook.Session.Data do
     hub = Livebook.Hubs.fetch_hub!(data.notebook.hub_id)
     secrets = Livebook.Hubs.get_secrets(hub)
     set!(data_actions, hub_secrets: secrets)
+  end
+
+  defp sync_hub_file_systems({data, _} = data_actions) do
+    hub = Livebook.Hubs.fetch_hub!(data.notebook.hub_id)
+    file_systems = Livebook.Hubs.get_file_systems(hub)
+    set!(data_actions, hub_file_systems: file_systems)
   end
 
   defp update_notebook_hub_secret_names({data, _} = data_actions) do

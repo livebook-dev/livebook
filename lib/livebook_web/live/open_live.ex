@@ -13,10 +13,12 @@ defmodule LivebookWeb.OpenLive do
     if connected?(socket) do
       Livebook.Sessions.subscribe()
       Livebook.NotebookManager.subscribe_recent_notebooks()
+      Livebook.Hubs.Broadcasts.subscribe(:file_systems)
     end
 
     sessions = Livebook.Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
     recent_notebooks = Livebook.NotebookManager.recent_notebooks()
+    file_systems = Livebook.Hubs.get_file_systems()
 
     show_autosave_note? =
       case Livebook.Settings.autosave_path() do
@@ -32,7 +34,8 @@ defmodule LivebookWeb.OpenLive do
        sessions: sessions,
        recent_notebooks: recent_notebooks,
        page_title: "Open - Livebook",
-       show_autosave_note?: show_autosave_note?
+       show_autosave_note?: show_autosave_note?,
+       file_systems: file_systems
      )}
   end
 
@@ -89,6 +92,7 @@ defmodule LivebookWeb.OpenLive do
             id="import-file"
             sessions={@sessions}
             initial_file={@initial_file}
+            file_systems={@file_systems}
           />
           <.live_component
             :if={@tab == "url"}
@@ -233,6 +237,11 @@ defmodule LivebookWeb.OpenLive do
 
   def handle_info({:recent_notebooks_updated, recent_notebooks}, socket) do
     {:noreply, assign(socket, recent_notebooks: recent_notebooks)}
+  end
+
+  def handle_info({type, _}, socket)
+      when type in [:file_system_created, :file_system_updated, :file_system_deleted] do
+    {:noreply, assign(socket, file_systems: Livebook.Hubs.get_file_systems())}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

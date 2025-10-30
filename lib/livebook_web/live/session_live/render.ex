@@ -85,6 +85,7 @@ defmodule LivebookWeb.SessionLive.Render do
         context={@action_assigns.context}
         persist_outputs={@data_view.persist_outputs}
         autosave_interval_s={@data_view.autosave_interval_s}
+        file_systems={@data_view.hub_file_systems}
       />
     </.modal>
 
@@ -160,6 +161,7 @@ defmodule LivebookWeb.SessionLive.Render do
         hub={@data_view.hub}
         file_entries={@data_view.file_entries}
         tab={@action_assigns.tab}
+        hub_file_systems={@data_view.hub_file_systems}
       />
     </.modal>
 
@@ -968,6 +970,7 @@ defmodule LivebookWeb.SessionLive.Render do
           id="add-file-entry-from-file"
           hub={@hub}
           session={@session}
+          file_systems={@hub_file_systems}
         />
         <.live_component
           :if={@tab == "url"}

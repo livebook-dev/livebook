@@ -435,13 +435,13 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   end
 
   describe "online deployment" do
-    @moduletag subscribe_to_teams_topics: [
-                 :clients,
-                 :agents,
-                 :app_deployments,
-                 :deployment_groups,
-                 :app_server
-               ]
+    @describetag subscribe_to_teams_topics: [
+                   :clients,
+                   :agents,
+                   :app_deployments,
+                   :deployment_groups,
+                   :app_server
+                 ]
 
     test "shows a message when non-teams hub is selected", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -687,6 +687,57 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_raise ArgumentError, ~s/cannot click element "button" because it is disabled/, fn ->
         view |> element("button", "Deploy") |> render_click()
       end
+    end
+  end
+
+  describe "notebook attachments" do
+    @describetag subscribe_to_hubs_topics: [:connection, :crud, :file_systems]
+    @describetag :git
+
+    @tag :tmp_dir
+    test "updates the list of file systems when receive events",
+         %{conn: conn, test: test, tmp_dir: tmp_dir, session: session} = context do
+      team_id = context.team.id
+      Livebook.FileSystem.Mounter.subscribe(team_id)
+      data = test |> to_string() |> Base.encode32(padding: false, case: :lower)
+
+      file_system =
+        build(:fs_git,
+          id: Livebook.FileSystem.Utils.id("git", team_id, data),
+          hub_id: team_id,
+          external_id: nil
+        )
+
+      Session.set_notebook_hub(session.pid, team_id)
+      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      file = FileSystem.File.local(notebook_path)
+      Session.set_file(session.pid, file)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
+      refute has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
+
+      file_system =
+        TeamsRPC.create_file_system(context.node, context.team, context.org_key, file_system)
+
+      assert_receive {:file_system_created, ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 15_000
+      assert has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
+
+      file_system = %{file_system | branch: "test"}
+
+      {:ok, _} =
+        TeamsRPC.update_file_system(context.node, context.team, context.org_key, file_system)
+
+      assert_receive {:file_system_updated, ^file_system}
+      assert_receive {:file_system_mounted, ^file_system}, 15_000
+      assert has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
+
+      TeamsRPC.delete_file_system(context.node, context.org_key, file_system.external_id)
+      assert_receive {:file_system_deleted, ^file_system}
+      assert_receive {:file_system_unmounted, ^file_system}, 15_000
+      refute has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
     end
   end
 end
