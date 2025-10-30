@@ -507,17 +507,16 @@ defmodule LivebookWeb.CoreComponents do
         <div class="flex-1 space-y-4">
           <div class="w-full flex space-x-2 items-center p-2">
             <div class={[@bg_class, "h-6 rounded-md w-5"]} />
-            <div class={[@bg_class, "h-4 rounded-lg", random_width(Enum.random(0..8))]} />
+            <div class={[
+              @bg_class,
+              "h-4 rounded-lg",
+              Enum.random(["w-1/2", "w-2/3", "w-3/4", "w-4/5", "w-full"])
+            ]} />
           </div>
         </div>
       </div>
     <% end %>
     """
-  end
-
-  defp random_width(seed) do
-    widths = ["w-1/2", "w-2/3", "w-3/4", "w-4/5", "w-full"]
-    Enum.at(widths, rem(seed * 7, length(widths)))
   end
 
   @doc """

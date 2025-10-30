@@ -24,7 +24,6 @@ defmodule LivebookWeb.SessionLive do
 
             Session.subscribe(session_id)
             Livebook.NotebookManager.subscribe_starred_notebooks()
-            Livebook.Hubs.Broadcasts.subscribe(:file_systems)
 
             {data, client_id}
           else
@@ -89,7 +88,7 @@ defmodule LivebookWeb.SessionLive do
            action_assigns: %{},
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
            starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files(),
-           counter: 0
+           file_system_changes_counter: 0
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -1098,12 +1097,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign(socket, :app, app)}
   end
 
-  def handle_info({type, %{hub_id: id}}, socket)
-      when type in [:file_system_created, :file_system_updated, :file_system_deleted] and
-             socket.assigns.data_view.hub.id == id do
-    {:noreply, assign(socket, counter: socket.assigns.counter + 1)}
-  end
-
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp handle_relative_path(socket, path, requested_url) do
@@ -1871,6 +1864,7 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
+      hub_file_systems: data.hub_file_systems,
       any_session_secrets?:
         Session.Data.session_secrets(data.secrets, data.notebook.hub_id) != [],
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),

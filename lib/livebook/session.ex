@@ -903,7 +903,7 @@ defmodule Livebook.Session do
   @impl true
   def init({caller_pid, opts}) do
     Livebook.Settings.subscribe()
-    Livebook.Hubs.Broadcasts.subscribe([:crud, :secrets])
+    Livebook.Hubs.Broadcasts.subscribe([:crud, :secrets, :file_systems])
 
     id = Keyword.fetch!(opts, :id)
 
@@ -2018,6 +2018,13 @@ defmodule Livebook.Session do
       when event in [:secret_created, :secret_updated, :secret_deleted] and
              secret.hub_id == state.data.notebook.hub_id do
     operation = {:sync_hub_secrets, @client_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({event, file_system}, state)
+      when event in [:file_system_created, :file_system_updated, :file_system_deleted] and
+             file_system.hub_id == state.data.notebook.hub_id do
+    operation = {:sync_hub_file_systems, @client_id}
     {:noreply, handle_operation(state, operation)}
   end
 

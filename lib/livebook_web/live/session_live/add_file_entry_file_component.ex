@@ -12,8 +12,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
        file_info: %{exists: true},
        changeset: changeset(),
        error_message: nil,
-       fetching: false,
-       counter: 0
+       fetching: false
      )}
   end
 
@@ -63,7 +62,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
           extnames={:any}
           running_files={[]}
           target={{__MODULE__, @id}}
-          counter={@counter}
+          file_systems={@file_systems}
         >
         </.live_component>
       </div>

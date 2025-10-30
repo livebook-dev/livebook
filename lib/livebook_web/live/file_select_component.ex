@@ -68,6 +68,7 @@ defmodule LivebookWeb.FileSelectComponent do
   def update(assigns, socket) do
     {force_reload?, assigns} = Map.pop(assigns, :force_reload, false)
     {show_only_writable?, assigns} = Map.pop(assigns, :show_only_writable, false)
+    {file_systems, assigns} = Map.pop(assigns, :file_systems, [])
 
     running_files_changed? = assigns.running_files != (socket.assigns[:running_files] || [])
 
@@ -76,10 +77,7 @@ defmodule LivebookWeb.FileSelectComponent do
       |> assign(assigns)
       |> update_file_infos(force_reload? or running_files_changed?)
 
-    {file_systems, configure_hub_id} =
-      if hub = socket.assigns[:hub],
-        do: {Livebook.Hubs.get_file_systems(hub), hub.id},
-        else: {Livebook.Hubs.get_file_systems(), Livebook.Hubs.Personal.id()}
+    configure_hub_id = get_in(socket.assigns[:hub].id) || Livebook.Hubs.Personal.id()
 
     file_systems =
       if show_only_writable? do
