@@ -785,7 +785,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   describe "app settings" do
     test "imports settings" do
       markdown = """
-      <!-- livebook:{"app_settings":{"access_type":"public","auto_shutdown_ms":5000,"multi_session":true,"output_type":"rich","show_existing_sessions":false,"show_source":true,"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","app_folder_id":"123","auto_shutdown_ms":5000,"multi_session":true,"output_type":"rich","show_existing_sessions":false,"show_source":true,"slug":"app"}} -->
 
       # My Notebook
       """
@@ -802,7 +802,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  auto_shutdown_ms: 5_000,
                  access_type: :public,
                  show_source: true,
-                 output_type: :rich
+                 output_type: :rich,
+                 app_folder_id: "123"
                }
              } = notebook
     end

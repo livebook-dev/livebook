@@ -24,6 +24,7 @@ defmodule Livebook.Hubs.TeamClient do
     deployment_groups: [],
     app_deployments: [],
     agents: [],
+    app_folders: [],
     app_deployment_statuses: nil
   ]
 
@@ -170,6 +171,14 @@ defmodule Livebook.Hubs.TeamClient do
   @spec user_can_deploy?(String.t(), pos_integer() | nil, String.t()) :: boolean()
   def user_can_deploy?(id, user_id, deployment_group_id) do
     GenServer.call(registry_name(id), {:user_can_deploy?, user_id, deployment_group_id})
+  end
+
+  @doc """
+  Returns a list of cached app folders.
+  """
+  @spec get_app_folders(String.t()) :: list(Teams.AppFolder.t())
+  def get_app_folders(id) do
+    GenServer.call(registry_name(id), :get_app_folders)
   end
 
   @doc """
@@ -368,6 +377,10 @@ defmodule Livebook.Hubs.TeamClient do
           {:reply, false, state}
       end
     end
+  end
+
+  def handle_call(:get_app_folders, _caller, state) do
+    {:reply, state.app_folders, state}
   end
 
   @impl true
@@ -611,7 +624,8 @@ defmodule Livebook.Hubs.TeamClient do
       file: nil,
       deployed_by: app_deployment.deployed_by,
       deployed_at: DateTime.from_gregorian_seconds(app_deployment.deployed_at),
-      authorization_groups: authorization_groups
+      authorization_groups: authorization_groups,
+      app_folder_id: nullify(app_deployment.app_folder_id)
     }
   end
 
@@ -630,7 +644,8 @@ defmodule Livebook.Hubs.TeamClient do
     for authorization_group <- authorization_groups do
       %Teams.AuthorizationGroup{
         provider_id: authorization_group.provider_id,
-        group_name: authorization_group.group_name
+        group_name: authorization_group.group_name,
+        app_folder_id: nullify(authorization_group.app_folder_id)
       }
     end
   end
@@ -661,6 +676,24 @@ defmodule Livebook.Hubs.TeamClient do
       hub_id: state.hub.id,
       org_id: agent.org_id,
       deployment_group_id: agent.deployment_group_id
+    }
+  end
+
+  defp put_app_folder(state, app_folder) do
+    state = remove_app_folder(state, app_folder)
+
+    %{state | app_folders: [app_folder | state.app_folders]}
+  end
+
+  defp remove_app_folder(state, app_folder) do
+    %{state | app_folders: Enum.reject(state.app_folders, &(&1.id == app_folder.id))}
+  end
+
+  defp build_app_folder(state, %LivebookProto.AppFolder{} = app_folder) do
+    %Teams.AppFolder{
+      id: app_folder.id,
+      name: app_folder.name,
+      hub_id: state.hub.id
     }
   end
 
@@ -787,6 +820,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_deployment_groups(user_connected)
     |> dispatch_app_deployments(user_connected)
     |> dispatch_agents(user_connected)
+    |> dispatch_app_folders(user_connected)
     |> dispatch_connection()
   end
 
@@ -798,6 +832,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_deployment_groups(agent_connected)
     |> dispatch_app_deployments(agent_connected)
     |> dispatch_agents(agent_connected)
+    |> dispatch_app_folders(agent_connected)
     |> dispatch_connection()
   end
 
@@ -873,6 +908,43 @@ defmodule Livebook.Hubs.TeamClient do
     update_hub(state, org_updated)
   end
 
+  defp handle_event(:app_folder_created, %Teams.AppFolder{} = app_folder, state) do
+    Teams.Broadcasts.app_folder_created(app_folder)
+    put_app_folder(state, app_folder)
+  end
+
+  defp handle_event(:app_folder_created, app_folder_created, state) do
+    handle_event(
+      :app_folder_created,
+      build_app_folder(state, app_folder_created.app_folder),
+      state
+    )
+  end
+
+  defp handle_event(:app_folder_updated, %Teams.AppFolder{} = app_folder, state) do
+    Teams.Broadcasts.app_folder_updated(app_folder)
+    put_app_folder(state, app_folder)
+  end
+
+  defp handle_event(:app_folder_updated, app_folder_updated, state) do
+    handle_event(
+      :app_folder_updated,
+      build_app_folder(state, app_folder_updated.app_folder),
+      state
+    )
+  end
+
+  defp handle_event(:app_folder_deleted, %Teams.AppFolder{} = app_folder, state) do
+    Teams.Broadcasts.app_folder_deleted(app_folder)
+    remove_app_folder(state, app_folder)
+  end
+
+  defp handle_event(:app_folder_deleted, %{id: id}, state) do
+    with {:ok, app_folder} <- fetch_app_folder(id, state) do
+      handle_event(:app_folder_deleted, app_folder, state)
+    end
+  end
+
   defp dispatch_secrets(state, %{secrets: secrets}) do
     decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
 
@@ -934,6 +1006,19 @@ defmodule Livebook.Hubs.TeamClient do
     {joined, left, _} = diff(state.agents, agents, &(&1.id == &2.id))
 
     dispatch_events(state, agent_joined: joined, agent_left: left)
+  end
+
+  defp dispatch_app_folders(state, %{app_folders: app_folders}) do
+    app_folders = Enum.map(app_folders, &build_app_folder(state, &1))
+
+    {created, deleted, updated} =
+      diff(state.app_folders, app_folders, &(&1.id == &2.id))
+
+    dispatch_events(state,
+      app_folder_deleted: deleted,
+      app_folder_created: created,
+      app_folder_updated: updated
+    )
   end
 
   defp dispatch_connection(%{hub: %{id: id}} = state) do
@@ -1063,6 +1148,8 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp fetch_app_deployment_from_slug(slug, state),
     do: fetch_entry(state.app_deployments, &(&1.slug == slug), state)
+
+  defp fetch_app_folder(id, state), do: fetch_entry(state.app_folders, &(&1.id == id), state)
 
   defp fetch_entry(entries, fun, state) do
     if entry = Enum.find(entries, fun) do

@@ -113,7 +113,8 @@ defmodule Livebook.LiveMarkdown.Export do
       :auto_shutdown_ms,
       :access_type,
       :show_source,
-      :output_type
+      :output_type,
+      :app_folder_id
     ]
 
     put_unless_default(

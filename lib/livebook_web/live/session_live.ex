@@ -1865,13 +1865,15 @@ defmodule LivebookWeb.SessionLive do
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
       hub_file_systems: data.hub_file_systems,
+      hub_app_folders: data.hub_app_folders,
       any_session_secrets?:
         Session.Data.session_secrets(data.secrets, data.notebook.hub_id) != [],
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
       quarantine_file_entry_names: data.notebook.quarantine_file_entry_names,
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug,
-      deployment_group_id: data.notebook.deployment_group_id
+      deployment_group_id: data.notebook.deployment_group_id,
+      teams_enabled: data.notebook.teams_enabled
     }
   end
 
