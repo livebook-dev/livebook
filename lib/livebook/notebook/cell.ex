@@ -50,6 +50,13 @@ defmodule Livebook.Notebook.Cell do
   def evaluable?(_cell), do: false
 
   @doc """
+  Checks if the given cell can be statically rendered
+  """
+  @spec static?(t()) :: boolean()
+  def static?(%Cell.Markdown{}), do: true
+  def static?(_), do: false
+
+  @doc """
   Extracts all inputs from the given indexed output.
   """
   @spec find_inputs_in_output(indexed_output()) :: list(Livebook.Runtime.input_output())
