@@ -73,4 +73,20 @@
     100% {
     }
   }
+
+  .animate-fade-in-delayed {
+    animation: fade-in-delayed 100ms forwards;
+  }
+
+  @keyframes fade-in-delayed {
+    0% {
+      opacity: 0;
+    }
+    99% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
 }

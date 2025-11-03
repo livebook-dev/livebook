@@ -211,7 +211,7 @@ defmodule LivebookWeb.FileSelectComponent do
 
       <div
         :if={@loading}
-        class="grid grid-cols-2 lg:grid-cols-3 gap-2 mb-2 pb-2"
+        class="grid grid-cols-2 lg:grid-cols-3 gap-2 mb-2 pb-2 opacity-0 animate-fade-in-delayed"
         role="status"
         aria-live="polite"
         tabindex="-1"
