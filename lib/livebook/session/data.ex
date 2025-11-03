@@ -307,13 +307,7 @@ defmodule Livebook.Session.Data do
     hub = Livebook.Hubs.fetch_hub!(notebook.hub_id)
     hub_secrets = Livebook.Hubs.get_secrets(hub)
     hub_file_systems = Livebook.Hubs.get_file_systems(hub)
-
-    hub_app_folders =
-      if is_struct(hub, Livebook.Hubs.Team) do
-        Livebook.Teams.get_app_folders(hub)
-      else
-        []
-      end
+    hub_app_folders = Livebook.Hubs.Provider.get_app_folders(hub)
 
     startup_secrets =
       for secret <- Livebook.Secrets.get_startup_secrets(),
@@ -1975,21 +1969,16 @@ defmodule Livebook.Session.Data do
   end
 
   defp set_notebook_hub({data, _} = data_actions, hub) do
-    teams_enabled = is_struct(hub, Livebook.Hubs.Team)
-
-    app_folders =
-      if teams_enabled do
-        Livebook.Teams.get_app_folders(hub)
-      else
-        []
-      end
-
     data_actions
     |> set!(
-      notebook: %{data.notebook | hub_id: hub.id, teams_enabled: teams_enabled},
+      notebook: %{
+        data.notebook
+        | hub_id: hub.id,
+          teams_enabled: is_struct(hub, Livebook.Hubs.Team)
+      },
       hub_secrets: Livebook.Hubs.get_secrets(hub),
       hub_file_systems: Livebook.Hubs.get_file_systems(hub),
-      hub_app_folders: app_folders
+      hub_app_folders: Livebook.Hubs.Provider.get_app_folders(hub)
     )
   end
 
@@ -2010,13 +1999,9 @@ defmodule Livebook.Session.Data do
   end
 
   defp sync_hub_app_folders({data, _} = data_actions) do
-    if data.notebook.teams_enabled do
-      hub = Livebook.Hubs.fetch_hub!(data.notebook.hub_id)
-      app_folders = Livebook.Teams.get_app_folders(hub)
-      set!(data_actions, hub_app_folders: app_folders)
-    else
-      data_actions
-    end
+    hub = Livebook.Hubs.fetch_hub!(data.notebook.hub_id)
+    app_folders = Livebook.Hubs.Provider.get_app_folders(hub)
+    set!(data_actions, hub_app_folders: app_folders)
   end
 
   defp update_notebook_hub_secret_names({data, _} = data_actions) do

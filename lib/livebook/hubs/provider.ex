@@ -155,4 +155,10 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec get_app_specs(t()) :: list(Livebook.Apps.AppSpec.t())
   def get_app_specs(hub)
+
+  @doc """
+  Gets the app folders from the given hub.
+  """
+  @spec get_app_folders(t()) :: list(%{id: String.t(), name: String.t()})
+  def get_app_folders(hub)
 end

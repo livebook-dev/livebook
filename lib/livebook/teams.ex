@@ -311,8 +311,6 @@ defmodule Livebook.Teams do
   """
   @spec get_app_folders(Team.t()) :: list(Teams.AppFolder.t())
   def get_app_folders(team) do
-    team.id
-    |> TeamClient.get_app_folders()
-    |> Enum.sort_by(& &1.name)
+    Hubs.Provider.get_app_folders(team)
   end
 end

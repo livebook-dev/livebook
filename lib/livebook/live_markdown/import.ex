@@ -667,7 +667,22 @@ defmodule Livebook.LiveMarkdown.Import do
     # validate it against the public key).
     teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (hub.offline == nil or stamp_verified?)
 
-    {%{notebook | teams_enabled: teams_enabled}, stamp_verified?, messages}
+    {app_settings, messages} =
+      if app_folder_id = notebook.app_settings.app_folder_id do
+        app_folders = Hubs.Provider.get_app_folders(hub)
+
+        if Enum.any?(app_folders, &(&1.id == app_folder_id)) do
+          {notebook.app_settings, messages}
+        else
+          {Map.replace!(notebook.app_settings, :app_folder_id, nil),
+           messages ++ ["found an invalid app folder, defaulting to ungrouped app folder"]}
+        end
+      else
+        {notebook.app_settings, messages}
+      end
+
+    {%{notebook | app_settings: app_settings, teams_enabled: teams_enabled}, stamp_verified?,
+     messages}
   end
 
   defp safe_binary_split(binary, offset)

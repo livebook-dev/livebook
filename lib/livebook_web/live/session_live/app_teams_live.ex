@@ -602,13 +602,11 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     end)
   end
 
-  defp app_folder_name(%{id: "team-" <> _}, id) when id in [nil, ""], do: "Ungrouped apps"
+  defp app_folder_name(_hub, id) when id in [nil, ""], do: "Ungrouped apps"
 
-  defp app_folder_name(%{id: "team-" <> _} = hub, id) do
+  defp app_folder_name(hub, id) do
     hub
     |> Teams.get_app_folders()
     |> Enum.find_value(&(&1.id == id && &1.name))
   end
-
-  defp app_folder_name(_hub, _id), do: ""
 end

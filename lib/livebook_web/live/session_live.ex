@@ -1872,8 +1872,7 @@ defmodule LivebookWeb.SessionLive do
       quarantine_file_entry_names: data.notebook.quarantine_file_entry_names,
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug,
-      deployment_group_id: data.notebook.deployment_group_id,
-      teams_enabled: data.notebook.teams_enabled
+      deployment_group_id: data.notebook.deployment_group_id
     }
   end
 

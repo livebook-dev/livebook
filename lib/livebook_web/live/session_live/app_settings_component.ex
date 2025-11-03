@@ -48,14 +48,13 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
         <div class="flex flex-col space-y-4">
           <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce />
           <.select_field
-            :if={@teams_enabled}
             field={f[:app_folder_id]}
             label="Folder"
             prompt="Select a folder..."
             options={@app_folder_options}
             help={
               ~S'''
-              Use folders to organize how how apps are displayed.
+              You can create folders inside Teams to organize how apps are displayed.
               '''
             }
           />

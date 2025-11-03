@@ -259,6 +259,12 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     end
   end
 
+  def get_app_folders(team) do
+    team.id
+    |> TeamClient.get_app_folders()
+    |> Enum.sort_by(& &1.name)
+  end
+
   defp parse_secret_errors(errors_map) do
     Teams.Requests.to_error_list(Secret, errors_map)
   end
