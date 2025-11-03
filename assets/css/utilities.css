@@ -75,7 +75,7 @@
   }
 
   .animate-fade-in-delayed {
-    animation: fade-in-delayed 20ms forwards;
+    animation: fade-in-delayed 100ms forwards;
   }
 
   @keyframes fade-in-delayed {
