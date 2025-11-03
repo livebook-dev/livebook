@@ -675,7 +675,10 @@ defmodule Livebook.LiveMarkdown.Import do
           {notebook.app_settings, messages}
         else
           {Map.replace!(notebook.app_settings, :app_folder_id, nil),
-           messages ++ ["found an invalid app folder, defaulting to ungrouped app folder"]}
+           messages ++
+             [
+               "notebook is assigned to a non-existent app folder, defaulting to ungrouped app folder"
+             ]}
         end
       else
         {notebook.app_settings, messages}
