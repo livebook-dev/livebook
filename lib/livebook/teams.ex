@@ -305,4 +305,12 @@ defmodule Livebook.Teams do
   def user_can_deploy?(%Team{} = team, %Teams.DeploymentGroup{} = deployment_group) do
     TeamClient.user_can_deploy?(team.id, team.user_id, deployment_group.id)
   end
+
+  @doc """
+  Gets a list of app folders for a given Hub.
+  """
+  @spec get_app_folders(Team.t()) :: list(Teams.AppFolder.t())
+  def get_app_folders(team) do
+    Hubs.Provider.get_app_folders(team)
+  end
 end

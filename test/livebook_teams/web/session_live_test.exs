@@ -440,7 +440,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
                    :agents,
                    :app_deployments,
                    :deployment_groups,
-                   :app_server
+                   :app_server,
+                   :app_folders
                  ]
 
     test "shows a message when non-teams hub is selected", %{conn: conn, session: session} do
@@ -491,7 +492,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       assert render(view) =~ "Step: add app server"
       assert render(view) =~ "You must set up an app server for the app to run on."
-
       assert render(view) =~ "Awaiting an app server to be set up."
 
       [deployment_group] = Livebook.Hubs.TeamClient.get_deployment_groups(team.id)
@@ -505,9 +505,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> element("button", "Deploy")
       |> render_click()
 
-      assert render(view) =~
-               "App deployment created successfully"
-
+      assert render(view) =~ "App deployment created successfully"
+      assert render(view) =~ "Ungrouped apps"
       assert render(view) =~ "#{Livebook.Config.teams_url()}/orgs/#{team.org_id}"
     end
 
@@ -567,8 +566,71 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> element("button", "Deploy")
       |> render_click()
 
-      assert render(view) =~
-               "App deployment created successfully"
+      assert render(view) =~ "App deployment created successfully"
+      assert render(view) =~ "Ungrouped apps"
+    end
+
+    test "deployment flow with existing app folders in the hub",
+         %{team: team, conn: conn, node: node, session: session, org: org} do
+      Session.set_notebook_hub(session.pid, team.id)
+
+      id = insert_deployment_group(mode: :online, hub_id: team.id).id
+      assert_receive {:deployment_group_created, %{id: ^id} = deployment_group}
+
+      app_folder_id = to_string(TeamsRPC.create_app_folder(node, org: org).id)
+      assert_receive {:app_folder_created, %{id: ^app_folder_id} = app_folder}
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element("a", "Deploy with Livebook Teams")
+      |> render_click()
+
+      # Step: configuring valid app settings
+
+      assert render(view) =~ "You must configure your app before deploying it."
+
+      slug = Livebook.Utils.random_short_id()
+
+      view
+      |> element(~s/#app-settings-modal form/)
+      |> render_submit(%{"app_settings" => %{"slug" => slug, "app_folder_id" => app_folder_id}})
+
+      # From this point forward we are in a child LV
+      view = find_live_child(view, "app-teams")
+      assert render(view) =~ "App deployment with Livebook Teams"
+
+      # Step: selecting deployment group
+
+      view
+      |> element(~s/[phx-click="select_deployment_group"][phx-value-id="#{deployment_group.id}"]/)
+      |> render_click()
+
+      assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
+      assert render(view) =~ "The selected deployment group has no app servers."
+
+      view
+      |> element(~s/button/, "Add app server")
+      |> render_click()
+
+      # Step: agent instance setup
+
+      assert render(view) =~ "Step: add app server"
+      assert render(view) =~ "Awaiting an app server to be set up."
+
+      [deployment_group] = Livebook.Hubs.TeamClient.get_deployment_groups(team.id)
+      simulate_agent_join(team, deployment_group)
+
+      assert render(view) =~ "An app server is running"
+
+      # Step: deploy
+
+      view
+      |> element("button", "Deploy")
+      |> render_click()
+
+      assert render(view) =~ "App deployment created successfully"
+      assert render(view) =~ app_folder.name
     end
 
     test "shows tooltip message if user is unauthorized to deploy apps",
@@ -738,6 +800,45 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:file_system_deleted, ^file_system}
       assert_receive {:file_system_unmounted, ^file_system}, 15_000
       refute has_element?(view, ~s{button[id*="file-system-#{file_system.id}"]})
+    end
+  end
+
+  describe "app settings" do
+    @describetag subscribe_to_teams_topics: [:clients, :app_folders]
+
+    test "updates the list of app folders",
+         %{team: team, conn: conn, node: node, session: session, org: org} do
+      Session.set_notebook_hub(session.pid, team.id)
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view
+             |> element(~s/[data-el-app-info] a/, "Configure")
+             |> render_click() =~ ~s(name="app_settings[app_folder_id]")
+
+      assert render(view) =~ ~s(<option value="">Select a folder...</option></select>)
+
+      app_folder = TeamsRPC.create_app_folder(node, name: "Tidewave", org: org)
+      id = to_string(app_folder.id)
+
+      assert_receive {:app_folder_created, %{id: ^id, name: "Tidewave"}}
+      assert_receive {:operation, {:sync_hub_app_folders, _}}
+
+      assert render(view) =~
+               ~s(<option value="">Select a folder...</option><option value="#{id}">Tidewave</option></select>)
+
+      {:ok, %{name: "Wavetide"}} = TeamsRPC.update_app_folder(node, app_folder, name: "Wavetide")
+
+      assert_receive {:app_folder_updated, %{id: ^id, name: "Wavetide"}}
+      assert_receive {:operation, {:sync_hub_app_folders, _}}
+      refute render(view) =~ ~s(<option value="#{id}">Tidewave</option>)
+      assert render(view) =~ ~s(<option value="#{id}">Wavetide</option>)
+
+      TeamsRPC.delete_app_folder(node, app_folder)
+
+      assert_receive {:app_folder_deleted, %{id: ^id, name: "Wavetide"}}
+      assert_receive {:operation, {:sync_hub_app_folders, _}}
+      refute render(view) =~ ~s(<option value="#{id}">Tidewave</option>)
+      refute render(view) =~ ~s(<option value="#{id}">Wavetide</option>)
     end
   end
 end

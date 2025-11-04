@@ -6,7 +6,13 @@ defmodule Livebook.Hubs.TeamClientTest do
   setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:crud, :connection, :file_systems, :secrets]
-  @moduletag subscribe_to_teams_topics: [:clients, :deployment_groups, :app_deployments, :agents]
+  @moduletag subscribe_to_teams_topics: [
+               :clients,
+               :deployment_groups,
+               :app_deployments,
+               :agents,
+               :app_folders
+             ]
 
   describe "connect" do
     @describetag teams_for: :user
@@ -302,6 +308,44 @@ defmodule Livebook.Hubs.TeamClientTest do
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:agent_left, ^agent}
       refute agent in TeamClient.get_agents(team.id)
+    end
+
+    test "dispatches the app folders list",
+         %{team: team, pid: pid, user_connected: user_connected} do
+      app_folder = build(:app_folder, hub_id: team.id)
+
+      livebook_proto_app_folder =
+        %LivebookProto.AppFolder{
+          id: app_folder.id,
+          name: app_folder.name
+        }
+
+      # creates the app folder
+      user_connected = %{user_connected | app_folders: [livebook_proto_app_folder]}
+      refute_received {:app_folder_created, ^app_folder}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:app_folder_created, ^app_folder}
+      assert app_folder in TeamClient.get_app_folders(team.id)
+
+      # updates the app folder
+      updated_app_folder = %{app_folder | name: "ChonkiestCat"}
+
+      updated_livebook_proto_app_folder = %{
+        livebook_proto_app_folder
+        | name: updated_app_folder.name
+      }
+
+      user_connected = %{user_connected | app_folders: [updated_livebook_proto_app_folder]}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:app_folder_updated, ^updated_app_folder}
+      refute app_folder in TeamClient.get_app_folders(team.id)
+      assert updated_app_folder in TeamClient.get_app_folders(team.id)
+
+      # deletes the app folder
+      user_connected = %{user_connected | app_folders: []}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:app_folder_deleted, ^updated_app_folder}
+      refute updated_app_folder in TeamClient.get_app_folders(team.id)
     end
   end
 
@@ -808,6 +852,44 @@ defmodule Livebook.Hubs.TeamClientTest do
       send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:agent_left, ^agent}
       refute agent in TeamClient.get_agents(team.id)
+    end
+
+    test "dispatches the app folders list",
+         %{team: team, pid: pid, agent_connected: agent_connected} do
+      app_folder = build(:app_folder, hub_id: team.id)
+
+      livebook_proto_app_folder =
+        %LivebookProto.AppFolder{
+          id: app_folder.id,
+          name: app_folder.name
+        }
+
+      # creates the app folder
+      agent_connected = %{agent_connected | app_folders: [livebook_proto_app_folder]}
+      refute_received {:app_folder_created, ^app_folder}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:app_folder_created, ^app_folder}
+      assert app_folder in TeamClient.get_app_folders(team.id)
+
+      # updates the app folder
+      updated_app_folder = %{app_folder | name: "ChonkiestCat"}
+
+      updated_livebook_proto_app_folder = %{
+        livebook_proto_app_folder
+        | name: updated_app_folder.name
+      }
+
+      agent_connected = %{agent_connected | app_folders: [updated_livebook_proto_app_folder]}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:app_folder_updated, ^updated_app_folder}
+      refute app_folder in TeamClient.get_app_folders(team.id)
+      assert updated_app_folder in TeamClient.get_app_folders(team.id)
+
+      # deletes the app folder
+      agent_connected = %{agent_connected | app_folders: []}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:app_folder_deleted, ^updated_app_folder}
+      refute updated_app_folder in TeamClient.get_app_folders(team.id)
     end
   end
 end

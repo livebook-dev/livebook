@@ -212,7 +212,11 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
 
         <div :if={@app_deployment} class="space-y-3">
           <p class="text-gray-700">Current version:</p>
-          <.app_deployment_card app_deployment={@app_deployment} deployment_group={@deployment_group} />
+          <.app_deployment_card
+            app_deployment={@app_deployment}
+            deployment_group={@deployment_group}
+            hub={@hub}
+          />
         </div>
 
         <.message_box :if={@num_agents[@deployment_group.id] == nil} kind="warning">
@@ -293,6 +297,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         :if={@app_deployment}
         app_deployment={@app_deployment}
         deployment_group={@deployment_group}
+        hub={@hub}
       />
       <div>
         <.button color="gray" outlined phx-click="go_deployment_groups">
@@ -391,6 +396,9 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
       </.labeled_text>
       <.labeled_text label="Title">
         {@app_deployment.title}
+      </.labeled_text>
+      <.labeled_text label="Folder">
+        {app_folder_name(@hub, @app_deployment.app_folder_id)}
       </.labeled_text>
       <.labeled_text label="Deployed by">
         {@app_deployment.deployed_by}
@@ -592,5 +600,13 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     Enum.reduce(opts, msg, fn {key, value}, acc ->
       String.replace(acc, "%{#{key}}", to_string(value))
     end)
+  end
+
+  defp app_folder_name(_hub, id) when id in [nil, ""], do: "Ungrouped apps"
+
+  defp app_folder_name(hub, id) do
+    hub
+    |> Teams.get_app_folders()
+    |> Enum.find_value(&(&1.id == id && &1.name))
   end
 end

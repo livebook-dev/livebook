@@ -23,11 +23,14 @@ defmodule LivebookCLI.Integration.DeployTest do
       app_path = Path.join(tmp_dir, "#{slug}.livemd")
       {key, _} = TeamsRPC.create_org_token(node, org: org)
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
+      app_folder = TeamsRPC.create_app_folder(node, org: org)
+
       hub_id = team.id
       deployment_group_id = to_string(deployment_group.id)
+      app_folder_id = to_string(app_folder.id)
 
       stamp_notebook(app_path, """
-      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"hub_id":"#{hub_id}"} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","app_folder_id":"#{app_folder_id}","slug":"#{slug}"},"hub_id":"#{hub_id}"} -->
 
       # #{title}
 
@@ -56,6 +59,7 @@ defmodule LivebookCLI.Integration.DeployTest do
                         title: ^title,
                         slug: ^slug,
                         deployment_group_id: ^deployment_group_id,
+                        app_folder_id: ^app_folder_id,
                         hub_id: ^hub_id,
                         deployed_by: "CLI"
                       }}
@@ -106,6 +110,7 @@ defmodule LivebookCLI.Integration.DeployTest do
                           title: ^title,
                           slug: ^slug,
                           deployment_group_id: ^deployment_group_id,
+                          app_folder_id: nil,
                           hub_id: ^hub_id,
                           deployed_by: "CLI"
                         }}
@@ -168,6 +173,7 @@ defmodule LivebookCLI.Integration.DeployTest do
                         title: ^title,
                         slug: ^slug,
                         deployment_group_id: ^deployment_group_id,
+                        app_folder_id: nil,
                         hub_id: ^hub_id,
                         deployed_by: "CLI"
                       }}

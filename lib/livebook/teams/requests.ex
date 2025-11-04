@@ -188,6 +188,7 @@ defmodule Livebook.Teams.Requests do
       slug: app_deployment.slug,
       multi_session: app_deployment.multi_session,
       access_type: app_deployment.access_type,
+      app_folder_id: app_deployment.app_folder_id,
       deployment_group_id: app_deployment.deployment_group_id,
       sha: app_deployment.sha
     }
@@ -249,6 +250,7 @@ defmodule Livebook.Teams.Requests do
       slug: app_deployment.slug,
       multi_session: app_deployment.multi_session,
       access_type: app_deployment.access_type,
+      app_folder_id: app_deployment.app_folder_id,
       deployment_group_id: deployment_group_id,
       sha: app_deployment.sha
     }

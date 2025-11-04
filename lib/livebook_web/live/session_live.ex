@@ -1865,6 +1865,7 @@ defmodule LivebookWeb.SessionLive do
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
       hub_file_systems: data.hub_file_systems,
+      hub_app_folders: data.hub_app_folders,
       any_session_secrets?:
         Session.Data.session_secrets(data.secrets, data.notebook.hub_id) != [],
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
