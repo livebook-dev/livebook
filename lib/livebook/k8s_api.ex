@@ -100,7 +100,7 @@ defmodule Livebook.K8sAPI do
       ]
     )
     |> case do
-      {:ok, stream} ->
+      {:ok, %Req.Response{status: 200, body: stream}} ->
         stream =
           Stream.map(stream, fn event ->
             %{message: event["object"]["message"]}
