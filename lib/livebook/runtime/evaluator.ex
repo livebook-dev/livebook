@@ -208,7 +208,7 @@ defmodule Livebook.Runtime.Evaluator do
     map_binding = fn fun -> map_binding(evaluator, parent_refs, fun) end
 
     %{
-      env: env,
+      env: %{env | tracers: []},
       ebin_path: find_in_dictionary(dictionary, @ebin_path_key),
       map_binding: map_binding
     }
