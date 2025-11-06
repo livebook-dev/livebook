@@ -247,5 +247,70 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
       {:ok, view, _html} = live(conn, path)
       assert render(view) =~ "LivebookApp:#{slug}"
     end
+
+    @tag :tmp_dir
+    test "renders unauthorized if app's folder is deleted in real-time",
+         %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
+      {:ok, deployment_group} =
+        TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
+
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
+
+      authorization_group =
+        TeamsRPC.create_authorization_group(node,
+          group_name: "marketing",
+          access_type: :apps,
+          app_folders: [app_folder],
+          oidc_provider: oidc_provider,
+          deployment_group: deployment_group
+        )
+
+      TeamsRPC.update_user_info_groups(
+        node,
+        code,
+        [
+          %{
+            "provider_id" => to_string(oidc_provider.id),
+            "group_name" => authorization_group.group_name
+          }
+        ]
+      )
+
+      slug = "mkt-analytics-#{Livebook.Utils.random_short_id()}"
+      context = change_to_user_session(context)
+
+      deploy_app(
+        slug,
+        context.team,
+        context.org,
+        context.deployment_group,
+        tmp_dir,
+        node,
+        app_folder
+      )
+
+      change_to_agent_session(context)
+      pid = wait_livebook_app_start(slug)
+      session_id = Livebook.App.get_session_id(pid, user: Livebook.Users.User.new())
+      path = ~p"/apps/#{slug}/sessions/#{session_id}"
+
+      {:ok, view, _html} = live(conn, path)
+      assert render(view) =~ "LivebookApp:#{slug}"
+
+      app_folder_id = to_string(app_folder.id)
+
+      TeamsRPC.delete_app_folder(node, app_folder)
+      assert_receive {:app_folder_deleted, %{id: ^app_folder_id}}
+
+      id = to_string(deployment_group.id)
+
+      assert_receive {:server_authorization_updated, %{id: ^id}}
+      assert_receive {:app_deployment_updated, %{slug: ^slug, app_folder_id: nil}}
+      assert_redirect view, path
+
+      {:ok, view, _html} = live(conn, path)
+      assert render(view) =~ "Not authorized"
+    end
   end
 end

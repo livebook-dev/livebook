@@ -26,15 +26,25 @@ defmodule Livebook.AppHelpers do
     end
   end
 
-  def deploy_app(slug, team, org, deployment_group, tmp_dir, node, app_folder \\ nil) do
+  def deploy_app(
+        slug,
+        team,
+        org,
+        deployment_group,
+        tmp_dir,
+        node,
+        app_folder \\ nil,
+        title \\ nil
+      ) do
     app_path = Path.join(tmp_dir, "#{slug}.livemd")
     app_folder = if app_folder, do: ~s(,"app_folder_id":"#{app_folder.id}")
+    title = if title, do: title, else: "LivebookApp:#{slug}"
 
     source =
       stamp_notebook(app_path, """
       <!-- livebook:{"app_settings":{"access_type":"public"#{app_folder},"slug":"#{slug}"},"hub_id":"#{team.id}","deployment_group_id":"#{deployment_group.id}"} -->
 
-      # LivebookApp:#{slug}
+      # #{title}
 
       ```elixir
       IO.puts("Hi")
