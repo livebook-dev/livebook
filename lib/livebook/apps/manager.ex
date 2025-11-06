@@ -185,7 +185,9 @@ defmodule Livebook.Apps.Manager do
         reduce: {state, [], false} do
       {state, up_to_date_app_specs, schedule_sync?} ->
         case fetch_app(app_spec.slug) do
-          {:ok, _state, app} when app.app_spec.version == app_spec.version ->
+          {:ok, _state, app}
+          when app.app_spec.version == app_spec.version and
+                 app.app_spec.app_folder_id == app_spec.app_folder_id ->
             {state, [app_spec | up_to_date_app_specs], schedule_sync?}
 
           {:ok, :reachable, app} ->
