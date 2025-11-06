@@ -13,8 +13,11 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
                :agents,
                :deployment_groups,
                :app_deployments,
-               :app_server
+               :app_server,
+               :app_folders
              ]
+
+  @moduletag :tmp_dir
 
   setup do
     Livebook.Apps.subscribe()
@@ -24,17 +27,17 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
   describe "authorized apps" do
     setup :livebook_teams_auth
 
-    @tag :tmp_dir
     test "shows one app if user doesn't have full access",
          %{conn: conn, code: code, node: node, tmp_dir: tmp_dir} = context do
       TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
 
       authorization_group =
         TeamsRPC.create_authorization_group(node,
           group_name: "marketing",
           access_type: :apps,
-          prefixes: ["dev-"],
+          app_folders: [app_folder],
           oidc_provider: oidc_provider,
           deployment_group: context.deployment_group
         )
@@ -52,7 +55,16 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
 
       slug = "dev-app-#{Livebook.Utils.random_short_id()}"
       context = change_to_user_session(context)
-      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      deploy_app(
+        slug,
+        context.team,
+        context.org,
+        context.deployment_group,
+        tmp_dir,
+        node,
+        app_folder
+      )
 
       change_to_agent_session(context)
       wait_livebook_app_start(slug)
@@ -66,7 +78,6 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       assert html =~ slug
     end
 
-    @tag :tmp_dir
     test "shows all apps if user have full access",
          %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
@@ -121,7 +132,6 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       end
     end
 
-    @tag :tmp_dir
     test "updates the apps list in real-time",
          %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       {:ok, %{groups_auth: true} = deployment_group} =
@@ -131,12 +141,13 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       assert_receive {:deployment_group_updated, %{id: ^id, groups_auth: true}}
 
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
 
       authorization_group =
         TeamsRPC.create_authorization_group(node,
           group_name: "marketing",
           access_type: :apps,
-          prefixes: ["mkt-"],
+          app_folders: [app_folder],
           oidc_provider: oidc_provider,
           deployment_group: deployment_group
         )
@@ -154,7 +165,15 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
 
       slug = "marketing-report-#{Livebook.Utils.random_short_id()}"
       context = change_to_user_session(context)
-      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      deploy_app(
+        slug,
+        context.team,
+        context.org,
+        context.deployment_group,
+        tmp_dir,
+        node
+      )
 
       change_to_agent_session(context)
       wait_livebook_app_start(slug)
@@ -169,7 +188,6 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       assert render(view) =~ slug
     end
 
-    @tag :tmp_dir
     test "shows all apps if disable the authentication in real-time",
          %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       {:ok, %{groups_auth: true} = deployment_group} =
@@ -179,12 +197,14 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       assert_receive {:deployment_group_updated, %{id: ^id, groups_auth: true}}
 
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
+      app_folder2 = TeamsRPC.create_app_folder(node, org: context.org)
 
       authorization_group =
         TeamsRPC.create_authorization_group(node,
           group_name: "marketing",
           access_type: :apps,
-          prefixes: ["mkt-"],
+          app_folders: [app_folder],
           oidc_provider: oidc_provider,
           deployment_group: deployment_group
         )
@@ -202,7 +222,16 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
 
       slug = "marketing-app-#{Livebook.Utils.random_short_id()}"
       context = change_to_user_session(context)
-      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      deploy_app(
+        slug,
+        context.team,
+        context.org,
+        context.deployment_group,
+        tmp_dir,
+        node,
+        app_folder2
+      )
 
       change_to_agent_session(context)
       wait_livebook_app_start(slug)

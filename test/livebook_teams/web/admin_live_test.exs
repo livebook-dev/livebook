@@ -16,12 +16,13 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
          %{conn: conn, node: node, code: code} = context do
       TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
 
       authorization_group =
         TeamsRPC.create_authorization_group(node,
           group_name: "marketing",
           access_type: :apps,
-          prefixes: ["dev-"],
+          app_folders: [app_folder],
           oidc_provider: oidc_provider,
           deployment_group: context.deployment_group
         )
@@ -76,6 +77,7 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
         TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
 
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
 
       authorization_group =
         TeamsRPC.create_authorization_group(node,
@@ -99,10 +101,9 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
       {:ok, view, _html} = live(conn, ~p"/settings")
       assert render(view) =~ "System settings"
 
-      TeamsRPC.update_authorization_group(node, authorization_group, %{
-        access_type: :apps,
-        prefixes: ["ops-"]
-      })
+      TeamsRPC.update_authorization_group(node, authorization_group, %{access_type: :apps}, [
+        app_folder
+      ])
 
       id = to_string(deployment_group.id)
       assert_receive {:server_authorization_updated, %{id: ^id}}
@@ -121,12 +122,13 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
         TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
 
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
 
       authorization_group =
         TeamsRPC.create_authorization_group(node,
           group_name: "marketing",
           access_type: :apps,
-          prefixes: ["ops-"],
+          app_folders: [app_folder],
           oidc_provider: oidc_provider,
           deployment_group: deployment_group
         )

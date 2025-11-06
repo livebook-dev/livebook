@@ -8,7 +8,13 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
   setup :teams
 
   @moduletag subscribe_to_hubs_topics: [:connection]
-  @moduletag subscribe_to_teams_topics: [:clients, :agents, :app_deployments, :app_server]
+  @moduletag subscribe_to_teams_topics: [
+               :clients,
+               :agents,
+               :app_deployments,
+               :app_server,
+               :app_folders
+             ]
 
   setup do
     Livebook.Apps.subscribe()
@@ -23,12 +29,13 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
          %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
 
       authorization_group =
         TeamsRPC.create_authorization_group(node,
           group_name: "marketing",
           access_type: :apps,
-          prefixes: ["dev-"],
+          app_folders: [app_folder],
           oidc_provider: oidc_provider,
           deployment_group: context.deployment_group
         )
@@ -46,7 +53,16 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
 
       slug = "dev-oban-app"
       context = change_to_user_session(context)
-      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      deploy_app(
+        slug,
+        context.team,
+        context.org,
+        context.deployment_group,
+        tmp_dir,
+        node,
+        app_folder
+      )
 
       change_to_agent_session(context)
       pid = wait_livebook_app_start(slug)
@@ -111,12 +127,13 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
         TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
 
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
 
       authorization_group =
         TeamsRPC.create_authorization_group(node,
           group_name: "marketing",
           access_type: :apps,
-          prefixes: ["mkt-"],
+          app_folders: [app_folder],
           oidc_provider: oidc_provider,
           deployment_group: deployment_group
         )
@@ -134,7 +151,16 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
 
       slug = "mkt-analytics-#{Livebook.Utils.random_short_id()}"
       context = change_to_user_session(context)
-      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      deploy_app(
+        slug,
+        context.team,
+        context.org,
+        context.deployment_group,
+        tmp_dir,
+        node,
+        app_folder
+      )
 
       change_to_agent_session(context)
       pid = wait_livebook_app_start(slug)
@@ -144,8 +170,11 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
       {:ok, view, _html} = live(conn, path)
       assert render(view) =~ "LivebookApp:#{slug}"
 
-      {:ok, %{prefixes: ["ops-"]}} =
-        TeamsRPC.update_authorization_group(node, authorization_group, %{prefixes: ["ops-"]})
+      app_folder2 = TeamsRPC.create_app_folder(node, org: context.org)
+      app_folder_id = app_folder2.id
+
+      {:ok, %{app_folders: [%{id: ^app_folder_id}]}} =
+        TeamsRPC.update_authorization_group(node, authorization_group, %{}, [app_folder2])
 
       id = to_string(deployment_group.id)
 
@@ -164,12 +193,14 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
         TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
 
       oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
+      app_folder2 = TeamsRPC.create_app_folder(node, org: context.org)
 
       authorization_group =
         TeamsRPC.create_authorization_group(node,
           group_name: "marketing",
           access_type: :apps,
-          prefixes: ["mkt-"],
+          app_folders: [app_folder],
           oidc_provider: oidc_provider,
           deployment_group: deployment_group
         )
@@ -187,7 +218,16 @@ defmodule LivebookWeb.Integration.AppSessionLiveTest do
 
       slug = "analytics-app-#{Livebook.Utils.random_short_id()}"
       context = change_to_user_session(context)
-      deploy_app(slug, context.team, context.org, context.deployment_group, tmp_dir, node)
+
+      deploy_app(
+        slug,
+        context.team,
+        context.org,
+        context.deployment_group,
+        tmp_dir,
+        node,
+        app_folder2
+      )
 
       change_to_agent_session(context)
       pid = wait_livebook_app_start(slug)

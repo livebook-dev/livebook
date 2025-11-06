@@ -179,6 +179,8 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_app_folders(String.t()) :: list(Teams.AppFolder.t())
   def get_app_folders(id) do
     GenServer.call(registry_name(id), :get_app_folders)
+  catch
+    :exit, _ -> []
   end
 
   @doc """
