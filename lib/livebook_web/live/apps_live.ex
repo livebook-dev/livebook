@@ -23,7 +23,7 @@ defmodule LivebookWeb.AppsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="h-full flex flex-col overflow-y-auto bg-gray-50">
+    <div class="h-full flex flex-col overflow-y-auto bg-white">
       <div class="px-6 py-4 bg-white border-b border-gray-200 flex items-center justify-between">
         <div class="w-10 h-10">
           <.menu id="apps-menu" position="bottom-right" md_position="bottom-left">
@@ -54,44 +54,40 @@ defmodule LivebookWeb.AppsLive do
 
       <div class="flex-1 px-6 py-6">
         <div class="max-w-7xl mx-auto">
-          <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Apps</h1>
-            <p class="text-gray-600">Find and manage your Livebook applications</p>
-          </div>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">Apps</h1>
+          <p class="text-gray-600">Find your Livebook applications</p>
 
           <%= if @apps != [] do %>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-              <div class="p-6 border-b border-gray-200">
-                <div class="flex flex-col md:flex-row gap-4">
-                  <div class="flex-1">
-                    <div class="relative">
-                      <.remix_icon
-                        icon="search-line"
-                        class="absolute left-3 bottom-[8px] text-gray-400"
-                      />
-                      <.text_field
-                        id="search-app"
-                        name="search_term"
-                        placeholder="Search apps..."
-                        value={@search_term}
-                        phx-keyup="search"
-                        phx-debounce="300"
-                        class="w-full mt-6 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      />
-                    </div>
+            <div class="mb-10">
+              <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                  <div class="relative">
+                    <.remix_icon
+                      icon="search-line"
+                      class="absolute left-3 bottom-[8px] text-gray-400"
+                    />
+                    <.text_field
+                      id="search-app"
+                      name="search_term"
+                      placeholder="Search apps..."
+                      value={@search_term}
+                      phx-keyup="search"
+                      phx-debounce="300"
+                      class="w-full mt-6 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
                   </div>
-                  <div class="md:w-48">
-                    <form id="select-app-folder-form" phx-change="select_app_folder" phx-nosubmit>
-                      <.select_field
-                        id="select-app-folder"
-                        name="app_folder"
-                        label="Folder"
-                        prompt="Select a folder..."
-                        value={@selected_app_folder}
-                        options={@app_folder_options}
-                      />
-                    </form>
-                  </div>
+                </div>
+                <div class="md:w-48">
+                  <form id="select-app-folder-form" phx-change="select_app_folder" phx-nosubmit>
+                    <.select_field
+                      id="select-app-folder"
+                      name="app_folder"
+                      label="Folder"
+                      prompt="Select a folder..."
+                      value={@selected_app_folder}
+                      options={@app_folder_options}
+                    />
+                  </form>
                 </div>
               </div>
             </div>
@@ -100,18 +96,18 @@ defmodule LivebookWeb.AppsLive do
               :if={@filtered_apps == []}
               class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center"
             >
-              <.remix_icon icon="search-line" class="mx-auto h-12 w-12 text-gray-300 mb-4" />
-              <h3 class="text-lg font-medium text-gray-900 mb-2">No apps found</h3>
+              <.remix_icon icon="windy-line" class="text-gray-400 text-2xl" />
+              <h3 class="text-lg font-medium text-gray-900">No apps found</h3>
               <p class="text-gray-600">Try adjusting your search or filter criteria</p>
             </div>
             <div
-              :for={{app_folder, id, apps} <- @grouped_apps}
+              :for={{app_folder, id, icon, apps} <- @grouped_apps}
               :if={@filtered_apps != []}
               id={id}
               class="mb-8"
             >
               <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <.remix_icon icon="folder-line" class="mr-2" />
+                <.remix_icon icon={icon} class="mr-2" />
                 {app_folder}
                 <span class="ml-2 text-sm font-normal text-gray-500">({length(apps)})</span>
               </h2>
@@ -120,15 +116,13 @@ defmodule LivebookWeb.AppsLive do
                   :for={app <- apps_listing(apps)}
                   id={"app-#{app.slug}"}
                   navigate={~p"/apps/#{app.slug}"}
-                  class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
+                  class="border bg-gray-50 border-gray-300 rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition-all duration-200"
                 >
-                  <div class="flex items-start justify-between mb-2">
-                    <div class="flex-1 min-w-0">
-                      <h3 class="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate">
-                        {app.notebook_name}
-                      </h3>
-                    </div>
-                    <div class="flex items-center space-x-1 ml-2">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                      {app.notebook_name}
+                    </h3>
+                    <div class="space-x-1 ml-2">
                       <.remix_icon
                         :if={not app.public?}
                         icon="lock-password-line"
@@ -266,10 +260,11 @@ defmodule LivebookWeb.AppsLive do
       |> Enum.group_by(& &1.app_spec.app_folder_id)
       |> Enum.map(fn
         {nil, apps} ->
-          {"Ungrouped apps", "ungrouped-apps", apps}
+          {"Ungrouped apps", "ungrouped-apps", "asterisk", apps}
 
         {id, apps} ->
-          {Enum.find_value(app_folders, &(&1.id == id && &1.name)), "app-folder-#{id}", apps}
+          {Enum.find_value(app_folders, &(&1.id == id && &1.name)), "app-folder-#{id}",
+           "folder-line", apps}
       end)
       |> Enum.sort_by(&elem(&1, 0))
 
