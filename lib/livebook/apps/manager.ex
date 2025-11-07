@@ -185,10 +185,14 @@ defmodule Livebook.Apps.Manager do
         reduce: {state, [], false} do
       {state, up_to_date_app_specs, schedule_sync?} ->
         case fetch_app(app_spec.slug) do
-          {:ok, _state, app}
-          when app.app_spec.version == app_spec.version and
-                 app.app_spec.app_folder_id == app_spec.app_folder_id ->
-            {state, [app_spec | up_to_date_app_specs], schedule_sync?}
+          {:ok, _state, app} when app.app_spec.version == app_spec.version ->
+            if changed_app_folder?(app.app_spec, app_spec) do
+              ref = redeploy(app, app_spec)
+              state = track_deployment(state, app_spec, ref)
+              {state, up_to_date_app_specs, schedule_sync?}
+            else
+              {state, [app_spec | up_to_date_app_specs], schedule_sync?}
+            end
 
           {:ok, :reachable, app} ->
             ref = redeploy(app, app_spec)
@@ -340,4 +344,7 @@ defmodule Livebook.Apps.Manager do
       deployment.ref == ref && deployment
     end)
   end
+
+  defp changed_app_folder?(%{app_folder_id: id}, %{app_folder_id: id2}), do: id != id2
+  defp changed_app_folder?(_, _), do: false
 end

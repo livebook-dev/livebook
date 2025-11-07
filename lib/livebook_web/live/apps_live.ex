@@ -257,7 +257,7 @@ defmodule LivebookWeb.AppsLive do
 
     grouped_apps =
       filtered_apps
-      |> Enum.group_by(& &1.app_spec.app_folder_id)
+      |> Enum.group_by(&get_in(&1.app_spec.app_folder_id))
       |> Enum.map(fn
         {nil, apps} ->
           {"Ungrouped apps", "ungrouped-apps", "asterisk", apps}
