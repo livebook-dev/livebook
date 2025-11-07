@@ -11,7 +11,7 @@ defmodule Livebook.Integration.LiveMarkdown.ImportTest do
   @moduletag subscribe_to_teams_topics: [:clients, :app_folders]
 
   describe "app settings" do
-    test "don't import app folder if does not exists anymore",
+    test "keep the app folder id even if it does not exist anymore",
          %{node: node, team: team, org: org} do
       app_folder = TeamsRPC.create_app_folder(node, name: "delete me", org: org)
 
@@ -39,8 +39,10 @@ defmodule Livebook.Integration.LiveMarkdown.ImportTest do
       TeamsRPC.delete_app_folder(node, app_folder)
       assert_receive {:app_folder_deleted, %{id: ^app_folder_id, hub_id: ^hub_id}}
 
-      assert {%Notebook{name: "Deleted from folder", app_settings: %{app_folder_id: nil}},
-              %{warnings: warnings}} = LiveMarkdown.Import.notebook_from_livemd(markdown)
+      assert {%Notebook{
+                name: "Deleted from folder",
+                app_settings: %{app_folder_id: ^app_folder_id}
+              }, %{warnings: warnings}} = LiveMarkdown.Import.notebook_from_livemd(markdown)
 
       assert "notebook is assigned to a non-existent app folder, defaulting to ungrouped app folder" in warnings
     end

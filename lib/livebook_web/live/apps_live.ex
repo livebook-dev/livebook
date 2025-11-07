@@ -14,16 +14,34 @@ defmodule LivebookWeb.AppsLive do
       Livebook.Apps.subscribe()
     end
 
+    empty_apps_path? = Livebook.Apps.empty_apps_path?()
+
+    app_folders =
+      Enum.flat_map(Livebook.Hubs.get_hubs(), &Livebook.Hubs.Provider.get_app_folders/1)
+
+    app_folder_options =
+      for app_folder <- app_folders do
+        {app_folder.name, app_folder.id}
+      end
+
     {:ok,
      socket
-     |> assign(search_term: "", selected_app_folder: "")
+     |> assign(
+       search_term: "",
+       selected_app_folder: "",
+       app_folders: app_folders,
+       app_folder_options: app_folder_options,
+       empty_apps_path?: empty_apps_path?,
+       logout_enabled?:
+         Livebook.Config.logout_enabled?() and socket.assigns.current_user.email != nil
+     )
      |> load_data()}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="h-full flex flex-col overflow-y-auto bg-white">
+    <div class="h-full flex flex-col overflow-y-auto">
       <div class="px-6 py-4 bg-white border-b border-gray-200 flex items-center justify-between">
         <div class="w-10 h-10">
           <.menu id="apps-menu" position="bottom-right" md_position="bottom-left">
@@ -52,149 +70,154 @@ defmodule LivebookWeb.AppsLive do
         </div>
       </div>
 
-      <div class="flex-1 px-6 py-6">
-        <div class="max-w-7xl mx-auto">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">Apps</h1>
-          <p class="text-gray-600">Find your Livebook applications</p>
+      <div class="flex items-center justify-center h-full bg-gray-500/75 overflow-y-hidden">
+        <.focus_wrap
+          id="apps-page-content"
+          class="flex relative p-6 h-full w-full max-w-[90%] max-h-[90%] bg-white overflow-y-auto rounded-lg shadow-2xl"
+        >
+          <div class="flex flex-col gap-y-4 w-full">
+            <div class="flex flex-col gap-y-2">
+              <h1 class="text-3xl font-bold text-gray-900">Apps</h1>
+              <p class="text-gray-600">Find your applications</p>
+            </div>
 
-          <%= if @apps != [] do %>
-            <div class="mb-10">
-              <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-1">
-                  <div class="relative">
-                    <.remix_icon
-                      icon="search-line"
-                      class="absolute left-3 bottom-[8px] text-gray-400"
-                    />
-                    <.text_field
-                      id="search-app"
-                      name="search_term"
-                      placeholder="Search apps..."
-                      value={@search_term}
-                      phx-keyup="search"
-                      phx-debounce="300"
-                      class="w-full mt-6 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    />
+            <%= if @apps != [] do %>
+              <div class="flex flex-col gap-y-8">
+                <div class="flex flex-col md:flex-row gap-4">
+                  <div class="flex-1">
+                    <div class="relative">
+                      <.remix_icon
+                        icon="search-line"
+                        class="absolute left-3 bottom-[8px] text-gray-400"
+                      />
+                      <.text_field
+                        id="search-app"
+                        name="search_term"
+                        placeholder="Search apps..."
+                        value={@search_term}
+                        phx-keyup="search"
+                        phx-debounce="300"
+                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div :if={@show_app_folders?} class="md:w-48">
+                    <form id="select-app-folder-form" phx-change="select_app_folder" phx-nosubmit>
+                      <.select_field
+                        id="select-app-folder"
+                        name="app_folder"
+                        prompt="Select a folder..."
+                        value={@selected_app_folder}
+                        options={@app_folder_options}
+                      />
+                    </form>
                   </div>
                 </div>
-                <div class="md:w-48">
-                  <form id="select-app-folder-form" phx-change="select_app_folder" phx-nosubmit>
-                    <.select_field
-                      id="select-app-folder"
-                      name="app_folder"
-                      label="Folder"
-                      prompt="Select a folder..."
-                      value={@selected_app_folder}
-                      options={@app_folder_options}
-                    />
-                  </form>
-                </div>
-              </div>
-            </div>
 
-            <div
-              :if={@filtered_apps == []}
-              class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center"
-            >
-              <.remix_icon icon="windy-line" class="text-gray-400 text-2xl" />
-              <h3 class="text-lg font-medium text-gray-900">No apps found</h3>
-              <p class="text-gray-600">Try adjusting your search or filter criteria</p>
-            </div>
-            <div
-              :for={{app_folder, id, icon, apps} <- @grouped_apps}
-              :if={@filtered_apps != []}
-              id={id}
-              class="mb-8"
-            >
-              <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <.remix_icon icon={icon} class="mr-2" />
-                {app_folder}
-                <span class="ml-2 text-sm font-normal text-gray-500">({length(apps)})</span>
-              </h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <.link
-                  :for={app <- apps_listing(apps)}
-                  id={"app-#{app.slug}"}
-                  navigate={~p"/apps/#{app.slug}"}
-                  class="border bg-gray-50 border-gray-300 rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition-all duration-200"
+                <div
+                  :if={@filtered_apps == []}
+                  class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center"
                 >
-                  <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate">
-                      {app.notebook_name}
-                    </h3>
-                    <div class="space-x-1 ml-2">
-                      <.remix_icon
-                        :if={not app.public?}
-                        icon="lock-password-line"
-                        class="h-4 w-4 text-gray-400"
-                      />
-                      <.remix_icon
-                        icon="arrow-right-line"
-                        class="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors"
-                      />
+                  <.remix_icon icon="windy-line" class="text-gray-400 text-2xl" />
+                  <h3 class="text-lg font-medium text-gray-900">No apps found</h3>
+                  <p class="text-gray-600">Try adjusting your search or filter criteria</p>
+                </div>
+                <div class="flex flex-col h-full gap-y-8 pr-2">
+                  <div
+                    :for={{app_folder, id, icon, apps} <- @grouped_apps}
+                    :if={@filtered_apps != []}
+                    id={id}
+                    class="flex flex-col gap-y-4"
+                  >
+                    <h2 class="flex items-center gap-x-3 text-xl font-semibold text-gray-900">
+                      <.remix_icon icon={icon} />
+                      {app_folder}
+                      <span class="text-sm font-normal text-gray-500">({length(apps)})</span>
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      <.link
+                        :for={app <- apps_listing(apps)}
+                        id={"app-#{app.slug}"}
+                        navigate={~p"/apps/#{app.slug}"}
+                        class="border bg-gray-50 border-gray-300 rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition-all duration-200"
+                      >
+                        <div class="flex items-center justify-between">
+                          <h3 class="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                            {app.notebook_name}
+                          </h3>
+                          <div class="space-x-1 ml-2">
+                            <.remix_icon
+                              :if={not app.public?}
+                              icon="lock-password-line"
+                              class="h-4 w-4 text-gray-400"
+                            />
+                            <.remix_icon
+                              icon="arrow-right-line"
+                              class="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors"
+                            />
+                          </div>
+                        </div>
+                      </.link>
                     </div>
                   </div>
-                </.link>
+                </div>
               </div>
-            </div>
-          <% else %>
-            <div
-              :if={@empty_apps_path?}
-              class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center"
-            >
-              <.remix_icon icon="folder-add-line" class="mx-auto h-16 w-16 text-gray-300 mb-6" />
-              <h3 class="text-xl font-semibold text-gray-900 mb-4">No app notebooks found</h3>
-              <p class="text-gray-600 mb-6 max-w-md mx-auto">
-                Follow these steps to list your apps here:
-              </p>
-              <div class="bg-gray-50 rounded-lg p-6 text-left max-w-md mx-auto">
-                <ol class="space-y-3 text-sm text-gray-700">
-                  <li class="flex items-start">
-                    <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs font-medium mr-3 mt-0.5">
-                      1
-                    </span>
-                    Open a notebook
-                  </li>
-                  <li class="flex items-start">
-                    <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs font-medium mr-3 mt-0.5">
-                      2
-                    </span>
-                    <div>
-                      Click <.remix_icon icon="rocket-line" class="inline align-baseline text-base" />
-                      in the sidebar and configure the app as public
-                    </div>
-                  </li>
-                  <li class="flex items-start">
-                    <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs font-medium mr-3 mt-0.5">
-                      3
-                    </span>
-                    <div>
-                      Save the notebook to the
-                      <span class="font-medium bg-gray-100 px-1 rounded text-xs">
-                        {Livebook.Config.apps_path()}
-                      </span>
-                      folder
-                    </div>
-                  </li>
-                  <li class="flex items-start">
-                    <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs font-medium mr-3 mt-0.5">
-                      4
-                    </span>
-                    Relaunch your Livebook app
-                  </li>
-                </ol>
+            <% else %>
+              <div class="flex flex-col bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                <div :if={@empty_apps_path?} class="flex flex-col gap-y-4">
+                  <div>
+                    <.remix_icon icon="windy-line" class="size-16 text-gray-400 text-2xl" />
+                    <h3 class="text-lg font-medium text-gray-900">No apps found</h3>
+                    <p class="text-gray-600">Follow these steps to list your apps here:</p>
+                  </div>
+                  <div class="p-6 text-left max-w-md mx-auto">
+                    <ol class="space-y-3 text-sm text-gray-700">
+                      <li class="flex items-center">
+                        <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs font-medium mr-3 mt-0.5">
+                          1
+                        </span>
+                        Open a notebook
+                      </li>
+                      <li class="flex items-center">
+                        <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs font-medium mr-3 mt-0.5">
+                          2
+                        </span>
+                        <div class="flex gap-x-1 items-center">
+                          Click
+                          <.remix_icon icon="rocket-line" class="inline align-baseline text-base" />
+                          in the sidebar and configure the app as public
+                        </div>
+                      </li>
+                      <li class="flex items-center">
+                        <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs font-medium mr-3 mt-0.5">
+                          3
+                        </span>
+                        <div class="flex gap-x-1 items-center">
+                          Save the notebook to the
+                          <span class="font-medium bg-gray-100 px-1 rounded text-xs">
+                            {Livebook.Config.apps_path()}
+                          </span>
+                          folder
+                        </div>
+                      </li>
+                      <li class="flex items-center">
+                        <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs font-medium mr-3 mt-0.5">
+                          4
+                        </span>
+                        Relaunch your Livebook app
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+                <div :if={not @empty_apps_path?}>
+                  <.remix_icon icon="windy-line" class="size-16 text-gray-400 text-2xl" />
+                  <h3 class="text-lg font-medium text-gray-900">No apps running</h3>
+                  <p class="text-gray-600">Start some apps to see them listed here</p>
+                </div>
               </div>
-            </div>
-            <div
-              :if={not @empty_apps_path?}
-              class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center"
-            >
-              <.remix_icon icon="file-line" class="mx-auto h-16 w-16 text-gray-300 mb-6" />
-              <h3 class="text-xl font-semibold text-gray-900 mb-2">No apps running</h3>
-              <p class="text-gray-600">Start some apps to see them listed here</p>
-            </div>
-          <% end %>
-        </div>
+            <% end %>
+          </div>
+        </.focus_wrap>
       </div>
     </div>
     """
@@ -223,11 +246,31 @@ defmodule LivebookWeb.AppsLive do
   end
 
   def handle_info({:server_authorization_updated, _}, socket) do
-    {:noreply, load_data(socket)}
+    {:noreply,
+     socket
+     |> assign(
+       logout_enabled?:
+         Livebook.Config.logout_enabled?() and socket.assigns.current_user.email != nil
+     )
+     |> load_data()}
   end
 
   def handle_info({type, _app_folder}, socket) when type in @events do
-    {:noreply, load_data(socket)}
+    app_folders =
+      Enum.flat_map(Livebook.Hubs.get_hubs(), &Livebook.Hubs.Provider.get_app_folders/1)
+
+    app_folder_options =
+      for app_folder <- app_folders do
+        {app_folder.name, app_folder.id}
+      end
+
+    {:noreply,
+     socket
+     |> assign(
+       app_folders: app_folders,
+       app_folder_options: app_folder_options
+     )
+     |> load_data()}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -238,45 +281,34 @@ defmodule LivebookWeb.AppsLive do
 
   defp load_data(socket, apps \\ nil) do
     apps = apps || Livebook.Apps.list_authorized_apps(socket.assigns.current_user)
+    app_folders = socket.assigns.app_folders
 
     filtered_apps =
       filter_apps(apps, socket.assigns.search_term, socket.assigns.selected_app_folder)
 
-    empty_apps_path? = Livebook.Apps.empty_apps_path?()
-
-    app_folders =
-      Enum.flat_map(Livebook.Hubs.get_hubs(), fn
-        %{id: "team-" <> _} = team -> Livebook.Teams.get_app_folders(team)
-        _ -> []
-      end)
-
-    app_folder_options =
-      for app_folder <- app_folders do
-        {app_folder.name, app_folder.id}
-      end
-
     grouped_apps =
       filtered_apps
-      |> Enum.group_by(&get_in(&1.app_spec.app_folder_id))
+      |> Enum.group_by(fn
+        %{app_spec: %{app_folder_id: id}} -> Enum.find_value(app_folders, &(&1.id == id && id))
+        _ -> nil
+      end)
       |> Enum.map(fn
         {nil, apps} ->
           {"Ungrouped apps", "ungrouped-apps", "asterisk", apps}
 
         {id, apps} ->
-          {Enum.find_value(app_folders, &(&1.id == id && &1.name)), "app-folder-#{id}",
-           "folder-line", apps}
+          app_folder_name = Enum.find_value(app_folders, &(&1.id == id && &1.name))
+          {app_folder_name, "app-folder-#{id}", "folder-line", apps}
       end)
       |> Enum.sort_by(&elem(&1, 0))
+
+    show_app_folders? = Enum.any?(apps, &is_struct(&1.app_spec, Livebook.Apps.TeamsAppSpec))
 
     assign(socket,
       apps: apps,
       grouped_apps: grouped_apps,
-      app_folders: app_folders,
-      app_folder_options: app_folder_options,
       filtered_apps: filtered_apps,
-      empty_apps_path?: empty_apps_path?,
-      logout_enabled?:
-        Livebook.Config.logout_enabled?() and socket.assigns.current_user.email != nil
+      show_app_folders?: show_app_folders?
     )
   end
 

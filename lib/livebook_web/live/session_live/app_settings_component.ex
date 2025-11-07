@@ -17,10 +17,16 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
         {app_folder.name, app_folder.id}
       end
 
+    notebook = Livebook.Session.get_notebook(assigns.session.pid)
+
     {:ok,
      socket
      |> assign(assigns)
-     |> assign(app_folder_options: app_folder_options, changeset: changeset)}
+     |> assign(
+       app_folder_options: app_folder_options,
+       changeset: changeset,
+       hub_id: notebook.hub_id
+     )}
   end
 
   @impl true
@@ -48,6 +54,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
         <div class="flex flex-col space-y-4">
           <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce />
           <.select_field
+            :if={@hub_id != Livebook.Hubs.Personal.id()}
             field={f[:app_folder_id]}
             label="Folder"
             prompt="Select a folder..."

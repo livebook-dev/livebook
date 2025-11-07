@@ -365,7 +365,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       TeamsRPC.delete_app_folder(node, app_folder)
       assert_receive {:app_folder_deleted, %{id: ^app_folder_id}}
       assert_receive {:app_deployment_updated, %{slug: ^slug, app_folder_id: nil}}
-      assert_receive {:app_updated, %{slug: ^slug, app_spec: %{app_folder_id: nil}}}
+      assert_receive {:app_updated, %{slug: ^slug, app_spec: %{app_folder_id: ^app_folder_id}}}
 
       # Once the folder is deleted, all apps are moved to a "Ungrouped apps" folder,
       # which only users with full access will be able to see and access them.
