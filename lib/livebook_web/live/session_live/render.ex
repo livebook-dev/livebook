@@ -104,6 +104,7 @@ defmodule LivebookWeb.SessionLive.Render do
         context={@action_assigns.context}
         deployed_app_slug={@data_view.deployed_app_slug}
         app_folders={@data_view.hub_app_folders}
+        hub_id={@data_view.hub.id}
       />
     </.modal>
 

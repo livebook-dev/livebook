@@ -867,6 +867,19 @@ defmodule Livebook.Hubs.TeamClient do
   defp handle_event(:app_deployment_updated, %Teams.AppDeployment{} = app_deployment, state) do
     manager_sync(app_deployment, state)
     Teams.Broadcasts.app_deployment_updated(app_deployment)
+
+    with {:ok, current_app_deployment} <- fetch_app_deployment(app_deployment.id, state) do
+      if state.deployment_group_id &&
+           (current_app_deployment.app_folder_id !=
+              app_deployment.app_folder_id or
+              current_app_deployment.authorization_groups != app_deployment.authorization_groups) do
+        {:ok, deployment_group} =
+          fetch_deployment_group(app_deployment.deployment_group_id, state)
+
+        Teams.Broadcasts.server_authorization_updated(deployment_group)
+      end
+    end
+
     put_app_deployment(state, app_deployment)
   end
 

@@ -17,15 +17,12 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
         {app_folder.name, app_folder.id}
       end
 
-    notebook = Livebook.Session.get_notebook(assigns.session.pid)
-
     {:ok,
      socket
      |> assign(assigns)
      |> assign(
        app_folder_options: app_folder_options,
-       changeset: changeset,
-       hub_id: notebook.hub_id
+       changeset: changeset
      )}
   end
 

@@ -16,26 +16,18 @@ defmodule LivebookWeb.AppsLive do
 
     empty_apps_path? = Livebook.Apps.empty_apps_path?()
 
-    app_folders =
-      Enum.flat_map(Livebook.Hubs.get_hubs(), &Livebook.Hubs.Provider.get_app_folders/1)
-
-    app_folder_options =
-      for app_folder <- app_folders do
-        {app_folder.name, app_folder.id}
-      end
-
     {:ok,
      socket
      |> assign(
        search_term: "",
        selected_app_folder: "",
-       app_folders: app_folders,
-       app_folder_options: app_folder_options,
+       apps: Livebook.Apps.list_authorized_apps(socket.assigns.current_user),
        empty_apps_path?: empty_apps_path?,
        logout_enabled?:
          Livebook.Config.logout_enabled?() and socket.assigns.current_user.email != nil
      )
-     |> load_data()}
+     |> load_app_folders()
+     |> apply_filters()}
   end
 
   @impl true
@@ -228,49 +220,41 @@ defmodule LivebookWeb.AppsLive do
     {:noreply,
      socket
      |> assign(search_term: search_term)
-     |> load_data()}
+     |> apply_filters()}
   end
 
   def handle_event("select_app_folder", %{"app_folder" => app_folder_id}, socket) do
     {:noreply,
      socket
      |> assign(selected_app_folder: app_folder_id)
-     |> load_data()}
+     |> apply_filters()}
   end
 
   @impl true
   def handle_info({type, _app} = event, socket)
       when type in [:app_created, :app_updated, :app_closed] do
-    apps = LivebookWeb.AppComponents.update_app_list(socket.assigns.apps, event)
-    {:noreply, load_data(socket, apps)}
+    {:noreply,
+     socket
+     |> assign(apps: LivebookWeb.AppComponents.update_app_list(socket.assigns.apps, event))
+     |> apply_filters()}
   end
 
   def handle_info({:server_authorization_updated, _}, socket) do
     {:noreply,
      socket
      |> assign(
+       apps: Livebook.Apps.list_authorized_apps(socket.assigns.current_user),
        logout_enabled?:
          Livebook.Config.logout_enabled?() and socket.assigns.current_user.email != nil
      )
-     |> load_data()}
+     |> apply_filters()}
   end
 
   def handle_info({type, _app_folder}, socket) when type in @events do
-    app_folders =
-      Enum.flat_map(Livebook.Hubs.get_hubs(), &Livebook.Hubs.Provider.get_app_folders/1)
-
-    app_folder_options =
-      for app_folder <- app_folders do
-        {app_folder.name, app_folder.id}
-      end
-
     {:noreply,
      socket
-     |> assign(
-       app_folders: app_folders,
-       app_folder_options: app_folder_options
-     )
-     |> load_data()}
+     |> load_app_folders()
+     |> apply_filters()}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -279,8 +263,20 @@ defmodule LivebookWeb.AppsLive do
     Enum.sort_by(apps, & &1.notebook_name)
   end
 
-  defp load_data(socket, apps \\ nil) do
-    apps = apps || Livebook.Apps.list_authorized_apps(socket.assigns.current_user)
+  def load_app_folders(socket) do
+    app_folders =
+      Enum.flat_map(Livebook.Hubs.get_hubs(), &Livebook.Hubs.Provider.get_app_folders/1)
+
+    app_folder_options =
+      for app_folder <- app_folders do
+        {app_folder.name, app_folder.id}
+      end
+
+    assign(socket, app_folders: app_folders, app_folder_options: app_folder_options)
+  end
+
+  defp apply_filters(socket) do
+    apps = socket.assigns.apps
     app_folders = socket.assigns.app_folders
 
     filtered_apps =
@@ -305,7 +301,6 @@ defmodule LivebookWeb.AppsLive do
     show_app_folders? = Enum.any?(apps, &is_struct(&1.app_spec, Livebook.Apps.TeamsAppSpec))
 
     assign(socket,
-      apps: apps,
       grouped_apps: grouped_apps,
       filtered_apps: filtered_apps,
       show_app_folders?: show_app_folders?
@@ -332,6 +327,9 @@ defmodule LivebookWeb.AppsLive do
   defp filter_by_app_folder(apps, ""), do: apps
 
   defp filter_by_app_folder(apps, app_folder_id) do
-    Enum.filter(apps, &(&1.app_spec.app_folder_id == app_folder_id))
+    Enum.filter(apps, fn
+      %{app_spec: %{app_folder_id: id}} -> id == app_folder_id
+      _otherwise -> false
+    end)
   end
 end
