@@ -61,12 +61,8 @@ defmodule LivebookWeb.AppsLive do
           </.link>
         </div>
       </div>
-
-      <div class="flex items-center justify-center h-full bg-gray-500/75 overflow-y-hidden">
-        <.focus_wrap
-          id="apps-page-content"
-          class="flex relative p-6 h-full w-full max-w-[90%] max-h-[90%] bg-white overflow-y-auto rounded-lg shadow-2xl"
-        >
+      <div class="flex-1 px-6 py-6">
+        <div class="max-w-7xl mx-auto">
           <div class="flex flex-col gap-y-4 w-full">
             <div class="flex flex-col gap-y-2">
               <h1 class="text-3xl font-bold text-gray-900">Apps</h1>
@@ -209,7 +205,7 @@ defmodule LivebookWeb.AppsLive do
               </div>
             <% end %>
           </div>
-        </.focus_wrap>
+        </div>
       </div>
     </div>
     """
