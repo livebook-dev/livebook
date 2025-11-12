@@ -169,8 +169,12 @@ defmodule Livebook.TeamsRPC do
 
   # Update resource
 
-  def update_authorization_group(node, authorization_group, attrs) do
-    :erpc.call(node, TeamsRPC, :update_authorization_group, [authorization_group, attrs])
+  def update_authorization_group(node, authorization_group, attrs, app_folders \\ []) do
+    :erpc.call(node, TeamsRPC, :update_authorization_group, [
+      authorization_group,
+      attrs,
+      app_folders
+    ])
   end
 
   def update_user_info_groups(node, code, groups) do

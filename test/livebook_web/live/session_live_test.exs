@@ -2786,6 +2786,9 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-app-info] a/, "Configure")
       |> render_click()
 
+      # doesn't show the app folder select
+      refute has_element?(view, ~s/#app-settings-modal input[name="app_folder_id"]/)
+
       view
       |> element(~s/#app-settings-modal form/)
       |> render_change(%{"app_settings" => %{"slug" => slug}})
