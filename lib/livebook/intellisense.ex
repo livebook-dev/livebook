@@ -40,7 +40,7 @@ defmodule Livebook.Intellisense do
         ) :: Runtime.intellisense_response()
   def handle_request(language, request, context, node) do
     if impl = impl_for_language(language) do
-      impl.handle_request(request, context, node)
+      apply(impl, :handle_request, [request, context, node])
     end
   end
 

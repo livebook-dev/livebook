@@ -21,7 +21,7 @@ defmodule Livebook.Intellisense.Erlang do
     handle_signature(hint, context, node)
   end
 
-  defp handle_completion(hint, _context, _node) do
+  defp handle_completion(_hint, _context, _node) do
     # TODO: implement. See t:Livebook.Runtime.completion_response/0 for return type.
     nil
   end
