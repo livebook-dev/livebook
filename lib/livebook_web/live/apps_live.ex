@@ -19,15 +19,13 @@ defmodule LivebookWeb.AppsLive do
     {:ok,
      socket
      |> assign(
-       search_term: "",
-       selected_app_folder: "",
        apps: Livebook.Apps.list_authorized_apps(socket.assigns.current_user),
        empty_apps_path?: empty_apps_path?,
        logout_enabled?:
          Livebook.Config.logout_enabled?() and socket.assigns.current_user.email != nil
      )
      |> load_app_folders()
-     |> apply_filters()}
+     |> group_apps()}
   end
 
   @impl true
@@ -70,7 +68,7 @@ defmodule LivebookWeb.AppsLive do
             </div>
 
             <%= if @apps != [] do %>
-              <div class="flex flex-col gap-y-8">
+              <div class="flex flex-col gap-y-8" phx-hook="AppsSearch" id="apps-search-container">
                 <div class="flex flex-col md:flex-row gap-4">
                   <div class="flex-1">
                     <div class="relative">
@@ -82,28 +80,25 @@ defmodule LivebookWeb.AppsLive do
                         id="search-app"
                         name="search_term"
                         placeholder="Search apps..."
-                        value={@search_term}
-                        phx-keyup="search"
-                        phx-debounce="300"
+                        value=""
                         class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       />
                     </div>
                   </div>
                   <div :if={@show_app_folders?} class="md:w-48">
-                    <form id="select-app-folder-form" phx-change="select_app_folder" phx-nosubmit>
-                      <.select_field
-                        id="select-app-folder"
-                        name="app_folder"
-                        prompt="Select a folder..."
-                        value={@selected_app_folder}
-                        options={@app_folder_options}
-                      />
-                    </form>
+                    <.select_field
+                      id="select-app-folder"
+                      name="app_folder"
+                      prompt="Select a folder..."
+                      value=""
+                      options={@app_folder_options}
+                    />
                   </div>
                 </div>
 
                 <div
-                  :if={@filtered_apps == []}
+                  data-no-results
+                  style="display: none"
                   class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center"
                 >
                   <.remix_icon icon="windy-line" class="text-gray-400 text-2xl" />
@@ -113,19 +108,25 @@ defmodule LivebookWeb.AppsLive do
                 <div class="flex flex-col h-full gap-y-8 pr-2">
                   <div
                     :for={{app_folder, id, icon, apps} <- @grouped_apps}
-                    :if={@filtered_apps != []}
                     id={id}
+                    data-app-group
                     class="flex flex-col gap-y-4"
                   >
                     <h2 class="flex items-center gap-x-3 text-xl font-semibold text-gray-900">
                       <.remix_icon icon={icon} />
                       {app_folder}
-                      <span class="text-sm font-normal text-gray-500">({length(apps)})</span>
+                      <span class="text-sm font-normal text-gray-500" data-group-count>
+                        ({length(apps)})
+                      </span>
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       <.link
                         :for={app <- apps_listing(apps)}
                         id={"app-#{app.slug}"}
+                        data-app-card
+                        data-app-name={app.notebook_name}
+                        data-app-slug={app.slug}
+                        data-app-folder-id={get_app_folder_id(app)}
                         navigate={~p"/apps/#{app.slug}"}
                         class="border bg-gray-50 border-gray-300 rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition-all duration-200"
                       >
@@ -211,27 +212,12 @@ defmodule LivebookWeb.AppsLive do
   end
 
   @impl true
-  def handle_event("search", %{"value" => search_term}, socket) do
-    {:noreply,
-     socket
-     |> assign(search_term: search_term)
-     |> apply_filters()}
-  end
-
-  def handle_event("select_app_folder", %{"app_folder" => app_folder_id}, socket) do
-    {:noreply,
-     socket
-     |> assign(selected_app_folder: app_folder_id)
-     |> apply_filters()}
-  end
-
-  @impl true
   def handle_info({type, _app} = event, socket)
       when type in [:app_created, :app_updated, :app_closed] do
     {:noreply,
      socket
      |> assign(apps: LivebookWeb.AppComponents.update_app_list(socket.assigns.apps, event))
-     |> apply_filters()}
+     |> group_apps()}
   end
 
   def handle_info({:server_authorization_updated, _}, socket) do
@@ -242,14 +228,14 @@ defmodule LivebookWeb.AppsLive do
        logout_enabled?:
          Livebook.Config.logout_enabled?() and socket.assigns.current_user.email != nil
      )
-     |> apply_filters()}
+     |> group_apps()}
   end
 
   def handle_info({type, _app_folder}, socket) when type in @events do
     {:noreply,
      socket
      |> load_app_folders()
-     |> apply_filters()}
+     |> group_apps()}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -257,6 +243,9 @@ defmodule LivebookWeb.AppsLive do
   defp apps_listing(apps) do
     Enum.sort_by(apps, & &1.notebook_name)
   end
+
+  defp get_app_folder_id(%{app_spec: %{app_folder_id: id}}), do: id
+  defp get_app_folder_id(_app), do: ""
 
   def load_app_folders(socket) do
     app_folders =
@@ -270,15 +259,12 @@ defmodule LivebookWeb.AppsLive do
     assign(socket, app_folders: app_folders, app_folder_options: app_folder_options)
   end
 
-  defp apply_filters(socket) do
+  defp group_apps(socket) do
     apps = socket.assigns.apps
     app_folders = socket.assigns.app_folders
 
-    filtered_apps =
-      filter_apps(apps, socket.assigns.search_term, socket.assigns.selected_app_folder)
-
     grouped_apps =
-      filtered_apps
+      apps
       |> Enum.group_by(fn
         %{app_spec: %{app_folder_id: id}} -> Enum.find_value(app_folders, &(&1.id == id && id))
         _ -> nil
@@ -293,38 +279,9 @@ defmodule LivebookWeb.AppsLive do
       end)
       |> Enum.sort_by(&elem(&1, 0))
 
-    show_app_folders? = Enum.any?(apps, &is_struct(&1.app_spec, Livebook.Apps.TeamsAppSpec))
+    show_app_folders? =
+      Enum.any?(apps, &is_struct(&1.app_spec, Livebook.Apps.TeamsAppSpec))
 
-    assign(socket,
-      grouped_apps: grouped_apps,
-      filtered_apps: filtered_apps,
-      show_app_folders?: show_app_folders?
-    )
-  end
-
-  defp filter_apps(apps, term, app_folder_id) do
-    apps
-    |> search_apps(term)
-    |> filter_by_app_folder(app_folder_id)
-  end
-
-  defp search_apps(apps, ""), do: apps
-
-  defp search_apps(apps, term) do
-    term = String.downcase(term)
-
-    Enum.filter(apps, fn app ->
-      String.contains?(String.downcase(app.notebook_name), term) or
-        String.contains?(app.slug, term)
-    end)
-  end
-
-  defp filter_by_app_folder(apps, ""), do: apps
-
-  defp filter_by_app_folder(apps, app_folder_id) do
-    Enum.filter(apps, fn
-      %{app_spec: %{app_folder_id: id}} -> id == app_folder_id
-      _otherwise -> false
-    end)
+    assign(socket, grouped_apps: grouped_apps, show_app_folders?: show_app_folders?)
   end
 end
