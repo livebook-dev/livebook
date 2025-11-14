@@ -674,7 +674,7 @@ defmodule LivebookWeb.SessionLiveTest do
                Session.get_data(session.pid)
     end
 
-    test "shows an error when a cell langauge is not enabled", %{conn: conn, session: session} do
+    test "shows an error when a cell language is not enabled", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
 

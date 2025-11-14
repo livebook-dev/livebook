@@ -1,4 +1,4 @@
-defmodule Livebook.Intellisense.IdentifierMatcher do
+defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
   # This module allows for extracting information about identifiers
   # based on code and runtime information (binding, environment).
   #
@@ -11,7 +11,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   # Server.
 
   alias Livebook.Intellisense
-  alias Livebook.Intellisense.Docs
+  alias Livebook.Intellisense.Elixir.Docs
 
   @typedoc """
   A single identifier together with relevant information.
@@ -525,7 +525,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod, ctx.node)
+          documentation: Intellisense.Elixir.Docs.get_module_documentation(mod, ctx.node)
         }
   end
 
@@ -549,7 +549,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod, ctx.node)
+          documentation: Intellisense.Elixir.Docs.get_module_documentation(mod, ctx.node)
         }
   end
 
@@ -603,7 +603,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod, ctx.node)
+          documentation: Intellisense.Elixir.Docs.get_module_documentation(mod, ctx.node)
         }
   end
 
@@ -682,7 +682,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         end)
 
       doc_items =
-        Intellisense.Docs.lookup_module_members(
+        Intellisense.Elixir.Docs.lookup_module_members(
           mod,
           Enum.map(matching_funs, &Tuple.delete_at(&1, 2)),
           ctx.node,
@@ -755,7 +755,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       end)
 
     doc_items =
-      Intellisense.Docs.lookup_module_members(mod, matching_types, ctx.node, kinds: [:type])
+      Intellisense.Elixir.Docs.lookup_module_members(mod, matching_types, ctx.node,
+        kinds: [:type]
+      )
 
     Enum.map(matching_types, fn {name, arity} ->
       doc_item =
