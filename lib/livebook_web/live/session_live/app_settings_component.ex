@@ -58,7 +58,8 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
             options={@app_folder_options}
             help={
               ~S'''
-              You can create folders inside Teams to organize how apps are displayed.
+              You can create folders inside Livebook Teams for
+              app organization and authorization.
               '''
             }
           />
