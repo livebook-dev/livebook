@@ -1,4 +1,5 @@
 import AppAuth from "./app_auth";
+import AppsSearch from "./apps_search";
 import AudioInput from "./audio_input";
 import Cell from "./cell";
 import CellEditor from "./cell_editor";
@@ -25,6 +26,7 @@ import CustomViewSettings from "./custom_view_settings";
 
 export default {
   AppAuth,
+  AppsSearch,
   AudioInput,
   Cell,
   CellEditor,
