@@ -766,7 +766,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       code = ~S'''
       defmodule Livebook.Runtime.EvaluatorTest.DoctestsGeneratedBase do
         defmacro __using__(_) do
-          quote do
+          quote generated: true do
             @doc """
 
                 iex> 1
@@ -798,7 +798,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       code = ~S'''
       defmodule Livebook.Runtime.EvaluatorTest.DoctestsGeneratedBase do
         defmacro __using__(_) do
-          quote do
+          quote generated: true do
             @doc """
 
                 iex> 1
