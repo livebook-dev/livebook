@@ -716,7 +716,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       %{
                         column: 6,
                         details:
-                          "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented for type Integer. " <>
+                          "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented " <>
                             _,
                         end_line: 10,
                         line: 9,

@@ -18,8 +18,15 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     case Code.fetch_docs(module) do
       {:docs_v1, _, _, _, doc_content, _, member_docs} ->
         funs =
-          for {{:function, name, arity}, annotation, _signatures, _doc, _meta} <- member_docs,
-              do: %{name: name, arity: arity, generated: :erl_anno.generated(annotation)}
+          for {{:function, name, arity}, annotation, _signatures, _doc, meta} <- member_docs do
+            %{
+              name: name,
+              arity: arity,
+              generated:
+                :erl_anno.generated(annotation) or
+                  Enum.any?(Map.get(meta, :source_annos, []), &:erl_anno.generated/1)
+            }
+          end
 
         {generated_funs, regular_funs} = Enum.split_with(funs, & &1.generated)
 
