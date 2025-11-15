@@ -226,11 +226,10 @@ defmodule LivebookWeb.AppsLive do
   end
 
   @impl true
-  def handle_info({type, _app} = event, socket)
-      when type in [:app_created, :app_updated, :app_closed] do
+  def handle_info({type, _app}, socket) when type in [:app_created, :app_updated, :app_closed] do
     {:noreply,
      socket
-     |> assign(apps: LivebookWeb.AppComponents.update_app_list(socket.assigns.apps, event))
+     |> assign(apps: Livebook.Apps.list_authorized_apps(socket.assigns.current_user))
      |> apply_filters()}
   end
 

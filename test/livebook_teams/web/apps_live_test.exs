@@ -493,6 +493,66 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       |> Enum.reject(&(&1 == app_to_deploy2))
       |> Enum.each(&refute_app(view, &1))
     end
+
+    test "don't show unauthorized app when it restarts via Teams",
+         %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
+      {:ok, %{groups_auth: true} = deployment_group} =
+        TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
+
+      id = to_string(deployment_group.id)
+      assert_receive {:deployment_group_updated, %{id: ^id, groups_auth: true}}
+
+      oidc_provider = TeamsRPC.create_oidc_provider(node, context.org)
+      app_folder = TeamsRPC.create_app_folder(node, org: context.org)
+      app_folder2 = TeamsRPC.create_app_folder(node, org: context.org)
+
+      authorization_group =
+        TeamsRPC.create_authorization_group(node,
+          access_type: :apps,
+          app_folders: [app_folder],
+          oidc_provider: oidc_provider,
+          deployment_group: deployment_group
+        )
+
+      TeamsRPC.update_user_info_groups(
+        node,
+        code,
+        [
+          %{
+            "provider_id" => to_string(oidc_provider.id),
+            "group_name" => authorization_group.group_name
+          }
+        ]
+      )
+
+      slug = "app-#{Livebook.Utils.random_short_id()}"
+      context = change_to_user_session(context)
+
+      app_deployment_id =
+        deploy_app(
+          slug,
+          context.team,
+          context.org,
+          context.deployment_group,
+          tmp_dir,
+          node,
+          app_folder2
+        ).id
+
+      change_to_agent_session(context)
+      wait_livebook_app_start(slug)
+
+      {:ok, view, _} = live(conn, ~p"/apps")
+      refute render(view) =~ slug
+
+      {:ok, _} = TeamsRPC.toggle_app_deployment(node, app_deployment_id, context.org.id)
+      assert_receive {:app_deployment_stopped, %{id: ^app_deployment_id}}
+      refute render(view) =~ slug
+
+      {:ok, _} = TeamsRPC.toggle_app_deployment(node, app_deployment_id, context.org.id)
+      assert_receive {:app_deployment_started, %{id: ^app_deployment_id}}
+      refute render(view) =~ slug
+    end
   end
 
   defp assert_app(view, app_to_deploy) do
