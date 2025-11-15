@@ -131,7 +131,10 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
     ~H"""
     <label class={[
       "relative flex rounded-lg border p-4 w-1/2",
-      if(to_string(@field.value) == to_string(@value), do: "border-blue-500", else: "border-gray-200"),
+      if(to_string(@field.value) == to_string(@value),
+        do: "border-blue-500",
+        else: "border-gray-200"
+      ),
       if(@disabled, do: "opacity-70", else: "cursor-pointer")
     ]}>
       <input

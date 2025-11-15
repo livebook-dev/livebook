@@ -148,4 +148,21 @@ defmodule Livebook.TestHelpers do
   defp remove_ansi(string) do
     String.replace(string, ~r/\e\[\d+m/, "")
   end
+
+  # Returns intellisense context resulting from evaluating
+  # the given block of code in a fresh context.
+  defmacro intellisense_context_from_eval(ebin_path \\ System.tmp_dir!(), do: block) do
+    quote do
+      block = unquote(Macro.escape(block))
+      binding = []
+      env = Code.env_for_eval([])
+      {value, binding, env} = Code.eval_quoted_with_env(block, binding, env)
+
+      %{
+        env: env,
+        ebin_path: unquote(ebin_path),
+        map_binding: fn fun -> fun.(binding) end
+      }
+    end
+  end
 end

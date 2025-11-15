@@ -506,7 +506,9 @@ export default class LiveEditor {
     const settings = settingsStore.get();
 
     // Trigger completion implicitly only for identifiers and members
-    const triggerBeforeCursor = context.matchBefore(/[\w?!.]$/);
+    const triggerBeforeCursor = context.matchBefore(
+      this.getTriggerBeforeCursorRegex(),
+    );
 
     if (!triggerBeforeCursor && !context.explicit) {
       return null;
@@ -544,6 +546,13 @@ export default class LiveEditor {
         };
       })
       .catch(() => null);
+  }
+
+  /** Get the regex for the trigger before cursor */
+  getTriggerBeforeCursorRegex() {
+    if (this.language === "elixir") return /[\w?!.]$/;
+    if (this.language === "erlang") return /[\w:]$/;
+    return /[\w.]$/;
   }
 
   /** @private */

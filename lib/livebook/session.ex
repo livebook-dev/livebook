@@ -452,7 +452,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Requests the given langauge to be enabled.
+  Requests the given language to be enabled.
 
   This inserts extra cells and adds dependencies if applicable.
   """
@@ -462,7 +462,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Requests the given langauge to be disabled.
+  Requests the given language to be disabled.
   """
   @spec disable_language(pid(), atom()) :: :ok
   def disable_language(pid, language) do

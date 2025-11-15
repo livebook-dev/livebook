@@ -207,11 +207,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             tag="primary"
             empty={@cell_view.empty}
             language={@cell_view.language}
-            intellisense={@cell_view.language == :elixir}
+            intellisense={@cell_view.language in [:elixir, :erlang]}
           />
         </div>
         <div class="absolute bottom-2 right-2" data-el-cell-indicators>
-          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} langauge_toggle />
+          <.cell_indicators id={@cell_view.id} cell_view={@cell_view} language_toggle />
         </div>
       </div>
       <div :if={@cell_view.language not in @enabled_languages} class="mt-2">
@@ -772,7 +772,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   attr :id, :string, required: true
   attr :cell_view, :map, required: true
-  attr :langauge_toggle, :boolean, default: false
+  attr :language_toggle, :boolean, default: false
 
   defp cell_indicators(assigns) do
     ~H"""
@@ -780,7 +780,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <.cell_indicator :if={has_status?(@cell_view)}>
         <.cell_status id={@id} cell_view={@cell_view} />
       </.cell_indicator>
-      <%= if @langauge_toggle do %>
+      <%= if @language_toggle do %>
         <.menu id={"cell-#{@id}-language-menu"} position="bottom-right">
           <:toggle>
             <.cell_indicator class="cursor-pointer">

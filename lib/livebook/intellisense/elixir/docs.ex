@@ -1,4 +1,4 @@
-defmodule Livebook.Intellisense.Docs do
+defmodule Livebook.Intellisense.Elixir.Docs do
   # This module is responsible for extracting and normalizing
   # information like documentation, signatures and specs.
   #
@@ -229,5 +229,246 @@ defmodule Livebook.Intellisense.Docs do
 
   defp keyfind(list, key) do
     List.keyfind(list, key, 0) || :error
+  end
+
+  @doc """
+  Formats the given documentation content as Markdown.
+
+  The `variant` argument can be either `:all` to return the full content,
+  or `:short` to return only the first paragraph.
+  """
+  @spec format_documentation(documentation(), :all | :short) :: String.t()
+  def format_documentation(doc, variant)
+
+  def format_documentation(nil, _variant) do
+    "No documentation available"
+  end
+
+  def format_documentation(:hidden, _variant) do
+    "This is a private API"
+  end
+
+  def format_documentation({"text/markdown", markdown}, :short) do
+    # Extract just the first paragraph
+    markdown
+    |> String.split("\n\n")
+    |> hd()
+    |> String.trim()
+  end
+
+  def format_documentation({"application/erlang+html", erlang_html}, :short) do
+    # Extract just the first paragraph
+    erlang_html
+    |> Enum.find(&match?({:p, _, _}, &1))
+    |> case do
+      nil -> nil
+      paragraph -> erlang_html_to_md([paragraph])
+    end
+  end
+
+  def format_documentation({"text/markdown", markdown}, :all) do
+    markdown
+  end
+
+  def format_documentation({"application/erlang+html", erlang_html}, :all) do
+    erlang_html_to_md(erlang_html)
+  end
+
+  def format_documentation({format, _content}, _variant) do
+    raise "unknown documentation format #{inspect(format)}"
+  end
+
+  # Erlang HTML AST
+  # See https://erlang.org/doc/apps/erl_docgen/doc_storage.html#erlang-documentation-format
+
+  defp erlang_html_to_md(ast) do
+    build_md([], ast)
+    |> IO.iodata_to_binary()
+    |> String.trim()
+  end
+
+  defp build_md(iodata, ast)
+
+  defp build_md(iodata, []), do: iodata
+
+  defp build_md(iodata, [string | ast]) when is_binary(string) do
+    string |> append_inline(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{tag, _, content} | ast]) when tag in [:em, :i] do
+    render_emphasis(content) |> append_inline(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{tag, _, content} | ast]) when tag in [:strong, :b] do
+    render_strong(content) |> append_inline(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:code, _, content} | ast]) do
+    render_code_inline(content) |> append_inline(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:a, attrs, content} | ast]) do
+    render_link(content, attrs) |> append_inline(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:br, _, []} | ast]) do
+    render_line_break() |> append_inline(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{tag, _, content} | ast]) when tag in [:p, :div] do
+    render_paragraph(content) |> append_block(iodata) |> build_md(ast)
+  end
+
+  @headings ~w(h1 h2 h3 h4 h5 h6)a
+
+  defp build_md(iodata, [{tag, _, content} | ast]) when tag in @headings do
+    n = 1 + Enum.find_index(@headings, &(&1 == tag))
+    render_heading(n, content) |> append_block(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:pre, _, [{:code, _, [content]}]} | ast]) do
+    render_code_block(content, "erlang") |> append_block(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:div, [{:class, class} | _], content} | ast]) do
+    type = class |> to_string() |> String.upcase()
+
+    render_blockquote([{:p, [], [{:strong, [], [type]}]} | content])
+    |> append_block(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:ul, [{:class, "types"} | _], content} | ast]) do
+    render_types_list(content) |> append_block(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:ul, _, content} | ast]) do
+    render_unordered_list(content) |> append_block(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:ol, _, content} | ast]) do
+    render_ordered_list(content) |> append_block(iodata) |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:dl, _, content} | ast]) do
+    render_description_list(content) |> append_block(iodata) |> build_md(ast)
+  end
+
+  defp append_inline(md, iodata), do: [iodata, md]
+  defp append_block(md, iodata), do: [iodata, "\n", md, "\n"]
+
+  # Renderers
+
+  defp render_emphasis(content) do
+    ["*", build_md([], content), "*"]
+  end
+
+  defp render_strong(content) do
+    ["**", build_md([], content), "**"]
+  end
+
+  defp render_code_inline(content) do
+    ["`", build_md([], content), "`"]
+  end
+
+  defp render_link(content, attrs) do
+    caption = build_md([], content)
+
+    if href = attrs[:href] do
+      ["[", caption, "](", href, ")"]
+    else
+      caption
+    end
+  end
+
+  defp render_line_break(), do: "\\\n"
+
+  defp render_paragraph(content), do: erlang_html_to_md(content)
+
+  defp render_heading(n, content) do
+    title = build_md([], content)
+    [String.duplicate("#", n), " ", title]
+  end
+
+  defp render_code_block(content, language) do
+    ["```", language, "\n", content, "\n```"]
+  end
+
+  defp render_blockquote(content) do
+    inner = erlang_html_to_md(content)
+
+    inner
+    |> String.split("\n")
+    |> Enum.map_intersperse("\n", &["> ", &1])
+  end
+
+  defp render_unordered_list(content) do
+    marker_fun = fn _index -> "* " end
+    render_list(content, marker_fun, "  ")
+  end
+
+  defp render_ordered_list(content) do
+    marker_fun = fn index -> "#{index + 1}. " end
+    render_list(content, marker_fun, "   ")
+  end
+
+  defp render_list(items, marker_fun, indent) do
+    spaced? = spaced_list_items?(items)
+    item_separator = if(spaced?, do: "\n\n", else: "\n")
+
+    items
+    |> Enum.map(fn {:li, _, content} -> erlang_html_to_md(content) end)
+    |> Enum.with_index()
+    |> Enum.map(fn {inner, index} ->
+      [first_line | lines] = String.split(inner, "\n")
+
+      first_line = marker_fun.(index) <> first_line
+
+      lines =
+        Enum.map(lines, fn
+          "" -> ""
+          line -> indent <> line
+        end)
+
+      Enum.intersperse([first_line | lines], "\n")
+    end)
+    |> Enum.intersperse(item_separator)
+  end
+
+  defp spaced_list_items?([{:li, _, [{:p, _, _content} | _]} | _items]), do: true
+  defp spaced_list_items?([_ | items]), do: spaced_list_items?(items)
+  defp spaced_list_items?([]), do: false
+
+  defp render_description_list(content) do
+    # Rewrite description list as an unordered list with pseudo heading
+    content
+    |> Enum.chunk_every(2)
+    |> Enum.map(fn [{:dt, _, dt}, {:dd, _, dd}] ->
+      {:li, [], [{:p, [], [{:strong, [], dt}]}, {:p, [], dd}]}
+    end)
+    |> render_unordered_list()
+  end
+
+  defp render_types_list(content) do
+    content
+    |> group_type_list_items([])
+    |> render_unordered_list()
+  end
+
+  defp group_type_list_items([], acc), do: Enum.reverse(acc)
+
+  defp group_type_list_items([{:li, [{:name, _type_name}], []} | items], acc) do
+    group_type_list_items(items, acc)
+  end
+
+  defp group_type_list_items([{:li, [{:class, "type"}], content} | items], acc) do
+    group_type_list_items(items, [{:li, [], [{:code, [], content}]} | acc])
+  end
+
+  defp group_type_list_items(
+         [{:li, [{:class, "description"}], content} | items],
+         [{:li, [], prev_content} | acc]
+       ) do
+    group_type_list_items(items, [{:li, [], prev_content ++ [{:p, [], content}]} | acc])
   end
 end
