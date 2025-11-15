@@ -15,8 +15,6 @@ defmodule Livebook.Runtime.Evaluator do
   # and we want to keep them in the inbox, whereas a GenServer would
   # always consume them.
 
-  require Logger
-
   alias Livebook.Runtime.Evaluator
 
   @type t :: %{pid: pid(), ref: reference()}

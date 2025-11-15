@@ -1,6 +1,5 @@
 defmodule LivebookWeb.SidebarHook do
   use LivebookWeb, :verified_routes
-  require Logger
 
   import Phoenix.Component
   import Phoenix.LiveView

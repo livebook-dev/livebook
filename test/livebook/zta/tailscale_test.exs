@@ -26,8 +26,7 @@ defmodule Livebook.ZTA.TailscaleTest do
 
   setup do
     bypass = Bypass.open()
-
-    conn = %Plug.Conn{conn(:get, @path) | remote_ip: {151, 236, 219, 228}}
+    conn = %{conn(:get, @path) | remote_ip: {151, 236, 219, 228}}
 
     options = [
       name: @name,
@@ -80,7 +79,7 @@ defmodule Livebook.ZTA.TailscaleTest do
       |> send_resp(404, "no match for IP:port")
     end)
 
-    conn = %Plug.Conn{conn(:get, @path) | remote_ip: {151, 236, 219, 229}}
+    conn = %{conn(:get, @path) | remote_ip: {151, 236, 219, 229}}
 
     start_supervised!({Tailscale, options})
     assert {_conn, nil} = Tailscale.authenticate(@name, conn, @fields)

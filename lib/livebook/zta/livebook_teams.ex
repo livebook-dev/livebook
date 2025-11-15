@@ -1,8 +1,6 @@
 defmodule Livebook.ZTA.LivebookTeams do
   use LivebookWeb, :verified_routes
 
-  require Logger
-
   alias Livebook.Teams
 
   import Plug.Conn

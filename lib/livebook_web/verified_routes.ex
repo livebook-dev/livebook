@@ -1,6 +1,4 @@
 defmodule LivebookWeb.VerifiedRoutes do
-  require Phoenix.VerifiedRoutes
-
   defmacro sigil_p({:<<>>, _meta, ["/public/" <> _ | _]} = route, extra) do
     # We allow configuring a base path for all routes and we configure
     # Phoenix to use it. However, we have an additional configuration

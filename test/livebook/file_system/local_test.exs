@@ -410,7 +410,7 @@ defmodule Livebook.FileSystem.LocalTest do
       assert :ok = FileSystem.rename(file_system, src_file_path, dest_file_path)
 
       assert File.read!(dest_file_path) == "content"
-      refute File.exists?(src_file_path) == "content"
+      refute File.exists?(src_file_path)
     end
 
     @tag :tmp_dir

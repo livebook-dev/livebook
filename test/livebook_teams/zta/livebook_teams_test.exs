@@ -63,7 +63,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         "failed_reason" => "you do not belong to this org"
       }
 
-      conn = %Plug.Conn{conn | params: params_from_teams}
+      conn = %{conn | params: params_from_teams}
 
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
       assert conn.status == 302

@@ -199,12 +199,11 @@ defmodule Livebook.TeamsIntegrationHelper do
       |> get("/", %{teams_identity: "", code: code})
       |> Plug.Conn.get_session()
 
-    authenticated_conn = Plug.Test.init_test_session(conn, session)
+    authenticated_conn = %Plug.Conn{} = Plug.Test.init_test_session(conn, session)
     final_conn = get(authenticated_conn, "/")
     assigns = Map.take(final_conn.assigns, [:current_user])
 
-    {%Plug.Conn{authenticated_conn | assigns: Map.merge(authenticated_conn.assigns, assigns)},
-     code}
+    {%{authenticated_conn | assigns: Map.merge(authenticated_conn.assigns, assigns)}, code}
   end
 
   def change_to_agent_session(%{node: node, teams_for: :user} = context) do
