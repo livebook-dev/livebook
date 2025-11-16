@@ -9,29 +9,29 @@ defmodule Livebook.Intellisense.Erlang do
     nil
   end
 
-  def handle_request({:completion, hint}, context, node) do
-    handle_completion(hint, context, node)
+  def handle_request({:completion, hint}, context, _node) do
+    handle_completion(hint, context)
   end
 
-  def handle_request({:details, line, column}, context, node) do
-    handle_details(line, column, context, node)
+  def handle_request({:details, line, column}, context, _node) do
+    handle_details(line, column, context)
   end
 
-  def handle_request({:signature, hint}, context, node) do
-    handle_signature(hint, context, node)
+  def handle_request({:signature, hint}, context, _node) do
+    handle_signature(hint, context)
   end
 
-  defp handle_completion(_hint, _context, _node) do
+  defp handle_completion(_hint, _context) do
     # TODO: implement. See t:Livebook.Runtime.completion_response/0 for return type.
     nil
   end
 
-  defp handle_details(_line, _column, _context, _node) do
+  defp handle_details(_line, _column, _context) do
     # TODO: implement. See t:Livebook.Runtime.details_response/0 for return type.
     nil
   end
 
-  defp handle_signature(_hint, _context, _node) do
+  defp handle_signature(_hint, _context) do
     # TODO: implement. See t:Livebook.Runtime.signature_response/0 for return type.
     nil
   end
