@@ -368,8 +368,7 @@ defmodule Livebook.Session.DataTest do
                   "s2" => %{evaluating_cell_id: nil},
                   "s3" => %{evaluating_cell_id: nil}
                 }
-              } = new_data,
-              [{:stop_evaluation, %{id: "s2", parent_id: nil}}]} =
+              } = new_data, [{:stop_evaluation, %{id: "s2", parent_id: nil}}]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
@@ -655,8 +654,7 @@ defmodule Livebook.Session.DataTest do
                     deleted_at: _
                   }
                 ]
-              },
-              [{:forget_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
+              }, [{:forget_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
                Data.apply_operation(data, operation)
     end
 
@@ -1564,8 +1562,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 notebook: %{setup_section: %{cells: [%Notebook.Cell.Code{}]}}
-              },
-              [{:forget_evaluation, %{id: @pyproject_setup_id}, %{id: "setup-section"}}]} =
+              }, [{:forget_evaluation, %{id: @pyproject_setup_id}, %{id: "setup-section"}}]} =
                Data.apply_operation(data, operation)
     end
 
@@ -1913,8 +1910,7 @@ defmodule Livebook.Session.DataTest do
                 section_infos: %{
                   "s2" => %{evaluating_cell_id: "c2"}
                 }
-              } = new_data,
-              [{:start_evaluation, %{id: "c2"}, %{id: "s2"}, []}]} =
+              } = new_data, [{:start_evaluation, %{id: "c2"}, %{id: "s2"}, []}]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
@@ -1999,8 +1995,7 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{eval: %{status: :evaluating, evaluation_opts: ^evaluation_opts}}
                 }
-              } = new_data,
-              [{:start_evaluation, %{id: "c1"}, %{id: "s1"}, ^evaluation_opts}]} =
+              } = new_data, [{:start_evaluation, %{id: "c1"}, %{id: "s1"}, ^evaluation_opts}]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
@@ -2026,8 +2021,7 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   @setup_id => %{eval: %{status: :queued, evaluation_opts: ^evaluation_opts}}
                 }
-              } = new_data,
-              [{:disconnect_runtime, ^runtime}, :connect_runtime]} =
+              } = new_data, [{:disconnect_runtime, ^runtime}, :connect_runtime]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
@@ -2231,8 +2225,7 @@ defmodule Livebook.Session.DataTest do
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: "c2"}
                 }
-              } = new_data,
-              [{:start_evaluation, %{id: "c2"}, %{id: "s1"}, []}]} =
+              } = new_data, [{:start_evaluation, %{id: "c2"}, %{id: "s1"}, []}]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
@@ -2259,8 +2252,7 @@ defmodule Livebook.Session.DataTest do
                   "s1" => %{evaluating_cell_id: nil},
                   "s2" => %{evaluating_cell_id: "c2"}
                 }
-              } = new_data,
-              [{:start_evaluation, %{id: "c2"}, %{id: "s2"}, []}]} =
+              } = new_data, [{:start_evaluation, %{id: "c2"}, %{id: "s2"}, []}]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
@@ -3165,8 +3157,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 notebook: %{sections: [%{cells: [%{id: "c1", source: "content"}]}]}
-              },
-              [{:report_delta, ^client_id, _cell, :primary, ^delta, nil}]} =
+              }, [{:report_delta, ^client_id, _cell, :primary, ^delta, nil}]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -3195,8 +3186,7 @@ defmodule Livebook.Session.DataTest do
                 notebook: %{
                   sections: [%{cells: [%{id: "c1", source: "content!", attrs: ^attrs}]}]
                 }
-              },
-              [{:report_delta, ^client_id, _cell, :primary, ^delta2, nil}]} =
+              }, [{:report_delta, ^client_id, _cell, :primary, ^delta2, nil}]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -4075,8 +4065,7 @@ defmodule Livebook.Session.DataTest do
                 section_infos: %{
                   "setup-section" => %{evaluating_cell_id: @setup_id}
                 }
-              } = new_data,
-              [{:start_evaluation, %{id: @setup_id}, %{id: "setup-section"}, []}]} =
+              } = new_data, [{:start_evaluation, %{id: @setup_id}, %{id: "setup-section"}, []}]} =
                Data.apply_operation(data, operation)
 
       assert new_data.section_infos["setup-section"].evaluation_queue == MapSet.new([])
@@ -4630,8 +4619,7 @@ defmodule Livebook.Session.DataTest do
                   "c2" => %{eval: %{status: :queued}}
                 },
                 app_data: %{status: %{execution: :executing}}
-              },
-              [:app_report_status, {:disconnect_runtime, _}, :connect_runtime]} =
+              }, [:app_report_status, {:disconnect_runtime, _}, :connect_runtime]} =
                Data.apply_operation(data, operation)
     end
 
