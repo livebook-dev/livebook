@@ -225,9 +225,6 @@ The following environment variables can be used to configure Livebook on boot:
     "standalone" (Standalone), "attached:NODE:COOKIE" (Attached node)
     or "embedded" (Embedded). Defaults to "standalone".
 
-  * `LIVEBOOK_FIPS` - if set to "true", it enables the FIPS mode on startup.
-    See more details in [the documentation](https://hexdocs.pm/livebook/fips.html).
-
   * `LIVEBOOK_FORCE_SSL_HOST` - sets a host to redirect to if the request is not over HTTPS.
     Note it does not apply when accessing Livebook via localhost. Defaults to nil.
 
