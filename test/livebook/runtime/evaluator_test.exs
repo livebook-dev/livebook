@@ -1584,7 +1584,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
                in function  list_to_binary/1
                   called as list_to_binary(1)
                   *** argument 1: not an iolist term
-               in call from erl_eval:do_apply/7 (erl_eval.erl, line\
+               in call from erl_eval:do_apply/7 (erl_eval.erl\
              """
     end
   end

@@ -51,7 +51,8 @@ defmodule Livebook.Runtime.Dependencies do
             config -> [[config: Macro.escape(config)]]
           end
 
-      install_node = {{:., [], [{:__aliases__, [], [:Mix]}, :install]}, [], install_args}
+      install_node =
+        {{:., [], [{:__aliases__, [], [:Mix]}, :install]}, [newlines: 1], install_args}
 
       {:ok, prepend_node(ast, install_node)}
     end
@@ -90,6 +91,8 @@ defmodule Livebook.Runtime.Dependencies do
           opts = map_maybe_block(opts, &update_config_in_opts(&1, config))
           [opts | other_args]
       end
+
+    meta1 = Keyword.put(meta1, :newlines, 1)
 
     new_dep_nodes = for dep <- deps, not has_dep?(dep_nodes, dep), do: dep_node(dep)
     {:ok, {target, meta1, [{:__block__, meta2, [dep_nodes ++ new_dep_nodes]} | args]}}

@@ -37,3 +37,7 @@ RUN git clone https://github.com/elixir-lang/elixir.git && \
     make compile && \
     make install
 ```
+
+## Configuration
+
+To enable FIPS in Livebook, you must run it with `ERL_AFLAGS="-crypto fips_mode true"` environment variable set.

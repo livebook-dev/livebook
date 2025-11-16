@@ -270,14 +270,12 @@ defmodule Livebook do
       config :livebook, :image_registry_url, image_registry_url
     end
 
+    # TODO: remove in v1.0
     if Livebook.Config.boolean!("LIVEBOOK_FIPS", false) do
-      if :crypto.enable_fips_mode(true) do
-        IO.puts("[Livebook] FIPS mode enabled")
-      else
-        Livebook.Config.abort!(
-          "Requested FIPS mode via LIVEBOOK_FIPS, but this Erlang installation was compiled without FIPS support"
-        )
-      end
+      IO.warn(
+        ~s/Ignoring LIVEBOOK_FIPS=true, because it is no longer supported. Set ERL_AFLAGS="-crypto fips_mode true" instead./,
+        []
+      )
     end
   end
 
