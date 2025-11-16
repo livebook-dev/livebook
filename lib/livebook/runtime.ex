@@ -969,11 +969,12 @@ defprotocol Livebook.Runtime do
   @spec handle_intellisense(
           t(),
           pid(),
+          language(),
           intellisense_request(),
           parent_locators(),
           {atom(), atom()} | nil
         ) :: reference()
-  def handle_intellisense(runtime, send_to, request, parent_locators, node)
+  def handle_intellisense(runtime, send_to, language, request, parent_locators, node)
 
   @doc """
   Reads file at the given absolute path within the runtime file system.

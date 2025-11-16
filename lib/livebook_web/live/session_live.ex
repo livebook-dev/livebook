@@ -659,6 +659,7 @@ defmodule LivebookWeb.SessionLive do
           Livebook.Runtime.handle_intellisense(
             data.runtime,
             self(),
+            cell.language,
             request,
             parent_locators,
             node

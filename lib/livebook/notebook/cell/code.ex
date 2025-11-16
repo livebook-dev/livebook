@@ -41,7 +41,7 @@ defmodule Livebook.Notebook.Cell.Code do
   end
 
   @doc """
-  Return the list of supported langauges for code cells.
+  Return the list of supported languages for code cells.
   """
   @spec languages() :: list(%{name: String.t(), language: atom()})
   def languages() do

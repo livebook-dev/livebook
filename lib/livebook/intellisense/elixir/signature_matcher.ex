@@ -1,8 +1,8 @@
-defmodule Livebook.Intellisense.SignatureMatcher do
+defmodule Livebook.Intellisense.Elixir.SignatureMatcher do
   # This module allows for extracting information about function
   # signatures matching an incomplete call.
 
-  alias Livebook.Intellisense.Docs
+  alias Livebook.Intellisense.Elixir.Docs
 
   @type signature_info :: {name :: atom(), Docs.signature(), Docs.documentation(), Docs.spec()}
 
@@ -52,7 +52,7 @@ defmodule Livebook.Intellisense.SignatureMatcher do
 
   defp signature_infos_for_members(mod, funs, active_argument, node) do
     infos =
-      Livebook.Intellisense.Docs.lookup_module_members(mod, funs, node,
+      Livebook.Intellisense.Elixir.Docs.lookup_module_members(mod, funs, node,
         kinds: [:function, :macro]
       )
 
