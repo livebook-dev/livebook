@@ -112,8 +112,8 @@ defmodule Standalone do
     File.mkdir_p!(release_archives_dir)
 
     hex_version = Keyword.fetch!(Application.spec(:hex), :vsn)
-    source_hex_path = Path.join(Mix.path_for(:archives), "hex-#{hex_version}")
-    release_hex_path = Path.join(release_archives_dir, "hex-#{hex_version}")
+    source_hex_path = Path.join(Mix.path_for(:archives), "hex-#{hex_version}-otp-#{System.otp_release()}")
+    release_hex_path = Path.join(release_archives_dir, "hex-#{hex_version}-otp-#{System.otp_release()}")
     cp_r!(source_hex_path, release_hex_path)
 
     release
@@ -158,7 +158,7 @@ defmodule Standalone do
   defp make_executable(path), do: File.chmod!(path, 0o755)
 
   defp cp_r!(source, destination) do
-    File.cp_r!(source, destination, fn _, _ -> false end)
+    File.cp_r!(source, destination, on_conflict: fn _, _ -> false end)
   end
 
   defp vendor_dir(release, path) do
