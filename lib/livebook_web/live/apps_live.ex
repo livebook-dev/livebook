@@ -33,9 +33,9 @@ defmodule LivebookWeb.AppsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="h-full flex flex-col overflow-y-auto bg-white">
-      <div class="border-b border-gray-200 bg-white">
-        <div class="max-w-[1200px] mx-auto px-10 py-3 flex items-center justify-between">
+    <div class="h-full flex flex-col overflow-y-auto bg-gradient-to-b from-slate-50 to-gray-50">
+      <div class="border-b border-gray-200/70 bg-white/80 backdrop-blur-sm shadow-sm">
+        <div class="max-w-6xl mx-auto px-10 py-3.5 flex items-center justify-between">
           <div class="w-10 h-10">
             <.menu id="apps-menu" position="bottom-right" md_position="bottom-left">
               <:toggle>
@@ -55,26 +55,31 @@ defmodule LivebookWeb.AppsLive do
           <div>
             <.link
               navigate={~p"/apps-dashboard"}
-              class="inline-flex items-center gap-1 text-gray-500 text-sm font-medium px-2.5 py-1.5 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-all duration-150"
+              class="inline-flex items-center gap-1.5 text-gray-500 text-xs font-medium px-3 py-1.5 rounded-md hover:bg-gray-100/80 hover:text-gray-700 transition-all duration-200"
             >
               <span>Dashboard</span>
-              <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
+              <.remix_icon
+                icon="arrow-right-line"
+                class="text-xs text-gray-400"
+              />
             </.link>
           </div>
         </div>
       </div>
       <div class="flex-1 overflow-y-auto">
-        <div class="max-w-[1200px] mx-auto px-10 py-10 pb-20">
-          <div class="mb-4">
-            <h1 class="text-3xl font-bold text-gray-800 tracking-tight m-0">Apps</h1>
+        <div class="max-w-6xl mx-auto px-12 py-12 pb-24">
+          <div class="mb-6">
+            <h1 class="text-3xl font-semibold text-gray-900 tracking-tight leading-none m-0">
+              Apps
+            </h1>
           </div>
           <%= if @apps != [] do %>
-            <div class="flex flex-col md:flex-row gap-4 mb-6">
+            <div class="flex flex-col md:flex-row gap-4 mb-10">
               <div class="flex-1">
                 <div class="relative">
                   <.remix_icon
                     icon="search-line"
-                    class="absolute left-3 bottom-[8px] text-gray-400"
+                    class="absolute left-3 bottom-2 text-gray-400"
                   />
                   <.text_field
                     id="search-app"
@@ -109,32 +114,30 @@ defmodule LivebookWeb.AppsLive do
               <div class="text-sm text-gray-500">Try adjusting your search or filter</div>
             </div>
 
-            <div :if={@filtered_apps != []} class="flex flex-col gap-10">
+            <div :if={@filtered_apps != []} class="flex flex-col gap-12">
               <div :for={{app_folder, id, icon, apps} <- @grouped_apps} id={id}>
-                <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
-                  <.remix_icon icon={icon} class="text-gray-500 text-lg" />
-                  <span class="text-base font-semibold text-gray-900 flex-1">{app_folder}</span>
+                <div class="flex items-center gap-2.5 mb-5 pb-2.5 border-b border-gray-200/70">
+                  <.remix_icon icon={icon} class="text-gray-500/80 text-xs leading-none" />
+                  <span class="text-sm text-gray-500 flex-1 tracking-widest leading-none">
+                    {app_folder}
+                  </span>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   <.link
                     :for={app <- apps_listing(apps)}
                     id={"app-#{app.slug}"}
                     navigate={~p"/apps/#{app.slug}"}
-                    class="block border border-gray-200 rounded-md px-3.5 py-3 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all duration-150 cursor-pointer"
+                    class="group block border border-gray-200/70 rounded-lg px-4 py-4 bg-white shadow-sm hover:shadow-lg hover:border-gray-300 hover:-translate-y-1 transition-all duration-200 ease-out cursor-pointer"
                   >
                     <div class="flex items-center justify-between gap-3">
-                      <span class="text-sm font-medium text-gray-900 flex-1 truncate">
+                      <span class="text-base font-semibold text-gray-800 flex-1 truncate group-hover:text-gray-900">
                         {app.notebook_name}
                       </span>
                       <div class="flex items-center gap-1.5 flex-shrink-0">
                         <.remix_icon
                           :if={not app.public?}
                           icon="lock-password-line"
-                          class="w-4 h-4 text-gray-400"
-                        />
-                        <.remix_icon
-                          icon="arrow-right-line"
-                          class="w-4 h-4 text-gray-300 transition-all duration-150 group-hover:text-gray-500 group-hover:translate-x-0.5"
+                          class="text-sm text-gray-300"
                         />
                       </div>
                     </div>
@@ -161,22 +164,21 @@ defmodule LivebookWeb.AppsLive do
                       <span>Open a notebook</span>
                     </li>
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-[13px] font-semibold flex-shrink-0">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-[13px] font-semibold flex-shrink-0 mt-px">
                         2
                       </span>
-                      <div class="flex gap-x-1 items-center">
-                        Click
-                        <.remix_icon icon="rocket-line" class="inline align-baseline text-base" />
+                      <div class="flex gap-x-1 items-center flex-wrap">
+                        Click <.remix_icon icon="rocket-line" class="inline align-middle text-base" />
                         in the sidebar and configure the app as public
                       </div>
                     </li>
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-[13px] font-semibold flex-shrink-0">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-[13px] font-semibold flex-shrink-0 mt-px">
                         3
                       </span>
-                      <div class="flex gap-x-1 items-center">
+                      <div class="flex gap-x-1 items-center flex-wrap">
                         Save the notebook to the
-                        <code class="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-900 rounded text-[13px] font-mono">
+                        <code class="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-900 rounded text-[13px] font-mono leading-none">
                           {Livebook.Config.apps_path()}
                         </code>
                         folder
