@@ -506,7 +506,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> render_click()
 
       assert render(view) =~ "App deployment created successfully"
-      assert render(view) =~ "Ungrouped apps"
+      assert render(view) =~ "No folder"
       assert render(view) =~ "#{Livebook.Config.teams_url()}/orgs/#{team.org_id}"
     end
 
@@ -567,7 +567,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> render_click()
 
       assert render(view) =~ "App deployment created successfully"
-      assert render(view) =~ "Ungrouped apps"
+      assert render(view) =~ "No folder"
     end
 
     test "deployment flow with existing app folders in the hub",

@@ -308,7 +308,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       assert render(view) =~ slug
     end
 
-    test "deletes the folder and move the app to ungrouped apps folder in real-time",
+    test "deletes the folder and move the app to 'No folder' folder in real-time",
          %{conn: conn, node: node, code: code, tmp_dir: tmp_dir} = context do
       {:ok, %{groups_auth: true} = deployment_group} =
         TeamsRPC.toggle_groups_authorization(node, context.deployment_group)
@@ -367,7 +367,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       assert_receive {:app_deployment_updated, %{slug: ^slug, app_folder_id: nil}}
       assert_receive {:app_updated, %{slug: ^slug, app_spec: %{app_folder_id: ^app_folder_id}}}
 
-      # Once the folder is deleted, all apps are moved to a "Ungrouped apps" folder,
+      # Once the folder is deleted, all apps are moved to a "No folder" folder,
       # which only users with full access will be able to see and access them.
       refute render(view) =~ app_folder.name
       refute render(view) =~ slug
@@ -381,7 +381,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
       assert_receive {:app_deployment_updated, %{slug: ^slug, app_folder_id: nil}}
 
       refute render(view) =~ app_folder.name
-      assert render(view) =~ "Ungrouped apps"
+      assert render(view) =~ "No folder"
       assert render(view) =~ slug
     end
 
@@ -435,7 +435,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
           title: "List of the chonkiest cats",
           app_folder: nil,
           folder_id: "ungrouped-apps",
-          folder_name: "Ungrouped apps"
+          folder_name: "No folder"
         }
       ]
 
