@@ -116,12 +116,14 @@ defmodule LivebookWeb.AppsLive do
 
             <div :if={@filtered_apps != []} class="flex flex-col gap-12">
               <div :for={{app_folder, id, icon, apps} <- @grouped_apps} id={id}>
-                <div class="flex items-center gap-2.5 mb-5 pb-2.5 border-b border-gray-200/70">
-                  <.remix_icon icon={icon} class="text-gray-500/80 text-xs leading-none" />
-                  <span class="text-sm text-gray-500 flex-1 tracking-widest leading-none">
-                    {app_folder}
-                  </span>
-                </div>
+                <%= if @show_app_folders? do %>
+                  <div class="flex items-center gap-2.5 mb-5 pb-2.5 border-b border-gray-200/70">
+                    <.remix_icon icon={icon} class="text-gray-500/80 text-xs leading-none" />
+                    <span class="text-sm text-gray-500 flex-1 tracking-widest leading-none">
+                      {app_folder}
+                    </span>
+                  </div>
+                <% end %>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   <.link
                     :for={app <- apps_listing(apps)}
