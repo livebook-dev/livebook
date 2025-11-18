@@ -194,7 +194,7 @@ defmodule LivebookWeb.AppsLive do
                 </div>
               </div>
               <div :if={not @empty_apps_path?} class="text-center">
-                <.remix_icon icon="windy-line" class="text-gray-300 text-5xl mb-4" />
+                <.remix_icon icon="windy-line" class="text-gray-300 text-3xl mb-4" />
                 <h3 class="text-lg font-semibold text-gray-900">No apps running</h3>
               </div>
             </div>
