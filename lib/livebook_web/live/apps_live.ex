@@ -33,7 +33,7 @@ defmodule LivebookWeb.AppsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="h-full flex flex-col overflow-y-auto bg-gradient-to-b from-slate-50 to-gray-50">
+    <div class="h-full flex flex-col overflow-y-auto bg-white">
       <div class="border-b border-gray-200/70 bg-white/80 backdrop-blur-sm shadow-sm">
         <div class="max-w-6xl mx-auto px-10 py-3.5 flex items-center justify-between">
           <div class="w-10 h-10">
@@ -129,7 +129,7 @@ defmodule LivebookWeb.AppsLive do
                     :for={app <- apps_listing(apps)}
                     id={"app-#{app.slug}"}
                     navigate={~p"/apps/#{app.slug}"}
-                    class="group block border border-gray-200/70 rounded-lg px-4 py-4 bg-white shadow-sm hover:shadow-lg hover:border-gray-300 hover:-translate-y-1 transition-all duration-200 ease-out cursor-pointer"
+                    class="group block border border-gray-200 rounded-lg px-4 py-4 bg-white shadow-sm hover:shadow-lg hover:border-gray-300 hover:-translate-y-1 transition-all duration-200 ease-out cursor-pointer"
                   >
                     <div class="flex items-center justify-between gap-3">
                       <span class="text-base font-semibold text-gray-800 flex-1 truncate group-hover:text-gray-900">
