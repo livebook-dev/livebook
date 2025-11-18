@@ -146,25 +146,25 @@ defmodule LivebookWeb.AppsLive do
               </div>
             </div>
           <% else %>
-            <div class="max-w-[600px] mx-auto my-15 text-center">
+            <div class="max-w-2xl mx-auto mt-16 text-center">
               <div :if={@empty_apps_path?}>
                 <div class="mb-8">
-                  <.remix_icon icon="windy-line" class="text-gray-400 text-5xl mb-4" />
+                  <.remix_icon icon="windy-line" class="text-gray-300 text-5xl mb-4" />
                   <h3 class="text-lg font-semibold text-gray-900 mb-2">No apps found</h3>
-                  <p class="text-sm text-gray-600 mb-6">
+                  <p class="text-sm text-gray-500 mb-6">
                     Follow these steps to list your apps here:
                   </p>
                 </div>
-                <div class="max-w-[480px] mx-auto">
+                <div class="max-w-md mx-auto">
                   <ol class="space-y-3">
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-[13px] font-semibold flex-shrink-0">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold flex-shrink-0">
                         1
                       </span>
                       <span>Open a notebook</span>
                     </li>
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-[13px] font-semibold flex-shrink-0 mt-px">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold flex-shrink-0 mt-px">
                         2
                       </span>
                       <div class="flex gap-x-1 items-center flex-wrap">
@@ -173,19 +173,19 @@ defmodule LivebookWeb.AppsLive do
                       </div>
                     </li>
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-[13px] font-semibold flex-shrink-0 mt-px">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold flex-shrink-0 mt-px">
                         3
                       </span>
                       <div class="flex gap-x-1 items-center flex-wrap">
                         Save the notebook to the
-                        <code class="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-900 rounded text-[13px] font-mono leading-none">
+                        <code class="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-900 rounded text-xs font-mono leading-none">
                           {Livebook.Config.apps_path()}
                         </code>
                         folder
                       </div>
                     </li>
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-[13px] font-semibold flex-shrink-0">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold flex-shrink-0">
                         4
                       </span>
                       <span>Relaunch your Livebook app</span>
@@ -194,7 +194,7 @@ defmodule LivebookWeb.AppsLive do
                 </div>
               </div>
               <div :if={not @empty_apps_path?} class="text-center">
-                <.remix_icon icon="windy-line" class="text-gray-400 text-5xl mb-4" />
+                <.remix_icon icon="windy-line" class="text-gray-300 text-5xl mb-4" />
                 <h3 class="text-lg font-semibold text-gray-900">No apps running</h3>
               </div>
             </div>
