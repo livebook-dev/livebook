@@ -676,7 +676,7 @@ defmodule Livebook.LiveMarkdown.Import do
         else
           messages ++
             [
-              "notebook is assigned to a non-existent app folder, defaulting to 'No folder' app folder"
+              ~s/notebook is assigned to a non-existent app folder, defaulting to "No folder" app folder/
             ]
         end
       else
