@@ -654,12 +654,13 @@ defmodule LivebookWeb.SessionLive do
       if data.runtime_status == :connected do
         parent_locators = Session.parent_locators_for_cell(data, cell)
         node = intellisense_node(cell)
+        language = intellisense_language(cell)
 
         ref =
           Livebook.Runtime.handle_intellisense(
             data.runtime,
             self(),
-            cell.language,
+            language,
             request,
             parent_locators,
             node
@@ -2173,6 +2174,9 @@ defmodule LivebookWeb.SessionLive do
 
   defp intellisense_node(%Cell.Smart{editor: %{intellisense_node: node_cookie}}), do: node_cookie
   defp intellisense_node(_), do: nil
+
+  defp intellisense_language(%Cell.Code{} = cell), do: cell.language
+  defp intellisense_language(_), do: :elixir
 
   defp any_stale_cell?(data) do
     data.notebook
