@@ -44,7 +44,7 @@ defmodule Livebook.Integration.LiveMarkdown.ImportTest do
                 app_settings: %{app_folder_id: ^app_folder_id}
               }, %{warnings: warnings}} = LiveMarkdown.Import.notebook_from_livemd(markdown)
 
-      assert "notebook is assigned to a non-existent app folder, defaulting to ungrouped app folder" in warnings
+      assert "notebook is assigned to a non-existent app folder, defaulting to 'No folder' app folder" in warnings
     end
   end
 end
