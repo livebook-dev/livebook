@@ -36,6 +36,7 @@ defmodule Livebook.Runtime.ErlDist do
       Livebook.Intellisense.Elixir.IdentifierMatcher,
       Livebook.Intellisense.Elixir.SignatureMatcher,
       Livebook.Intellisense.Erlang,
+      Livebook.Intellisense.Erlang.IdentifierMatcher,
       Livebook.Runtime.ErlDist,
       Livebook.Runtime.ErlDist.NodeManager,
       Livebook.Runtime.ErlDist.RuntimeServer,

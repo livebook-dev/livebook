@@ -1,4 +1,5 @@
 defmodule Livebook.Intellisense.Erlang do
+
   alias Livebook.Intellisense
 
   @behaviour Intellisense
@@ -9,8 +10,8 @@ defmodule Livebook.Intellisense.Erlang do
     nil
   end
 
-  def handle_request({:completion, hint}, context, _node) do
-    handle_completion(hint, context)
+  def handle_request({:completion, hint}, context, node) do
+    handle_completion(hint, context, node)
   end
 
   def handle_request({:details, line, column}, context, _node) do
@@ -21,18 +22,32 @@ defmodule Livebook.Intellisense.Erlang do
     handle_signature(hint, context)
   end
 
-  defp handle_completion(_hint, _context) do
+  defp handle_completion(hint, context, node) do
     # TODO: implement. See t:Livebook.Runtime.completion_response/0 for return type.
-    nil
+    IO.write("completion:")
+
+    items = Intellisense.Erlang.IdentifierMatcher.completion_identifiers(hint, context, node)
+    |> Enum.filter(&Intellisense.Elixir.include_in_completion?/1)
+    |> Enum.map(&Intellisense.Elixir.format_completion_item/1)
+    |> Enum.concat(Intellisense.Elixir.extra_completion_items(hint))
+    |> Enum.sort_by(&Intellisense.Elixir.completion_item_priority/1)
+
+    IO.inspect(items)
+
+    %{items: items}
   end
 
-  defp handle_details(_line, _column, _context) do
+  defp handle_details(line, _column, _context) do
     # TODO: implement. See t:Livebook.Runtime.details_response/0 for return type.
+    IO.write("details:")
+    IO.inspect(line)
     nil
   end
 
-  defp handle_signature(_hint, _context) do
+  defp handle_signature(hint, _context) do
     # TODO: implement. See t:Livebook.Runtime.signature_response/0 for return type.
+    IO.write("signature:")
+    IO.inspect(hint)
     nil
   end
 end

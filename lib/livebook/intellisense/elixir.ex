@@ -49,12 +49,13 @@ defmodule Livebook.Intellisense.Elixir do
 
     %{items: items}
   end
+  # FIXME: made a lot of stuff public
 
-  defp include_in_completion?(%{kind: :module, documentation: :hidden}), do: false
-  defp include_in_completion?(%{kind: :function, documentation: :hidden}), do: false
-  defp include_in_completion?(_), do: true
+  def include_in_completion?(%{kind: :module, documentation: :hidden}), do: false
+  def include_in_completion?(%{kind: :function, documentation: :hidden}), do: false
+  def include_in_completion?(_), do: true
 
-  defp format_completion_item(%{kind: :variable, name: name}),
+  def format_completion_item(%{kind: :variable, name: name}),
     do: %{
       label: Atom.to_string(name),
       kind: :variable,
@@ -62,7 +63,7 @@ defmodule Livebook.Intellisense.Elixir do
       insert_text: Atom.to_string(name)
     }
 
-  defp format_completion_item(%{kind: :map_field, name: name}),
+  def format_completion_item(%{kind: :map_field, name: name}),
     do: %{
       label: Atom.to_string(name),
       kind: :field,
@@ -70,7 +71,7 @@ defmodule Livebook.Intellisense.Elixir do
       insert_text: Atom.to_string(name)
     }
 
-  defp format_completion_item(%{kind: :in_map_field, name: name}),
+  def format_completion_item(%{kind: :in_map_field, name: name}),
     do: %{
       label: Atom.to_string(name),
       kind: :field,
@@ -78,7 +79,7 @@ defmodule Livebook.Intellisense.Elixir do
       insert_text: "#{name}: "
     }
 
-  defp format_completion_item(%{
+  def format_completion_item(%{
          kind: :in_struct_field,
          struct: struct,
          name: name,
@@ -102,7 +103,7 @@ defmodule Livebook.Intellisense.Elixir do
          insert_text: "#{name}: "
        }
 
-  defp format_completion_item(%{
+  def format_completion_item(%{
          kind: :module,
          module: module,
          display_name: display_name,
@@ -133,7 +134,7 @@ defmodule Livebook.Intellisense.Elixir do
     }
   end
 
-  defp format_completion_item(%{
+  def format_completion_item(%{
          kind: :function,
          module: module,
          name: name,
@@ -174,7 +175,7 @@ defmodule Livebook.Intellisense.Elixir do
            end
        }
 
-  defp format_completion_item(%{
+  def format_completion_item(%{
          kind: :type,
          name: name,
          arity: arity,
@@ -196,7 +197,7 @@ defmodule Livebook.Intellisense.Elixir do
            end
        }
 
-  defp format_completion_item(%{
+  def format_completion_item(%{
          kind: :module_attribute,
          name: name,
          documentation: documentation
@@ -212,7 +213,7 @@ defmodule Livebook.Intellisense.Elixir do
          insert_text: Atom.to_string(name)
        }
 
-  defp format_completion_item(%{kind: :bitstring_modifier, name: name, arity: arity}) do
+  def format_completion_item(%{kind: :bitstring_modifier, name: name, arity: arity}) do
     insert_text =
       if arity == 0 do
         Atom.to_string(name)
@@ -260,7 +261,7 @@ defmodule Livebook.Intellisense.Elixir do
     name in [:__ENV__, :__MODULE__, :__DIR__, :__STACKTRACE__, :__CALLER__]
   end
 
-  defp extra_completion_items(hint) do
+  def extra_completion_items(hint) do
     items = [
       %{
         label: "true",
@@ -309,7 +310,7 @@ defmodule Livebook.Intellisense.Elixir do
     :bitstring_option
   ]
 
-  defp completion_item_priority(%{kind: :struct} = completion_item) do
+  def completion_item_priority(%{kind: :struct} = completion_item) do
     if completion_item.documentation =~ "(exception)" do
       {length(@ordered_kinds), completion_item.label}
     else
@@ -317,7 +318,7 @@ defmodule Livebook.Intellisense.Elixir do
     end
   end
 
-  defp completion_item_priority(completion_item) do
+  def completion_item_priority(completion_item) do
     {completion_item_kind_priority(completion_item.kind), completion_item.label}
   end
 

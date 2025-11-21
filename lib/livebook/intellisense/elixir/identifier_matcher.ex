@@ -99,6 +99,7 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
   @alias_only_atoms ~w(alias import require)a
   @alias_only_charlists ~w(alias import require)c
 
+  @spec clear_all_loaded(any()) :: boolean()
   @doc """
   Clears all loaded entries stored for node.
   """
@@ -671,7 +672,8 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
         do: module
   end
 
-  defp match_module_function(mod, hint, ctx, funs \\ nil) do
+  # FIXME: THIS IS PUBLIC
+  def match_module_function(mod, hint, ctx, funs \\ nil) do
     if ensure_loaded?(mod, ctx.node) do
       funs = funs || exports(mod, ctx.node)
 
