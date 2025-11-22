@@ -32,8 +32,6 @@ defmodule Livebook.Intellisense.Erlang do
     |> Enum.concat(Intellisense.Elixir.extra_completion_items(hint))
     |> Enum.sort_by(&Intellisense.Elixir.completion_item_priority/1)
 
-    IO.inspect(items)
-
     %{items: items}
   end
 

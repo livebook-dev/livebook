@@ -50,9 +50,7 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
   defp context_to_matches(context, ctx) do
     case context do
       {:mod_func, mod, func} ->
-        Intellisense.Elixir.IdentifierMatcher.match_module_function(
-          mod, Atom.to_string(func), ctx
-        )
+        Intellisense.Elixir.IdentifierMatcher.match_module_function(mod, Atom.to_string(func), ctx)
       # TODO: all this:
       {:macro, macro} ->
         []
@@ -61,7 +59,11 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       {:atom, atom} ->
         []
       {:var, var} ->
-        []
+        var
+        |> Livebook.Runtime.Evaluator.erlang_to_elixir_var
+        |> to_string
+        |> Intellisense.Elixir.IdentifierMatcher.match_variable(ctx)
+        |> Enum.map(&%{&1 | name: Livebook.Runtime.Evaluator.elixir_to_erlang_var(&1[:name])})
       # TODO: bitstrings, need to be parsed!
       :expr ->
         []

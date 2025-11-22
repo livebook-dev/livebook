@@ -495,7 +495,8 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
     imports ++ special_forms
   end
 
-  defp match_variable(hint, ctx) do
+  # FIXME: THIS IS PUBLIC
+  def match_variable(hint, ctx) do
     for {var, nil} <- Macro.Env.vars(ctx.intellisense_context.env),
         name = Atom.to_string(var),
         ctx.matcher.(name, hint),
