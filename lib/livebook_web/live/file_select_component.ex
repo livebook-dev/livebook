@@ -547,7 +547,7 @@ defmodule LivebookWeb.FileSelectComponent do
       end
 
     send_event(socket.assigns.target, {:set_file, file, info})
-    {:noreply, assign(socket, loading: true)}
+    {:noreply, assign(socket, loading: socket.assigns.file.path != path)}
   end
 
   def handle_event("clear_error", %{}, socket) do
