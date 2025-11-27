@@ -265,6 +265,7 @@ defmodule Livebook.MixProject do
       {"docs/teams/deploy_app.md", title: "Deploy Livebook apps"},
       {"docs/teams/deploy_via_cli.md", title: "Deploy Livebook apps via CLI"},
       "docs/teams/deploy_permissions.md",
+      {"docs/teams/app_folders.md", title: "Organize apps with folders"},
       {"docs/teams/email_domain.md", title: "Email domain auth"},
       {"docs/teams/oidc_sso.md", title: "OIDC SSO"},
       "docs/teams/oidc_groups.md",
