@@ -1,18 +1,19 @@
 # OIDC groups authorization
 
-Livebook Teams allows you to control access to your app servers and Livebook apps based on group membership in your OIDC identity provider (IdP).
+Livebook Teams allows you to control access to your Livebook [app servers](/docs/teams/teams_concepts.md#app-server) and Livebook apps based on group membership in your OIDC identity provider (IdP). This enables you to implement a Role-Based Access Control (RBAC) model for your Livebook deployment.
 
 ![](images/oidc_groups_auth.png)
 
 > #### Livebook version requirement {: .info}
-> Requires Livebook v0.16 or newer.
+> Requires Livebook v0.18 or newer.
 
 ## Overview
 
 OIDC groups authorization enables you to:
 
 - Restrict access to your Livebook apps and app servers based on group membership
-- Integrate seamlessly with your existing OIDC SSO provider (Okta, Microsoft Entra, etc.)
+- Limit access to apps that belong to specific [app folders](app_folders.md) so groups of users only have access to what they're authorized to see
+- Integrate seamlessly with your existing OIDC SSO provider (Okta, Microsoft Entra, Google etc.)
 
 ## Prerequisites
 
@@ -22,6 +23,8 @@ Before configuring OIDC groups authorization, ensure you have:
 
 2. **Configured your OIDC identity provider** to include group information in the ID tokens:
    - **Okta**: [Customize tokens with a groups claim](https://developer.okta.com/docs/guides/customize-tokens-groups-claim/main/)
+   - **Google Workspace**: Group-membersghip data is included by a mechanism that's specific to Google Workspace
+   - **Others**: Search your identity provider's documentation for how to add a groups claim to the ID token
 
 ## Configuration
 
@@ -43,19 +46,27 @@ Once authorization is enabled, you can add group access rules:
 1. Click the **Add group** button
 2. Select one of your configured OIDC identity providers
 3. Enter the name of a group from your identity provider
-4. Click the **Add group** button to save the rule
+4. Choose the Access type for this group:
+   - Full access
+   - App folder access
+5. Click the **Add group** button to save the rule
 
-You can add multiple groups with different access types to configure your authorization strategy.
+You can create multiple group authorizations with different access types to set up your authorization strategy.
 
 ## Access types explained
 
 ### Full access
-
 Users who belong to groups with full access can access:
+
 - The app server admin interface*
 - All Livebook apps deployed to this deployment group
 
-**Notice that [Admin authentication](authentication.md#admin-authentication) configs will also apply if configured.*
+**Note that [Admin authentication](authentication.md#admin-authentication) configuration will also apply if configured.*
+
+### App folder access
+Users who belong to groups with app folder access can only see and open apps from the selected app folders.
+
+This allows you to implement role-based access control using groups from your identity provider.
 
 ## Testing the Configuration
 
