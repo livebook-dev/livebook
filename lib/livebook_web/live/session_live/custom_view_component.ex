@@ -8,8 +8,8 @@ defmodule LivebookWeb.SessionLive.CustomViewComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         Custom view
       </h3>
-      <p class="mt-8 text-gray-700">
-        Configure notebook display options.
+      <p class="mt-4 text-gray-700">
+        Custom views hide cell controls and focus on the content.
       </p>
       <h3 class="mt-8 text-lg font-semibold text-gray-800">
         Options
