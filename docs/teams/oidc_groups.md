@@ -23,7 +23,7 @@ Before configuring OIDC groups authorization, ensure you have:
 
 2. **Configured your OIDC identity provider** to include group information in the ID tokens:
    - **Okta**: [Customize tokens with a groups claim](https://developer.okta.com/docs/guides/customize-tokens-groups-claim/main/)
-   - **Google Workspace**: Group-membersghip data is included by a mechanism that's specific to Google Workspace
+   - **Google Workspace**: No additional configuration is required; just ensure you've already followed [these instructions](oidc_sso.html#1-oidc-configurations)
    - **Others**: Search your identity provider's documentation for how to add a groups claim to the ID token
 
 ## Configuration
