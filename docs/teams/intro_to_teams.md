@@ -9,6 +9,7 @@ Livebook Teams integrates with Livebook, offering the following feautures on top
 - Deploy notebooks as internal apps to your infrastructure
   - [Deploy Livebook apps from Livebook](deploy_app.md)
   - [Deploy Livebook apps from the CLI](deploy_via_cli.md)
+  - [Organize Livebook apps with folders](app_folders.md)
 - Deployment authorization
   - [Authorize who can deploy Livebook apps to your servers](deploy_permissions.md)
 - Authenticate who can can access your Livebook app servers and Livebook apps via multiple identity providers:
