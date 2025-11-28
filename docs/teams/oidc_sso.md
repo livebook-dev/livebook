@@ -61,6 +61,7 @@ To configure OIDC SSO with Google Workspace, follow the steps below. You'll need
 2. Select your project or create a new one if needed
 3. Navigate to **APIs & Services** > **Library**
 4. Search for **Cloud Identity**
+5. Select **Cloud Identity** from the results
 5. Click **Enable**
 
 #### 1.2 Create service account
