@@ -149,7 +149,7 @@ defmodule LivebookWeb.UserPlug do
   @zta_name LivebookWeb.ZTA
 
   @spec authenticate(module(), Plug.Conn.t() | map(), keyword()) ::
-          {Plug.Conn.t(), Livebook.ZTA.metadata()}
+          {Plug.Conn.t(), NimbleZTA.metadata()}
   if Mix.env() == :test do
     def authenticate(module, %Plug.Conn{} = conn, opts) do
       session = get_session(conn)

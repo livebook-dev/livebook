@@ -26,19 +26,19 @@ defmodule Livebook.ConfigTest do
         assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") == {:custom, Module, nil}
       end)
 
-      with_env([TEST_IDENTITY_PROVIDER: "custom:Livebook.ZTA.PassThrough:extra"], fn ->
+      with_env([TEST_IDENTITY_PROVIDER: "custom:NimbleZTA.PassThrough:extra"], fn ->
         assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") ==
-                 {:custom, Livebook.ZTA.PassThrough, "extra"}
+                 {:custom, NimbleZTA.PassThrough, "extra"}
       end)
 
       with_env([TEST_IDENTITY_PROVIDER: "cloudflare:123"], fn ->
         assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") ==
-                 {:zta, Livebook.ZTA.Cloudflare, "123"}
+                 {:zta, NimbleZTA.Cloudflare, "123"}
       end)
 
       with_env([TEST_IDENTITY_PROVIDER: "basic_auth:user:pass"], fn ->
         assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") ==
-                 {:zta, Livebook.ZTA.BasicAuth, "user:pass"}
+                 {:zta, NimbleZTA.BasicAuth, "user:pass"}
       end)
     end
   end

@@ -6,7 +6,7 @@ defmodule Livebook.ZTA.LivebookTeams do
   import Plug.Conn
   import Phoenix.Controller
 
-  @behaviour Livebook.ZTA
+  @behaviour NimbleZTA
 
   @impl true
   def child_spec(opts) do
@@ -18,13 +18,13 @@ defmodule Livebook.ZTA.LivebookTeams do
     identity_key = Keyword.fetch!(opts, :identity_key)
     team = Livebook.Hubs.fetch_hub!(identity_key)
 
-    Livebook.ZTA.put(name, team)
+    NimbleZTA.put(name, team)
     :ignore
   end
 
   @impl true
   def authenticate(name, conn, _opts) do
-    team = Livebook.ZTA.get(name)
+    team = NimbleZTA.get(name)
 
     if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
       handle_request(conn, team, conn.params)
@@ -33,10 +33,10 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  # Our extension to Livebook.ZTA to deal with logouts
+  # Our extension to NimbleZTA to deal with logouts
   def logout(name, conn) do
     token = get_session(conn, :livebook_teams_access_token)
-    team = Livebook.ZTA.get(name)
+    team = NimbleZTA.get(name)
 
     url =
       Livebook.Config.teams_url()
@@ -164,7 +164,7 @@ defmodule Livebook.ZTA.LivebookTeams do
   @doc """
   Returns the user metadata from given payload.
   """
-  @spec build_metadata(String.t(), map()) :: Livebook.ZTA.metadata()
+  @spec build_metadata(String.t(), map()) :: NimbleZTA.metadata()
   def build_metadata(hub_id, payload) do
     %{
       "id" => id,

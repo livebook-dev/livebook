@@ -7,7 +7,6 @@ defmodule Livebook.Application do
     setup_tests()
 
     Logger.add_handlers(:livebook)
-    Livebook.ZTA.init()
     create_teams_hub = parse_teams_hub()
     setup_optional_dependencies()
     ensure_directories!()
