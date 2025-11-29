@@ -124,16 +124,16 @@ defmodule Livebook.MixProject do
       {:dns_cluster, "~> 0.1.2"},
       {:kubereq, "~> 0.4.0"},
       {:yaml_elixir, "~> 2.11"},
+      {:logger_json, "~> 6.1"},
+      {:req, "~> 0.5.8"},
+      {:nimble_zta, "~> 0.1.0-dev", github: "dashbitco/nimble_zta"},
+      # Dev tools
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:tidewave, "~> 0.5", only: :dev},
+      # Tests
       {:lazy_html, "~> 0.1.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
-      {:logger_json, "~> 6.1"},
-      # So that we can test Python evaluation in the same node
       {:pythonx, "~> 0.4.2", only: :test},
-      # ZTA deps
-      {:jose, "~> 1.11.5"},
-      {:req, "~> 0.5.8"},
       # Docs
       {:ex_doc, "~> 0.30", only: :dev, runtime: false}
     ]
