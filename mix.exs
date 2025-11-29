@@ -126,7 +126,7 @@ defmodule Livebook.MixProject do
       {:yaml_elixir, "~> 2.11"},
       {:logger_json, "~> 6.1"},
       {:req, "~> 0.5.8"},
-      {:nimble_zta, "~> 0.1.0-dev", github: "dashbitco/nimble_zta"},
+      {:nimble_zta, "~> 0.1.0"},
       # Dev tools
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:tidewave, "~> 0.5", only: :dev},
