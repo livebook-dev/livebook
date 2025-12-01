@@ -140,7 +140,7 @@ defmodule LivebookCLI.Integration.DeployTest do
 
       ```elixir
       Mix.install([
-      {:kino, "~> 0.17.0"}
+      {:kino, "~> 0.18.0"}
       ])
       ```
 
