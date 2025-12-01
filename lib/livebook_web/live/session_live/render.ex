@@ -383,6 +383,12 @@ defmodule LivebookWeb.SessionLive.Render do
         button_attrs={["data-el-app-info-toggle": true]}
       />
 
+      <.button_item
+        icon="settings-3-line"
+        label="Notebook settings (sn)"
+        button_attrs={["data-el-notebook-settings-toggle": true]}
+      />
+
       <div class="grow"></div>
 
       <.link_item
@@ -450,6 +456,12 @@ defmodule LivebookWeb.SessionLive.Render do
         deployed_app_slug={@data_view.deployed_app_slug}
         any_session_secrets?={@data_view.any_session_secrets?}
         hub={@data_view.hub}
+      />
+      <.live_component
+        module={LivebookWeb.SessionLive.NotebookSettingsComponent}
+        id="notebook-settings"
+        session={@session}
+        container_width={@data_view.container_width}
       />
       <.runtime_info data_view={@data_view} session={@session} />
     </div>
@@ -1313,7 +1325,11 @@ defmodule LivebookWeb.SessionLive.Render do
   def notebook_content(assigns) do
     ~H"""
     <div
-      class="relative w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
+      class={[
+        "relative w-full px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto",
+        container_width_class(@data_view.container_width)
+      ]}
+      style={container_width_style(@data_view.container_width)}
       data-el-notebook-content
     >
       <div class="pb-4 mb-2 border-b border-gray-200">
@@ -1469,4 +1485,18 @@ defmodule LivebookWeb.SessionLive.Render do
   defp starred?(file, starred_files) do
     Enum.any?(starred_files, &Livebook.FileSystem.File.equal?(&1, file))
   end
+
+  defp container_width_class(:default), do: "max-w-screen-lg"
+  defp container_width_class(:wide), do: "max-w-[90rem]"
+  defp container_width_class(:full), do: "w-full"
+  defp container_width_class({:custom, _}), do: nil
+  defp container_width_class(nil), do: "max-w-screen-lg"
+
+  defp container_width_style({:custom, %{value: value, unit: :px}}),
+    do: "max-width: #{value}px;"
+
+  defp container_width_style({:custom, %{value: value, unit: :percent}}),
+    do: "max-width: #{value}vw;"
+
+  defp container_width_style(_), do: nil
 end

@@ -138,6 +138,10 @@ const Session = {
       this.toggleAppInfo(),
     );
 
+    this.getElement("notebook-settings-toggle").addEventListener("click", (event) =>
+      this.toggleNotebookSettings(),
+    );
+
     this.getElement("files-list-toggle").addEventListener("click", (event) =>
       this.toggleFilesList(),
     );
@@ -396,6 +400,8 @@ const Session = {
         this.toggleSecretsList();
       } else if (keyBuffer.tryMatch(["s", "a"])) {
         this.toggleAppInfo();
+      } else if (keyBuffer.tryMatch(["s", "n"])) {
+        this.toggleNotebookSettings();
       } else if (keyBuffer.tryMatch(["s", "u"])) {
         this.toggleClientsList();
       } else if (keyBuffer.tryMatch(["s", "f"])) {
@@ -859,6 +865,10 @@ const Session = {
 
   toggleAppInfo(force = null) {
     this.toggleSidePanelContent("app-info", force);
+  },
+
+  toggleNotebookSettings(force = null) {
+    this.toggleSidePanelContent("notebook-settings", force);
   },
 
   toggleFilesList(force = null) {

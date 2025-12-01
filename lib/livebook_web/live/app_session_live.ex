@@ -108,7 +108,11 @@ defmodule LivebookWeb.AppSessionLive do
   def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
-      <div class="w-full max-w-screen-lg py-4 mx-auto" data-el-notebook-content>
+      <div
+        class={["w-full py-4 mx-auto", container_width_class(@data_view.container_width)]}
+        style={container_width_style(@data_view.container_width)}
+        data-el-notebook-content
+      >
         <div class="absolute md:fixed right-4 md:left-4 md:right-auto top-3">
           <.menu id="app-menu" position="bottom-right" md_position="bottom-left">
             <:toggle>
@@ -496,7 +500,8 @@ defmodule LivebookWeb.AppSessionLive do
       slug: data.notebook.app_settings.slug,
       multi_session: data.notebook.app_settings.multi_session,
       errored_cell_id: errored_cell_id(data),
-      any_stale?: any_stale?(data)
+      any_stale?: any_stale?(data),
+      container_width: Map.get(data.notebook, :container_width, :default)
     }
   end
 
@@ -564,4 +569,18 @@ defmodule LivebookWeb.AppSessionLive do
     do: {idx, output}
 
   defp filter_output(_output), do: nil
+
+  defp container_width_class(:default), do: "max-w-screen-lg"
+  defp container_width_class(:wide), do: "max-w-[90rem]"
+  defp container_width_class(:full), do: "w-full"
+  defp container_width_class({:custom, _}), do: nil
+  defp container_width_class(nil), do: "max-w-screen-lg"
+
+  defp container_width_style({:custom, %{value: value, unit: :px}}),
+    do: "max-width: #{value}px;"
+
+  defp container_width_style({:custom, %{value: value, unit: :percent}}),
+    do: "max-width: #{value}vw;"
+
+  defp container_width_style(_), do: nil
 end

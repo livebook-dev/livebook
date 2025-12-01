@@ -435,6 +435,12 @@ defmodule Livebook.LiveMarkdown.Import do
       {"deployment_group_id", deployment_group_id}, {attrs, messages} ->
         {Map.put(attrs, :deployment_group_id, deployment_group_id), messages}
 
+      {"container_width", container_width}, {attrs, messages} ->
+        case container_width_metadata_to_attrs(container_width) do
+          {:ok, value} -> {Map.put(attrs, :container_width, value), messages}
+          :error -> {attrs, messages}
+        end
+
       {"app_settings", app_settings_metadata}, {attrs, messages} ->
         app_settings =
           Map.merge(
@@ -536,6 +542,20 @@ defmodule Livebook.LiveMarkdown.Import do
   defp file_entry_metadata_to_attrs(_other) do
     {:error, "discarding file entry in invalid format"}
   end
+
+  defp container_width_metadata_to_attrs("wide"), do: {:ok, :wide}
+  defp container_width_metadata_to_attrs("full"), do: {:ok, :full}
+
+  defp container_width_metadata_to_attrs(%{
+         "mode" => "custom",
+         "value" => value,
+         "unit" => unit
+       })
+       when is_integer(value) and value > 0 and unit in ["px", "percent"] do
+    {:ok, {:custom, %{value: value, unit: String.to_atom(unit)}}}
+  end
+
+  defp container_width_metadata_to_attrs(_other), do: :error
 
   defp section_metadata_to_attrs(metadata) do
     Enum.reduce(metadata, %{}, fn

@@ -948,6 +948,15 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_info({:set_notebook_attributes, attrs}, socket) do
+    Session.set_notebook_attributes(socket.assigns.session.pid, attrs)
+    {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+  end
+
+  def handle_info(:close_notebook_settings, socket) do
+    {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+  end
+
   def handle_info({:hydrate_bin_entries, hydrated_entries}, socket) do
     hydrated_entries_map = Map.new(hydrated_entries, fn entry -> {entry.cell.id, entry} end)
 
@@ -1874,7 +1883,8 @@ defmodule LivebookWeb.SessionLive do
       quarantine_file_entry_names: data.notebook.quarantine_file_entry_names,
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug,
-      deployment_group_id: data.notebook.deployment_group_id
+      deployment_group_id: data.notebook.deployment_group_id,
+      container_width: Map.get(data.notebook, :container_width, :default)
     }
   end
 

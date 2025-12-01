@@ -21,6 +21,7 @@ defmodule Livebook.Notebook do
     :default_language,
     :output_counter,
     :app_settings,
+    :container_width,
     :hub_id,
     :hub_secret_names,
     :file_entries,
@@ -36,6 +37,12 @@ defmodule Livebook.Notebook do
   alias Livebook.Utils.Graph
   import Livebook.Utils, only: [access_by_id: 1]
 
+  @type container_width ::
+          :default
+          | :wide
+          | :full
+          | {:custom, %{value: pos_integer(), unit: :px | :percent}}
+
   @type t :: %__MODULE__{
           name: String.t(),
           setup_section: Section.t(),
@@ -46,6 +53,7 @@ defmodule Livebook.Notebook do
           default_language: :elixir | :erlang | :python,
           output_counter: non_neg_integer(),
           app_settings: Notebook.AppSettings.t(),
+          container_width: container_width(),
           hub_id: String.t(),
           hub_secret_names: list(String.t()),
           file_entries: list(file_entry()),
@@ -111,6 +119,7 @@ defmodule Livebook.Notebook do
       default_language: :elixir,
       output_counter: 0,
       app_settings: Notebook.AppSettings.new(),
+      container_width: :default,
       hub_id: Livebook.Hubs.Personal.id(),
       hub_secret_names: [],
       file_entries: [],
