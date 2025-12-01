@@ -265,11 +265,11 @@ defmodule Livebook.Config do
   def identity_provider() do
     case Application.fetch_env(:livebook, :identity_provider) do
       {:ok, result} -> result
-      :error -> {:session, Livebook.ZTA.PassThrough, :unused}
+      :error -> {:session, NimbleZTA.PassThrough, :unused}
     end
   end
 
-  @identity_provider_no_id [Livebook.ZTA.BasicAuth, Livebook.ZTA.PassThrough]
+  @identity_provider_no_id [NimbleZTA.BasicAuth, NimbleZTA.PassThrough]
 
   @doc """
   Returns if the identity data is readonly.
@@ -758,10 +758,10 @@ defmodule Livebook.Config do
   end
 
   @identity_providers %{
-    "basic_auth" => Livebook.ZTA.BasicAuth,
-    "cloudflare" => Livebook.ZTA.Cloudflare,
-    "google_iap" => Livebook.ZTA.GoogleIAP,
-    "tailscale" => Livebook.ZTA.Tailscale
+    "basic_auth" => NimbleZTA.BasicAuth,
+    "cloudflare" => NimbleZTA.Cloudflare,
+    "google_iap" => NimbleZTA.GoogleIAP,
+    "tailscale" => NimbleZTA.Tailscale
   }
 
   @doc """
