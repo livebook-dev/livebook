@@ -1341,6 +1341,9 @@ defmodule LivebookWeb.SessionLive.Render do
               phx-no-format
             >{@data_view.notebook_name}</h1>
           </div>
+          <div class="px-[1px]">
+            <.star_button file={@data_view.file} starred_files={@starred_files} />
+          </div>
           <.session_menu session={@session} />
         </div>
         <div class="flex flex-nowrap items-center gap-2">
@@ -1380,9 +1383,6 @@ defmodule LivebookWeb.SessionLive.Render do
             id="width-selector"
             container_width={@data_view.container_width}
           />
-          <div class="px-[1px]">
-            <.star_button file={@data_view.file} starred_files={@starred_files} />
-          </div>
         </div>
       </div>
       <div data-el-setup-section>
