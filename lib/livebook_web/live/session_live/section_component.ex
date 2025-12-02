@@ -139,7 +139,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       >
         {LivebookWeb.HTMLHelpers.pluralize(length(@section_view.cell_views), "cell", "cells")} collapsed
       </h3>
-      <div class="container" data-el-section-content>
+      <div data-el-section-content>
         <div class="flex flex-col space-y-1">
           <.live_component
             module={LivebookWeb.SessionLive.InsertButtonsComponent}

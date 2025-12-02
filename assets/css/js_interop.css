@@ -195,8 +195,7 @@ server in solely client-side operations.
   &:not([data-js-side-panel-content="secrets-list"]) [data-el-secrets-list],
   &:not([data-js-side-panel-content="files-list"]) [data-el-files-list],
   &:not([data-js-side-panel-content="runtime-info"]) [data-el-runtime-info],
-  &:not([data-js-side-panel-content="app-info"]) [data-el-app-info],
-  &:not([data-js-side-panel-content="notebook-settings"]) [data-el-notebook-settings] {
+  &:not([data-js-side-panel-content="app-info"]) [data-el-app-info] {
     @apply hidden;
   }
 
@@ -205,8 +204,7 @@ server in solely client-side operations.
   &[data-js-side-panel-content="secrets-list"] [data-el-secrets-list-toggle],
   &[data-js-side-panel-content="files-list"] [data-el-files-list-toggle],
   &[data-js-side-panel-content="runtime-info"] [data-el-runtime-info-toggle],
-  &[data-js-side-panel-content="app-info"] [data-el-app-info-toggle],
-  &[data-js-side-panel-content="notebook-settings"] [data-el-notebook-settings-toggle] {
+  &[data-js-side-panel-content="app-info"] [data-el-app-info-toggle] {
     @apply text-gray-50 bg-gray-700;
   }
 

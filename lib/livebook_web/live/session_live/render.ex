@@ -383,12 +383,6 @@ defmodule LivebookWeb.SessionLive.Render do
         button_attrs={["data-el-app-info-toggle": true]}
       />
 
-      <.button_item
-        icon="settings-3-line"
-        label="Notebook settings (sn)"
-        button_attrs={["data-el-notebook-settings-toggle": true]}
-      />
-
       <div class="grow"></div>
 
       <.link_item
@@ -456,12 +450,6 @@ defmodule LivebookWeb.SessionLive.Render do
         deployed_app_slug={@data_view.deployed_app_slug}
         any_session_secrets?={@data_view.any_session_secrets?}
         hub={@data_view.hub}
-      />
-      <.live_component
-        module={LivebookWeb.SessionLive.NotebookSettingsComponent}
-        id="notebook-settings"
-        session={@session}
-        container_width={@data_view.container_width}
       />
       <.runtime_info data_view={@data_view} session={@session} />
     </div>
@@ -1355,7 +1343,7 @@ defmodule LivebookWeb.SessionLive.Render do
           </div>
           <.session_menu session={@session} />
         </div>
-        <div class="flex flex-nowrap place-content-between items-center gap-2">
+        <div class="flex flex-nowrap items-center gap-2">
           <.menu position="bottom-left" id="notebook-hub-menu">
             <:toggle>
               <div
@@ -1386,6 +1374,12 @@ defmodule LivebookWeb.SessionLive.Render do
               </.link>
             </.menu_item>
           </.menu>
+          <div class="flex-grow"></div>
+          <.live_component
+            module={LivebookWeb.SessionLive.WidthSelectorComponent}
+            id="width-selector"
+            container_width={@data_view.container_width}
+          />
           <div class="px-[1px]">
             <.star_button file={@data_view.file} starred_files={@starred_files} />
           </div>
