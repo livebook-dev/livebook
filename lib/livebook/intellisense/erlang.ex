@@ -26,13 +26,8 @@ defmodule Livebook.Intellisense.Erlang do
     # TODO: implement. See t:Livebook.Runtime.completion_response/0 for return type.
     IO.write("completion:")
 
-    items = Intellisense.Erlang.IdentifierMatcher.completion_identifiers(hint, context, node)
-    |> Enum.filter(&Intellisense.Elixir.include_in_completion?/1)
-    |> Enum.map(&Intellisense.Elixir.format_completion_item/1)
-    |> Enum.concat(Intellisense.Elixir.extra_completion_items(hint))
-    |> Enum.sort_by(&Intellisense.Elixir.completion_item_priority/1)
-
-    %{items: items}
+    Intellisense.Erlang.IdentifierMatcher.completion_identifiers(hint, context, node)
+    |> Intellisense.Elixir.format_completion_identifiers()
   end
 
   defp handle_details(line, _column, _context) do
