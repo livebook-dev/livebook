@@ -83,22 +83,22 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
     end
   end
 
-  defp match_tokens_to_context([{:atom, _, func}, {:":", _}, {:atom, _, mod} | _]),
-    do: {:mod_func, mod, func}
-  defp match_tokens_to_context([{:":", _}, {:atom, _, mod} | _]),
-    do: {:mod_func, mod, :""}
-  defp match_tokens_to_context([{:atom, _, macro}, {:"?", _} | _]),
-    do: {:macro, macro}
-  defp match_tokens_to_context([{:var, _, macro}, {:"?", _} | _]),
-    do: {:macro, macro}
-  defp match_tokens_to_context([{:atom, _, directive}, {:"-", _} | _]),
-    do: {:pre_directive, directive}
-  defp match_tokens_to_context([{:atom, _, atom} | _]),
-    do: {:atom, atom}
-  defp match_tokens_to_context([{:var, _, var} | _]),
-    do: {:var, var}
-  defp match_tokens_to_context([]),
-    do: :none
-  defp match_tokens_to_context(_),
-    do: :expr
+  defp match_tokens_to_context(tokens) do
+    case tokens do
+      [{:atom, _, func}, {:":", _}, {:atom, _, mod} | _] -> {:mod_func, mod, func}
+      [                  {:":", _}, {:atom, _, mod} | _] -> {:mod_func, mod, :""}
+
+      [{:atom, _, macro}, {:"?", _} | _] -> {:macro, macro}
+      [{:var,  _, macro}, {:"?", _} | _] -> {:macro, macro}
+
+      [{:atom, _, directive}, {:"-", _} | _] -> {:pre_directive, directive}
+
+      [{:atom, _, atom} | _] -> {:atom, atom}
+
+      [{:var, _, var} | _] -> {:var, var}
+
+      [] -> :none
+      _  -> :expr
+    end
+  end
 end
