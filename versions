@@ -1,5 +1,10 @@
+# When bumping the Erlang/OTP version, make sure the rebar3 version
+# supports that Erlang/OTP. Erlang/OTP guarantees byte code compatibility
+# across three versions. So, for example, if Rebar3 is compiled for 26,
+# then the executable will be good for 26..28. You can find the executable
+# version in Rebar3 CI files.
 elixir="1.19.3"
 otp="28.1.1"
+rebar3="3.24.0"
 openssl="1.1.1s"
-rebar3="3.22.0"
 ubuntu="noble-20251013"
