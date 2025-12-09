@@ -31,6 +31,7 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
   @type name :: atom()
   @type display_name :: String.t()
 
+  @exact_matcher &Kernel.==/2
   @prefix_matcher &String.starts_with?/2
 
   def completion_identifiers(hint, intellisense_context, node) do
@@ -47,10 +48,33 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
     context_to_matches(context, ctx)
   end
 
+  def locate_identifier(line, column, intellisense_context, node) do
+    case surround_context(line, column) do
+      %{context: context, begin: from, end: to} ->
+        fragment = String.slice(line, 0, to - 1)
+
+        ctx = %{
+          fragment: fragment,
+          intellisense_context: intellisense_context,
+          matcher: @exact_matcher,
+          type: :locate,
+          node: node
+        }
+
+        matches = context_to_matches(context, ctx)
+        %{matches: matches, range: %{from: from, to: to}}
+
+      :none ->
+        %{matches: [], range: nil}
+    end
+  end
+
   defp context_to_matches(context, ctx) do
     case context do
       {:mod_func, mod, func} ->
         Intellisense.Elixir.IdentifierMatcher.match_module_function(mod, Atom.to_string(func), ctx)
+      {:mod, mod} ->
+        Intellisense.Elixir.IdentifierMatcher.match_erlang_module(Atom.to_string(mod), ctx)
       # TODO: all this:
       {:macro, macro} ->
         []
@@ -80,6 +104,44 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
         :none
       {:ok, tokens, _} ->
         match_tokens_to_context(Enum.reverse(tokens))
+    end
+  end
+
+  defp surround_context(line, column) do
+    case :erl_scan.string(String.to_charlist(line)) do
+      {:error, _, _} ->
+        :none
+      {:ok, tokens, _} ->
+        before_cursor = split_tokens_at_column(tokens, column)
+        match_tokens_to_context_with_columns(before_cursor)
+    end
+  end
+
+  defp split_tokens_at_column(tokens, column) do
+    {_, taken} =
+      Enum.reduce_while(tokens, {0, []}, fn token, {pos, acc} ->
+        text = token_to_text(token)
+        start_col = pos + 1
+
+        if start_col <= column do
+          new_pos = pos + String.length(text)
+          {:cont, {new_pos, [{token, start_col, new_pos + 1}| acc]}}
+        else
+          {:halt, {pos, acc}}
+        end
+      end)
+      taken
+  end
+
+  defp token_to_text({_, _, val}), do: Atom.to_string(val)
+  defp token_to_text({val, _}), do: Atom.to_string(val)
+
+  defp match_tokens_to_context_with_columns(tokens) do
+    case tokens do
+      [{{:atom, _, func}, _, to}, {{:":", _}, _, _}, {{:atom, _, mod}, from, _} | _] -> %{context: {:mod_func, mod, func}, begin: from, end: to}
+      [{{:atom,  _, mod}, from, to} | _] -> %{context: {:mod, mod}, begin: from, end: to}
+      [] -> :none
+      _ -> :expr
     end
   end
 
