@@ -380,7 +380,7 @@ defmodule LivebookCLI.Integration.DeployTest do
       deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
       hub_id = team.id
 
-      # Notebook without app settings (deploymeny should fail)
+      # Notebook without app settings (deployment should fail)
       invalid_title = "Invalid App"
       invalid_slug = "invalid-#{Utils.random_short_id()}"
       invalid_app_path = Path.join(tmp_dir, "#{invalid_slug}.livemd")
@@ -481,9 +481,63 @@ defmodule LivebookCLI.Integration.DeployTest do
         end)
       end)
     end
+
+    test "successfully runs without deploying when dry run requested", %{
+      team: team,
+      node: node,
+      org: org,
+      tmp_dir: tmp_dir
+    } do
+      title = "Test CLI Deploy App"
+      slug = Utils.random_short_id()
+      app_path = Path.join(tmp_dir, "#{slug}.livemd")
+      {key, _} = TeamsRPC.create_org_token(node, org: org)
+      deployment_group = TeamsRPC.create_deployment_group(node, org: org, url: @url)
+      app_folder = TeamsRPC.create_app_folder(node, org: org)
+
+      hub_id = team.id
+      deployment_group_id = to_string(deployment_group.id)
+      app_folder_id = to_string(app_folder.id)
+
+      stamp_notebook(app_path, """
+      <!-- livebook:{"app_settings":{"access_type":"public","app_folder_id":"#{app_folder_id}","slug":"#{slug}"},"hub_id":"#{hub_id}"} -->
+
+      # #{title}
+
+      ## Test Section
+
+      ```elixir
+      IO.puts("Hello from CLI deployed app!")
+      ```
+      """)
+
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert deploy(
+                   key,
+                   team.teams_key,
+                   deployment_group.id,
+                   app_path,
+                   true
+                 ) == :ok
+        end)
+
+      assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
+      assert output =~ "  * #{title} skipped due to --dry-run."
+
+      refute_receive {:app_deployment_started,
+                      %{
+                        title: ^title,
+                        slug: ^slug,
+                        deployment_group_id: ^deployment_group_id,
+                        app_folder_id: ^app_folder_id,
+                        hub_id: ^hub_id,
+                        deployed_by: "CLI"
+                      }}
+    end
   end
 
-  defp deploy(org_token, teams_key, deployment_group_id, path) do
+  defp deploy(org_token, teams_key, deployment_group_id, path, dry_run? \\ false) do
     paths =
       if is_list(path) do
         path
@@ -501,6 +555,13 @@ defmodule LivebookCLI.Integration.DeployTest do
         true -> Integer.to_string(deployment_group_id)
       end
 
+    dry_run_flag =
+      if dry_run? do
+        ["--dry-run"]
+      else
+        []
+      end
+
     LivebookCLI.Deploy.call(
       [
         "--org-token",
@@ -509,7 +570,9 @@ defmodule LivebookCLI.Integration.DeployTest do
         teams_key,
         "--deployment-group-id",
         deployment_group_id
-      ] ++ paths
+      ] ++
+        dry_run_flag ++
+        paths
     )
   end
 end
