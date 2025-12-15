@@ -518,12 +518,12 @@ defmodule LivebookCLI.Integration.DeployTest do
                    team.teams_key,
                    deployment_group.id,
                    app_path,
-                   true
+                   ["--dry-run"]
                  ) == :ok
         end)
 
       assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
-      assert output =~ "  * #{title} skipped due to --dry-run."
+      assert output =~ "  * #{title} skipped due to --dry-run"
 
       refute_receive {:app_deployment_started,
                       %{
@@ -537,7 +537,7 @@ defmodule LivebookCLI.Integration.DeployTest do
     end
   end
 
-  defp deploy(org_token, teams_key, deployment_group_id, path, dry_run? \\ false) do
+  defp deploy(org_token, teams_key, deployment_group_id, path, extra_flags \\ []) do
     paths =
       if is_list(path) do
         path
@@ -555,13 +555,6 @@ defmodule LivebookCLI.Integration.DeployTest do
         true -> Integer.to_string(deployment_group_id)
       end
 
-    dry_run_flag =
-      if dry_run? do
-        ["--dry-run"]
-      else
-        []
-      end
-
     LivebookCLI.Deploy.call(
       [
         "--org-token",
@@ -570,9 +563,7 @@ defmodule LivebookCLI.Integration.DeployTest do
         teams_key,
         "--deployment-group-id",
         deployment_group_id
-      ] ++
-        dry_run_flag ++
-        paths
+      ] ++ extra_flags ++ paths
     )
   end
 end
