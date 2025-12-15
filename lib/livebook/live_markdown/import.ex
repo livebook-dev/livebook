@@ -667,22 +667,6 @@ defmodule Livebook.LiveMarkdown.Import do
     # validate it against the public key).
     teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (hub.offline == nil or stamp_verified?)
 
-    messages =
-      if app_folder_id = notebook.app_settings.app_folder_id do
-        app_folders = Hubs.Provider.get_app_folders(hub)
-
-        if Enum.any?(app_folders, &(&1.id == app_folder_id)) do
-          messages
-        else
-          messages ++
-            [
-              ~s/notebook is assigned to a non-existent app folder, defaulting to "No folder" app folder/
-            ]
-        end
-      else
-        messages
-      end
-
     {%{notebook | teams_enabled: teams_enabled}, stamp_verified?, messages}
   end
 
