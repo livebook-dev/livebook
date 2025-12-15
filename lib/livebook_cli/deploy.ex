@@ -17,6 +17,7 @@ defmodule LivebookCLI.Deploy do
       --org-token             Token from your Livebook Teams organization
       --teams-key             Teams key from your Teams workspace
       --deployment-group-id   The ID of the deployment group you want to deploy to
+      --dry-run               Perform a sanity check but do not actually deploy
 
     The --help option can be given to print this notice.
 
@@ -35,7 +36,8 @@ defmodule LivebookCLI.Deploy do
   @switches [
     org_token: :string,
     teams_key: :string,
-    deployment_group_id: :integer
+    deployment_group_id: :integer,
+    dry_run: :boolean
   ]
 
   @impl true
@@ -56,7 +58,8 @@ defmodule LivebookCLI.Deploy do
       paths: paths,
       session_token: opts[:org_token],
       teams_key: opts[:teams_key],
-      deployment_group_id: opts[:deployment_group_id]
+      deployment_group_id: opts[:deployment_group_id],
+      dry_run?: opts[:dry_run] || false
     }
   end
 
@@ -152,7 +155,8 @@ defmodule LivebookCLI.Deploy do
           |> Livebook.FileSystem.File.resolve("files/")
 
         with {:ok, content} <- File.read(path),
-             {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir) do
+             {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir),
+             :continue <- ensure_skip_on_dry_run(app_deployment, config.dry_run?) do
           case Livebook.Teams.deploy_app_from_cli(
                  team,
                  app_deployment,
@@ -209,6 +213,19 @@ defmodule LivebookCLI.Deploy do
         log_error("  * Failed to handle I/O operations: #{reason}")
 
         :error
+    end
+  end
+
+  defp ensure_skip_on_dry_run(app_deployment, dry_run?) do
+    if dry_run? do
+      message = """
+        * #{app_deployment.title} skipped due to --dry-run 
+      """
+
+      log_info(message)
+      :ok
+    else
+      :continue
     end
   end
 
