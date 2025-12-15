@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.18.2](https://github.com/livebook-dev/livebook/tree/v0.18.2) (2025-12-15)
+
+### Added
+
+* Local network access within iframes ([#3107](https://github.com/livebook-dev/livebook/pull/3107))
+* `--dry-run` flag to `livebook deploy` ([#3109](https://github.com/livebook-dev/livebook/pull/3109))
+
+### Fixed
+
+* CLI Teams deployment failing for notebooks with app folders ([#3108](https://github.com/livebook-dev/livebook/pull/3108))
+
 ## [v0.18.1](https://github.com/livebook-dev/livebook/tree/v0.18.1) (2025-12-07)
 
 ### Fixed
