@@ -48,6 +48,18 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
     context_to_matches(context, ctx)
   end
 
+  @doc """
+  Extracts information about an identifier found in `column` in
+  `line`.
+
+  The function returns range of columns where the identifier
+  is located and a list of matching identifier items.
+  """
+  @spec locate_identifier(String.t(), pos_integer(), Intellisense.context(), node()) ::
+          %{
+            matches: list(identifier_item()),
+            range: nil | %{from: pos_integer(), to: pos_integer()}
+          }
   def locate_identifier(line, column, intellisense_context, node) do
     case surround_context(line, column) do
       %{context: context, begin: from, end: to} ->
@@ -107,6 +119,25 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
     end
   end
 
+  defp match_tokens_to_context(tokens) do
+    case tokens do
+      [{:atom, _, func}, {:":", _}, {:atom, _, mod} | _] -> {:mod_func, mod, func}
+      [                  {:":", _}, {:atom, _, mod} | _] -> {:mod_func, mod, :""}
+
+      [{:atom, _, macro}, {:"?", _} | _] -> {:macro, macro}
+      [{:var,  _, macro}, {:"?", _} | _] -> {:macro, macro}
+
+      [{:atom, _, directive}, {:"-", _} | _] -> {:pre_directive, directive}
+
+      [{:atom, _, atom} | _] -> {:atom, atom}
+
+      [{:var, _, var} | _] -> {:var, var}
+
+      [] -> :none
+      _  -> :expr
+    end
+  end
+
   defp surround_context(line, column) do
     case :erl_scan.string(String.to_charlist(line)) do
       {:error, _, _} ->
@@ -142,25 +173,6 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       [{{:atom,  _, mod}, from, to} | _] -> %{context: {:mod, mod}, begin: from, end: to}
       [] -> :none
       _ -> :expr
-    end
-  end
-
-  defp match_tokens_to_context(tokens) do
-    case tokens do
-      [{:atom, _, func}, {:":", _}, {:atom, _, mod} | _] -> {:mod_func, mod, func}
-      [                  {:":", _}, {:atom, _, mod} | _] -> {:mod_func, mod, :""}
-
-      [{:atom, _, macro}, {:"?", _} | _] -> {:macro, macro}
-      [{:var,  _, macro}, {:"?", _} | _] -> {:macro, macro}
-
-      [{:atom, _, directive}, {:"-", _} | _] -> {:pre_directive, directive}
-
-      [{:atom, _, atom} | _] -> {:atom, atom}
-
-      [{:var, _, var} | _] -> {:var, var}
-
-      [] -> :none
-      _  -> :expr
     end
   end
 end
