@@ -1,7 +1,6 @@
-use std::fs;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Child, Stdio};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
@@ -10,7 +9,7 @@ use tracing::Level;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const CONNECT_TIMEOUT_DEBUG: Duration = Duration::from_secs(300);
-const CONNECT_POLL: Duration = Duration::from_millis(50);
+const CONNECT_POLL: Duration = Duration::from_millis(500);
 
 #[derive(Debug)]
 enum Message {
@@ -20,80 +19,84 @@ enum Message {
 
 #[derive(Clone)]
 pub struct Command {
-    stream: Arc<TcpStream>,
+    stream: Arc<Mutex<Option<Arc<TcpStream>>>>,
+    program: String,
+    args: Vec<String>,
+    cwd: Option<PathBuf>,
+    env: Vec<(String, String)>,
 }
 
 impl Command {
-    pub fn send(&self, (name, data): (&str, &str)) {
-        let payload = format!("{name}:{data}");
-        let _ = write_message(&self.stream, payload.as_bytes());
-    }
-}
-
-pub struct MixTask;
-
-impl MixTask {
-    pub fn start<F>(
-        path: impl Into<PathBuf>,
-        task: impl Into<String>,
-        args: &[&str],
-        env: &[(&str, &str)],
-        mut handler: F,
-    ) -> i32
-    where
-        F: FnMut(&Command, (&str, &str)),
-    {
-        let path = path.into();
-        let mut command = if cfg!(windows) {
-            let mut cmd = std::process::Command::new("cmd");
-            cmd.arg("/C").arg("mix.bat");
-            cmd
-        } else {
-            std::process::Command::new("mix")
-        };
-        command.arg(task.into());
-        command.args(args);
-        command.current_dir(path);
-        let env = env
-            .iter()
-            .map(|(key, value)| (key.to_string(), value.to_string()))
-            .collect::<Vec<_>>();
-
-        match start_elixir(command, env) {
-            Ok((cmd, _child, events)) => run_event_loop(cmd, events, &mut handler),
-            Err(e) => {
-                eprintln!("Failed to start Elixir: {e}");
-                1
-            }
+    pub fn new(program: impl Into<String>, args: &[impl AsRef<str>]) -> Self {
+        Self {
+            stream: Arc::new(Mutex::new(None)),
+            program: program.into(),
+            args: args.iter().map(|s| s.as_ref().to_string()).collect(),
+            cwd: None,
+            env: Vec::new(),
         }
     }
-}
 
-pub struct Release;
-
-impl Release {
-    pub fn start<F>(
-        path: impl Into<PathBuf>,
-        name: impl Into<String>,
-        env: &[(&str, &str)],
-        mut handler: F,
-    ) -> i32
-    where
-        F: FnMut(&Command, (&str, &str)),
-    {
+    pub fn release(path: impl Into<PathBuf>, name: impl Into<String>) -> Self {
         let path = path.into();
-        let release_name = name.into();
-        let mut script = path.join("bin").join(&release_name);
+        let name = name.into();
+        let mut script = path.join("bin").join(&name);
         if cfg!(target_os = "windows") && script.extension().is_none() {
             script.set_extension("bat");
         }
 
-        let mut command = std::process::Command::new(script);
-        command.arg("start").current_dir(&path);
-        let env = build_release_env(&path, env);
+        Self {
+            stream: Arc::new(Mutex::new(None)),
+            program: script.to_string_lossy().to_string(),
+            args: vec!["start".to_string()],
+            cwd: Some(path),
+            env: Vec::new(),
+        }
+    }
 
-        match start_elixir(command, env) {
-            Ok((cmd, _child, events)) => run_event_loop(cmd, events, &mut handler),
+    pub fn current_dir(mut self, path: impl Into<PathBuf>) -> Self {
+        self.cwd = Some(path.into());
+        self
+    }
+
+    pub fn env(mut self, env: &[(&str, &str)]) -> Self {
+        self.env = env
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        self
+    }
+
+    pub fn send(&self, (name, data): (&str, &str)) {
+        if let Some(stream) = self.stream.lock().unwrap().as_ref() {
+            let payload = format!("{name}:{data}");
+            let _ = write_message(stream, payload.as_bytes());
+        } else {
+            panic!("Cannot send before start");
+        }
+    }
+
+    pub fn start<F>(&self, mut handler: F) -> i32
+    where
+        F: FnMut((&str, &str)),
+    {
+        let mut command = std::process::Command::new(&self.program);
+        command.args(&self.args);
+        if let Some(cwd) = &self.cwd {
+            command.current_dir(cwd);
+        }
+
+        let env_refs: Vec<(&str, &str)> = self
+            .env
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+
+        match start_elixir(command, &env_refs) {
+            Ok((stream, _child, events)) => {
+                *self.stream.lock().unwrap() = Some(stream);
+                run_event_loop(events, &mut handler)
+            }
             Err(e) => {
                 eprintln!("Failed to start Elixir: {e}");
                 1
@@ -104,8 +107,8 @@ impl Release {
 
 fn start_elixir(
     mut command: std::process::Command,
-    env: Vec<(String, String)>,
-) -> io::Result<(Command, Arc<Mutex<Child>>, mpsc::Receiver<Message>)> {
+    env: &[(&str, &str)],
+) -> io::Result<(Arc<TcpStream>, Arc<Mutex<Child>>, mpsc::Receiver<Message>)> {
     let listener = TcpListener::bind("127.0.0.1:0")
         .map_err(|err| io::Error::new(err.kind(), format!("bind listener: {err}")))?;
     let port = listener
@@ -223,25 +226,17 @@ fn start_elixir(
         thread::sleep(CONNECT_POLL);
     });
 
-    let command = Command {
-        stream: Arc::new(stream),
-    };
-
-    Ok((command, child, msg_rx))
+    Ok((Arc::new(stream), child, msg_rx))
 }
 
-fn run_event_loop<F>(
-    command: Command,
-    events: mpsc::Receiver<Message>,
-    handler: &mut F,
-) -> i32
+fn run_event_loop<F>(events: mpsc::Receiver<Message>, handler: &mut F) -> i32
 where
-    F: FnMut(&Command, (&str, &str)),
+    F: FnMut((&str, &str)),
 {
     loop {
         match events.recv() {
             Ok(Message::Event(name, data)) => {
-                handler(&command, (&name, &data));
+                handler((&name, &data));
             }
             Ok(Message::Exit(code)) => {
                 return code;
@@ -252,87 +247,6 @@ where
             }
         }
     }
-}
-
-fn build_release_env(path: &Path, env: &[(&str, &str)]) -> Vec<(String, String)> {
-    let mut env_vec = env
-        .iter()
-        .map(|(key, value)| (key.to_string(), value.to_string()))
-        .collect::<Vec<_>>();
-
-    if cfg!(target_os = "windows") {
-        let extra_paths = windows_release_paths(path);
-        if !extra_paths.is_empty() {
-            let mut base_path = None;
-            for (key, value) in &env_vec {
-                if key == "PATH" {
-                    base_path = Some(value.clone());
-                    break;
-                }
-            }
-
-            let base_path = base_path
-                .or_else(|| std::env::var("PATH").ok())
-                .unwrap_or_default();
-            let mut paths = Vec::with_capacity(extra_paths.len() + 1);
-            paths.extend(extra_paths);
-            paths.extend(std::env::split_paths(&base_path));
-
-            let joined = std::env::join_paths(paths)
-                .map(|value| value.to_string_lossy().to_string())
-                .unwrap_or(base_path);
-
-            let mut replaced = false;
-            for (key, value) in &mut env_vec {
-                if key == "PATH" {
-                    *value = joined.clone();
-                    replaced = true;
-                    break;
-                }
-            }
-            if !replaced {
-                env_vec.push(("PATH".to_string(), joined));
-            }
-        }
-    }
-
-    env_vec
-}
-
-fn windows_release_paths(release_root: &Path) -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-    let vendor = release_root.join("vendor");
-    let vendor_entries = match fs::read_dir(&vendor) {
-        Ok(entries) => entries,
-        Err(_) => return paths,
-    };
-
-    for entry in vendor_entries.flatten() {
-        let otp_root = entry.path().join("otp");
-        if !otp_root.is_dir() {
-            continue;
-        }
-
-        let otp_bin = otp_root.join("bin");
-        if otp_bin.is_dir() {
-            paths.push(otp_bin);
-        }
-
-        if let Ok(erts_entries) = fs::read_dir(&otp_root) {
-            for erts_entry in erts_entries.flatten() {
-                let name = erts_entry.file_name();
-                let name = name.to_string_lossy();
-                if name.starts_with("erts-") {
-                    let bin = erts_entry.path().join("bin");
-                    if bin.is_dir() {
-                        paths.push(bin);
-                    }
-                }
-            }
-        }
-    }
-
-    paths
 }
 
 fn read_message(stream: &mut TcpStream) -> io::Result<Option<String>> {

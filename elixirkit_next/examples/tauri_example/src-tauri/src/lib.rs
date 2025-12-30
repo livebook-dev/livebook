@@ -1,4 +1,4 @@
-use elixirkit::MixTask;
+use elixirkit::Command;
 use std::thread;
 use tauri_plugin_dialog::DialogExt;
 
@@ -12,10 +12,11 @@ pub fn run() {
 
         thread::spawn(move || {
             let handle_clone = handle.clone();
-            let exit_code = MixTask::start(elixir_dir, "run", &["--no-halt"], &[], move |cmd, (name, data)| {
+            let command = Command::new("mix", &["run", "--no-halt"]).current_dir(elixir_dir);
+            let exit_code = command.start(|(name, data)| {
                 match name {
                     "ready" => {
-                        cmd.send(("ping", "ping"));
+                        command.send(("ping", "ping"));
                     }
                     "echo" => {
                         println!("[tauri] {data}");
@@ -27,7 +28,7 @@ pub fn run() {
                     _ => panic!("unexpected event: {name}:{data}"),
                 }
             });
-            handle.exit(exit_code);
+            handle_clone.exit(exit_code);
         });
 
         Ok(())

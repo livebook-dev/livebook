@@ -117,7 +117,6 @@ mix_release() {
     mix release app --overwrite --path "$release_root"
   )
 
-  # Codesign Elixir release binaries on macOS
   if [ "$os" = "darwin" ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
     macos_codesign "$release_root" "$APPLE_SIGNING_IDENTITY"
   fi
@@ -127,11 +126,7 @@ macos_codesign() {
   local release_path="$1"
   local signing_identity="$2"
 
-  echo "Finding Mach-O executables to sign..."
-
-  # Find all Mach-O executables in the release
   local files_to_sign=$(find "$release_path" -perm +111 -type f -exec sh -c 'file "$1" | grep --silent Mach-O && echo "$1"' _ {} \;)
-
   local file_count=$(echo "$files_to_sign" | wc -l | tr -d ' ')
   echo "Signing $file_count files with identity: $signing_identity"
 

@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Manager, RunEvent, Wry};
+use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
@@ -33,23 +33,13 @@ pub fn run() {
             let log_guard = init_tracing(&log_path);
 
             let app_handle = app.handle();
-            let open_item = MenuItem::with_id(app_handle, "open", "Open", true, None::<&str>)?;
-            let new_item =
-                MenuItem::with_id(app_handle, "new", "New Notebook", true, None::<&str>)?;
-            let copy_url_item =
-                MenuItem::with_id(app_handle, "copy-url", "Copy URL", false, None::<&str>)?;
-            let logs_item =
-                MenuItem::with_id(app_handle, "view-logs", "View Logs", true, None::<&str>)?;
-            let boot_item = MenuItem::with_id(
-                app_handle,
-                "boot-script",
-                boot_script_label(),
-                true,
-                None::<&str>,
-            )?;
-            let settings_item =
-                MenuItem::with_id(app_handle, "settings", "Settings", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?;
+            let open_item = menu_item(app_handle, "open", "Open", true, "cmd+o");
+            let new_item = menu_item(app_handle, "new", "New Notebook", true, "cmd+n");
+            let copy_url_item = menu_item(app_handle, "copy-url", "Copy URL", false, "cmd+c");
+            let logs_item = menu_item(app_handle, "view-logs", "View Logs", true, "cmd+l");
+            let boot_item = menu_item(app_handle, "boot-script", boot_script_label(), true, "");
+            let settings_item = menu_item(app_handle, "settings", "Settings", true, "cmd+,");
+            let quit_item = menu_item(app_handle, "quit", "Quit", true, "cmd+q");
             let tray_menu = Menu::with_items(
                 app_handle,
                 &[
@@ -121,10 +111,20 @@ pub fn run() {
 
             let handle = app.handle().clone();
             std::thread::spawn(move || {
-                let on_receive = |command: &Command, (name, data): (&str, &str)| {
+                let command = if cfg!(debug_assertions) {
+                    let mix_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
+                    Command::new("mix", &["phx.server"])
+                        .current_dir(mix_root)
+                        .env(&[("MIX_TARGET", "app_next")])
+                } else {
+                    let release_dir = handle.path().resource_dir().unwrap().join("rel");
+                    Command::release(release_dir, "app")
+                };
+
+                let status = command.start(|(name, data)| {
                     if name == "ready" {
                         let state = handle.state::<AppState>();
-                        state.set_elixir_command(command);
+                        state.set_elixir_command(&command);
 
                         state.set_url(data.to_string());
                         state.enable_tray_menu();
@@ -135,17 +135,7 @@ pub fn run() {
                         tracing::error!("unexpected event: {name}:{data}");
                         handle.exit(1);
                     }
-                };
-
-                let status = if cfg!(debug_assertions) {
-                    let mix_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
-                    let env = [("MIX_TARGET", "app")];
-                    elixirkit::MixTask::start(mix_root, "phx.server", &[], &env, on_receive)
-                } else {
-                    let release_dir = handle.path().resource_dir().unwrap().join("rel");
-                    let env = [];
-                    elixirkit::Release::start(release_dir, "app", &env, on_receive)
-                };
+                });
 
                 if status != 0 {
                     show_exit_dialog(&handle, status);
@@ -161,24 +151,26 @@ pub fn run() {
         .expect("error while building tauri application");
 
     app.run(|app_handle, event| {
+        #[cfg(not(target_os = "macos"))]
+        let _ = app_handle;
+
         match event {
-            RunEvent::ExitRequested { .. } => {
-                // Command doesn't have explicit stop - cleanup handled automatically
-            }
             #[cfg(target_os = "macos")]
-            RunEvent::Reopen { .. } => {
-                if let Some(state) = app_handle.try_state::<AppState>() {
-                    state.publish_open("");
-                }
-            }
-            #[cfg(target_os = "macos")]
-            RunEvent::Opened { urls } => {
+            tauri::RunEvent::Opened { urls } => {
                 if let Some(state) = app_handle.try_state::<AppState>() {
                     for url in normalize_urls(urls) {
                         state.publish_open(&url);
                     }
                 }
             }
+
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => {
+                if let Some(state) = app_handle.try_state::<AppState>() {
+                    state.publish_open("");
+                }
+            }
+
             _ => {}
         }
     });
@@ -291,6 +283,23 @@ impl AppState {
     }
 }
 
+fn menu_item(
+    app_handle: &AppHandle,
+    id: &str,
+    label: &str,
+    is_enabled: bool,
+    accelerator: &str,
+) -> MenuItem<Wry> {
+    let accel = if cfg!(target_os = "macos") && !accelerator.is_empty() {
+        Some(accelerator)
+    } else {
+        None
+    };
+
+    MenuItem::with_id(app_handle, id, label, is_enabled, accel)
+        .expect("failed to create menu item")
+}
+
 fn show_exit_dialog(handle: &AppHandle, code: i32) {
     let log_path = handle
         .try_state::<AppState>()
@@ -316,6 +325,7 @@ fn extract_open_urls(args: Vec<String>) -> Vec<String> {
     out
 }
 
+#[cfg(target_os = "macos")]
 fn normalize_urls(urls: Vec<url::Url>) -> Vec<String> {
     urls.into_iter()
         .filter_map(|url| normalize_open_url(url.as_str()))

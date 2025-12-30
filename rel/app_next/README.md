@@ -1,17 +1,12 @@
-# Livebook Desktop (Tauri)
+# Livebook Desktop
 
-This is a new Tauri implementation of Livebook Desktop. It starts the Livebook
-Elixir app, exposes tray actions, and forwards open events.
+```shell
+# Run app in development mode
+rel/app_next/tauri.sh dev
 
-## Run
+# Build app in release mode
+rel/app_next/tauri.sh build
 
-```
-cd rel/tauri/src-tauri
-cargo run
-```
-
-## Check
-
-```
-./scripts/check.sh
+# Build, install, and run app in release mode
+rel/app_next/tauri.sh app
 ```

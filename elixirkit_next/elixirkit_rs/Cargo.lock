@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "elixirkit_rs"
+name = "elixirkit"
 version = "0.1.0"
 dependencies = [
  "tracing",

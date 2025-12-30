@@ -1,4 +1,4 @@
-.gitignore# The directory Mix will write compiled artifacts to.
+# The directory Mix will write compiled artifacts to.
 /_build/
 
 # If you run "mix test --cover", coverage assets end up here.
@@ -35,4 +35,3 @@ npm-debug.log
 /livebook
 
 /rel/app_next/resources
-/elixirkit_next/elixirkit_rs/target

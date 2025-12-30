@@ -12,9 +12,6 @@
   "bundle": {
     "active": true,
     "targets": ["app", "dmg", "nsis", "appimage"],
-    "windows": {
-      "signCommand": "trusted-signing-cli -e https://eus.codesigning.azure.net %1"
-    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
