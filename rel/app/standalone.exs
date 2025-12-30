@@ -79,7 +79,7 @@ defmodule Standalone do
 
     filenames =
       case :os.type() do
-        {:unix, :darwin} ->
+        {:unix, _} ->
           ["elixir", "elixirc", "mix", "iex"]
 
         {:win32, _} ->

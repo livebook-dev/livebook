@@ -1,4 +1,4 @@
-if Mix.target() == :app do
+if Mix.target() in [:app, :app_next] do
   defmodule LivebookApp do
     use GenServer
 
@@ -11,7 +11,7 @@ if Mix.target() == :app do
       {:ok, pid} = ElixirKit.start()
       ref = Process.monitor(pid)
 
-      ElixirKit.publish("url", LivebookWeb.Endpoint.access_url())
+      ElixirKit.publish("ready", LivebookWeb.Endpoint.access_url())
 
       {:ok, %{ref: ref}}
     end
