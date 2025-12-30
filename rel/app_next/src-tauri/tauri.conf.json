@@ -25,7 +25,14 @@
         "name": "Livebook",
         "role": "Editor"
       }
-    ]
+    ],
+    "macOS": {
+      "entitlements": "Livebook.entitlements",
+      "exceptionDomain": null,
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    }
   },
   "plugins": {
     "deep-link": {
