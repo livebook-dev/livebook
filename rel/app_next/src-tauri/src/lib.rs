@@ -118,7 +118,7 @@ pub fn run() {
                         .env(&[("MIX_TARGET", "app_next")])
                 } else {
                     let release_dir = handle.path().resource_dir().unwrap().join("rel");
-                    Command::release(release_dir, "app")
+                    elixirkit::release(release_dir, "app")
                 };
 
                 let status = command.start(|(name, data)| {

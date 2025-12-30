@@ -37,23 +37,6 @@ impl Command {
         }
     }
 
-    pub fn release(path: impl Into<PathBuf>, name: impl Into<String>) -> Self {
-        let path = path.into();
-        let name = name.into();
-        let mut script = path.join("bin").join(&name);
-        if cfg!(target_os = "windows") && script.extension().is_none() {
-            script.set_extension("bat");
-        }
-
-        Self {
-            stream: Arc::new(Mutex::new(None)),
-            program: script.to_string_lossy().to_string(),
-            args: vec!["start".to_string()],
-            cwd: Some(path),
-            env: Vec::new(),
-        }
-    }
-
     pub fn current_dir(mut self, path: impl Into<PathBuf>) -> Self {
         self.cwd = Some(path.into());
         self
@@ -102,6 +85,23 @@ impl Command {
                 1
             }
         }
+    }
+}
+
+pub fn release(path: impl Into<PathBuf>, name: impl Into<String>) -> Command {
+    let path = path.into();
+    let name = name.into();
+    let mut script = path.join("bin").join(&name);
+    if cfg!(target_os = "windows") && script.extension().is_none() {
+        script.set_extension("bat");
+    }
+
+    Command {
+        stream: Arc::new(Mutex::new(None)),
+        program: script.to_string_lossy().to_string(),
+        args: vec!["start".to_string()],
+        cwd: Some(path),
+        env: Vec::new(),
     }
 }
 

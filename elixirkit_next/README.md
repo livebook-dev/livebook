@@ -10,10 +10,27 @@ See examples:
 
 ## Rust API
 
-- `elixirkit::Release::start(path, release_name, env, handler) -> exit_status` - start Elixir release
-- `elixirkit::MixTask::start(cwd, task, args, env, handler) -> exit_status` - start Mix task
-- `elixirkit::Command::send(&self, (name, data))` - send message to Elixir side
-- `handler` is `|&command, (name, data)|`
+```rust
+let command = elixirkit::release(rel_dir, rel_name)
+
+let exit_code = command.start(|(name, data)| {
+    match name {
+        "echo" => {
+            println!("Received: {data}");
+        }
+        _ => {}
+    }
+});
+```
+
+### API Reference
+
+- `elixirkit::release(rel_dir, rel_name)` - create command for Elixir release
+- `elixirkit::Command::new(program, args)` - create command for any executable
+- `command.current_dir(path)` - set working directory
+- `command.env(&[("KEY", "value")])` - set environment variables
+- `command.start(handler) -> exit_code` - start the command and run event loop
+- `command.send((name, data))` - send message to Elixir side
 
 ## Elixir API
 
