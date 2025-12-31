@@ -11,9 +11,9 @@ set -euo pipefail
 main() {
   export MIX_TARGET="app_next"
 
-  app=Livebook
   root_dir="$(cd "$(dirname "$0")" && pwd)"
   mix_project_dir="${root_dir}/../.."
+  app=$(jq -r '.productName' "$root_dir/src-tauri/tauri.conf.json")
 
   case "$(uname -s)" in
     MINGW*|MSYS*|CYGWIN*)
@@ -125,7 +125,7 @@ mix_release() {
 macos_codesign() {
   local release_path="$1"
   local signing_identity="$2"
-  local entitlements_file="$root_dir/src-tauri/Livebook.entitlements"
+  local entitlements_file="$root_dir/src-tauri/App.entitlements"
 
   local files_to_sign=$(find "$release_path" -perm +111 -type f -exec sh -c 'file "$1" | grep --silent Mach-O && echo "$1"' _ {} \;)
   local file_count=$(echo "$files_to_sign" | wc -l | tr -d ' ')

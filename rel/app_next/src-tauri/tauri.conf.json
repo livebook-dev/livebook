@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Livebook",
+  "productName": "LivebookTest",
   "identifier": "dev.livebook.Livebook",
   "app": {
     "withGlobalTauri": false,
@@ -27,7 +27,7 @@
       }
     ],
     "macOS": {
-      "entitlements": "Livebook.entitlements",
+      "entitlements": "App.entitlements",
       "exceptionDomain": null,
       "frameworks": [],
       "providerShortName": null,
