@@ -115,7 +115,7 @@ defmodule Livebook.MixProject do
       {:bandit, "~> 1.0"},
       {:plug, "~> 1.16"},
       {:plug_crypto, "~> 2.0"},
-      {:earmark_parser, "~> 1.4"},
+      {:earmark_parser, "~> 1.4.44"},
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
       {:aws_credentials, "~> 0.3.0", runtime: false},
@@ -135,7 +135,7 @@ defmodule Livebook.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:pythonx, "~> 0.4.2", only: :test},
       # Docs
-      {:ex_doc, "~> 0.30", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.39", only: :dev, runtime: false}
     ]
   end
 
