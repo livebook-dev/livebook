@@ -1,0 +1,4 @@
+# Disable busy waiting so that we don't waste resources
+# Limit the maximal number of ports for the same reason
+# Set the custom EPMD module
++sbwt none +sbwtdcpu none +sbwtdio none +Q 65536 -epmd_module Elixir.Livebook.EPMD

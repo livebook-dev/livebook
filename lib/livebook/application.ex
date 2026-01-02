@@ -195,7 +195,7 @@ defmodule Livebook.Application do
     end
   end
 
-  @app? Mix.target() == :app
+  @app? Mix.target() in [:app, :app_next]
 
   if @app? do
     defp app_specs, do: [LivebookApp]
