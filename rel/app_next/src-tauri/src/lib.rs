@@ -5,8 +5,9 @@ use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_clipboard_manager::ClipboardExt;
-use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_opener::OpenerExt;
+use tauri_plugin_updater::UpdaterExt;
 use tracing_subscriber::{
     filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt, Layer,
 };
@@ -27,6 +28,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let log_path = log_path()?;
             ensure_parent_dir(&log_path)?;
@@ -39,6 +41,7 @@ pub fn run() {
             let logs_item = menu_item(app_handle, "view-logs", "View Logs", true, "cmd+l");
             let boot_item = menu_item(app_handle, "boot-script", boot_script_label(), true, "");
             let settings_item = menu_item(app_handle, "settings", "Settings", true, "cmd+,");
+            let check_updates_item = menu_item(app_handle, "check-updates", "Check for Updates…", true, "");
             let quit_item = menu_item(app_handle, "quit", "Quit", true, "cmd+q");
             let tray_menu = Menu::with_items(
                 app_handle,
@@ -51,6 +54,7 @@ pub fn run() {
                     &boot_item,
                     &PredefinedMenuItem::separator(app_handle)?,
                     &settings_item,
+                    &check_updates_item,
                     &quit_item,
                 ],
             )?;
@@ -82,6 +86,9 @@ pub fn run() {
                             let _ = app.opener().open_path(path.display().to_string(), None::<&str>);
                         }
                     }
+                    "check-updates" => {
+                        check_for_updates(app.clone());
+                    }
                     "quit" => app.exit(0),
                     _ => {}
                 })
@@ -108,6 +115,12 @@ pub fn run() {
                     }
                 }
             }
+
+            // Check for updates on boot
+            let app_handle_for_updates = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let _ = check_for_updates_on_boot(app_handle_for_updates).await;
+            });
 
             let handle = app.handle().clone();
             std::thread::spawn(move || {
@@ -460,4 +473,92 @@ rem set PATH=C:\\bin;%PATH%\r\n"
 # Add Homebrew to PATH\n\
 # export PATH=/opt/homebrew/bin:$PATH\n"
     }
+}
+
+async fn check_for_updates_on_boot(app: AppHandle) -> tauri_plugin_updater::Result<()> {
+    if let Some(update) = app.updater()?.check().await? {
+        let should_install = app
+            .dialog()
+            .message(format!(
+                "Version {} is available!\n\nWould you like to download and install it now?",
+                update.version
+            ))
+            .kind(MessageDialogKind::Info)
+            .title("Update Available")
+            .buttons(MessageDialogButtons::OkCancel)
+            .blocking_show();
+
+        if should_install {
+            match update.download_and_install(|_, _| {}, || {}).await {
+                Ok(()) => {
+                    app.restart();
+                }
+                Err(e) => {
+                    tracing::error!("Failed to install update: {}", e);
+                    show_error_dialog(
+                        &app,
+                        "Update Failed",
+                        format!("Failed to install update: {}", e),
+                    );
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn check_for_updates(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let _ = check_for_updates_async(app).await;
+    });
+}
+
+async fn check_for_updates_async(app: AppHandle) -> tauri_plugin_updater::Result<()> {
+    if let Some(update) = app.updater()?.check().await? {
+        let should_install = app
+            .dialog()
+            .message(format!(
+                "Version {} is available!\n\nWould you like to download and install it now?",
+                update.version
+            ))
+            .kind(MessageDialogKind::Info)
+            .title("Update Available")
+            .buttons(MessageDialogButtons::OkCancel)
+            .blocking_show();
+
+        if should_install {
+            match update.download_and_install(|_, _| {}, || {}).await {
+                Ok(()) => {
+                    app.restart();
+                }
+                Err(e) => {
+                    show_error_dialog(
+                        &app,
+                        "Update Failed",
+                        format!("Failed to install update: {}", e),
+                    );
+                }
+            }
+        }
+    } else {
+        app.dialog()
+            .message(format!(
+                "You're running the latest version:\n\nv{}",
+                app.package_info().version
+            ))
+            .kind(MessageDialogKind::Info)
+            .title("No Updates Available")
+            .blocking_show();
+    }
+
+    Ok(())
+}
+
+fn show_error_dialog(app: &AppHandle, title: impl Into<String>, message: impl Into<String>) {
+    app.dialog()
+        .message(message)
+        .kind(MessageDialogKind::Error)
+        .title(title)
+        .blocking_show();
 }

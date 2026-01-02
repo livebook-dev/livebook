@@ -1,11 +1,7 @@
 [package]
 name = "livebook"
 version = "0.19.0-dev"
-description = "A Tauri App"
-authors = ["you"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
@@ -24,6 +20,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-deep-link = "2"
+tauri-plugin-updater = "2"
 elixirkit = { path = "../../../elixirkit_next/elixirkit_rs" }
 serde_json = "1"
 url = "2"
