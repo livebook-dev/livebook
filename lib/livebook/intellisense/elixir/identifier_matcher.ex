@@ -519,7 +519,7 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
         do: %{item | display_name: "~" <> sigil_name}
   end
 
-  defp match_erlang_module(hint, ctx) do
+  def match_erlang_module(hint, ctx) do
     for mod <- get_matching_modules(hint, ctx),
         usable_as_unquoted_module?(mod),
         name = ":" <> Atom.to_string(mod),

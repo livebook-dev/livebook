@@ -57,7 +57,7 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       {:pre_directive, directive} ->
         []
       {:atom, atom} ->
-        []
+        match_atom(Atom.to_string(atom), ctx)
       {:var, var} ->
         var
         |> Livebook.Runtime.Evaluator.erlang_to_elixir_var
@@ -100,5 +100,10 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       [] -> :none
       _  -> :expr
     end
+  end
+
+  defp match_atom(hint, ctx) do
+    Intellisense.Elixir.IdentifierMatcher.match_erlang_module(hint, ctx)
+    |> Enum.map(&%{&1 | display_name: String.slice(&1[:display_name], 1..-1//1)})
   end
 end
