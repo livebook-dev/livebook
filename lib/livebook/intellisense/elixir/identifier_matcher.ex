@@ -65,7 +65,8 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
           | %{
               kind: :module_attribute,
               name: name(),
-              documentation: Docs.documentation()
+              documentation: Docs.documentation(),
+              language: name()
             }
           | %{
               kind: :bitstring_modifier,

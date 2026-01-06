@@ -30,7 +30,8 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
           | %{
               kind: :module_attribute,
               name: name(),
-              documentation: Docs.documentation()
+              documentation: Docs.documentation(),
+              array_needed: boolean()
             }
 
   @type name :: atom()
@@ -39,24 +40,24 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
   @prefix_matcher &String.starts_with?/2
 
   @reserved_attributes [
-    {:module, %{doc: ""}},
-    {:export, %{doc: ""}},
-    {:import, %{doc: ""}},
-    {:moduledoc, %{doc: ""}},
-    {:compile, %{doc: ""}},
-    {:vsn, %{doc: ""}},
-    {:on_load, %{doc: ""}},
-    {:nifs, %{doc: ""}},
-    {:behaviour, %{doc: ""}},
-    {:callback, %{doc: ""}},
-    {:record, %{doc: ""}},
-    {:include, %{doc: ""}},
-    {:define, %{doc: ""}},
-    {:file, %{doc: ""}},
-    {:type, %{doc: ""}},
-    {:spec, %{doc: ""}},
-    {:doc, %{doc: ""}},
-    {:feature, %{doc: ""}},
+    {:module, %{doc: ""}, false},
+    {:export, %{doc: ""}, true},
+    {:import, %{doc: ""}, true},
+    {:moduledoc, %{doc: ""}, false},
+    {:compile, %{doc: ""}, true},
+    {:vsn, %{doc: ""}, false},
+    {:on_load, %{doc: ""}, false},
+    {:nifs, %{doc: ""}, true},
+    {:behaviour, %{doc: ""}, false},
+    {:callback, %{doc: ""}, true},
+    {:record, %{doc: ""}, false},
+    {:include, %{doc: ""}, false},
+    {:define, %{doc: ""}, false},
+    {:file, %{doc: ""}, false},
+    {:type, %{doc: ""}, false},
+    {:spec, %{doc: ""}, false},
+    {:doc, %{doc: ""}, false},
+    {:feature, %{doc: ""}, false},
   ]
 
   def completion_identifiers(hint, intellisense_context, node) do
@@ -81,7 +82,6 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       # {:macro, macro} ->
       #   []
       {:pre_directive, directive} ->
-        IO.inspect("DIRECTIVE!!!")
         match_module_attribute(directive, ctx)
       {:atom, atom} ->
         []
@@ -130,12 +130,13 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
   end
 
   defp match_module_attribute(directive, ctx) do
-    for {attribute, info}  <- @reserved_attributes,
+    for {attribute, info, array_needed}  <- @reserved_attributes,
         ctx.matcher.(Atom.to_string(attribute), Atom.to_string(directive)),
         do: %{
           kind: :module_attribute,
           name: attribute,
-          documentation: {"text/markdown", info.doc}
+          documentation: {"text/markdown", info.doc},
+          array_needed: array_needed,
         }
   end
 end
