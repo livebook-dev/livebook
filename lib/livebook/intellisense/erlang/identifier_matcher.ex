@@ -27,11 +27,37 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
               name: name(),
               arity: integer()
             }
+          | %{
+              kind: :module_attribute,
+              name: name(),
+              documentation: Docs.documentation()
+            }
 
   @type name :: atom()
   @type display_name :: String.t()
 
   @prefix_matcher &String.starts_with?/2
+
+  @reserved_attributes [
+    {:module, %{doc: ""}},
+    {:export, %{doc: ""}},
+    {:import, %{doc: ""}},
+    {:moduledoc, %{doc: ""}},
+    {:compile, %{doc: ""}},
+    {:vsn, %{doc: ""}},
+    {:on_load, %{doc: ""}},
+    {:nifs, %{doc: ""}},
+    {:behaviour, %{doc: ""}},
+    {:callback, %{doc: ""}},
+    {:record, %{doc: ""}},
+    {:include, %{doc: ""}},
+    {:define, %{doc: ""}},
+    {:file, %{doc: ""}},
+    {:type, %{doc: ""}},
+    {:spec, %{doc: ""}},
+    {:doc, %{doc: ""}},
+    {:feature, %{doc: ""}},
+  ]
 
   def completion_identifiers(hint, intellisense_context, node) do
     context = cursor_context(hint)
@@ -52,10 +78,11 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       {:mod_func, mod, func} ->
         Intellisense.Elixir.IdentifierMatcher.match_module_function(mod, Atom.to_string(func), ctx)
       # TODO: all this:
-      {:macro, macro} ->
-        []
+      # {:macro, macro} ->
+      #   []
       {:pre_directive, directive} ->
-        []
+        IO.inspect("DIRECTIVE!!!")
+        match_module_attribute(directive, ctx)
       {:atom, atom} ->
         []
       {:var, var} ->
@@ -100,5 +127,15 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       [] -> :none
       _  -> :expr
     end
+  end
+
+  defp match_module_attribute(directive, ctx) do
+    for {attribute, info}  <- @reserved_attributes,
+        ctx.matcher.(Atom.to_string(attribute), Atom.to_string(directive)),
+        do: %{
+          kind: :module_attribute,
+          name: attribute,
+          documentation: {"text/markdown", info.doc}
+        }
   end
 end
