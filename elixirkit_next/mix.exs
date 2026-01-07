@@ -13,8 +13,7 @@ defmodule ElixirKit.MixProject do
 
   def application do
     [
-      extra_applications: [:logger],
-      mod: {ElixirKit.Application, []}
+      extra_applications: [:logger]
     ]
   end
 

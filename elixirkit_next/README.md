@@ -34,7 +34,7 @@ let exit_code = command.start(|(name, data)| {
 
 ## Elixir API
 
-- `ElixirKit.start()` - start listener, messages from Rust will be delivered as `{:event, name, data}` tuples
+- `ElixirKit.start_link()` - start listener, messages from Rust will be delivered as `{:event, name, data}` tuples
 - `ElixirKit.publish(name, data)` - send message to Rust side
 
 # TODO

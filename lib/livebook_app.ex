@@ -8,7 +8,7 @@ if Mix.target() in [:app, :app_next] do
 
     @impl true
     def init(_) do
-      {:ok, pid} = ElixirKit.start()
+      {:ok, pid} = ElixirKit.start_link()
       ref = Process.monitor(pid)
 
       ElixirKit.publish("ready", LivebookWeb.Endpoint.access_url())
