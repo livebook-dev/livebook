@@ -13,7 +13,7 @@ main() {
 
   root_dir="$(cd "$(dirname "$0")" && pwd)"
   mix_project_dir="${root_dir}/../.."
-  app=$(jq -r '.productName' "$root_dir/src-tauri/tauri.conf.json")
+  app="Livebook"
 
   case "$(uname -s)" in
     MINGW*|MSYS*|CYGWIN*)
