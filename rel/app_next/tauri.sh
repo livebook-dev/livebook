@@ -55,9 +55,6 @@ main() {
   done
 
   release_root="$root_dir/src-tauri/rel-${os}"
-  # TODO: not needed?
-  # mkdir -p "$release_root"
-  # release_root="$(cd "$release_root" && pwd)"
 
   command="${1:-}"
 

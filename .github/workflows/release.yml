@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "v*.*.*"
-    branches:
-      - "wm-*"  # TODO: remove
   schedule:
     # Daily at 00:00
     - cron: "0 0 * * *"
@@ -70,8 +68,7 @@ jobs:
             gh workflow run -R livebook-dev/livebook_cd build.yml -f ref=${{ github.ref_name }} -f release_name=${{ github.ref_name }}
           fi
 
-  # TODO: rename to desktop
-  desktop_next:
+  app_next:
     if: github.repository == 'livebook-dev/livebook'
     name: "Desktop (${{ matrix.gui_target }})"
     needs: [create_release]
