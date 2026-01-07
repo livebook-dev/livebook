@@ -27,7 +27,7 @@ defmodule Livebook.Intellisense.Erlang do
     IO.write("completion:")
 
     Intellisense.Erlang.IdentifierMatcher.completion_identifiers(hint, context, node)
-    |> Intellisense.Elixir.format_completion_identifiers()  #TODO keywords, operators, booleans here
+    |> Intellisense.Elixir.format_completion_identifiers(extra_completion_items(hint))
   end
 
   defp handle_details(line, _column, _context) do
@@ -42,5 +42,58 @@ defmodule Livebook.Intellisense.Erlang do
     IO.write("signature:")
     IO.inspect(hint)
     nil
+  end
+
+  @keywords [
+      {"true", "(boolean)"},
+      {"false", "(boolean)"},
+
+      {"begin", "(block operator)"},
+      {"case", "(case operator)"},
+      {"fun", "(anonymous function operator)"},
+      {"if", "(if operator)"},
+      {"when", "(guard operator)"},
+
+      {"after", "(after operator)"},
+      {"catch", "(catch operator)"},
+      {"receive", "(receive operator)"},
+      {"try", "(try operator)"},
+
+      {"and", "(logical AND operator)"},
+      {"andalso", "(short-circuit logical AND operator)"},
+      {"band", "(bitwise AND operator)"},
+
+      {"not", "(logical NOT operator)"},
+      {"bnot", "(bitwise NOT operator)"},
+
+      {"or", "(logical OR operator)"},
+      {"orelse", "(short-circuit logical OR operator)"},
+      {"bor", "(bitwise OR operator)"},
+
+      {"div", "(integer division operator)"},
+      {"rem", "(integer remainder operator)"},
+      {"bxor", "(bitwise XOR operator)"},
+      {"bsl", "(bitshift left operator)"},
+      {"bsr", "(bitshift right operator)"},
+      {"xor", "(logical XOR operator)"},
+    ]
+
+  defp extra_completion_items(hint) do
+    items = Enum.map(@keywords,
+      fn {keyword, desc} -> %{
+        label: keyword,
+        kind: :keyword,
+        documentation: desc,
+        insert_text: keyword,
+      } end
+    )
+
+    last_word = hint |> String.split(~r/\s/) |> List.last()
+
+    if last_word == "" do
+      []
+    else
+      Enum.filter(items, &String.starts_with?(&1.label, last_word))
+    end
   end
 end
