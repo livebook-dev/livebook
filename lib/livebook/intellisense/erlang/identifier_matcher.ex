@@ -59,11 +59,7 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       {:atom, atom} ->
         match_atom(Atom.to_string(atom), ctx)
       {:var, var} ->
-        var
-        |> Livebook.Runtime.Evaluator.erlang_to_elixir_var
-        |> to_string
-        |> Intellisense.Elixir.IdentifierMatcher.match_variable(ctx)
-        |> Enum.map(&%{&1 | name: Livebook.Runtime.Evaluator.elixir_to_erlang_var(&1[:name])})
+        match_var(var, ctx)
       # TODO: bitstrings, need to be parsed!
       :expr ->
         []
@@ -105,5 +101,13 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
   defp match_atom(hint, ctx) do
     Intellisense.Elixir.IdentifierMatcher.match_erlang_module(hint, ctx)
     |> Enum.map(&%{&1 | display_name: String.slice(&1[:display_name], 1..-1//1)})
+  end
+
+  defp match_var(hint, ctx) do
+    hint
+    |> Livebook.Runtime.Evaluator.erlang_to_elixir_var
+    |> to_string
+    |> Intellisense.Elixir.IdentifierMatcher.match_variable(ctx)
+    |> Enum.map(&%{&1 | name: Livebook.Runtime.Evaluator.elixir_to_erlang_var(&1[:name])})
   end
 end
