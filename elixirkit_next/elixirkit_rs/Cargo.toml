@@ -1,0 +1,11 @@
+[package]
+name = "elixirkit"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "elixirkit"
+path = "src/lib.rs"
+
+[dependencies]
+tracing = "0.1"

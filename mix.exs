@@ -140,6 +140,7 @@ defmodule Livebook.MixProject do
   end
 
   defp target_deps(:app), do: [{:elixirkit, path: "elixirkit"}]
+  defp target_deps(:app_next), do: [{:elixirkit, path: "elixirkit_next"}]
   defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
@@ -180,7 +181,7 @@ defmodule Livebook.MixProject do
       app: [
         applications: @release_apps,
         include_erts: false,
-        rel_templates_path: "rel/app",
+        rel_templates_path: "rel/#{Mix.target()}",
         steps: [
           :assemble,
           &remove_cookie/1,
@@ -188,6 +189,19 @@ defmodule Livebook.MixProject do
         ]
       ]
     ]
+  end
+
+  if Mix.target() == :app_next do
+    {cargo_output, 0} = System.cmd("cargo", ["pkgid"], cd: "#{__DIR__}/rel/app_next/src-tauri")
+    [_, cargo_version] = Regex.run(~r/#.+@(.+)$/, String.trim(cargo_output))
+
+    if @version != cargo_version do
+      Mix.raise("""
+      Version mismatch:
+      mix.exs:    #{@version}
+      Cargo.toml: #{cargo_version}
+      """)
+    end
   end
 
   defp remove_cookie(release) do
