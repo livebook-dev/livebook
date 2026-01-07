@@ -214,6 +214,7 @@ jobs:
           spctl -a -t exec -vvv "$app_path"
 
   docker:
+    # TODO: bring back
     # if: github.repository == 'livebook-dev/livebook'
     if: false
     name: Docker (${{ matrix.name }})
