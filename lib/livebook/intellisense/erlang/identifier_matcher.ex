@@ -33,6 +33,24 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
 
   @prefix_matcher &String.starts_with?/2
 
+  @bitstring_modifiers [
+    :big,
+    :binary,
+    :bits,
+    :bitstring,
+    :bytes,
+    :integer,
+    :float,
+    :little,
+    :native,
+    :signed,
+    :unit,
+    :unsigned,
+    :utf8,
+    :utf16,
+    :utf32,
+  ]
+
   def completion_identifiers(hint, intellisense_context, node) do
     context = cursor_context(hint)
 
@@ -60,9 +78,11 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
         match_atom(Atom.to_string(atom), ctx)
       {:var, var} ->
         match_var(var, ctx)
-      # TODO: bitstrings, need to be parsed!
-      :expr ->
-        []
+      {:bitstring_modifier, hint, existing} ->
+        for modifier <- @bitstring_modifiers,
+            @prefix_matcher.(Atom.to_string(modifier), Atom.to_string(hint)),
+            modifier not in existing,
+            do: %{kind: :bitstring_modifier, name: modifier, arity: 0}
 
       # :none
       _ ->
@@ -87,7 +107,11 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       [{:atom, _, macro}, {:"?", _} | _] -> {:macro, macro}
       [{:var,  _, macro}, {:"?", _} | _] -> {:macro, macro}
 
-      [{:atom, _, directive}, {:"-", _} | _] -> {:pre_directive, directive}
+      [{:atom, _, directive}, {:"-", _}, {:".", _}] -> {:pre_directive, directive}
+      [{:atom, _, directive}, {:"-", _}           ] -> {:pre_directive, directive}
+
+      [{:atom, _, mod}, {:"-", _} | _] -> match_maybe_bitstring_mod(mod, tokens)
+      [{:atom, _, mod}, {:"/", _} | _] -> match_maybe_bitstring_mod(mod, tokens)
 
       [{:atom, _, atom} | _] -> {:atom, atom}
 
@@ -109,5 +133,41 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
     |> to_string
     |> Intellisense.Elixir.IdentifierMatcher.match_variable(ctx)
     |> Enum.map(&%{&1 | name: Livebook.Runtime.Evaluator.elixir_to_erlang_var(&1[:name])})
+  end
+
+  defp match_maybe_bitstring_mod(hint, tokens) do
+    if in_bitstring?(tokens) do
+      existing = bitstring_mods(tokens) |> Enum.drop(1)
+
+      case List.last(existing) do
+        {:err} -> {:atom, hint}
+        _ -> {:bitstring_modifier, hint, existing}
+      end
+    else
+      {:atom, hint}
+    end
+  end
+
+  defp bitstring_mods(tokens) do
+    case tokens do
+      # the unit modifier takes an argument, we skip it here
+      [{:integer, _, _}, {:":", _}, {:atom, _, :unit} = head | tail] ->
+        bitstring_mods([head | tail])
+
+      [{:atom, _, mod}, {:"-", _} | tail] -> [mod | bitstring_mods(tail)]
+      [{:atom, _, mod}, {:"/", _} | _] -> [mod]
+
+      _ -> [{:err}]
+    end
+  end
+
+  defp in_bitstring?(tokens, depth \\ 0) do
+    case tokens do
+      [] -> false
+      [{:"<<", _} | _] when depth == 0 -> true
+      [{:"<<", _} | tail] -> in_bitstring?(tail, depth - 1)
+      [{:">>", _} | tail] -> in_bitstring?(tail, depth + 1)
+      [_ | tail] -> in_bitstring?(tail, depth)
+    end
   end
 end
