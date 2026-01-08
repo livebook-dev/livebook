@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*.*.*"
+    # TODO:
+    branches:
+      - "wm-*"
   schedule:
     # Daily at 00:00
     - cron: "0 0 * * *"
@@ -78,14 +81,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-15
-            gui_target: "aarch64-apple-darwin"
-          - platform: macos-15
-            gui_target: "x86_64-apple-darwin"
-          - platform: windows-2022
-            gui_target: "x86_64-pc-windows-msvc"
-          - platform: ubuntu-22.04
-            gui_target: "x86_64-unknown-linux-gnu"
+          # - platform: macos-15
+          #   gui_target: "aarch64-apple-darwin"
+          # - platform: macos-15
+          #   gui_target: "x86_64-apple-darwin"
+          # - platform: windows-2022
+          #   gui_target: "x86_64-pc-windows-msvc"
+          - platform: ubuntu-22.04-arm
+            gui_target: "aarch64-unknown-linux-gnu"
+          # - platform: ubuntu-22.04
+          #   gui_target: "x86_64-unknown-linux-gnu"
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
@@ -177,6 +182,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MIX_ENV: prod
           MIX_TARGET: app_next
+          NO_STRIP: ${{ runner.os == 'Linux' && runner.arch == 'ARM64' && 'true' || '' }}
           # macOS codesigning/notarization
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
