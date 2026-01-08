@@ -20,7 +20,7 @@ defmodule Example.Server do
 
   @impl true
   def init(_) do
-    {:ok, pid} = ElixirKit.start()
+    {:ok, pid} = ElixirKit.start_link()
     ref = Process.monitor(pid)
 
     ElixirKit.publish("ready", "ready")

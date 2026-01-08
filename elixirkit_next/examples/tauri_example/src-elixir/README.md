@@ -1,3 +1,5 @@
-# Tauri Example (Elixir)
+# Tauri Example
 
-This application connects to the Tauri shell via ElixirKit and responds to `ping` with `pong`.
+```sh
+cargo tauri dev
+```
