@@ -360,7 +360,7 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
     Code.ensure_loaded?(mod) and function_exported?(mod, :exception, 1)
   end
 
-  defp match_module_member(mod, hint, ctx) do
+  def match_module_member(mod, hint, ctx) do
     match_module_function(mod, hint, ctx) ++ match_module_type(mod, hint, ctx)
   end
 

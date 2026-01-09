@@ -83,17 +83,15 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
 
   defp context_to_matches(context, ctx) do
     case context do
-      {:mod_func, mod, func} ->
-        Intellisense.Elixir.IdentifierMatcher.match_module_function(mod, Atom.to_string(func), ctx)
-      {:mod, mod} ->
-        Intellisense.Elixir.IdentifierMatcher.match_erlang_module(Atom.to_string(mod), ctx)
+      {:mod_member, mod, member} ->
+        Intellisense.Elixir.IdentifierMatcher.match_module_member(mod, Atom.to_string(member), ctx)
       # TODO: all this:
       {:macro, macro} ->
         []
       {:pre_directive, directive} ->
         []
       {:atom, atom} ->
-        []
+        match_atom(Atom.to_string(atom), ctx)
       {:var, var} ->
         var
         |> Livebook.Runtime.Evaluator.erlang_to_elixir_var
@@ -121,8 +119,8 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
 
   defp match_tokens_to_context(tokens) do
     case tokens do
-      [{:atom, _, func}, {:":", _}, {:atom, _, mod} | _] -> {:mod_func, mod, func}
-      [                  {:":", _}, {:atom, _, mod} | _] -> {:mod_func, mod, :""}
+      [{:atom, _, member}, {:":", _}, {:atom, _, mod} | _] -> {:mod_member, mod, member}
+      [                  {:":", _}, {:atom, _, mod} | _] -> {:mod_member, mod, :""}
 
       [{:atom, _, macro}, {:"?", _} | _] -> {:macro, macro}
       [{:var,  _, macro}, {:"?", _} | _] -> {:macro, macro}
@@ -136,6 +134,10 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       [] -> :none
       _  -> :expr
     end
+  end
+
+  defp match_atom(hint, ctx) do
+    Intellisense.Elixir.IdentifierMatcher.match_erlang_module(hint, ctx) ++ Intellisense.Elixir.IdentifierMatcher.match_module_member(:erlang, hint, ctx)
   end
 
   defp surround_context(line, column) do
@@ -169,8 +171,8 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
 
   defp match_tokens_to_context_with_columns(tokens) do
     case tokens do
-      [{{:atom, _, func}, _, to}, {{:":", _}, _, _}, {{:atom, _, mod}, from, _} | _] -> %{context: {:mod_func, mod, func}, begin: from, end: to}
-      [{{:atom,  _, mod}, from, to} | _] -> %{context: {:mod, mod}, begin: from, end: to}
+      [{{:atom, _, member}, _, to}, {{:":", _}, _, _}, {{:atom, _, mod}, from, _} | _] -> %{context: {:mod_member, mod, member}, begin: from, end: to}
+      [{{:atom,  _, atom}, from, to} | _] -> %{context: {:atom, atom}, begin: from, end: to}
       [] -> :none
       _ -> :expr
     end
