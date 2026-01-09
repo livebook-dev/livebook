@@ -85,11 +85,12 @@ Add this module to your notebook to handle environment-specific connections:
 ```elixir
 defmodule NodeConnection do
   def connect() do
-    Node.set_cookie(cookie())
+    node = target_node()
+    Node.set_cookie(node, cookie())
 
-    case Node.connect(target_node()) do
+    case Node.connect(node) do
       true -> :ok
-      _ -> {:error, "Failed to connect to #{inspect(target_node())}"}
+      _ -> {:error, "Failed to connect to #{inspect(node)}"}
     end
   end
 
