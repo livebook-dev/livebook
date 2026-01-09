@@ -169,8 +169,11 @@ defmodule LivebookCLI.Deploy do
                  config.deployment_group_id,
                  redeploy: config.redeploy?
                ) do
-            {:ok, url} ->
+            {:ok, %{"url" => url, "state" => "deployed"}} ->
               log_info([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
+
+            {:ok, %{"state" => "unchanged"}} ->
+              log_info([:blue, "  * #{app_deployment.title} unchanged, skipping"])
 
             {:error, errors} ->
               log_error("  * #{app_deployment.title} failed to deploy.")

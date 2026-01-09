@@ -62,7 +62,25 @@ defmodule LivebookCLI.Integration.DeployTest do
                         app_folder_id: ^app_folder_id,
                         hub_id: ^hub_id,
                         deployed_by: "CLI"
-                      }}
+                      } = app_deployment}
+
+      assert_receive {:app_deployment_started, ^app_deployment}
+
+      # skip if app had no changes
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert deploy(
+                   key,
+                   team.teams_key,
+                   deployment_group.id,
+                   app_path
+                 ) == :ok
+        end)
+
+      assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
+      assert output =~ "  * #{title} unchanged, skipping"
+
+      refute_receive {:app_deployment_started, ^app_deployment}
     end
 
     test "successfully deploys multiple notebooks from directory",
@@ -482,12 +500,8 @@ defmodule LivebookCLI.Integration.DeployTest do
       end)
     end
 
-    test "successfully runs without deploying when dry run requested", %{
-      team: team,
-      node: node,
-      org: org,
-      tmp_dir: tmp_dir
-    } do
+    test "successfully runs without deploying when dry run requested",
+         %{team: team, node: node, org: org, tmp_dir: tmp_dir} do
       title = "Test CLI Deploy App"
       slug = Utils.random_short_id()
       app_path = Path.join(tmp_dir, "#{slug}.livemd")
