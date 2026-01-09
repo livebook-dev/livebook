@@ -298,13 +298,12 @@ defmodule Livebook.TeamsTest do
     end
   end
 
-  describe "deploy_app_from_cli/2" do
+  describe "deploy_app_from_cli/4" do
     @describetag teams_for: :user
+    @describetag :tmp_dir
 
-    @tag :tmp_dir
-    test "deploys app to Teams using a CLI session",
-         %{team: team, node: node, tmp_dir: tmp_dir, org: org} do
-      %{id: id} =
+    setup %{team: team, node: node, tmp_dir: tmp_dir, org: org} do
+      deployment_group =
         TeamsRPC.create_deployment_group(node,
           name: "angry-cat-#{Ecto.UUID.generate()}",
           url: "http://localhost:4123",
@@ -312,18 +311,14 @@ defmodule Livebook.TeamsTest do
           org: org
         )
 
-      id = to_string(id)
-      hub_id = "team-#{org.name}"
-      slug = Utils.random_short_id()
-      title = "MyNotebook-#{slug}"
-      app_settings = %{Notebook.AppSettings.new() | slug: slug}
+      app_settings = %{Notebook.AppSettings.new() | slug: Utils.random_short_id()}
 
       notebook = %{
         Notebook.new()
         | app_settings: app_settings,
-          name: title,
-          hub_id: hub_id,
-          deployment_group_id: id
+          name: "MyNotebook-#{app_settings.slug}",
+          hub_id: "team-#{org.name}",
+          deployment_group_id: to_string(deployment_group.id)
       }
 
       files_dir = FileSystem.File.local(tmp_dir)
@@ -336,12 +331,19 @@ defmodule Livebook.TeamsTest do
       config = %{teams_key: team.teams_key, session_token: key}
       assert {:ok, team} = Teams.fetch_cli_session(config)
 
-      # deploy the app
-      assert {:ok, _url} = Teams.deploy_app_from_cli(team, app_deployment, id)
+      %{app_deployment: app_deployment, team: team}
+    end
 
+    test "deploys app to Teams using a CLI session",
+         %{app_deployment: app_deployment, team: team, node: node} do
+      id = app_deployment.deployment_group_id
+      assert {:ok, %{"state" => "deployed"}} = Teams.deploy_app_from_cli(team, app_deployment, id)
+
+      slug = app_deployment.slug
+      title = app_deployment.title
       sha = app_deployment.sha
-      multi_session = app_settings.multi_session
-      access_type = app_settings.access_type
+      multi_session = app_deployment.multi_session
+      access_type = app_deployment.access_type
 
       assert_receive {:app_deployment_started,
                       %Livebook.Teams.AppDeployment{
@@ -352,7 +354,41 @@ defmodule Livebook.TeamsTest do
                         multi_session: ^multi_session,
                         access_type: ^access_type,
                         deployment_group_id: ^id
-                      } = app_deployment2}
+                      } = app_deployment_from_ws}
+
+      # since we receive the event twice, we must assert again
+      assert_receive {:app_deployment_started, ^app_deployment_from_ws}
+
+      # must skip
+      assert {:ok, %{"state" => "unchanged"}} =
+               Teams.deploy_app_from_cli(team, app_deployment, id)
+
+      refute_receive {:app_deployment_started, ^app_deployment_from_ws}
+
+      # must redeploy
+      assert {:ok, %{"state" => "deployed"}} =
+               Teams.deploy_app_from_cli(team, app_deployment, id, redeploy: true)
+
+      assert_receive {:app_deployment_started,
+                      %Livebook.Teams.AppDeployment{
+                        slug: ^slug,
+                        sha: ^sha,
+                        title: ^title,
+                        deployed_by: "CLI",
+                        multi_session: ^multi_session,
+                        access_type: ^access_type,
+                        deployment_group_id: ^id
+                      } = app_deployment_from_ws}
+
+      assert_receive {:app_deployment_started, ^app_deployment_from_ws}
+
+      # force app deployment to be stopped
+      TeamsRPC.toggle_app_deployment(node, app_deployment_from_ws.id, team.org_id)
+      assert_receive {:app_deployment_stopped, ^app_deployment_from_ws}
+    end
+
+    test "returns error when has invalid data", %{app_deployment: app_deployment, team: team} do
+      id = app_deployment.deployment_group_id
 
       assert Teams.deploy_app_from_cli(team, app_deployment, 999) ==
                {:error, %{"deployment_group_id" => ["does not exist"]}}
@@ -368,10 +404,6 @@ defmodule Livebook.TeamsTest do
 
       assert Teams.deploy_app_from_cli(team, %{app_deployment | access_type: :abc}, id) ==
                {:error, %{"access_type" => ["is invalid"]}}
-
-      # force app deployment to be stopped
-      TeamsRPC.toggle_app_deployment(node, app_deployment2.id, team.org_id)
-      assert_receive {:app_deployment_stopped, ^app_deployment2}
     end
   end
 end
