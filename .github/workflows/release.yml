@@ -182,7 +182,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MIX_ENV: prod
           MIX_TARGET: app_next
-          NO_STRIP: ${{ runner.os == 'Linux' && runner.arch == 'ARM64' && 'true' || '' }}
+          # NO_STRIP: ${{ runner.os == 'Linux' && runner.arch == 'ARM64' && 'true' || '' }}
           # macOS codesigning/notarization
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
