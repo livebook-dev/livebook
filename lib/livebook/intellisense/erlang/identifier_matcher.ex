@@ -173,8 +173,7 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
     case tokens do
       [{{:atom, _, member}, _, to}, {{:":", _}, _, _}, {{:atom, _, mod}, from, _} | _] -> %{context: {:mod_member, mod, member}, begin: from, end: to}
       [{{:atom,  _, atom}, from, to} | _] -> %{context: {:atom, atom}, begin: from, end: to}
-      [] -> :none
-      _ -> :expr
+      _ -> :none
     end
   end
 end
