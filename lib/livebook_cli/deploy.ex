@@ -170,7 +170,8 @@ defmodule LivebookCLI.Deploy do
                  redeploy: config.redeploy?
                ) do
             {:ok, %{"url" => url, "state" => "deployed"}} ->
-              log_info([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
+              url = if url, do: " (#{url})", else: ""
+              log_info([:green, "  * #{app_deployment.title} deployed successfully.", url])
 
             {:ok, %{"state" => "unchanged"}} ->
               log_info([:blue, "  * #{app_deployment.title} unchanged, skipping"])

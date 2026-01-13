@@ -81,6 +81,27 @@ defmodule LivebookCLI.Integration.DeployTest do
       assert output =~ "  * #{title} unchanged, skipping"
 
       refute_receive {:app_deployment_started, ^app_deployment}
+
+      # should not show `(url/apps/slug)` in the app deployment output
+      {:ok, deployment_group} =
+        TeamsRPC.update_deployment_group(node, deployment_group, %{url: nil})
+
+      # force app to redeploy
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert deploy(
+                   key,
+                   team.teams_key,
+                   deployment_group.id,
+                   app_path,
+                   ["--redeploy"]
+                 ) == :ok
+        end)
+
+      assert output =~ "* Preparing to deploy notebook #{slug}.livemd"
+      assert output =~ "  * #{title} deployed successfully."
+
+      assert_receive {:app_deployment_started, ^app_deployment}
     end
 
     test "successfully deploys multiple notebooks from directory",
