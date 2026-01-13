@@ -63,11 +63,11 @@ defmodule Livebook.Teams.AppDeployment do
     end
   end
 
-  def new(%Livebook.Notebook{} = notebook, source, files_dir) do
+  defp new(%Livebook.Notebook{} = notebook, source, files_dir) do
     with {:ok, files} <- build_and_check_file_entries(notebook, source, files_dir),
          {:ok, {_, zip_content}} <- :zip.create(~c"app_deployment.zip", files, [:memory]),
          :ok <- validate_size(zip_content) do
-      md5_hash = :crypto.hash(:md5, zip_content)
+      md5_hash = :crypto.hash(:md5, inspect(files))
       shasum = Base.encode16(md5_hash, case: :lower)
 
       {:ok,
