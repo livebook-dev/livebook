@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.18.3](https://github.com/livebook-dev/livebook/tree/v0.18.3) (2026-01-14)
+
+### Changed
+
+* Deployment from CLI to skip unchanged apps by default ([#3116](https://github.com/livebook-dev/livebook/pull/3116))
+
+### Fixed
+
+* File search input getting disabled when loading directory files
+* Fixed `Node.set_cookie` usage in Phoenix integration docs ([#3114](https://github.com/livebook-dev/livebook/pull/3114))
+
 ## [v0.18.2](https://github.com/livebook-dev/livebook/tree/v0.18.2) (2025-12-15)
 
 ### Added
