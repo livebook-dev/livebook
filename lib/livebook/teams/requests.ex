@@ -255,7 +255,7 @@ defmodule Livebook.Teams.Requests do
         app_folder_id: app_deployment.app_folder_id,
         deployment_group_id: deployment_group_id,
         sha: app_deployment.sha,
-        redeploy: opts[:redeploy] || false
+        redeploy: Keyword.get(opts, :redeploy, false)
       }
 
     encrypted_content = Teams.encrypt(app_deployment.file, secret_key)
