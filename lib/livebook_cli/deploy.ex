@@ -37,7 +37,8 @@ defmodule LivebookCLI.Deploy do
     org_token: :string,
     teams_key: :string,
     deployment_group_id: :integer,
-    dry_run: :boolean
+    dry_run: :boolean,
+    redeploy: :boolean
   ]
 
   @impl true
@@ -46,6 +47,10 @@ defmodule LivebookCLI.Deploy do
     {:ok, _} = Application.ensure_all_started(:livebook)
     config = config_from_args(args)
     ensure_config!(config)
+
+    if config.redeploy? do
+      log_warning("Note: --redeploy flag set, all apps will be deployed regardless of changes.")
+    end
 
     team = authenticate_cli!(config)
     deploy_to_teams(team, config)
@@ -59,7 +64,8 @@ defmodule LivebookCLI.Deploy do
       session_token: opts[:org_token],
       teams_key: opts[:teams_key],
       deployment_group_id: opts[:deployment_group_id],
-      dry_run?: opts[:dry_run] || false
+      dry_run?: opts[:dry_run] || false,
+      redeploy?: opts[:redeploy] || false
     }
   end
 
@@ -160,10 +166,15 @@ defmodule LivebookCLI.Deploy do
           case Livebook.Teams.deploy_app_from_cli(
                  team,
                  app_deployment,
-                 config.deployment_group_id
+                 config.deployment_group_id,
+                 redeploy: config.redeploy?
                ) do
-            {:ok, url} ->
-              log_info([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
+            {:ok, %{"url" => url, "state" => "deployed"}} ->
+              url = if url, do: " (#{url})", else: ""
+              log_info([:green, "  * #{app_deployment.title} deployed successfully.", url])
+
+            {:ok, %{"state" => "unchanged"}} ->
+              log_info([:blue, "  * #{app_deployment.title} unchanged, skipping"])
 
             {:error, errors} ->
               log_error("  * #{app_deployment.title} failed to deploy.")
