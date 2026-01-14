@@ -64,8 +64,8 @@ defmodule LivebookCLI.Deploy do
       session_token: opts[:org_token],
       teams_key: opts[:teams_key],
       deployment_group_id: opts[:deployment_group_id],
-      dry_run?: opts[:dry_run] || false,
-      redeploy?: opts[:redeploy] || false
+      dry_run?: Keyword.get(opts, :dry_run, false),
+      redeploy?: Keyword.get(opts, :redeploy, false)
     }
   end
 
@@ -230,7 +230,7 @@ defmodule LivebookCLI.Deploy do
   defp ensure_skip_on_dry_run(app_deployment, dry_run?) do
     if dry_run? do
       message = """
-        * #{app_deployment.title} skipped due to --dry-run 
+        * #{app_deployment.title} skipped due to --dry-run
       """
 
       log_info(message)
