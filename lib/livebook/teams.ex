@@ -275,10 +275,8 @@ defmodule Livebook.Teams do
         deployment_group_id,
         opts \\ []
       ) do
-    extra_params = Enum.into(opts, %{})
-
     with {:error, %{"errors" => errors}} <-
-           Requests.deploy_app_from_cli(team, app_deployment, deployment_group_id, extra_params) do
+           Requests.deploy_app_from_cli(team, app_deployment, deployment_group_id, opts) do
       {:error, errors}
     end
   end
