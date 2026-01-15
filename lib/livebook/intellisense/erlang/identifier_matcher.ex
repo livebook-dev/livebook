@@ -122,6 +122,11 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       [{:atom, _, member}, {:":", _}, {:atom, _, mod} | _] -> {:mod_member, mod, member}
       [                  {:":", _}, {:atom, _, mod} | _] -> {:mod_member, mod, :""}
 
+      [{:atom, _, field}, {:".", _}, {:atom, _, record}, {:"#", _} | _] -> :none
+      [{:".", _}, {:atom, _, record}, {:"#", _} | _] -> :none
+      [{:atom, _, record}, {:"#", _} | _] -> :none
+      [{:"#", _} | _] -> :none
+
       [{:atom, _, macro}, {:"?", _} | _] -> {:macro, macro}
       [{:var,  _, macro}, {:"?", _} | _] -> {:macro, macro}
 
@@ -137,7 +142,13 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
   end
 
   defp match_atom(hint, ctx) do
-    Intellisense.Elixir.IdentifierMatcher.match_erlang_module(hint, ctx) ++ Intellisense.Elixir.IdentifierMatcher.match_module_member(:erlang, hint, ctx)
+  (Intellisense.Elixir.IdentifierMatcher.match_erlang_module(hint, ctx) ++ Intellisense.Elixir.IdentifierMatcher.match_module_member(:erlang, hint, ctx))
+    |> Enum.map(fn
+    %{display_name: name} = item when is_binary(name) ->
+      %{item | display_name: String.trim_leading(name, ":")}
+    item ->
+      item
+  end)
   end
 
   defp surround_context(line, column) do
