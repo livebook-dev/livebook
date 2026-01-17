@@ -197,13 +197,14 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
   end
 
   defp match_atom(hint, ctx) do
-  (Intellisense.Elixir.IdentifierMatcher.match_erlang_module(hint, ctx) ++ Intellisense.Elixir.IdentifierMatcher.match_module_member(:erlang, hint, ctx))
+    (Intellisense.Elixir.IdentifierMatcher.match_erlang_module(hint, ctx) ++
+       Intellisense.Elixir.IdentifierMatcher.match_module_member(:erlang, hint, ctx))
     |> Enum.map(fn
-    %{display_name: name} = item when is_binary(name) ->
-      %{item | display_name: String.trim_leading(name, ":")}
-    item ->
-      item
-  end)
+      %{display_name: name} = item when is_binary(name) ->
+        %{item | display_name: String.trim_leading(name, ":")}
+      item ->
+        item
+    end)
   end
 
   defp surround_context(line, column) do
@@ -237,8 +238,12 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
 
   defp match_tokens_to_context_with_columns(tokens) do
     case tokens do
-      [{{:atom, _, member}, _, to}, {{:":", _}, _, _}, {{:atom, _, mod}, from, _} | _] -> %{context: {:mod_member, mod, member}, begin: from, end: to}
-      [{{:atom,  _, atom}, from, to} | _] -> %{context: {:atom, atom}, begin: from, end: to}
+      [{{:atom, _, member}, _, to}, {{:":", _}, _, _}, {{:atom, _, mod}, from, _} | _] ->
+        %{context: {:mod_member, mod, member}, begin: from, end: to}
+
+      [{{:atom,  _, atom}, from, to} | _] ->
+        %{context: {:atom, atom}, begin: from, end: to}
+
       _ -> :none
     end
   end

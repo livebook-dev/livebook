@@ -203,7 +203,8 @@ defmodule Livebook.Intellisense.Elixir do
        }
 
 
-  #Note: array_needed is a boolean to know if '[]' should be put inside atrribute, as in -export([]). It is also a way to differentiate erlang's atributes from elxir's.
+  # Note: array_needed is a boolean to know if '[]' should be put inside atrribute,
+  # as in -export([]). It is also a way to differentiate erlang's atributes from elixir's.
   defp format_completion_item(%{
     kind: :module_attribute,
     name: name,
