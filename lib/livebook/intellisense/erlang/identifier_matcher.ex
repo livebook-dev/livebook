@@ -57,7 +57,7 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
     :utf16,
     :utf32,
   ]
-  
+
   @reserved_attributes [
     {:module, %{doc: ""}, false},
     {:export, %{doc: ""}, true},
@@ -197,6 +197,7 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
           documentation: {"text/markdown", info.doc},
           array_needed: array_needed,
         }
+  end
 
   defp match_atom(hint, ctx) do
   (Intellisense.Elixir.IdentifierMatcher.match_erlang_module(hint, ctx) ++ Intellisense.Elixir.IdentifierMatcher.match_module_member(:erlang, hint, ctx))
@@ -244,7 +245,7 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       _ -> :none
     end
   end
-  
+
   defp match_var(hint, ctx) do
     hint
     |> Livebook.Runtime.Evaluator.erlang_to_elixir_var
@@ -287,4 +288,5 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       [{:">>", _} | tail] -> in_bitstring?(tail, depth + 1)
       [_ | tail] -> in_bitstring?(tail, depth)
     end
+  end
 end
