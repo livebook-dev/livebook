@@ -27,12 +27,39 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
               name: name(),
               arity: integer()
             }
+          | %{
+              kind: :module_attribute,
+              name: name(),
+              documentation: Docs.documentation(),
+              array_needed: boolean()
+            }
 
   @type name :: atom()
   @type display_name :: String.t()
 
   @exact_matcher &Kernel.==/2
   @prefix_matcher &String.starts_with?/2
+
+  @reserved_attributes [
+    {:module, %{doc: ""}, false},
+    {:export, %{doc: ""}, true},
+    {:import, %{doc: ""}, true},
+    {:moduledoc, %{doc: ""}, false},
+    {:compile, %{doc: ""}, true},
+    {:vsn, %{doc: ""}, false},
+    {:on_load, %{doc: ""}, false},
+    {:nifs, %{doc: ""}, true},
+    {:behaviour, %{doc: ""}, false},
+    {:callback, %{doc: ""}, true},
+    {:record, %{doc: ""}, false},
+    {:include, %{doc: ""}, false},
+    {:define, %{doc: ""}, false},
+    {:file, %{doc: ""}, false},
+    {:type, %{doc: ""}, false},
+    {:spec, %{doc: ""}, false},
+    {:doc, %{doc: ""}, false},
+    {:feature, %{doc: ""}, false},
+  ]
 
   def completion_identifiers(hint, intellisense_context, node) do
     context = cursor_context(hint)
@@ -86,10 +113,10 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       {:mod_member, mod, member} ->
         Intellisense.Elixir.IdentifierMatcher.match_module_member(mod, Atom.to_string(member), ctx)
       # TODO: all this:
-      {:macro, macro} ->
-        []
+      # {:macro, macro} ->
+      #   []
       {:pre_directive, directive} ->
-        []
+        match_module_attribute(directive, ctx)
       {:atom, atom} ->
         match_atom(Atom.to_string(atom), ctx)
       {:var, var} ->
@@ -140,6 +167,16 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       _  -> :expr
     end
   end
+
+  defp match_module_attribute(directive, ctx) do
+    for {attribute, info, array_needed}  <- @reserved_attributes,
+        ctx.matcher.(Atom.to_string(attribute), Atom.to_string(directive)),
+        do: %{
+          kind: :module_attribute,
+          name: attribute,
+          documentation: {"text/markdown", info.doc},
+          array_needed: array_needed,
+        }
 
   defp match_atom(hint, ctx) do
   (Intellisense.Elixir.IdentifierMatcher.match_erlang_module(hint, ctx) ++ Intellisense.Elixir.IdentifierMatcher.match_module_member(:erlang, hint, ctx))
