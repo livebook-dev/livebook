@@ -1,7 +1,6 @@
 defmodule Livebook.Intellisense.Erlang do
 
   alias Livebook.Intellisense
-  alias Livebook.Intellisense.Elixir
 
   @behaviour Intellisense
 
@@ -24,9 +23,6 @@ defmodule Livebook.Intellisense.Erlang do
   end
 
   defp handle_completion(hint, context, node) do
-    # TODO: implement. See t:Livebook.Runtime.completion_response/0 for return type.
-    IO.write("completion:")
-
     Intellisense.Erlang.IdentifierMatcher.completion_identifiers(hint, context, node)
     |> Intellisense.Elixir.format_completion_identifiers(extra_completion_items(hint))
   end

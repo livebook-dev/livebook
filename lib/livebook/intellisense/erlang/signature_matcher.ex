@@ -1,21 +1,35 @@
 defmodule Livebook.Intellisense.Erlang.SignatureMatcher do
+  alias Livebook.Intellisense
+
   @type signature_info :: {name :: atom(), Docs.signature(), Docs.documentation(), Docs.spec()}
 
 
   @spec get_matching_signatures(String.t(), Livebook.Intellisense.context(), node()) ::
           {:ok, list(signature_info()), active_argument :: non_neg_integer()} | :error
-  def get_matching_signatures(hint, intellisense_context, node) do
-    %{env: env} = intellisense_context
-
+  def get_matching_signatures(hint, _intellisense_context, node) do
     case call_target_and_argument(hint) do
       {:ok, {:remote, mod, name}, active_argument} ->
-        funs = [{name, :any}]
-        signature_infos = Livebook.Intellisense.Elixir.SignatureMatcher.signature_infos_for_members(mod, funs, active_argument, node)
-        IO.inspect(signature_infos)
+        signature_infos =
+          Intellisense.Elixir.SignatureMatcher.signature_infos_for_members(
+            mod,
+            [{name, :any}],
+            active_argument,
+            node
+          )
+
         {:ok, signature_infos, active_argument}
+
       {:ok, {:local, name}, active_argument} ->
-        signature_infos = Livebook.Intellisense.Elixir.SignatureMatcher.signature_infos_for_members(:erlang,  [{name, :any}], active_argument, node)
+        signature_infos =
+          Intellisense.Elixir.SignatureMatcher.signature_infos_for_members(
+            :erlang,
+            [{name, :any}],
+            active_argument,
+            node
+          )
+
         {:ok, signature_infos, active_argument}
+
       _ ->
         :error
     end
