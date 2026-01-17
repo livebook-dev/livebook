@@ -197,13 +197,6 @@ defmodule Livebook.Intellisense.Elixir.Docs do
     end
   end
 
-#  def locate_definition(path, {:function, name, arity}) do
-#    with {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} <- beam_lib_chunks(path, :debug_info),
-#         {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}) do
-#      Keyword.fetch(kw, :line)
-#    end
-#  end
-
   def locate_definition(path, {:function, name, arity}) do
     case beam_lib_chunks(path, :debug_info) do
       {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} ->
