@@ -4,9 +4,7 @@ defmodule Livebook.Intellisense.Erlang.SignatureMatcher do
 
   @spec get_matching_signatures(String.t(), Livebook.Intellisense.context(), node()) ::
           {:ok, list(signature_info()), active_argument :: non_neg_integer()} | :error
-  def get_matching_signatures(hint, intellisense_context, node) do
-    %{env: env} = intellisense_context
-
+  def get_matching_signatures(hint, _intellisense_context, node) do
     case call_target_and_argument(hint) do
       {:ok, {:remote, mod, name}, active_argument} ->
         funs = [{name, :any}]

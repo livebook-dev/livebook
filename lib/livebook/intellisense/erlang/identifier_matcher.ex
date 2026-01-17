@@ -162,9 +162,9 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       [{:atom, _, member}, {:":", _}, {:atom, _, mod} | _] -> {:mod_member, mod, member}
       [                  {:":", _}, {:atom, _, mod} | _] -> {:mod_member, mod, :""}
 
-      [{:atom, _, field}, {:".", _}, {:atom, _, record}, {:"#", _} | _] -> :none
-      [{:".", _}, {:atom, _, record}, {:"#", _} | _] -> :none
-      [{:atom, _, record}, {:"#", _} | _] -> :none
+      [{:atom, _, _field}, {:".", _}, {:atom, _, _record}, {:"#", _} | _] -> :none
+      [{:".", _}, {:atom, _, _record}, {:"#", _} | _] -> :none
+      [{:atom, _, _record}, {:"#", _} | _] -> :none
       [{:"#", _} | _] -> :none
 
       [{:atom, _, macro}, {:"?", _} | _] -> {:macro, macro}

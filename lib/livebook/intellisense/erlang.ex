@@ -1,7 +1,6 @@
 defmodule Livebook.Intellisense.Erlang do
 
   alias Livebook.Intellisense
-  alias Livebook.Intellisense.Elixir
 
   @behaviour Intellisense
 
