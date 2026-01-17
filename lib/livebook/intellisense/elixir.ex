@@ -475,7 +475,8 @@ defmodule Livebook.Intellisense.Elixir do
     end
   end
 
-  defp format_signature_item({_name, signature, _documentation, _specs}),
+  # FIXME: This is public
+  def format_signature_item({_name, signature, _documentation, _specs}),
     do: %{
       signature: signature,
       arguments: arguments_from_signature(signature)

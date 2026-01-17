@@ -50,7 +50,8 @@ defmodule Livebook.Intellisense.Elixir.SignatureMatcher do
     end
   end
 
-  defp signature_infos_for_members(mod, funs, active_argument, node) do
+  # FIXME: This is public
+  def signature_infos_for_members(mod, funs, active_argument, node) do
     infos =
       Livebook.Intellisense.Elixir.Docs.lookup_module_members(mod, funs, node,
         kinds: [:function, :macro]
