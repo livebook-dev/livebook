@@ -14,19 +14,7 @@ defmodule Livebook.Intellisense.Erlang.SignatureMatcher do
         IO.inspect(signature_infos)
         {:ok, signature_infos, active_argument}
       {:ok, {:local, name}, active_argument} ->
-        imports = env.functions
-
-        signature_infos =
-          imports
-          |> Enum.map(fn {mod, funs} ->
-            matching_funs = Enum.filter(funs, fn {fun, _arity} -> fun == name end)
-            {mod, matching_funs}
-          end)
-          |> Enum.reject(fn {_mod, matching_funs} -> matching_funs == [] end)
-          |> Enum.flat_map(fn {mod, matching_funs} ->
-            Livebook.Intellisense.Elixir.SignatureMatcher.signature_infos_for_members(mod, matching_funs, active_argument, node)
-          end)
-        IO.inspect(signature_infos)
+        signature_infos = Livebook.Intellisense.Elixir.SignatureMatcher.signature_infos_for_members(:erlang,  [{name, :any}], active_argument, node)
         {:ok, signature_infos, active_argument}
       _ ->
         :error
