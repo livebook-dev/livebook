@@ -343,22 +343,21 @@ defmodule Livebook.Intellisense.Elixir do
         contents = Enum.map(matches, &format_details_item/1)
 
         definition = get_definition_location(hd(matches), context)
-
         %{range: range, contents: contents, definition: definition}
     end
   end
 
-  defp include_in_details?(%{kind: :function, from_default: true}), do: false
-  defp include_in_details?(%{kind: :bitstring_modifier}), do: false
-  defp include_in_details?(_), do: true
+  def include_in_details?(%{kind: :function, from_default: true}), do: false
+  def include_in_details?(%{kind: :bitstring_modifier}), do: false
+  def include_in_details?(_), do: true
 
-  defp format_details_item(%{kind: :variable, name: name}), do: code(name)
+  def format_details_item(%{kind: :variable, name: name}), do: code(name)
 
-  defp format_details_item(%{kind: :map_field, name: name}), do: code(name)
+  def format_details_item(%{kind: :map_field, name: name}), do: code(name)
 
-  defp format_details_item(%{kind: :in_map_field, name: name}), do: code(name)
+  def format_details_item(%{kind: :in_map_field, name: name}), do: code(name)
 
-  defp format_details_item(%{kind: :in_struct_field, name: name, default: default}) do
+  def format_details_item(%{kind: :in_struct_field, name: name, default: default}) do
     join_with_divider([
       code(name),
       """
@@ -371,7 +370,7 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
-  defp format_details_item(%{kind: :module, module: module, documentation: documentation}) do
+  def format_details_item(%{kind: :module, module: module, documentation: documentation}) do
     join_with_divider([
       code(inspect(module)),
       format_docs_link(module),
@@ -379,7 +378,7 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
-  defp format_details_item(%{
+  def format_details_item(%{
          kind: :function,
          module: module,
          name: name,
@@ -401,7 +400,7 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
-  defp format_details_item(%{
+  def format_details_item(%{
          kind: :type,
          module: module,
          name: name,
@@ -417,31 +416,31 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
-  defp format_details_item(%{kind: :module_attribute, name: name, documentation: documentation}) do
+  def format_details_item(%{kind: :module_attribute, name: name, documentation: documentation}) do
     join_with_divider([
       code("@#{name}"),
       Intellisense.Elixir.Docs.format_documentation(documentation, :all)
     ])
   end
 
-  defp get_definition_location(%{kind: :module, module: module}, context) do
+  def get_definition_location(%{kind: :module, module: module}, context) do
     get_definition_location(module, context, {:module, module})
   end
 
-  defp get_definition_location(
+  def get_definition_location(
          %{kind: :function, module: module, name: name, arity: arity},
          context
        ) do
     get_definition_location(module, context, {:function, name, arity})
   end
 
-  defp get_definition_location(%{kind: :type, module: module, name: name, arity: arity}, context) do
+  def get_definition_location(%{kind: :type, module: module, name: name, arity: arity}, context) do
     get_definition_location(module, context, {:type, name, arity})
   end
 
-  defp get_definition_location(_idenfitier, _context), do: nil
+  def get_definition_location(_idenfitier, _context), do: nil
 
-  defp get_definition_location(module, context, identifier) do
+  def get_definition_location(module, context, identifier) do
     if context.ebin_path do
       path = Path.join(context.ebin_path, "#{module}.beam")
 

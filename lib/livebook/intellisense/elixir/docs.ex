@@ -197,10 +197,35 @@ defmodule Livebook.Intellisense.Elixir.Docs do
     end
   end
 
+#  def locate_definition(path, {:function, name, arity}) do
+#    with {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} <- beam_lib_chunks(path, :debug_info),
+#         {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}) do
+#      Keyword.fetch(kw, :line)
+#    end
+#  end
+
   def locate_definition(path, {:function, name, arity}) do
-    with {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} <- beam_lib_chunks(path, :debug_info),
-         {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}) do
-      Keyword.fetch(kw, :line)
+    case beam_lib_chunks(path, :debug_info) do
+      {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} ->
+        with {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}) do
+          Keyword.fetch(kw, :line)
+        end
+      _ ->
+        locate_erlang_function(path, name, arity)
+    end
+  end
+
+  defp locate_erlang_function(path, name, arity) do
+    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
+      result =
+        Enum.find_value(annotations, fn
+          {:function, anno, ^name, ^arity, _} -> :erl_anno.line(anno)
+          _ -> nil
+        end)
+
+      if result, do: {:ok, result}, else: :error
+    else
+      _ -> :error
     end
   end
 

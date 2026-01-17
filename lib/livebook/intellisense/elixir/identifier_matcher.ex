@@ -360,7 +360,7 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
     Code.ensure_loaded?(mod) and function_exported?(mod, :exception, 1)
   end
 
-  defp match_module_member(mod, hint, ctx) do
+  def match_module_member(mod, hint, ctx) do
     match_module_function(mod, hint, ctx) ++ match_module_type(mod, hint, ctx)
   end
 
@@ -519,7 +519,7 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
         do: %{item | display_name: "~" <> sigil_name}
   end
 
-  defp match_erlang_module(hint, ctx) do
+  def match_erlang_module(hint, ctx) do
     for mod <- get_matching_modules(hint, ctx),
         usable_as_unquoted_module?(mod),
         name = ":" <> Atom.to_string(mod),
