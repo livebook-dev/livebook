@@ -11,7 +11,6 @@ defmodule Livebook.Intellisense.Erlang.SignatureMatcher do
       {:ok, {:remote, mod, name}, active_argument} ->
         funs = [{name, :any}]
         signature_infos = Livebook.Intellisense.Elixir.SignatureMatcher.signature_infos_for_members(mod, funs, active_argument, node)
-        IO.inspect(signature_infos)
         {:ok, signature_infos, active_argument}
       {:ok, {:local, name}, active_argument} ->
         signature_infos = Livebook.Intellisense.Elixir.SignatureMatcher.signature_infos_for_members(:erlang,  [{name, :any}], active_argument, node)

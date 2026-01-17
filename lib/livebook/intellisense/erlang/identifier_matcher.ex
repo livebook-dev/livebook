@@ -130,9 +130,6 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
     case context do
       {:mod_member, mod, member} ->
         Intellisense.Elixir.IdentifierMatcher.match_module_member(mod, Atom.to_string(member), ctx)
-      # TODO: all this:
-      # {:macro, macro} ->
-      #   []
       {:pre_directive, directive} ->
         match_module_attribute(directive, ctx)
       {:atom, atom} ->
