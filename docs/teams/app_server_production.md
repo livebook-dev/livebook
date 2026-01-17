@@ -24,7 +24,7 @@ App servers require memory for the Livebook runtime itself plus each app session
 Total memory = 1.5 GB (base) + (50 MB × number of app sessions)
 ```
 
-The base 1.5 GB accommodates the Livebook Erlang node and Mix compilation of dependencies. Each app session requires approximately 50 MB, though this can vary depending on the app. For single-session apps, this equals one session per app. Multi-session apps will use 50 MB per session.
+The base 1.5 GB accommodates the Livebook web server and the memory required during `Mix.install/2`commands. Each app session requires approximately 50 MB, though this can vary depending on the app. For single-session apps, this equals one session per app. Multi-session apps will use 50 MB per session.
 
 This calculation assumes all apps have active sessions running simultaneously, representing peak memory usage.
 
