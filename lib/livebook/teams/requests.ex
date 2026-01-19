@@ -241,19 +241,22 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to deploy an app using an org token.
   """
-  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), integer()) :: api_result()
-  def deploy_app_from_cli(team, app_deployment, deployment_group_id) do
+  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), integer(), keyword()) ::
+          api_result()
+  def deploy_app_from_cli(team, app_deployment, deployment_group_id, opts) do
     secret_key = Teams.derive_key(team.teams_key)
 
-    params = %{
-      title: app_deployment.title,
-      slug: app_deployment.slug,
-      multi_session: app_deployment.multi_session,
-      access_type: app_deployment.access_type,
-      app_folder_id: app_deployment.app_folder_id,
-      deployment_group_id: deployment_group_id,
-      sha: app_deployment.sha
-    }
+    params =
+      %{
+        title: app_deployment.title,
+        slug: app_deployment.slug,
+        multi_session: app_deployment.multi_session,
+        access_type: app_deployment.access_type,
+        app_folder_id: app_deployment.app_folder_id,
+        deployment_group_id: deployment_group_id,
+        sha: app_deployment.sha,
+        redeploy: Keyword.get(opts, :redeploy, false)
+      }
 
     encrypted_content = Teams.encrypt(app_deployment.file, secret_key)
     upload("/api/v1/cli/org/apps", encrypted_content, params, team)
