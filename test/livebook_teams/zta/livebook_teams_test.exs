@@ -39,10 +39,6 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       conn =
         build_conn(:get, "/", %{teams_redirect: "", redirect_to: URI.to_string(redirect_to)})
         |> init_test_session(%{})
-        |> put_req_header(
-          "user-agent",
-          "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
-        )
 
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
@@ -70,21 +66,6 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
         |> init_test_session(Plug.Conn.get_session(conn))
 
       assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
-    end
-
-    test "blocks non-browsers to reach Livebook Teams", %{test: test} do
-      redirect_to =
-        LivebookWeb.Endpoint.url()
-        |> URI.new!()
-        |> URI.append_query("teams_identity")
-
-      conn =
-        build_conn(:get, "/", %{teams_redirect: "", redirect_to: URI.to_string(redirect_to)})
-        |> init_test_session(%{})
-        |> put_req_header("user-agent", "Mozilla/5.0 (compatible; Thinkbot/0.5.8; +blablabla.)")
-
-      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
-      assert response(conn, 200) == ""
     end
 
     test "shows an error when the user does not belong to the org", %{conn: conn, test: test} do
