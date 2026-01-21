@@ -75,20 +75,15 @@ defmodule Livebook.ZTA.LivebookTeams do
   end
 
   defp handle_request(conn, team, %{"teams_redirect" => _, "redirect_to" => redirect_to}) do
-    with :ok <- ensure_browser(conn),
-         {:ok, %{"authorize_uri" => authorize_uri}} <- Teams.Requests.create_auth_request(team) do
-      uri =
-        authorize_uri
-        |> URI.new!()
-        |> URI.append_query("redirect_to=#{redirect_to}")
+    case Teams.Requests.create_auth_request(team) do
+      {:ok, %{"authorize_uri" => authorize_uri}} ->
+        uri =
+          authorize_uri
+          |> URI.new!()
+          |> URI.append_query("redirect_to=#{redirect_to}")
 
-      {conn
-       |> redirect(external: URI.to_string(uri))
-       |> halt(), nil}
-    else
-      :error ->
         {conn
-         |> send_resp(200, "")
+         |> redirect(external: URI.to_string(uri))
          |> halt(), nil}
 
       {_error_or_transport_error, _reason} ->
@@ -175,15 +170,6 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp get_user_info(team, access_token) do
     with {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
       {:ok, build_metadata(team.id, payload)}
-    end
-  end
-
-  defp ensure_browser(conn) do
-    case get_req_header(conn, "user-agent") do
-      ["Mozilla/5.0 (compatible" <> _] -> :error
-      ["Mozilla/5.0" <> _] -> :ok
-      [_user_agent] -> :error
-      [] -> :error
     end
   end
 
