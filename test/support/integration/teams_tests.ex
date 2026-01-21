@@ -179,18 +179,26 @@ defmodule Livebook.TeamsIntegrationHelper do
   end
 
   def authenticate_user_on_teams(name, node, team) do
-    conn = Phoenix.ConnTest.build_conn()
+    conn =
+      Phoenix.ConnTest.build_conn()
+      |> Plug.Conn.put_req_header(
+        "user-agent",
+        "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
+      )
 
-    response =
+    redirect_to =
+      LivebookWeb.Endpoint.url()
+      |> URI.new!()
+      |> URI.append_query("teams_identity")
+
+    uri =
       conn
       |> LivebookWeb.ConnCase.with_authorization(team.id, name)
-      |> get("/")
-      |> html_response(200)
+      |> get("/", %{teams_redirect: "", redirect_to: URI.to_string(redirect_to)})
+      |> Phoenix.ConnTest.redirected_to()
+      |> URI.parse()
 
-    [_, location] = Regex.run(~r/URL\("(.*?)"\)/, response)
-    uri = URI.parse(location)
     %{"token" => token} = URI.decode_query(uri.query)
-
     %{code: code} = Livebook.TeamsRPC.allow_auth_request(node, token)
 
     session =
@@ -199,7 +207,7 @@ defmodule Livebook.TeamsIntegrationHelper do
       |> get("/", %{teams_identity: "", code: code})
       |> Plug.Conn.get_session()
 
-    authenticated_conn = %Plug.Conn{} = Plug.Test.init_test_session(conn, session)
+    authenticated_conn = Plug.Test.init_test_session(conn, session)
     final_conn = get(authenticated_conn, "/")
     assigns = Map.take(final_conn.assigns, [:current_user])
 

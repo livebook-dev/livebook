@@ -74,6 +74,26 @@ defmodule Livebook.ZTA.LivebookTeams do
      |> halt(), nil}
   end
 
+  defp handle_request(conn, team, %{"teams_redirect" => _, "redirect_to" => redirect_to}) do
+    case Teams.Requests.create_auth_request(team) do
+      {:ok, %{"authorize_uri" => authorize_uri}} ->
+        uri =
+          authorize_uri
+          |> URI.new!()
+          |> URI.append_query("redirect_to=#{redirect_to}")
+
+        {conn
+         |> redirect(external: URI.to_string(uri))
+         |> halt(), nil}
+
+      {_error_or_transport_error, _reason} ->
+        {conn
+         |> put_session(:teams_error, true)
+         |> redirect(to: conn.request_path)
+         |> halt(), nil}
+    end
+  end
+
   defp handle_request(conn, team, _params) do
     case get_session(conn) do
       %{"livebook_teams_access_token" => access_token} ->
@@ -100,14 +120,14 @@ defmodule Livebook.ZTA.LivebookTeams do
          |> halt(), nil}
 
       _ ->
-        request_user_authentication(conn, team)
+        request_user_authentication(conn)
     end
   end
 
   defp validate_access_token(conn, team, access_token) do
     case get_user_info(team, access_token) do
       {:ok, metadata} -> {conn, metadata}
-      _ -> request_user_authentication(conn, team)
+      _ -> request_user_authentication(conn)
     end
   end
 
@@ -118,41 +138,33 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  defp request_user_authentication(conn, team) do
-    case Teams.Requests.create_auth_request(team) do
-      {:ok, %{"authorize_uri" => authorize_uri}} ->
-        # We have the browser do the redirect because the browser
-        # knows the current page location. Unfortunately, it is quite
-        # complex to know the actual host on the server, because the
-        # user may be running inside a proxy. So in order to make the
-        # feature more accessible, we do the redirecting on the client.
-        conn =
-          html(conn, """
-          <!DOCTYPE html>
-          <html lang="en">
-            <head>
-              <meta charset="UTF-8">
-              <title>Redirecting...</title>
-              <script>
-                const redirectTo = new URL(window.location.href);
-                redirectTo.searchParams.append("teams_identity", "");
+  defp request_user_authentication(conn) do
+    # We have the browser do the redirect because the browser
+    # knows the current page location. Unfortunately, it is quite
+    # complex to know the actual host on the server, because the
+    # user may be running inside a proxy. So in order to make the
+    # feature more accessible, we do the redirecting on the client.
+    html_document = """
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Redirecting...</title>
+        <script>
+          const redirectTo = new URL(window.location.href);
+          redirectTo.searchParams.append("teams_identity", "");
 
-                const url = new URL("#{authorize_uri}");
-                url.searchParams.set("redirect_to", redirectTo.toString());
-                window.location.href = url.toString();
-              </script>
-            </head>
-          </html>
-          """)
+          const url = new URL(window.location.href);
+          url.searchParams.set("redirect_to", redirectTo.toString());
+          url.searchParams.append("teams_redirect", "");
 
-        {halt(conn), nil}
+          window.location.href = url.toString();
+        </script>
+      </head>
+    </html>
+    """
 
-      _ ->
-        {conn
-         |> put_session(:teams_error, true)
-         |> redirect(to: conn.request_path)
-         |> halt(), nil}
-    end
+    {conn |> html(html_document) |> halt(), nil}
   end
 
   defp get_user_info(team, access_token) do
