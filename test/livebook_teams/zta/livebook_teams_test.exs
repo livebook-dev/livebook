@@ -28,9 +28,6 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       # Step 1: Would get redirected to Livebook to check if it's a bot
       conn = init_test_session(conn, %{})
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
-
-      # but since it doesn't execute javascript, we need to
-      # generate the redirect_to manually.
       assert html_response(conn, 200) =~ "teams_redirect"
 
       redirect_to =
