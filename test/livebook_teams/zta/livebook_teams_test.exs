@@ -24,16 +24,9 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert html_response(conn, 200) =~ "window.location.href = "
     end
 
-    test "gets the user information from Livebook Teams", %{node: node, test: test} do
+    test "gets the user information from Livebook Teams", %{conn: conn, node: node, test: test} do
       # Step 1: Would get redirected to Livebook to check if it's a bot
-      conn =
-        build_conn(:get, "/")
-        |> init_test_session(%{})
-        |> put_req_header(
-          "user-agent",
-          "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
-        )
-
+      conn = init_test_session(conn, %{})
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
       # but since it doesn't execute javascript, we need to
