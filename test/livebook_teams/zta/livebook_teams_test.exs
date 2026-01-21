@@ -24,19 +24,47 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert html_response(conn, 200) =~ "window.location.href = "
     end
 
-    test "gets the user information from Livebook Teams", %{conn: conn, node: node, test: test} do
-      # Step 1: Get redirected to Livebook Teams
-      conn = init_test_session(conn, %{})
+    test "gets the user information from Livebook Teams", %{node: node, test: test} do
+      # Step 1: Would get redirected to Livebook to check if it's a bot
+      conn =
+        build_conn(:get, "/")
+        |> init_test_session(%{})
+        |> put_req_header(
+          "user-agent",
+          "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
+        )
+
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
-      [_, location] = Regex.run(~r/URL\("(.*?)"\)/, html_response(conn, 200))
+      # but since it doesn't execute javascript, we need to
+      # generate the redirect_to manually.
+      assert html_response(conn, 200) =~ "teams_redirect"
+
+      redirect_to =
+        LivebookWeb.Endpoint.url()
+        |> URI.new!()
+        |> URI.append_query("teams_identity")
+
+      # Step 2: Checks if the given request belongs to a browser
+      conn =
+        build_conn(:get, "/", %{teams_redirect: "", redirect_to: URI.to_string(redirect_to)})
+        |> init_test_session(%{})
+        |> put_req_header(
+          "user-agent",
+          "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
+        )
+
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+
+      # Step 3: Get redirected to Livebook Teams
+      location = Phoenix.ConnTest.redirected_to(conn)
       uri = URI.parse(location)
       assert uri.path == "/identity/authorize"
       assert %{"token" => token} = URI.decode_query(uri.query)
 
       %{code: code} = TeamsRPC.allow_auth_request(node, token)
 
-      # Step 2: Emulate the redirect back with the code for validation
+      # Step 4: Emulate the redirect back with the code for validation
       conn =
         build_conn(:get, "/", %{teams_identity: "", code: code})
         |> init_test_session(Plug.Conn.get_session(conn))
@@ -46,12 +74,27 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
       assert redirected_to(conn, 302) == "/"
 
-      # Step 3: Confirm the token is valid for future requests
+      # Step 5: Confirm the token is valid for future requests
       conn =
         build_conn(:get, "/")
         |> init_test_session(Plug.Conn.get_session(conn))
 
       assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
+    end
+
+    test "blocks non-browsers to reach Livebook Teams", %{test: test} do
+      redirect_to =
+        LivebookWeb.Endpoint.url()
+        |> URI.new!()
+        |> URI.append_query("teams_identity")
+
+      conn =
+        build_conn(:get, "/", %{teams_redirect: "", redirect_to: URI.to_string(redirect_to)})
+        |> init_test_session(%{})
+        |> put_req_header("user-agent", "Mozilla/5.0 (compatible; Thinkbot/0.5.8; +blablabla.)")
+
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert response(conn, 200) == ""
     end
 
     test "shows an error when the user does not belong to the org", %{conn: conn, test: test} do
