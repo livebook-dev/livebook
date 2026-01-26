@@ -84,6 +84,8 @@ jobs:
             gui_target: "x86_64-apple-darwin"
           - platform: windows-2022
             gui_target: "x86_64-pc-windows-msvc"
+          - platform: ubuntu-22.04-arm
+            gui_target: "aarch64-unknown-linux-gnu"
           - platform: ubuntu-22.04
             gui_target: "x86_64-unknown-linux-gnu"
     runs-on: ${{ matrix.platform }}
