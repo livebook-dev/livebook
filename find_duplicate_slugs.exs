@@ -1,71 +1,56 @@
-#!/usr/bin/env elixir
-
 # Script to find Livebook notebooks with duplicate slugs
 #
+# This script uses Livebook's own LiveMarkdown module to properly parse
+# notebooks and extract the title and slug from app settings.
+#
 # Usage:
-#   elixir find_duplicate_slugs.exs <directory>
+#   mix run find_duplicate_slugs.exs <directory>
 #
 # Example:
-#   elixir find_duplicate_slugs.exs ./lib/livebook/notebook/learn
+#   mix run find_duplicate_slugs.exs ./lib/livebook/notebook/learn
+#   mix run find_duplicate_slugs.exs ~/my-notebooks
 
 defmodule DuplicateSlugFinder do
-  @doc """
-  Extracts the slug from a file path.
-  The slug is the filename without extension, with underscores replaced by dashes.
-  """
-  def extract_slug(path) do
-    path
-    |> Path.basename()
-    |> Path.rootname()
-    |> String.replace("_", "-")
-  end
-
-  @doc """
-  Extracts the notebook title from the file content.
-  The title is the first level-1 heading (# Title).
-  """
-  def extract_title(content) do
-    case Regex.run(~r/^#\s+(.+)$/m, content) do
-      [_, title] -> String.trim(title)
-      nil -> "(no title)"
-    end
-  end
-
   @doc """
   Finds all .livemd files in the given directory recursively.
   """
   def find_notebooks(directory) do
-    Path.join(directory, "**/*.livemd")
+    directory
+    |> Path.expand()
+    |> Path.join("**/*#{Livebook.LiveMarkdown.extension()}")
     |> Path.wildcard()
   end
 
   @doc """
-  Processes a notebook file and returns its metadata.
+  Processes a notebook file and returns its metadata using Livebook's parser.
   """
   def process_notebook(path) do
-    content = File.read!(path)
+    markdown = File.read!(path)
+    {notebook, _info} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
 
     %{
       path: path,
-      slug: extract_slug(path),
-      title: extract_title(content)
+      slug: notebook.app_settings.slug,
+      title: notebook.name || "(no title)"
     }
   end
 
   @doc """
-  Groups notebooks by slug and filters to only those with duplicates.
+  Groups notebooks by app settings slug and filters to only those with duplicates.
+  Only includes notebooks that have a slug defined.
   """
   def find_duplicates(notebooks) do
     notebooks
+    |> Enum.filter(& &1.slug)
     |> Enum.group_by(& &1.slug)
     |> Enum.filter(fn {_slug, entries} -> length(entries) > 1 end)
     |> Enum.sort_by(fn {slug, _} -> slug end)
   end
 
   @doc """
-  Formats the output for display.
+  Formats and prints duplicate entries.
   """
-  def format_output(duplicates) do
+  def print_duplicates(duplicates) do
     if Enum.empty?(duplicates) do
       IO.puts("No duplicate slugs found.")
     else
@@ -73,7 +58,7 @@ defmodule DuplicateSlugFinder do
 
       for {slug, notebooks} <- duplicates do
         IO.puts("Slug: #{slug}")
-        IO.puts(String.duplicate("-", 40))
+        IO.puts(String.duplicate("-", 60))
 
         for notebook <- Enum.sort_by(notebooks, & &1.path) do
           IO.puts("  File:  #{notebook.path}")
@@ -93,33 +78,55 @@ defmodule DuplicateSlugFinder do
     notebooks = find_notebooks(directory)
 
     if Enum.empty?(notebooks) do
-      IO.puts("No .livemd files found in '#{directory}'")
+      IO.puts("No #{Livebook.LiveMarkdown.extension()} files found in '#{directory}'")
       System.halt(0)
     end
 
     IO.puts("Scanning #{length(notebooks)} notebook(s) in '#{directory}'...\n")
 
-    notebooks
-    |> Enum.map(&process_notebook/1)
-    |> find_duplicates()
-    |> format_output()
+    processed =
+      notebooks
+      |> Enum.map(fn path ->
+        try do
+          process_notebook(path)
+        rescue
+          e ->
+            IO.puts(:stderr, "Warning: Failed to parse #{path}: #{Exception.message(e)}")
+            nil
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+
+    notebooks_with_slug = Enum.count(processed, & &1.slug)
+    notebooks_without_slug = length(processed) - notebooks_with_slug
+
+    IO.puts("Notebooks with app settings slug: #{notebooks_with_slug}")
+    IO.puts("Notebooks without app settings slug: #{notebooks_without_slug}\n")
+
+    duplicates = find_duplicates(processed)
+    print_duplicates(duplicates)
   end
 end
 
 # Main entry point
 case System.argv() do
-  [directory] ->
+  [directory | _] ->
     DuplicateSlugFinder.run(directory)
 
   [] ->
-    IO.puts(:stderr, "Usage: elixir find_duplicate_slugs.exs <directory>")
-    IO.puts(:stderr, "")
-    IO.puts(:stderr, "Example:")
-    IO.puts(:stderr, "  elixir find_duplicate_slugs.exs ./lib/livebook/notebook/learn")
-    System.halt(1)
+    IO.puts(:stderr, """
+    Find Livebook notebooks with duplicate app settings slugs.
 
-  _ ->
-    IO.puts(:stderr, "Error: Too many arguments")
-    IO.puts(:stderr, "Usage: elixir find_duplicate_slugs.exs <directory>")
+    Usage:
+      mix run find_duplicate_slugs.exs <directory>
+
+    Examples:
+      mix run find_duplicate_slugs.exs ./lib/livebook/notebook/learn
+      mix run find_duplicate_slugs.exs ~/my-notebooks
+
+    This script parses notebooks using Livebook's LiveMarkdown module and
+    groups them by the slug defined in their app settings. Only notebooks
+    with a defined app settings slug are considered for duplicate detection.
+    """)
     System.halt(1)
 end
