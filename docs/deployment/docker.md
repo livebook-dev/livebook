@@ -2,9 +2,13 @@
 
 There are two main use cases to deploy Livebook in the cloud. The first is to read and write notebooks in the cloud, instead of your machine. The second is to deploy notebooks as applications.
 
-## Livebook in the cloud
+## For authoring notebooks
 
-You can deploy Livebook inside your infrastructure using Docker. The Dockerfile below provides a great starting point:
+The following snippets assume you are deploying Livebook inside your infrastructure to author notebooks. In those cases, Livebook must be single-user, as configuration is stored in disk and shared across all users.
+
+### Docker
+
+The Dockerfile below provides a great starting point:
 
 ```dockerfile
 FROM ghcr.io/livebook-dev/livebook
@@ -21,10 +25,6 @@ RUN chmod 777 /data
 ```
 
 We also recommend setting the `LIVEBOOK_PASSWORD` environment variable to a secret value. If it is not set, you will find the token to access Livebook in the logs. See all other supported [environment variables](../../README.md#environment-variables) to learn more.
-
-If you want to run several Livebook instances behind a load balancer, you need to enable clustering. See the [Clustering](clustering.md) section.
-
-If you plan to limit access to your Livebook via a proxy, we recommend leaving the "/public" route of your instances still public. This route is used for integration with the [Livebook Badge](https://livebook.dev/badge/) and other conveniences.
 
 ### Docker compose
 
@@ -77,7 +77,7 @@ kind: Deployment
 metadata:
   name: livebook
 spec:
-  # When deploying Livebook for authoring notebooks to Kubernetes,
+  # When deploying Livebook to author notebooks in the cloud,
   # the number of replicas must be 1, since Livebook considers you
   # will assign one instance per user.
   replicas: 1
@@ -141,7 +141,7 @@ The setup above does not set up a data directory, which means once you restart t
 
 ## Deploy notebooks as applications
 
-It is possible to deploy any notebook as an application in Livebook. Inside the notebook, open up the Application pane on the sidebar (with a rocket icon), click "Manual Docker deployment", and follow the required steps.
+It is possible to deploy any notebook as an application in Livebook. To do so, choose a notebook, open up the Application pane on the sidebar (with a rocket icon), click "Manual Docker deployment", and follow the required steps for your desired platform.
 
 If you are using [Livebook Teams](https://livebook.dev/teams/), you can also deploy with the click of a button by running Livebook servers inside your infrastructure. To get started, open up Livebook and click "Add Organization" on the sidebar. Once completed, open up the Application pane on the sidebar (with a rocket icon), click "Deploy with Livebook Teams", and follow the deployment steps.
 
