@@ -328,7 +328,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: LIVEBOOK_NODE
-                  value: "livebook@$(POD_IP)"<%= for {k, v} <- envs do %>
+                  value: "livebook@$(POD_IP)"<%= for {k, v} <- envs, k != "LIVEBOOK_NODE" do %>
                 - name: <%= k %>
                   value: <%= inspect(v) %><% end %><%= for {k, _} <- secrets do %>
                 - name: <%= k %>
