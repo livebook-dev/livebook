@@ -366,7 +366,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
       |> String.trim("_")
 
     if sanitized == "" do
-      Base.encode32(:crypto.strong_rand_bytes(5), padding: false, case: :lower)
+      Base.encode32(string, padding: false, case: :lower)
     else
       sanitized
     end
