@@ -368,7 +368,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     if sanitized == "" do
       string
       |> Base.encode32(padding: false, case: :lower)
-      |> String.slice(0, 40)
+      |> String.slice(0, 20)
     else
       sanitized
     end
