@@ -207,7 +207,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     %{
       docker_instructions: docker_instructions(image, env),
       fly_instructions: fly_instructions(image, env, hub.hub_name, deployment_group.name),
-      k8s_instructions: k8s_instructions(image, env)
+      k8s_instructions: k8s_instructions(image, env, deployment_group.name)
     }
   end
 
@@ -244,7 +244,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     }
   end
 
-  defp k8s_instructions(image, env) do
+  defp k8s_instructions(image, env, deployment_group_name) do
     {secrets, envs} =
       Map.split(
         Map.new(env),
@@ -265,7 +265,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
         "dns:livebook-headless.$(POD_NAMESPACE).svc.cluster.local"
       )
 
-    k8s_instructions_template(image, envs, secrets, replicas)
+    dg_suffix = sanitize_for_node_name(deployment_group_name)
+
+    k8s_instructions_template(image, envs, secrets, replicas, dg_suffix)
   end
 
   require EEx
@@ -328,7 +330,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: LIVEBOOK_NODE
-                  value: "livebook@$(POD_IP)"<%= for {k, v} <- envs, k != "LIVEBOOK_NODE" do %>
+                  value: "livebook-<%= dg_suffix %>@$(POD_IP)"<%= for {k, v} <- envs, k != "LIVEBOOK_NODE" do %>
                 - name: <%= k %>
                   value: <%= inspect(v) %><% end %><%= for {k, _} <- secrets do %>
                 - name: <%= k %>
@@ -350,6 +352,25 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
       # LIVEBOOK_PASSWORD: <base64_encoded_password><%= for {k, v} <- secrets do %>
       <%= k %>: <%= Base.encode64(v) %><% end %>
     """,
-    [:image, :envs, :secrets, :replicas]
+    [:image, :envs, :secrets, :replicas, :dg_suffix]
   )
+
+  def sanitize_for_node_name(string) do
+    sanitized =
+      string
+      |> String.downcase()
+      |> String.replace(~r/[^a-z0-9]/, "_")
+      |> String.replace(~r/_+/, "_")
+      |> String.trim("_")
+      |> String.slice(0, 40)
+      |> String.trim("_")
+
+    if sanitized == "" do
+      string
+      |> Base.encode32(padding: false, case: :lower)
+      |> String.slice(0, 20)
+    else
+      sanitized
+    end
+  end
 end
