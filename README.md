@@ -46,11 +46,16 @@ pick the one that best fits your use case.
 
   * [Download the installer for Mac and Windows from our homepage](https://livebook.dev/#install)
 
-  * Latest stable builds: [Mac (Universal)](https://github.com/livebook-dev/livebook/releases/latest/download/LivebookInstall-macos-universal.dmg),
+  * Latest stable builds:
+    [Mac (Universal)](https://github.com/livebook-dev/livebook/releases/latest/download/LivebookInstall-macos-universal.dmg),
     [Windows](https://github.com/livebook-dev/livebook/releases/latest/download/LivebookInstall-windows-x86_64.exe)
 
-  * Nightly builds: [Mac (Universal)](https://github.com/livebook-dev/livebook/releases/download/nightly/LivebookInstall-macos-universal.dmg),
-    [Windows](https://github.com/livebook-dev/livebook/releases/download/nightly/LivebookInstall-windows-x86_64.exe)
+  * Nightly builds:
+    [macOS (arm64)](https://github.com/livebook-dev/livebook/releases/download/nightly/Livebook-darwin-aarch64.dmg),
+    [macOS (x64)](https://github.com/livebook-dev/livebook/releases/download/nightly/Livebook-darwin-x64.dmg),
+    [Windows](https://github.com/livebook-dev/livebook/releases/download/nightly/Livebook-windows-x64.exe),
+    [Linux (arm64)](https://github.com/livebook-dev/livebook/releases/download/nightly/Livebook-linux-aarch64.AppImage),
+    [Linux (x64)](https://github.com/livebook-dev/livebook/releases/download/nightly/Livebook-linux-amd64.AppImage)
 
   * Builds for particular Livebook version are available on our
     [GitHub releases](https://github.com/livebook-dev/livebook/releases).
