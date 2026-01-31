@@ -345,7 +345,6 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     kind: Secret
     metadata:
       name: livebook-secret
-      namespace: livebook-namespace
     type: Opaque
     data:
       # Notice the values below are Base64 encoded
