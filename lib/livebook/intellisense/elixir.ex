@@ -40,11 +40,16 @@ defmodule Livebook.Intellisense.Elixir do
   end
 
   defp handle_completion(hint, context, node) do
+    Intellisense.Elixir.IdentifierMatcher.completion_identifiers(hint, context, node)
+    |> format_completion_identifiers(extra_completion_items(hint))
+  end
+
+  def format_completion_identifiers(completions, extra \\ []) do
     items =
-      Intellisense.Elixir.IdentifierMatcher.completion_identifiers(hint, context, node)
+      completions
       |> Enum.filter(&include_in_completion?/1)
       |> Enum.map(&format_completion_item/1)
-      |> Enum.concat(extra_completion_items(hint))
+      |> Enum.concat(extra)
       |> Enum.sort_by(&completion_item_priority/1)
 
     %{items: items}
@@ -192,14 +197,41 @@ defmodule Livebook.Intellisense.Elixir do
          insert_text:
            cond do
              arity == 0 -> "#{Atom.to_string(name)}()"
+             #
              true -> "#{Atom.to_string(name)}(${})"
            end
        }
 
+
+  # Note: array_needed is a boolean to know if '[]' should be put inside atrribute,
+  # as in -export([]). It is also a way to differentiate erlang's atributes from elixir's.
+  defp format_completion_item(%{
+    kind: :module_attribute,
+    name: name,
+    documentation: documentation,
+    array_needed: array_needed
+  }),
+  do: %{
+    label: Atom.to_string(name),
+    kind: :variable,
+    documentation:
+      join_with_newlines([
+        Intellisense.Elixir.Docs.format_documentation(documentation, :short),
+        "(module attribute)"
+      ]),
+    # A snippet with cursor in parentheses
+    insert_text:
+    if array_needed do
+      "#{name}([${}])."
+    else
+      "#{name}(${})."
+    end
+  }
+
   defp format_completion_item(%{
          kind: :module_attribute,
          name: name,
-         documentation: documentation
+         documentation: documentation,
        }),
        do: %{
          label: Atom.to_string(name),
@@ -211,6 +243,7 @@ defmodule Livebook.Intellisense.Elixir do
            ]),
          insert_text: Atom.to_string(name)
        }
+
 
   defp format_completion_item(%{kind: :bitstring_modifier, name: name, arity: arity}) do
     insert_text =
@@ -338,22 +371,21 @@ defmodule Livebook.Intellisense.Elixir do
         contents = Enum.map(matches, &format_details_item/1)
 
         definition = get_definition_location(hd(matches), context)
-
         %{range: range, contents: contents, definition: definition}
     end
   end
 
-  defp include_in_details?(%{kind: :function, from_default: true}), do: false
-  defp include_in_details?(%{kind: :bitstring_modifier}), do: false
-  defp include_in_details?(_), do: true
+  def include_in_details?(%{kind: :function, from_default: true}), do: false
+  def include_in_details?(%{kind: :bitstring_modifier}), do: false
+  def include_in_details?(_), do: true
 
-  defp format_details_item(%{kind: :variable, name: name}), do: code(name)
+  def format_details_item(%{kind: :variable, name: name}), do: code(name)
 
-  defp format_details_item(%{kind: :map_field, name: name}), do: code(name)
+  def format_details_item(%{kind: :map_field, name: name}), do: code(name)
 
-  defp format_details_item(%{kind: :in_map_field, name: name}), do: code(name)
+  def format_details_item(%{kind: :in_map_field, name: name}), do: code(name)
 
-  defp format_details_item(%{kind: :in_struct_field, name: name, default: default}) do
+  def format_details_item(%{kind: :in_struct_field, name: name, default: default}) do
     join_with_divider([
       code(name),
       """
@@ -366,7 +398,7 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
-  defp format_details_item(%{kind: :module, module: module, documentation: documentation}) do
+  def format_details_item(%{kind: :module, module: module, documentation: documentation}) do
     join_with_divider([
       code(inspect(module)),
       format_docs_link(module),
@@ -374,7 +406,7 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
-  defp format_details_item(%{
+  def format_details_item(%{
          kind: :function,
          module: module,
          name: name,
@@ -396,7 +428,7 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
-  defp format_details_item(%{
+  def format_details_item(%{
          kind: :type,
          module: module,
          name: name,
@@ -412,31 +444,31 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
-  defp format_details_item(%{kind: :module_attribute, name: name, documentation: documentation}) do
+  def format_details_item(%{kind: :module_attribute, name: name, documentation: documentation}) do
     join_with_divider([
       code("@#{name}"),
       Intellisense.Elixir.Docs.format_documentation(documentation, :all)
     ])
   end
 
-  defp get_definition_location(%{kind: :module, module: module}, context) do
+  def get_definition_location(%{kind: :module, module: module}, context) do
     get_definition_location(module, context, {:module, module})
   end
 
-  defp get_definition_location(
+  def get_definition_location(
          %{kind: :function, module: module, name: name, arity: arity},
          context
        ) do
     get_definition_location(module, context, {:function, name, arity})
   end
 
-  defp get_definition_location(%{kind: :type, module: module, name: name, arity: arity}, context) do
+  def get_definition_location(%{kind: :type, module: module, name: name, arity: arity}, context) do
     get_definition_location(module, context, {:type, name, arity})
   end
 
-  defp get_definition_location(_idenfitier, _context), do: nil
+  def get_definition_location(_idenfitier, _context), do: nil
 
-  defp get_definition_location(module, context, identifier) do
+  def get_definition_location(module, context, identifier) do
     if context.ebin_path do
       path = Path.join(context.ebin_path, "#{module}.beam")
 
@@ -470,7 +502,8 @@ defmodule Livebook.Intellisense.Elixir do
     end
   end
 
-  defp format_signature_item({_name, signature, _documentation, _specs}),
+  # FIXME: This is public
+  def format_signature_item({_name, signature, _documentation, _specs}),
     do: %{
       signature: signature,
       arguments: arguments_from_signature(signature)

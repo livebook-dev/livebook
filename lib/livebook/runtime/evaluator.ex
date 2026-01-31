@@ -885,14 +885,15 @@ defmodule Livebook.Runtime.Evaluator do
     end
   end
 
-  defp elixir_to_erlang_var(name) do
+  #FIXME: THIS IS PUBLIC NOW
+  def elixir_to_erlang_var(name) do
     name
     |> :erlang.atom_to_binary()
     |> toggle_var_case()
     |> :erlang.binary_to_atom()
   end
 
-  defp erlang_to_elixir_var(name) do
+  def erlang_to_elixir_var(name) do
     name
     |> :erlang.atom_to_binary()
     |> toggle_var_case()
