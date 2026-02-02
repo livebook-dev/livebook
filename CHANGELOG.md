@@ -2,6 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.18.4](https://github.com/livebook-dev/livebook/tree/v0.18.4) (2026-02-02)
+
+### Added
+
+* Docs for configuring app servers for production ([#3120](https://github.com/livebook-dev/livebook/pull/3120))
+
+### Changed
+
+* Improved instructions for K8s deployment ([#3127](https://github.com/livebook-dev/livebook/pull/3127), [#3128](https://github.com/livebook-dev/livebook/pull/3128))
+
 ## [v0.18.3](https://github.com/livebook-dev/livebook/tree/v0.18.3) (2026-01-14)
 
 ### Changed
