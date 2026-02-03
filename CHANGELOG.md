@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.18.5](https://github.com/livebook-dev/livebook/tree/v0.18.5) (2026-02-03)
+
+### Fixed
+
+* File input upload in multi-node deployment ([#3130](https://github.com/livebook-dev/livebook/pull/3130))
+
 ## [v0.18.4](https://github.com/livebook-dev/livebook/tree/v0.18.4) (2026-02-02)
 
 ### Added
