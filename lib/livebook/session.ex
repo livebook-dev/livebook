@@ -800,18 +800,35 @@ defmodule Livebook.Session do
 
   """
   @spec register_file(pid(), String.t(), String.t(), keyword()) ::
-          {:ok, Runtime.file_ref()} | :error
+          {:ok, Runtime.file_ref()} | {:error, String.t()}
   def register_file(pid, source_path, key, opts \\ []) do
     opts = Keyword.validate!(opts, [:linked_client_id])
 
-    %{file_ref: file_ref, path: path} = GenServer.call(pid, :register_file_init)
-
-    with :ok <- File.mkdir_p(Path.dirname(path)),
-         :ok <- File.cp(source_path, path) do
+    with {:ok, file_ref, copy_into} <- GenServer.call(pid, :register_file_init),
+         :ok <- copy_file(source_path, copy_into) do
       GenServer.cast(pid, {:register_file_finish, file_ref, key, opts[:linked_client_id]})
       {:ok, file_ref}
-    else
-      _ -> :error
+    end
+  end
+
+  defp copy_file(source_path, {:path, path}) do
+    case File.cp(source_path, path) do
+      :ok -> :ok
+      {:error, reason} -> {:error, "copying file failed, reason: #{inspect(reason)}"}
+    end
+  end
+
+  defp copy_file(source_path, {:file, file_pid}) do
+    try do
+      source_path
+      |> File.stream!(64_000, [])
+      |> Enum.each(fn chunk -> IO.binwrite(file_pid, chunk) end)
+
+      :ok
+    rescue
+      error -> {:error, "copying file failed, reason: #{inspect(error)}"}
+    after
+      File.close(file_pid)
     end
   end
 
@@ -1123,11 +1140,32 @@ defmodule Livebook.Session do
     {:reply, :ok, maybe_save_notebook_sync(state)}
   end
 
-  def handle_call(:register_file_init, _from, state) do
+  def handle_call(:register_file_init, {from_pid, _tag}, state) do
     file_id = Livebook.Utils.random_id()
     file_ref = {:file, file_id}
     path = registered_file_path(state.session_id, file_ref)
-    reply = %{file_ref: file_ref, path: path}
+
+    dir = Path.dirname(path)
+
+    reply =
+      case File.mkdir_p(dir) do
+        :ok ->
+          if node(from_pid) == node() do
+            {:ok, file_ref, {:path, path}}
+          else
+            case File.open(path, [:binary, :write]) do
+              {:ok, file_pid} ->
+                {:ok, file_ref, {:file, file_pid}}
+
+              {:error, reason} ->
+                {:error, "failed to open file #{path}, reason: #{inspect(reason)}"}
+            end
+          end
+
+        {:error, reason} ->
+          {:error, "failed to create directory #{dir}, reason: #{inspect(reason)}"}
+      end
+
     {:reply, reply, state}
   end
 
