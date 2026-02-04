@@ -398,6 +398,12 @@ defmodule Livebook.Hubs.TeamClient do
     {:noreply, %{state | connected?: false, connection_status: reason}}
   end
 
+  def handle_info({:service_unavailable, reason}, state) do
+    Hubs.Broadcasts.hub_connection_failed(state.hub.id, reason)
+
+    {:noreply, %{state | connected?: false, connection_status: reason}}
+  end
+
   def handle_info({:server_error, reason}, state) do
     Hubs.Broadcasts.hub_server_error(state.hub.id, "#{state.hub.hub_name}: #{reason}")
     :ok = Hubs.delete_hub(state.hub.id)

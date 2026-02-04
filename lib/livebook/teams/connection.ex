@@ -54,10 +54,25 @@ defmodule Livebook.Teams.Connection do
         backoff = Enum.random(3..10) * 1000
         {:keep_state_and_data, {{:timeout, :backoff}, backoff, nil}}
 
-      {:server_error, error} ->
-        reason = LivebookProto.Error.decode(error).details
+      {:server_error, 503, body} ->
+        reason = decode_error_reason(body)
+        send(data.listener, {:service_unavailable, reason})
+
+        Logger.warning(
+          "Teams WebSocket connection - server error - http status 503: #{inspect(reason)}"
+        )
+
+        backoff = Enum.random(3..10) * 1000
+        {:keep_state_and_data, {{:timeout, :backoff}, backoff, nil}}
+
+      {:server_error, status, body} ->
+        reason = decode_error_reason(body)
         send(data.listener, {:server_error, reason})
-        Logger.warning("Teams WebSocket connection - server error: #{inspect(reason)}")
+
+        Logger.warning(
+          "Teams WebSocket connection - server error - http status #{status}: #{inspect(reason)}"
+        )
+
         {:keep_state, data}
     end
   end
@@ -151,5 +166,11 @@ defmodule Livebook.Teams.Connection do
 
   defp ensure_closed(data) do
     _ = WebSocket.disconnect(data.http_conn, data.websocket, data.ref)
+  end
+
+  defp decode_error_reason(body) do
+    LivebookProto.Error.decode(body).details
+  rescue
+    Protobuf.DecodeError -> "Server error (unexpected response format)"
   end
 end
