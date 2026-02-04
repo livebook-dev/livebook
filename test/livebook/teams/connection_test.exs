@@ -39,11 +39,11 @@ defmodule Livebook.Teams.ConnectionTest do
       {:ok, conn_pid} = Connection.start_link(self(), [{"x-test", "true"}])
 
       # First attempt
-      assert_receive {:service_unavailable, "Service temporarily unavailable"}, 2000
+      assert_receive {:service_unavailable, "Service temporarily unavailable"}, 1000
       assert Process.alive?(conn_pid)
 
-      # Retry after backoff (3-10 seconds)
-      assert_receive {:service_unavailable, _}, 12_000
+      # Retry after backoff
+      assert_receive {:service_unavailable, _}, 1000
       assert Process.alive?(conn_pid)
     end
   end
