@@ -168,7 +168,8 @@ defmodule Livebook.Teams.Connection do
   defp decode_error_reason(body) do
     LivebookProto.Error.decode(body).details
   rescue
-    Protobuf.DecodeError -> "Server error (unexpected response format)"
+    error in Protobuf.DecodeError ->
+      "Server error (unexpected response format), error: #{Exception.message(error)}"
   end
 
   defp backoff_ms do
