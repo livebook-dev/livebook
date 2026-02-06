@@ -39,6 +39,29 @@ defmodule Livebook.Hubs.TeamClientTest do
       start_supervised!({TeamClient, team})
       assert_receive {:hub_server_error, ^id, ^error}
     end
+
+    test "handles service unavailable without deleting hub", %{team: team} do
+      id = team.id
+      reason = "Service temporarily unavailable. Please try again."
+
+      assert {:ok, pid} = TeamClient.start_link(team)
+      assert_receive {:hub_connected, ^id}
+      assert_receive {:client_connected, ^id}
+
+      # Simulate receiving a service_unavailable message from the Connection process
+      send(pid, {:service_unavailable, reason})
+
+      # Should broadcast hub_connection_failed
+      assert_receive {:hub_connection_failed, ^id, ^reason}
+
+      # Hub should NOT be deleted (unlike server_error which deletes the hub)
+      refute_receive {:hub_deleted, ^id}
+
+      # TeamClient should still be running
+      assert Process.alive?(pid)
+
+      TeamClient.stop(id)
+    end
   end
 
   describe "handle user_connected event" do

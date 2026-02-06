@@ -45,3 +45,5 @@ config :livebook,
      }}
 
 config :livebook, Livebook.Apps.Manager, retry_backoff_base_ms: 0
+
+config :livebook, teams_connection_backoff_range_ms: 0..0
