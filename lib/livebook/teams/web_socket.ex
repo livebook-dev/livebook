@@ -16,7 +16,7 @@ defmodule Livebook.Teams.WebSocket do
   @spec connect(list({String.t(), String.t()})) ::
           {:ok, conn(), websocket(), ref()}
           | {:transport_error, String.t()}
-          | {:server_error, String.t()}
+          | {:server_error, integer(), String.t()}
   def connect(headers \\ []) do
     uri = URI.parse(Livebook.Config.teams_url())
     {http_scheme, ws_scheme} = parse_scheme(uri)
@@ -77,9 +77,9 @@ defmodule Livebook.Teams.WebSocket do
       %{body: []} ->
         handle_upgrade_responses(responses, conn, ref, state)
 
-      %{status: _} ->
+      %{status: status} ->
         Mint.HTTP.close(conn)
-        {:server_error, state.body |> Enum.reverse() |> IO.iodata_to_binary()}
+        {:server_error, status, state.body |> Enum.reverse() |> IO.iodata_to_binary()}
     end
   end
 
@@ -98,7 +98,7 @@ defmodule Livebook.Teams.WebSocket do
 
       {:error, conn, %UpgradeFailureError{}} ->
         Mint.HTTP.close(conn)
-        {:server_error, state.body |> Enum.reverse() |> IO.iodata_to_binary()}
+        {:server_error, state.status, state.body |> Enum.reverse() |> IO.iodata_to_binary()}
 
       {:error, conn, exception} ->
         Mint.HTTP.close(conn)
