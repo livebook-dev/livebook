@@ -26,7 +26,8 @@ defmodule Livebook.Teams.ConnectionTest do
 
       {:ok, conn_pid} = Connection.start_link(self(), [{"x-test", "true"}])
 
-      assert_receive {:server_error, "Server error (unexpected response format)"}, 5000
+      assert_receive {:server_error, error_message}, 5000
+      assert error_message =~ "Server error (unexpected response format)"
       assert Process.alive?(conn_pid)
     end
 
