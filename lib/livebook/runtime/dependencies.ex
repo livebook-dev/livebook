@@ -235,10 +235,11 @@ defmodule Livebook.Runtime.Dependencies do
   def search_packages_on_hex(send_to, search) do
     ref = make_ref()
 
-    Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
-      response = search_hex(search)
-      send(send_to, {:runtime_search_packages_response, ref, response})
-    end)
+    {:ok, _pid} =
+      Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+        response = search_hex(search)
+        send(send_to, {:runtime_search_packages_response, ref, response})
+      end)
 
     ref
   end
