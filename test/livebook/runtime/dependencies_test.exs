@@ -325,6 +325,14 @@ defmodule Livebook.Runtime.DependenciesTest do
     end
   end
 
+  describe "search_packages_on_hex/2" do
+    test "sends a response message to the caller with the search results" do
+      ref = Dependencies.search_packages_on_hex(self(), "")
+      assert is_reference(ref)
+      assert_receive {:runtime_search_packages_response, ^ref, {:ok, []}}
+    end
+  end
+
   describe "search_hex/2" do
     setup do
       bypass = Bypass.open()
