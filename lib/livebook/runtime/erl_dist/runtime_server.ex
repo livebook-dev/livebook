@@ -172,30 +172,31 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     if same_host?(pid) do
       callback.(path)
     else
-      Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
-        md5 = file_md5(path)
+      {:ok, _pid} =
+        Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+          md5 = file_md5(path)
 
-        target_path =
-          case GenServer.call(pid, {:transfer_file_open, file_id, md5}, :infinity) do
-            {:noop, target_path} ->
-              target_path
-
-            {:transfer, target_path, target_pid} ->
-              try do
-                path
-                |> File.stream!(64_000, [])
-                |> Enum.each(fn chunk -> IO.binwrite(target_pid, chunk) end)
-
+          target_path =
+            case GenServer.call(pid, {:transfer_file_open, file_id, md5}, :infinity) do
+              {:noop, target_path} ->
                 target_path
-              rescue
-                _error -> nil
-              after
-                File.close(target_pid)
-              end
-          end
 
-        callback.(target_path)
-      end)
+              {:transfer, target_path, target_pid} ->
+                try do
+                  path
+                  |> File.stream!(64_000, [])
+                  |> Enum.each(fn chunk -> IO.binwrite(target_pid, chunk) end)
+
+                  target_path
+                rescue
+                  _error -> nil
+                after
+                  File.close(target_pid)
+                end
+            end
+
+          callback.(target_path)
+        end)
     end
 
     :ok
