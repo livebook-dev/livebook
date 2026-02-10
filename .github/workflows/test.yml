@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "v*.*"
+      - jk-test
 jobs:
   main:
     runs-on: ubuntu-latest
