@@ -751,7 +751,7 @@ defmodule Livebook.Runtime.Evaluator do
     try do
       {:ok, forms} = :epp.parse_file(filename, source_name: String.to_charlist(env.file))
 
-      case :compile.forms(forms) do
+      case :compile.forms(forms, [:debug_info]) do
         {:ok, module, binary} ->
           file =
             if ebin_path = ebin_path() do
