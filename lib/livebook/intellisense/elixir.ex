@@ -474,8 +474,8 @@ defmodule Livebook.Intellisense.Elixir do
 
       with true <- File.exists?(path),
            {:ok, line} <-
-             Intellisense.Elixir.Docs.locate_definition(String.to_charlist(path), identifier) do
-        file = module.module_info(:compile)[:source]
+             Intellisense.Elixir.Docs.locate_definition(String.to_charlist(path), identifier),
+           {:ok, file} <- Keyword.fetch(module.module_info(:compile), :source) do
         %{file: to_string(file), line: line}
       else
         _otherwise -> nil
