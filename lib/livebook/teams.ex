@@ -267,17 +267,17 @@ defmodule Livebook.Teams do
   @doc """
   Deploys the given app deployment to given deployment group using an org token.
   """
-  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), integer()) ::
-          {:ok, String.t()} | {:error, map()} | {:transport_error, String.t()}
+  @spec deploy_app_from_cli(Team.t(), Teams.AppDeployment.t(), integer(), keyword()) ::
+          {:ok, map()} | {:error, map()} | {:transport_error, String.t()}
   def deploy_app_from_cli(
         %Team{} = team,
         %Teams.AppDeployment{} = app_deployment,
-        deployment_group_id
+        deployment_group_id,
+        opts \\ []
       ) do
-    case Requests.deploy_app_from_cli(team, app_deployment, deployment_group_id) do
-      {:ok, %{"url" => url}} -> {:ok, url}
-      {:error, %{"errors" => errors}} -> {:error, errors}
-      any -> any
+    with {:error, %{"errors" => errors}} <-
+           Requests.deploy_app_from_cli(team, app_deployment, deployment_group_id, opts) do
+      {:error, errors}
     end
   end
 

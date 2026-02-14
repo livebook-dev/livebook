@@ -208,6 +208,12 @@ defmodule Livebook.Intellisense.Elixir.Docs do
     end
   end
 
+  def locate_definition(path, {:type, name, arity}) do
+    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
+      fetch_type_line(annotations, name, arity)
+    end
+  end
+
   defp locate_erlang_function(path, name, arity) do
     with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
       result =
@@ -219,12 +225,6 @@ defmodule Livebook.Intellisense.Elixir.Docs do
       if result, do: {:ok, result}, else: :error
     else
       _ -> :error
-    end
-  end
-
-  def locate_definition(path, {:type, name, arity}) do
-    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
-      fetch_type_line(annotations, name, arity)
     end
   end
 

@@ -1,4 +1,5 @@
 name: Release
+
 on:
   push:
     tags:
@@ -8,6 +9,10 @@ on:
     - cron: "0 0 * * *"
   # Workflow dispatch always builds as nightly
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   create_release:
     if: github.repository == 'livebook-dev/livebook'
@@ -30,14 +35,20 @@ jobs:
               ${{ github.ref_name }}
           else
             ref_name="nightly"
+            notes="Automated nightly build for ${GITHUB_SHA}."
 
             if ! gh release view $ref_name; then
               gh release create \
                 --repo ${{ github.repository }} \
                 --title $ref_name \
-                --notes "Automated nightly release." \
+                --notes "${notes}" \
                 --latest=false \
                 $ref_name
+            else
+              gh release edit \
+                --repo ${{ github.repository }} \
+                $ref_name \
+                --notes "${notes}"
             fi
 
             git tag $ref_name --force
@@ -55,13 +66,158 @@ jobs:
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             gh workflow run -R livebook-dev/livebook_cd build.yml -f ref=${{ github.ref_name }} -f release_name=${{ github.ref_name }}
-          else
-            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref=${{ github.sha }} -f release_name=nightly
           fi
 
-  docker:
+  app_next:
     if: github.repository == 'livebook-dev/livebook'
+    name: "Desktop (${{ matrix.gui_target }})"
+    needs: [create_release]
+    permissions:
+      contents: write  # Required for uploading release assets
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-15
+            gui_target: "aarch64-apple-darwin"
+          - platform: macos-15
+            gui_target: "x86_64-apple-darwin"
+          - platform: windows-2022
+            gui_target: "x86_64-pc-windows-msvc"
+          - platform: ubuntu-22.04
+            gui_target: "x86_64-unknown-linux-gnu"
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read versions
+        shell: bash
+        run: |
+          . versions
+          echo "elixir=$elixir" >> $GITHUB_ENV
+          echo "otp=$otp" >> $GITHUB_ENV
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ env.otp }}
+          elixir-version: ${{ env.elixir }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.gui_target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rel/app_next/src-tauri
+          cache-directories: |
+            ~/.cargo/bin
+          key: ${{ matrix.gui_target }}
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libwxgtk3.0-gtk3-dev \
+            xdg-utils
+
+      - name: Install Tauri CLI
+        shell: bash
+        run: |
+          # Only install if not already cached
+          if ! command -v cargo-tauri &> /dev/null; then
+            cargo install tauri-cli --version "=2.8.0" --locked
+          else
+            echo "cargo-tauri already installed: $(cargo-tauri --version)"
+          fi
+
+      - name: Install trusted-signing-cli (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # TODO: use git dependency until trusted-signing-cli next release (v0.8.1 or v0.9)
+          cargo install --git https://github.com/Levminer/trusted-signing-cli.git --rev 5415376 trusted-signing-cli
+
+      - name: Install Apple certificate (macOS)
+        if: runner.os == 'macOS'
+        env:
+          P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: secret
+        run: |
+          # Only run if certificate is provided
+          if [ -n "$P12_BASE64" ]; then
+            # Create variables
+            CERTIFICATE_PATH=$RUNNER_TEMP/apple_certificate.p12
+            KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+            echo -n "$P12_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+
+            # Create temporary keychain
+            security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+            security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+            # Import certificate to keychain
+            security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+            security list-keychain -d user -s $KEYCHAIN_PATH
+          fi
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MIX_ENV: prod
+          MIX_TARGET: app_next
+          # macOS codesigning/notarization
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Windows codesigning
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_TRUSTED_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
+          AZURE_CERTIFICATE_PROFILE_NAME: ${{ secrets.AZURE_CERTIFICATE_PROFILE_NAME }}
+          # Tauri updater
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: rel/app_next
+          tauriScript: ./tauri.sh
+          args: --target ${{ matrix.gui_target }}
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'nightly' }}
+          releaseName: ${{ github.ref_type == 'tag' && github.ref_name || 'nightly' }}
+          releaseDraft: true
+          assetNamePattern: "Livebook-[platform]-[arch][ext]"
+
+      - name: Verify app notarization (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          app_path="rel/app_next/src-tauri/target/${{ matrix.gui_target }}/release/bundle/macos/Livebook.app"
+          echo "Verifying $app_path"
+          spctl -a -t exec -vvv "$app_path"
+
+  docker:
+    # TODO: bring back
+    # if: github.repository == 'livebook-dev/livebook'
+    if: false
     name: Docker (${{ matrix.name }})
+    permissions:
+      contents: read
+      packages: write  # Required for pushing to ghcr.io
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -105,7 +261,7 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=nightly,enable=${{ github.ref_type != 'tag' }}
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64

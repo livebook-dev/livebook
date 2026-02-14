@@ -17,6 +17,7 @@ defmodule LivebookCLI.Deploy do
       --org-token             Token from your Livebook Teams organization
       --teams-key             Teams key from your Teams workspace
       --deployment-group-id   The ID of the deployment group you want to deploy to
+      --dry-run               Perform a sanity check but do not actually deploy
 
     The --help option can be given to print this notice.
 
@@ -35,7 +36,9 @@ defmodule LivebookCLI.Deploy do
   @switches [
     org_token: :string,
     teams_key: :string,
-    deployment_group_id: :integer
+    deployment_group_id: :integer,
+    dry_run: :boolean,
+    redeploy: :boolean
   ]
 
   @impl true
@@ -44,6 +47,10 @@ defmodule LivebookCLI.Deploy do
     {:ok, _} = Application.ensure_all_started(:livebook)
     config = config_from_args(args)
     ensure_config!(config)
+
+    if config.redeploy? do
+      log_warning("Note: --redeploy flag set, all apps will be deployed regardless of changes.")
+    end
 
     team = authenticate_cli!(config)
     deploy_to_teams(team, config)
@@ -56,7 +63,9 @@ defmodule LivebookCLI.Deploy do
       paths: paths,
       session_token: opts[:org_token],
       teams_key: opts[:teams_key],
-      deployment_group_id: opts[:deployment_group_id]
+      deployment_group_id: opts[:deployment_group_id],
+      dry_run?: Keyword.get(opts, :dry_run, false),
+      redeploy?: Keyword.get(opts, :redeploy, false)
     }
   end
 
@@ -152,14 +161,20 @@ defmodule LivebookCLI.Deploy do
           |> Livebook.FileSystem.File.resolve("files/")
 
         with {:ok, content} <- File.read(path),
-             {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir) do
+             {:ok, app_deployment} <- prepare_app_deployment(path, content, files_dir),
+             :continue <- ensure_skip_on_dry_run(app_deployment, config.dry_run?) do
           case Livebook.Teams.deploy_app_from_cli(
                  team,
                  app_deployment,
-                 config.deployment_group_id
+                 config.deployment_group_id,
+                 redeploy: config.redeploy?
                ) do
-            {:ok, url} ->
-              log_info([:green, "  * #{app_deployment.title} deployed successfully. (#{url})"])
+            {:ok, %{"url" => url, "state" => "deployed"}} ->
+              url = if url, do: " (#{url})", else: ""
+              log_info([:green, "  * #{app_deployment.title} deployed successfully.", url])
+
+            {:ok, %{"state" => "unchanged"}} ->
+              log_info([:blue, "  * #{app_deployment.title} unchanged, skipping"])
 
             {:error, errors} ->
               log_error("  * #{app_deployment.title} failed to deploy.")
@@ -209,6 +224,19 @@ defmodule LivebookCLI.Deploy do
         log_error("  * Failed to handle I/O operations: #{reason}")
 
         :error
+    end
+  end
+
+  defp ensure_skip_on_dry_run(app_deployment, dry_run?) do
+    if dry_run? do
+      message = """
+        * #{app_deployment.title} skipped due to --dry-run
+      """
+
+      log_info(message)
+      :ok
+    else
+      :continue
     end
   end
 

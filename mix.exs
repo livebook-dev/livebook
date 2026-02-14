@@ -115,7 +115,7 @@ defmodule Livebook.MixProject do
       {:bandit, "~> 1.0"},
       {:plug, "~> 1.16"},
       {:plug_crypto, "~> 2.0"},
-      {:earmark_parser, "~> 1.4"},
+      {:earmark_parser, "~> 1.4.44"},
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
       {:aws_credentials, "~> 0.3.0", runtime: false},
@@ -135,11 +135,12 @@ defmodule Livebook.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:pythonx, "~> 0.4.2", only: :test},
       # Docs
-      {:ex_doc, "~> 0.30", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.39", only: :dev, runtime: false}
     ]
   end
 
   defp target_deps(:app), do: [{:elixirkit, path: "elixirkit"}]
+  defp target_deps(:app_next), do: [{:elixirkit, path: "elixirkit_next"}]
   defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
@@ -180,7 +181,7 @@ defmodule Livebook.MixProject do
       app: [
         applications: @release_apps,
         include_erts: false,
-        rel_templates_path: "rel/app",
+        rel_templates_path: "rel/#{Mix.target()}",
         steps: [
           :assemble,
           &remove_cookie/1,
@@ -188,6 +189,19 @@ defmodule Livebook.MixProject do
         ]
       ]
     ]
+  end
+
+  if Mix.target() == :app_next do
+    {cargo_output, 0} = System.cmd("cargo", ["pkgid"], cd: "#{__DIR__}/rel/app_next/src-tauri")
+    [_, cargo_version] = Regex.run(~r/#.+@(.+)$/, String.trim(cargo_output))
+
+    if @version != cargo_version do
+      Mix.raise("""
+      Version mismatch:
+      mix.exs:    #{@version}
+      Cargo.toml: #{cargo_version}
+      """)
+    end
   end
 
   defp remove_cookie(release) do
@@ -272,8 +286,8 @@ defmodule Livebook.MixProject do
       "docs/teams/shared_secrets.md",
       "docs/teams/shared_file_storages.md",
       {"docs/teams/git_file_storage.md", title: "Open notebooks from a private Git"},
-      {"docs/teams/phoenix_integration.md", title: "How-to integrate with a Phoenix app"},
-      "docs/teams/audit_logs.md",
+      {"docs/teams/phoenix_integration.md", title: "Integrate with a Phoenix app"},
+      {"docs/teams/audit_logs.md", title: "Audit logs for code execution"},
       {"docs/teams/teams_concepts.md", title: "Livebook Teams concepts"},
       "docs/authentication/basic_auth.md",
       "docs/authentication/cloudflare.md",

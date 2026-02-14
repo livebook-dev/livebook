@@ -123,7 +123,6 @@ defmodule LivebookWeb.FileSelectComponent do
               value={@file.path}
               spellcheck="false"
               autocomplete="off"
-              disabled={@loading}
             />
           </form>
         </div>

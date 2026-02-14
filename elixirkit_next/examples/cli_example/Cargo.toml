@@ -1,0 +1,7 @@
+[package]
+name = "cli_example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+elixirkit = { path = "../../elixirkit_rs" }

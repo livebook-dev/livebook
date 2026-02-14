@@ -197,14 +197,41 @@ defmodule Livebook.Intellisense.Elixir do
          insert_text:
            cond do
              arity == 0 -> "#{Atom.to_string(name)}()"
+             #
              true -> "#{Atom.to_string(name)}(${})"
            end
        }
 
+
+  # Note: array_needed is a boolean to know if '[]' should be put inside atrribute,
+  # as in -export([]). It is also a way to differentiate erlang's atributes from elixir's.
+  defp format_completion_item(%{
+    kind: :module_attribute,
+    name: name,
+    documentation: documentation,
+    array_needed: array_needed
+  }),
+  do: %{
+    label: Atom.to_string(name),
+    kind: :variable,
+    documentation:
+      join_with_newlines([
+        Intellisense.Elixir.Docs.format_documentation(documentation, :short),
+        "(module attribute)"
+      ]),
+    # A snippet with cursor in parentheses
+    insert_text:
+    if array_needed do
+      "#{name}([${}])."
+    else
+      "#{name}(${})."
+    end
+  }
+
   defp format_completion_item(%{
          kind: :module_attribute,
          name: name,
-         documentation: documentation
+         documentation: documentation,
        }),
        do: %{
          label: Atom.to_string(name),
@@ -216,6 +243,7 @@ defmodule Livebook.Intellisense.Elixir do
            ]),
          insert_text: Atom.to_string(name)
        }
+
 
   defp format_completion_item(%{kind: :bitstring_modifier, name: name, arity: arity}) do
     insert_text =
@@ -474,7 +502,8 @@ defmodule Livebook.Intellisense.Elixir do
     end
   end
 
-  defp format_signature_item({_name, signature, _documentation, _specs}),
+  # FIXME: This is public
+  def format_signature_item({_name, signature, _documentation, _specs}),
     do: %{
       signature: signature,
       arguments: arguments_from_signature(signature)
