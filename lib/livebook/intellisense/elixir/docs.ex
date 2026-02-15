@@ -211,6 +211,7 @@ defmodule Livebook.Intellisense.Elixir.Docs do
     end
   end
 
+  #TODO: maybe we should locate types for erlang too, not only functions
   def locate_definition(path, {:type, name, arity}) do
     case beam_lib_chunks(path, :abstract_code) do
       {:ok, {:raw_abstract_v1, annotations}} ->
