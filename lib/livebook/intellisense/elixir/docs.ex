@@ -205,13 +205,11 @@ defmodule Livebook.Intellisense.Elixir.Docs do
     with {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} <- beam_lib_chunks(path, :debug_info),
          {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}) do
       Keyword.fetch(kw, :line)
-      #TODO: maybe we should create separate function flow for erlang, or at least handle case where both fail with :error here
     else
       _ -> locate_erlang_function(path, name, arity)
     end
   end
 
-  #TODO: maybe we should locate types for erlang too, not only functions
   def locate_definition(path, {:type, name, arity}) do
     case beam_lib_chunks(path, :abstract_code) do
       {:ok, {:raw_abstract_v1, annotations}} ->
@@ -223,14 +221,14 @@ defmodule Livebook.Intellisense.Elixir.Docs do
   end
 
   defp locate_erlang_function(path, name, arity) do
-    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
-      result =
-        Enum.find_value(annotations, fn
-          {:function, anno, ^name, ^arity, _} -> :erl_anno.line(anno)
-          _ -> nil
-        end)
-
-      if result, do: {:ok, result}, else: :error
+    with {:ok, {:raw_abstract_v1, annotations}} <-
+           beam_lib_chunks(path, :abstract_code),
+         line when is_integer(line) <-
+           Enum.find_value(annotations, fn
+             {:function, anno, ^name, ^arity, _} -> :erl_anno.line(anno)
+             _ -> nil
+           end) do
+      {:ok, line}
     else
       _ -> :error
     end

@@ -4,8 +4,6 @@ defmodule Livebook.Intellisense.Erlang do
 
   @behaviour Intellisense
 
-  @line_length 45
-
   @impl true
   def handle_request({:format, _code}, _context, _node) do
     # Not supported.
@@ -362,7 +360,7 @@ defmodule Livebook.Intellisense.Erlang do
 
     options = [linewidth: 98 + offset]
 
-    :erl_pp.attribute(ast)
+    :erl_pp.attribute(ast, options)
     |> IO.chardata_to_string()
     |> String.trim()
   end
