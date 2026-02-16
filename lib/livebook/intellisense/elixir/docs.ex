@@ -189,40 +189,46 @@ defmodule Livebook.Intellisense.Elixir.Docs do
   def locate_definition(path, identifier)
 
   def locate_definition(path, {:module, module}) do
-    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
-      {:attribute, anno, :module, ^module} =
-        Enum.find(annotations, &match?({:attribute, _, :module, _}, &1))
+    case beam_lib_chunks(path, :abstract_code) do
+      {:ok, {:raw_abstract_v1, annotations}} ->
+        {:attribute, anno, :module, ^module} =
+          Enum.find(annotations, &match?({:attribute, _, :module, _}, &1))
 
-      {:ok, :erl_anno.line(anno)}
+        {:ok, :erl_anno.line(anno)}
+
+      _ ->
+        :error
     end
   end
 
   def locate_definition(path, {:function, name, arity}) do
-    case beam_lib_chunks(path, :debug_info) do
-      {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} ->
-        with {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}) do
-          Keyword.fetch(kw, :line)
-        end
-      _ ->
-        locate_erlang_function(path, name, arity)
+    with {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} <- beam_lib_chunks(path, :debug_info),
+         {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}) do
+      Keyword.fetch(kw, :line)
+    else
+      _ -> locate_erlang_function(path, name, arity)
     end
   end
 
   def locate_definition(path, {:type, name, arity}) do
-    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
-      fetch_type_line(annotations, name, arity)
+    case beam_lib_chunks(path, :abstract_code) do
+      {:ok, {:raw_abstract_v1, annotations}} ->
+        fetch_type_line(annotations, name, arity)
+
+      _ ->
+        :error
     end
   end
 
   defp locate_erlang_function(path, name, arity) do
-    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
-      result =
-        Enum.find_value(annotations, fn
-          {:function, anno, ^name, ^arity, _} -> :erl_anno.line(anno)
-          _ -> nil
-        end)
-
-      if result, do: {:ok, result}, else: :error
+    with {:ok, {:raw_abstract_v1, annotations}} <-
+           beam_lib_chunks(path, :abstract_code),
+         line when is_integer(line) <-
+           Enum.find_value(annotations, fn
+             {:function, anno, ^name, ^arity, _} -> :erl_anno.line(anno)
+             _ -> nil
+           end) do
+      {:ok, line}
     else
       _ -> :error
     end

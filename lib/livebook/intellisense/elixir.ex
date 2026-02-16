@@ -55,9 +55,9 @@ defmodule Livebook.Intellisense.Elixir do
     %{items: items}
   end
 
-  defp include_in_completion?(%{kind: :module, documentation: :hidden}), do: false
-  defp include_in_completion?(%{kind: :function, documentation: :hidden}), do: false
-  defp include_in_completion?(_), do: true
+  def include_in_completion?(%{kind: :module, documentation: :hidden}), do: false
+  def include_in_completion?(%{kind: :function, documentation: :hidden}), do: false
+  def include_in_completion?(_), do: true
 
   defp format_completion_item(%{kind: :variable, name: name}),
     do: %{
@@ -138,6 +138,7 @@ defmodule Livebook.Intellisense.Elixir do
     }
   end
 
+  #TODO : module and signature is important in display of completion docs, name and displayname isnt in happy flow, if no signatures name is also needed
   defp format_completion_item(%{
          kind: :function,
          module: module,
@@ -261,7 +262,7 @@ defmodule Livebook.Intellisense.Elixir do
     }
   end
 
-  defp keyword_macro?(name) do
+  def keyword_macro?(name) do
     def? = name |> Atom.to_string() |> String.starts_with?("def")
 
     def? or
@@ -289,7 +290,7 @@ defmodule Livebook.Intellisense.Elixir do
       ]
   end
 
-  defp env_macro?(name) do
+  def env_macro?(name) do
     name in [:__ENV__, :__MODULE__, :__DIR__, :__STACKTRACE__, :__CALLER__]
   end
 
@@ -342,7 +343,7 @@ defmodule Livebook.Intellisense.Elixir do
     :bitstring_option
   ]
 
-  defp completion_item_priority(%{kind: :struct} = completion_item) do
+  def completion_item_priority(%{kind: :struct} = completion_item) do
     if completion_item.documentation =~ "(exception)" do
       {length(@ordered_kinds), completion_item.label}
     else
@@ -350,7 +351,7 @@ defmodule Livebook.Intellisense.Elixir do
     end
   end
 
-  defp completion_item_priority(completion_item) do
+  def completion_item_priority(completion_item) do
     {completion_item_kind_priority(completion_item.kind), completion_item.label}
   end
 
@@ -398,6 +399,7 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
+  #TODO: module formatting should handle erlang modules too, module is of type :math and should be math
   def format_details_item(%{kind: :module, module: module, documentation: documentation}) do
     join_with_divider([
       code(inspect(module)),
@@ -406,6 +408,7 @@ defmodule Livebook.Intellisense.Elixir do
     ])
   end
 
+  #TODO: format_signatures and format_specs needs to be reworked for erlang functions
   def format_details_item(%{
          kind: :function,
          module: module,
@@ -474,8 +477,8 @@ defmodule Livebook.Intellisense.Elixir do
 
       with true <- File.exists?(path),
            {:ok, line} <-
-             Intellisense.Elixir.Docs.locate_definition(String.to_charlist(path), identifier) do
-        file = module.module_info(:compile)[:source]
+             Intellisense.Elixir.Docs.locate_definition(String.to_charlist(path), identifier),
+           {:ok, file} <- Keyword.fetch(module.module_info(:compile), :source) do
         %{file: to_string(file), line: line}
       else
         _otherwise -> nil
@@ -518,22 +521,22 @@ defmodule Livebook.Intellisense.Elixir do
 
   # Formatting helpers
 
-  defp join_with_divider(strings), do: join_with(strings, "\n\n---\n\n")
+  def join_with_divider(strings), do: join_with(strings, "\n\n---\n\n")
 
-  defp join_with_newlines(strings), do: join_with(strings, "\n\n")
+  def join_with_newlines(strings), do: join_with(strings, "\n\n")
 
-  defp join_with_middle_dot(strings), do: join_with(strings, " · ")
+  def join_with_middle_dot(strings), do: join_with(strings, " · ")
 
-  defp join_with(strings, joiner) do
+  def join_with(strings, joiner) do
     case Enum.reject(strings, &is_nil/1) do
       [] -> nil
       parts -> Enum.join(parts, joiner)
     end
   end
 
-  defp code(nil), do: nil
+  def code(nil), do: nil
 
-  defp code(code) do
+  def code(code) do
     """
     ```
     #{code}
@@ -541,7 +544,7 @@ defmodule Livebook.Intellisense.Elixir do
     """
   end
 
-  defp format_docs_link(module, function_or_type \\ nil) do
+  def format_docs_link(module, function_or_type \\ nil) do
     app = Application.get_application(module)
     module_name = module_name(module)
 
@@ -591,6 +594,7 @@ defmodule Livebook.Intellisense.Elixir do
     signature_fallback(module, name, arity)
   end
 
+  #TODO: this should be reimplemented for erlang, module is of type :module, and . is used not :
   defp format_signatures(signatures, module, _name, _arity) do
     signatures_string = Enum.join(signatures, "\n")
 
@@ -616,15 +620,15 @@ defmodule Livebook.Intellisense.Elixir do
     "#{inspect(module)}.#{name}(#{args})"
   end
 
-  defp format_meta(:deprecated, %{deprecated: deprecated}) do
+  def format_meta(:deprecated, %{deprecated: deprecated}) do
     "**Deprecated**. " <> deprecated
   end
 
-  defp format_meta(:since, %{since: since}) do
+  def format_meta(:since, %{since: since}) do
     "Since " <> since
   end
 
-  defp format_meta(_, _), do: nil
+  def format_meta(_, _), do: nil
 
   defp format_specs([], _name, _line_length), do: nil
 

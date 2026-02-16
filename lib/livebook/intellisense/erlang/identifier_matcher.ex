@@ -233,8 +233,8 @@ defmodule Livebook.Intellisense.Erlang.IdentifierMatcher do
       taken
   end
 
-  defp token_to_text({_, _, val}), do: Atom.to_string(val)
-  defp token_to_text({val, _}), do: Atom.to_string(val)
+  defp token_to_text({_, _, val}), do: to_string(val)
+  defp token_to_text({val, _}), do: to_string(val)
 
   defp match_tokens_to_context_with_columns(tokens) do
     case tokens do
