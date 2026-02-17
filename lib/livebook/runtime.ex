@@ -577,7 +577,7 @@ defprotocol Livebook.Runtime do
   @type signature_request :: {:signature, hint :: String.t()}
 
   @type signature_response :: %{
-          active_argument: non_neg_integer(),
+          active_argument: non_neg_integer() | nil,
           items: list(signature_item())
         }
 

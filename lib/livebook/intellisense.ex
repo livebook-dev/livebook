@@ -46,6 +46,7 @@ defmodule Livebook.Intellisense do
 
   defp impl_for_language(:elixir), do: Intellisense.Elixir
   defp impl_for_language(:erlang), do: Intellisense.Erlang
+  defp impl_for_language(:python), do: Intellisense.Python
   defp impl_for_language(_other), do: nil
 
   @doc """

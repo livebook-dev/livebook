@@ -207,7 +207,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             tag="primary"
             empty={@cell_view.empty}
             language={@cell_view.language}
-            intellisense={@cell_view.language in [:elixir, :erlang]}
+            intellisense={@cell_view.language in [:elixir, :erlang, :python]}
           />
         </div>
         <div class="absolute bottom-2 right-2" data-el-cell-indicators>

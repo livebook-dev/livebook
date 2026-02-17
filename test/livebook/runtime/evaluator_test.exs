@@ -6,25 +6,6 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
   @moduletag :tmp_dir
 
-  setup_all do
-    # We setup Pythonx in the current process, so we can test Python
-    # code evaluation. Testing pyproject.toml evaluation is tricky
-    # because it requires a separate VM, so we only rely on the LV
-    # integration tests.
-
-    ExUnit.CaptureIO.capture_io(fn ->
-      Pythonx.uv_init("""
-      [project]
-      name = "project"
-      version = "0.0.0"
-      requires-python = "==3.13.*"
-      dependencies = []
-      """)
-    end)
-
-    :ok
-  end
-
   setup ctx do
     ebin_path =
       if ctx[:with_ebin_path] do
