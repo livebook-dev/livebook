@@ -22,6 +22,8 @@ defmodule Livebook.FileSystem.S3 do
           token: String.t() | nil
         }
 
+  @derive {Inspect, except: [:access_key_id, :secret_access_key]}
+
   embedded_schema do
     field :bucket_url, :string
     field :external_id, :string
