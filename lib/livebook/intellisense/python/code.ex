@@ -270,7 +270,14 @@ defmodule Livebook.Intellisense.Python.Code do
 
   defp backtrace_call([token(type: :symbol, content: ",") | rest], acc)
        when acc.bracket_stack == [] do
-    backtrace_call(rest, finish_param(acc))
+    case backskip_lambda_with_args(rest) do
+      {:ok, rest} ->
+        # If there is a lambda, ignore the comma.
+        backtrace_call(rest, acc)
+
+      :error ->
+        backtrace_call(rest, finish_param(acc))
+    end
   end
 
   defp backtrace_call([token(type: :symbol, content: "=") | rest], acc)
@@ -338,6 +345,28 @@ defmodule Livebook.Intellisense.Python.Code do
 
   defp backtrace_dot_name(rest, acc) do
     {acc, rest}
+  end
+
+  defp backskip_lambda_with_args([
+         token(type: :whitespace),
+         token(type: :identifier, content: "lambda") | rest
+       ]) do
+    {:ok, rest}
+  end
+
+  defp backskip_lambda_with_args(tokens) do
+    tokens = skip_whitespace(tokens)
+
+    case tokens do
+      [token(type: :identifier) | rest] ->
+        backskip_lambda_with_args(rest)
+
+      [token(type: :symbol, content: ",") | rest] ->
+        backskip_lambda_with_args(rest)
+
+      tokens ->
+        :error
+    end
   end
 
   # A highly simplified Python tokenizer.

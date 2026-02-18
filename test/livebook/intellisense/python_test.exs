@@ -787,6 +787,55 @@ defmodule Livebook.Intellisense.PythonTest do
                )
     end
 
+    test "with multi-argument lambda" do
+      context = intellisense_context_from_eval(do: nil)
+
+      assert %{
+               active_argument: 0,
+               items: [
+                 %{
+                   signature: "filter(function, iterable, /)",
+                   arguments: ["function", "iterable"]
+                 }
+               ]
+             } =
+               Intellisense.Python.handle_request(
+                 {:signature, "filter(lambda x, "},
+                 context,
+                 node()
+               )
+
+      assert %{
+               active_argument: 0,
+               items: [
+                 %{
+                   signature: "filter(function, iterable, /)",
+                   arguments: ["function", "iterable"]
+                 }
+               ]
+             } =
+               Intellisense.Python.handle_request(
+                 {:signature, "filter(lambda x, y:"},
+                 context,
+                 node()
+               )
+
+      assert %{
+               active_argument: 1,
+               items: [
+                 %{
+                   signature: "filter(function, iterable, /)",
+                   arguments: ["function", "iterable"]
+                 }
+               ]
+             } =
+               Intellisense.Python.handle_request(
+                 {:signature, "filter(lambda x, y: x + y, "},
+                 context,
+                 node()
+               )
+    end
+
     test "positional active argument" do
       context = intellisense_context_from_eval(do: nil)
 
