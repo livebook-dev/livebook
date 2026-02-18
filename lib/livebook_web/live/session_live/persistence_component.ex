@@ -11,6 +11,11 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   end
 
   @impl true
+  def update(%{event: {:mount_file_system, file_system}}, socket) do
+    :ok = FileSystem.mount(file_system)
+    {:ok, socket}
+  end
+
   def update(%{event: {:set_file, file, _info}}, socket) do
     current_file = socket.assigns.draft_file
 

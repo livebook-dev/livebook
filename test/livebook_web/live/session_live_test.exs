@@ -1612,6 +1612,21 @@ defmodule LivebookWeb.SessionLiveTest do
       refute render(view) =~ new_dir.path
       assert render(view) =~ old_dir.path
     end
+
+    test "switching to S3 file system in persistence dialog does not crash",
+         %{conn: conn, session: session} do
+      s3_fs = build(:fs_s3)
+      Livebook.HubHelpers.persist_file_system(s3_fs)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
+
+      view
+      |> element(~s{button[phx-click="set_file_system"][phx-value-id="#{s3_fs.id}"]})
+      |> render_click()
+
+      # The component should handle the mount_file_system event without crashing
+      assert render(view) =~ "Save to file"
+    end
   end
 
   describe "completion" do
