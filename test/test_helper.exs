@@ -1,3 +1,17 @@
+# We setup Pythonx in the current OS process, so we can test Python
+# code evaluation and intellisense. Testing pyproject.toml evaluation
+# is tricky because it requires a separate VM, so we only rely on the
+# LV integration tests.
+ExUnit.CaptureIO.capture_io(fn ->
+  Pythonx.uv_init("""
+  [project]
+  name = "project"
+  version = "0.0.0"
+  requires-python = "==3.13.*"
+  dependencies = []
+  """)
+end)
+
 # Start manager on the current node and configure it not to terminate
 # automatically, so that we can use it to start runtime servers
 # explicitly

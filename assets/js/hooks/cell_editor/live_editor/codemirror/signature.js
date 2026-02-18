@@ -243,20 +243,26 @@ class SignatureTooltip {
 
     const { activeArgumentIdx, items } = signatureResult;
 
-    const item = items[selectedIdx];
-    const activeArgument = item.arguments[activeArgumentIdx];
-
     if (this.stepper) {
       this.stepper.textContent = `${selectedIdx + 1}/${items.length}`;
     }
 
-    const idx = item.signature.indexOf(activeArgument);
+    const item = items[selectedIdx];
+    if (activeArgumentIdx !== null) {
+      const activeArgument = item.arguments[activeArgumentIdx];
 
-    this.contentLeft.textContent = item.signature.slice(0, idx);
-    this.contentActive.textContent = activeArgument;
-    this.contentRight.textContent = item.signature.slice(
-      idx + activeArgument.length,
-    );
+      const idx = item.signature.indexOf(activeArgument);
+
+      this.contentLeft.textContent = item.signature.slice(0, idx);
+      this.contentActive.textContent = activeArgument;
+      this.contentRight.textContent = item.signature.slice(
+        idx + activeArgument.length,
+      );
+    } else {
+      this.contentLeft.textContent = item.signature;
+      this.contentActive.textContent = "";
+      this.contentRight.textContent = "";
+    }
   }
 }
 
@@ -379,7 +385,7 @@ export function signature(
   {
     activateOnTyping = true,
     closeOnBlur = true,
-    triggerCharacters = ["(", ","],
+    triggerCharacters = ["(", ",", "="],
     retriggerCharacters = [")"],
   } = {},
 ) {
