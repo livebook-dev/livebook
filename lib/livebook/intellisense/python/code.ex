@@ -398,15 +398,18 @@ defmodule Livebook.Intellisense.Python.Code do
           value = binary_part(string, 0, len)
           {:comment, value, rest}
 
-        <<c::utf8, rest::binary>> ->
-          character = <<c::utf8>>
+        rest ->
+          identifier_regex = ~r/^[_\p{XID_Start}][_\p{XID_Continue}]*/u
 
-          if Regex.match?(~r/^[_\p{XID_Start}]$/u, character) do
-            {rest, len} = take_while_identifier(rest, byte_size(character))
-            value = binary_part(string, 0, len)
-            {:identifier, value, rest}
-          else
-            {:symbol, character, rest}
+          case Regex.run(identifier_regex, rest) do
+            [identifier] ->
+              identifier_size = byte_size(identifier)
+              rest = binary_part(rest, identifier_size, byte_size(rest) - identifier_size)
+              {:identifier, identifier, rest}
+
+            nil ->
+              {character, rest} = String.next_grapheme(rest)
+              {:symbol, character, rest}
           end
       end
 
@@ -415,18 +418,6 @@ defmodule Livebook.Intellisense.Python.Code do
     t = token(type: type, content: value, from: pos, to: end_pos)
     simple_tokenize(rest, end_pos, [t | acc])
   end
-
-  defp take_while_identifier(<<c::utf8, rest::binary>>, len) do
-    character = <<c::utf8>>
-
-    if Regex.match?(~r/^[_\p{XID_Continue}]$/u, character) do
-      take_while_identifier(rest, len + byte_size(character))
-    else
-      {<<character::binary, rest::binary>>, len}
-    end
-  end
-
-  defp take_while_identifier(rest, len), do: {rest, len}
 
   defp take_while_horizontal_space(<<c, rest::binary>>, len) when c in ~c[ \t],
     do: take_while_horizontal_space(rest, len + 1)

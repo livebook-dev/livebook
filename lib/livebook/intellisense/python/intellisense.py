@@ -169,7 +169,7 @@ def get_info(name, object):
         or inspect.isbuiltin(object)
         # NumPy functions are not regular functions, but they are callable,
         # so we want to treat those as functions.
-        or isinstance(object, Callable)
+        or (isinstance(object, Callable) and hasattr(object, "__name__"))
     ):
         return {
             "kind": "function",
