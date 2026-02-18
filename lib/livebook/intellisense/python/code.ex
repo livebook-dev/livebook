@@ -364,7 +364,7 @@ defmodule Livebook.Intellisense.Python.Code do
       [token(type: :symbol, content: ",") | rest] ->
         backskip_lambda_with_args(rest)
 
-      tokens ->
+      _tokens ->
         :error
     end
   end
