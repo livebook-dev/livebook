@@ -223,6 +223,7 @@ defmodule Livebook.Intellisense.PythonTest do
 
           ~PY"""
           import time
+          import sys
           """
         end
 
@@ -253,21 +254,21 @@ defmodule Livebook.Intellisense.PythonTest do
       assert %{
                items: [
                  %{
-                   label: "clock_gettime_ns",
+                   label: "exit",
                    kind: :function,
                    documentation: """
-                   Return the time of the specified clock clk_id as nanoseconds (int).
+                   Exit the interpreter by raising SystemExit(status).
 
                    ```
-                   time.clock_gettime_ns(clk_id, /)
+                   sys.exit(status=None, /)
                    ```\
                    """,
-                   insert_text: "clock_gettime_ns(${})"
+                   insert_text: "exit(${})"
                  }
                ]
              } =
                Intellisense.Python.handle_request(
-                 {:completion, "time.clock_gettime_"},
+                 {:completion, "sys.exi"},
                  context,
                  node()
                )
@@ -665,13 +666,13 @@ defmodule Livebook.Intellisense.PythonTest do
                active_argument: 0,
                items: [
                  %{
-                   signature: "time.clock_gettime_ns(clk_id, /)",
-                   arguments: ["clk_id"]
+                   signature: "time.sleep(object, /)",
+                   arguments: ["object"]
                  }
                ]
              } =
                Intellisense.Python.handle_request(
-                 {:signature, "time.clock_gettime_ns("},
+                 {:signature, "time.sleep("},
                  context,
                  node()
                )
@@ -680,13 +681,13 @@ defmodule Livebook.Intellisense.PythonTest do
                active_argument: 0,
                items: [
                  %{
-                   signature: "time.clock_gettime_ns(clk_id, /)",
-                   arguments: ["clk_id"]
+                   signature: "time.sleep(object, /)",
+                   arguments: ["object"]
                  }
                ]
              } =
                Intellisense.Python.handle_request(
-                 {:signature, "time.clock_gettime_ns(clk"},
+                 {:signature, "time.sleep(seconds"},
                  context,
                  node()
                )
