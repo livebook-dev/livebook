@@ -2344,7 +2344,7 @@ defmodule Livebook.Session do
 
     source = cell.source
 
-    case Runtime.add_dependencies(state.data.runtime, source, dependencies) do
+    case Runtime.Dependencies.insert_mix_dependencies(source, dependencies) do
       {:ok, ^source} ->
         {:ok, state}
 

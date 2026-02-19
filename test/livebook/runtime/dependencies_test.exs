@@ -7,11 +7,11 @@ defmodule Livebook.Runtime.DependenciesTest do
 
   doctest Dependencies
 
-  @req {:req, "~> 0.5.0"}
+  @req %{dep: {:req, "~> 0.5.0"}, config: []}
 
-  describe "add_dependencies/3" do
+  describe "insert_mix_dependencies/3" do
     test "adds dependencies and config" do
-      assert Dependencies.add_dependencies("", [
+      assert Dependencies.insert_mix_dependencies("", [
                %{dep: {:nx, "~> 0.4.0"}, config: []},
                %{
                  dep: {:exla, "~> 0.4.0"},
@@ -31,11 +31,9 @@ defmodule Livebook.Runtime.DependenciesTest do
                 )\
                 """}
     end
-  end
 
-  describe "add_mix_deps/3" do
     test "prepends Mix.install/2 call if there is none" do
-      assert Dependencies.add_mix_deps("", [@req]) ==
+      assert Dependencies.insert_mix_dependencies("", [@req]) ==
                {:ok,
                 """
                 Mix.install([
@@ -43,7 +41,7 @@ defmodule Livebook.Runtime.DependenciesTest do
                 ])\
                 """}
 
-      assert Dependencies.add_mix_deps("# Comment", [@req]) ==
+      assert Dependencies.insert_mix_dependencies("# Comment", [@req]) ==
                {:ok,
                 """
                 Mix.install([
@@ -53,7 +51,7 @@ defmodule Livebook.Runtime.DependenciesTest do
                 # Comment\
                 """}
 
-      assert Dependencies.add_mix_deps(
+      assert Dependencies.insert_mix_dependencies(
                """
                # Outer comment
                for key <- [:key1, :key2] do
@@ -82,7 +80,7 @@ defmodule Livebook.Runtime.DependenciesTest do
     end
 
     test "appends dependency to an existing Mix.install/2 call" do
-      assert Dependencies.add_mix_deps(
+      assert Dependencies.insert_mix_dependencies(
                """
                Mix.install([
                  {:kino, "~> 0.14.0"}
@@ -98,7 +96,7 @@ defmodule Livebook.Runtime.DependenciesTest do
                 ])\
                 """}
 
-      assert Dependencies.add_mix_deps(
+      assert Dependencies.insert_mix_dependencies(
                """
                # Outer comment
                Mix.install([
@@ -126,7 +124,7 @@ defmodule Livebook.Runtime.DependenciesTest do
                 :ok\
                 """}
 
-      assert Dependencies.add_mix_deps(
+      assert Dependencies.insert_mix_dependencies(
                """
                Mix.install(
                  [
@@ -160,7 +158,7 @@ defmodule Livebook.Runtime.DependenciesTest do
       ])\
       """
 
-      assert Dependencies.add_mix_deps(code, [@req]) == {:ok, code}
+      assert Dependencies.insert_mix_dependencies(code, [@req]) == {:ok, code}
 
       code = """
       Mix.install([
@@ -168,17 +166,21 @@ defmodule Livebook.Runtime.DependenciesTest do
       ])\
       """
 
-      assert Dependencies.add_mix_deps(code, [@req]) == {:ok, code}
+      assert Dependencies.insert_mix_dependencies(code, [@req]) == {:ok, code}
     end
 
     test "given multiple dependencies adds the missing ones" do
-      assert Dependencies.add_mix_deps(
+      assert Dependencies.insert_mix_dependencies(
                """
                Mix.install([
                  {:req, "~> 0.5.0"}
                ])\
                """,
-               [{:vega_lite, "~> 0.1.3"}, {:req, "~> 0.5.0"}, {:kino, "~> 0.14.0"}]
+               [
+                 %{dep: {:vega_lite, "~> 0.1.3"}, config: []},
+                 %{dep: {:req, "~> 0.5.0"}, config: []},
+                 %{dep: {:kino, "~> 0.14.0"}, config: []}
+               ]
              ) ==
                {:ok,
                 """
@@ -195,12 +197,12 @@ defmodule Livebook.Runtime.DependenciesTest do
       ])\
       """
 
-      assert Dependencies.add_mix_deps(code, [@req]) == {:ok, code}
+      assert Dependencies.insert_mix_dependencies(code, [@req]) == {:ok, code}
     end
 
     test "returns an error if the code has a syntax error" do
       {:error, message} =
-        Dependencies.add_mix_deps(
+        Dependencies.insert_mix_dependencies(
           """
           # Comment
           [,1]
@@ -221,33 +223,32 @@ defmodule Livebook.Runtime.DependenciesTest do
     end
 
     test "adds config if specified" do
-      config = [nx: [default_backend: EXLA.Backend]]
+      nx_dep = %{dep: {:nx, "~> 0.10.0"}, config: [nx: [default_backend: EXLA.Backend]]}
 
-      assert Dependencies.add_mix_deps("", [@req], config) ==
+      assert Dependencies.insert_mix_dependencies("", [nx_dep]) ==
                {:ok,
                 """
                 Mix.install(
                   [
-                    {:req, "~> 0.5.0"}
+                    {:nx, "~> 0.10.0"}
                   ],
                   config: [nx: [default_backend: EXLA.Backend]]
                 )\
                 """}
 
-      assert Dependencies.add_mix_deps(
+      assert Dependencies.insert_mix_dependencies(
                """
                Mix.install([
-                 {:req, "~> 0.5.0"}
+                 {:nx, "~> 0.10.0"}
                ])\
                """,
-               [],
-               config
+               [nx_dep]
              ) ==
                {:ok,
                 """
                 Mix.install(
                   [
-                    {:req, "~> 0.5.0"}
+                    {:nx, "~> 0.10.0"}
                   ],
                   config: [nx: [default_backend: EXLA.Backend]]
                 )\
@@ -255,11 +256,12 @@ defmodule Livebook.Runtime.DependenciesTest do
     end
 
     test "merges config in flat manner" do
-      assert Dependencies.add_mix_deps(
+      assert Dependencies.insert_mix_dependencies(
                """
                Mix.install(
                  [
-                   {:req, "~> 0.5.0"}
+                   {:nx, "~> 0.10.0"},
+                   {:exla, "~> 0.10.0"}
                  ],
                  config: [
                    # Comment 1
@@ -273,19 +275,23 @@ defmodule Livebook.Runtime.DependenciesTest do
                  ]
                )\
                """,
-               [],
-               nx: [
-                 default_defn_options: [compiler: EXLA]
-               ],
-               other: [
-                 default_defn_options: [compiler: EXLA]
+               [
+                 %{
+                   dep: {:nx, "~> 0.10.0"},
+                   config: [nx: [default_defn_options: [compiler: EXLA]]]
+                 },
+                 %{
+                   dep: {:exla, "~> 0.10.0"},
+                   config: [other: [default_defn_options: [compiler: EXLA]]]
+                 }
                ]
              ) ==
                {:ok,
                 """
                 Mix.install(
                   [
-                    {:req, "~> 0.5.0"}
+                    {:nx, "~> 0.10.0"},
+                    {:exla, "~> 0.10.0"}
                   ],
                   config: [
                     # Comment 1
@@ -301,23 +307,27 @@ defmodule Livebook.Runtime.DependenciesTest do
                 )\
                 """}
 
-      assert Dependencies.add_mix_deps(
+      assert Dependencies.insert_mix_dependencies(
                """
                Mix.install(
                  [
-                   {:req, "~> 0.5.0"}
+                   {:nx, "~> 0.10.0"}
                  ],
                  [config: []]
                )\
                """,
-               [],
-               nx: [default_backend: EXLA.Backend]
+               [
+                 %{
+                   dep: {:nx, "~> 0.10.0"},
+                   config: [nx: [default_backend: EXLA.Backend]]
+                 }
+               ]
              ) ==
                {:ok,
                 """
                 Mix.install(
                   [
-                    {:req, "~> 0.5.0"}
+                    {:nx, "~> 0.10.0"}
                   ],
                   config: [nx: [default_backend: EXLA.Backend]]
                 )\
@@ -326,14 +336,6 @@ defmodule Livebook.Runtime.DependenciesTest do
   end
 
   describe "search_packages_on_hex/2" do
-    test "sends a response message to the caller with the search results" do
-      ref = Dependencies.search_packages_on_hex(self(), "")
-      assert is_reference(ref)
-      assert_receive {:runtime_search_packages_response, ^ref, {:ok, []}}
-    end
-  end
-
-  describe "search_hex/2" do
     setup do
       bypass = Bypass.open()
       {:ok, bypass: bypass}
@@ -387,7 +389,7 @@ defmodule Livebook.Runtime.DependenciesTest do
 
       api_url = api_url(bypass.port)
 
-      assert Dependencies.search_hex("ecto", api_url: api_url) ==
+      assert Dependencies.search_packages_on_hex("ecto", api_url: api_url) ==
                {:ok,
                 [
                   %{
@@ -457,7 +459,7 @@ defmodule Livebook.Runtime.DependenciesTest do
       api_url = api_url(bypass.port)
 
       assert {:ok, [%{name: "ecto"}, %{name: "ecto_sql"}]} =
-               Dependencies.search_hex("ecto", api_url: api_url)
+               Dependencies.search_packages_on_hex("ecto", api_url: api_url)
     end
 
     test "returns an error on unsuccessful API response", %{bypass: bypass} do
@@ -467,14 +469,14 @@ defmodule Livebook.Runtime.DependenciesTest do
 
       api_url = api_url(bypass.port)
 
-      assert Dependencies.search_hex("ecto", api_url: api_url) ==
+      assert Dependencies.search_packages_on_hex("ecto", api_url: api_url) ==
                {:error, "unexpected response, HTTP status 404"}
     end
 
     test "returns an empty list for an empty search", %{bypass: bypass} do
       api_url = api_url(bypass.port)
 
-      assert Dependencies.search_hex("", api_url: api_url) == {:ok, []}
+      assert Dependencies.search_packages_on_hex("", api_url: api_url) == {:ok, []}
     end
   end
 

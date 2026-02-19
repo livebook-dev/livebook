@@ -125,7 +125,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     Livebook.Runtime.Attached.__connect__(runtime)
   end
 
-  def take_ownership(runtime, opts \\ []) do
+  def take_ownership(runtime, opts) do
     RuntimeServer.attach(runtime.server_pid, self(), opts)
     Process.monitor(runtime.server_pid)
   end
@@ -140,7 +140,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     Livebook.Runtime.Attached.new(runtime.node, runtime.cookie)
   end
 
-  def evaluate_code(runtime, language, code, locator, parent_locators, opts \\ []) do
+  def evaluate_code(runtime, language, code, locator, parent_locators, opts) do
     RuntimeServer.evaluate_code(
       runtime.server_pid,
       language,
@@ -198,21 +198,13 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
-  def fixed_dependencies?(_runtime), do: true
-
-  def add_dependencies(_runtime, _code, _dependencies) do
-    raise "not supported"
-  end
+  def supports_dependencies?(_runtime), do: false
 
   def has_dependencies?(runtime, dependencies) do
     RuntimeServer.has_dependencies?(runtime.server_pid, dependencies)
   end
 
-  def snippet_definitions(_runtime) do
-    Livebook.Runtime.Definitions.snippet_definitions()
-  end
-
-  def search_packages(_runtime, _send_to, _search) do
+  def packages_source(_runtime) do
     raise "not supported"
   end
 

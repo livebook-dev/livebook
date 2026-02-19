@@ -31,12 +31,20 @@ defmodule Livebook.Runtime.FlyTest do
     assert_receive {:runtime_connect_info, ^pid, "initialize node"}, @assert_receive_timeout
     assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, @assert_receive_timeout
 
-    Runtime.take_ownership(runtime)
+    Runtime.take_ownership(runtime, [])
 
     assert [_] = fly_run(fly, ~w(machine list))
 
     # Verify that we can actually evaluate code on the Fly machine
-    Runtime.evaluate_code(runtime, :elixir, ~s/System.fetch_env!("FLY_APP_NAME")/, {:c1, :e1}, [])
+    Runtime.evaluate_code(
+      runtime,
+      :elixir,
+      ~s/System.fetch_env!("FLY_APP_NAME")/,
+      {:c1, :e1},
+      [],
+      []
+    )
+
     assert_receive {:runtime_evaluation_response, :e1, %{type: :terminal_text, text: text}, _meta}
     assert text =~ fly.app_name
 

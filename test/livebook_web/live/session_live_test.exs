@@ -2081,10 +2081,8 @@ defmodule LivebookWeb.SessionLiveTest do
     test "lists search entries", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/package-search")
 
-      [search_view] = live_children(view)
-
       # Search the predefined dependencies in the embedded runtime
-      search_view
+      view
       |> element(~s{form[phx-change="search"]})
       |> render_change(%{"search" => "re"})
 

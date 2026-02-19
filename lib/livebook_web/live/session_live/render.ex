@@ -271,13 +271,12 @@ defmodule LivebookWeb.SessionLive.Render do
       width="medium"
       patch={@self_path}
     >
-      {live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
-        id: "package-search",
-        session: %{
-          "session_pid" => @session.pid,
-          "runtime" => @data_view.runtime
-        }
-      )}
+      <.live_component
+        module={LivebookWeb.SessionLive.PackageSearchComponent}
+        id="package-search"
+        session_pid={@session.pid}
+        runtime={@data_view.runtime}
+      />
     </.modal>
 
     <.modal
@@ -1402,7 +1401,7 @@ defmodule LivebookWeb.SessionLive.Render do
             small
             phx-click="enable_language"
             phx-value-language="python"
-            disabled={Livebook.Runtime.fixed_dependencies?(@data_view.runtime)}
+            disabled={not Livebook.Runtime.supports_dependencies?(@data_view.runtime)}
           >
             <.remix_icon icon="add-line" class="text-sm -mx-0.5 leading-none" />
             <span>Python</span>

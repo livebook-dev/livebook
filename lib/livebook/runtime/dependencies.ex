@@ -1,25 +1,20 @@
 defmodule Livebook.Runtime.Dependencies do
   @doc """
-  Adds the given list of dependencies to the setup code.
-  """
-  @spec add_dependencies(String.t(), list(Livebook.Runtime.dependency())) ::
-          {:ok, String.t()} | {:error, String.t()}
-  def add_dependencies(code, dependencies) do
-    deps = Enum.map(dependencies, & &1.dep)
-    config = Enum.reduce(dependencies, [], &Livebook.Utils.keyword_deep_merge(&2, &1.config))
-    add_mix_deps(code, deps, config)
-  end
-
-  @doc """
   Finds or adds a `Mix.install/2` call to `code` and modifies it to
   include the given Mix deps.
 
   A config may be given, in which case it is added or merged into the
   `Mix.install/2` `:config` option.
   """
-  @spec add_mix_deps(String.t(), list(tuple()), keyword()) ::
+  @spec insert_mix_dependencies(String.t(), list(Livebook.Runtime.dependency())) ::
           {:ok, String.t()} | {:error, String.t()}
-  def add_mix_deps(code, deps, config \\ []) do
+  def insert_mix_dependencies(code, dependencies) do
+    deps = Enum.map(dependencies, & &1.dep)
+    config = Enum.reduce(dependencies, [], &Livebook.Utils.keyword_deep_merge(&2, &1.config))
+    add_mix_deps(code, deps, config)
+  end
+
+  defp add_mix_deps(code, deps, config) do
     with {:ok, ast, comments} <- string_to_quoted_with_comments(code),
          {:ok, ast} <- insert_deps(ast, deps, config),
          do: {:ok, format(ast, comments)}
@@ -228,36 +223,13 @@ defmodule Livebook.Runtime.Dependencies do
   defp unescape_term(_node), do: :error
 
   @doc """
-  Implements `Livebook.Runtime.search_packages/3` on top of
-  `search_hex/2`.
+  Searches packages within the given list.
   """
-  @spec search_packages_on_hex(pid(), String.t()) :: reference()
-  def search_packages_on_hex(send_to, search) do
-    ref = make_ref()
-
-    {:ok, _pid} =
-      Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
-        response = search_hex(search)
-        send(send_to, {:runtime_search_packages_response, ref, response})
-      end)
-
-    ref
-  end
-
-  @doc """
-  Implements `Livebook.Runtime.search_packages/3` by searching
-  through the given list of packages.
-  """
-  @spec search_packages_in_list(
-          list(Livebook.Runtime.package_details()),
-          pid(),
-          String.t()
-        ) :: reference()
-  def search_packages_in_list(packages, send_to, search) do
-    ref = make_ref()
-    packages = Enum.filter(packages, &String.starts_with?(&1.name, search))
-    send(send_to, {:runtime_search_packages_response, ref, {:ok, packages}})
-    ref
+  @spec search_packages_in_list(list(Livebook.Runtime.package_details()), String.t()) ::
+          {:ok, list(Livebook.Runtime.package_details())}
+  def search_packages_in_list(packages, search) do
+    matching_packages = Enum.filter(packages, &String.starts_with?(&1.name, search))
+    {:ok, matching_packages}
   end
 
   @doc """
@@ -268,12 +240,13 @@ defmodule Livebook.Runtime.Dependencies do
       * `:api_url` - the base URL for Hex API requests. Optional
 
   """
-  @spec search_hex(String.t(), keyword()) :: Livebook.Runtime.search_packages_response()
-  def search_hex(search, opts \\ [])
+  @spec search_packages_on_hex(String.t(), keyword()) ::
+          {:ok, list(Livebook.Runtime.package_details())} | {:error, String.t()}
+  def search_packages_on_hex(search, opts \\ [])
 
-  def search_hex("", _opts), do: {:ok, []}
+  def search_packages_on_hex("", _opts), do: {:ok, []}
 
-  def search_hex(search, opts) do
+  def search_packages_on_hex(search, opts) do
     api_url = opts[:api_url] || "https://hex.pm/api"
 
     req = Req.new(base_url: api_url) |> Livebook.Utils.req_attach_defaults()
