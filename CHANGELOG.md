@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.18.6](https://github.com/livebook-dev/livebook/tree/v0.18.6) (2026-02-19)
+
+### Fixed
+
+* Fixed saving notebook to S3 file system ([#3134](https://github.com/livebook-dev/livebook/pull/3134))
+
 ## [v0.18.5](https://github.com/livebook-dev/livebook/tree/v0.18.5) (2026-02-03)
 
 ### Fixed
