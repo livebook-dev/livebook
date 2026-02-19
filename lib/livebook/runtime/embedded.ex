@@ -39,7 +39,7 @@ defmodule Livebook.Runtime.Embedded do
   defp do_connect(runtime, caller) do
     server_pid =
       ErlDist.initialize(node(),
-        node_manager_opts: [unload_modules_on_termination: false]
+        node_manager_opts: [unload_modules_on_termination: false, capture_orphan_logs: false]
       )
 
     runtime = %{runtime | server_pid: server_pid}

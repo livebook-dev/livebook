@@ -2,7 +2,6 @@ defmodule LivebookWeb.AppSessionLiveTest do
   use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
-  import Livebook.TestHelpers
   import Livebook.AppHelpers
 
   alias Livebook.App
@@ -85,17 +84,15 @@ defmodule LivebookWeb.AppSessionLiveTest do
             | cells: [
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source:
-                      source_for_output(%{
-                        type: :terminal_text,
-                        text: "Printed output",
-                        chunk: false
-                      })
+                  | source: """
+                    IO.puts("Printed output")
+                    """
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source:
-                      source_for_output(%{type: :plain_text, text: "Custom text", chunk: false})
+                  | source: """
+                    Kino.Text.new("Custom text")
+                    """
                 }
               ]
           }
@@ -133,12 +130,9 @@ defmodule LivebookWeb.AppSessionLiveTest do
             | cells: [
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source:
-                      source_for_output(%{
-                        type: :terminal_text,
-                        text: "Printed output",
-                        chunk: false
-                      })
+                  | source: """
+                    IO.puts("Printed output")
+                    """
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)
@@ -183,20 +177,9 @@ defmodule LivebookWeb.AppSessionLiveTest do
     Livebook.App.close(app.pid)
   end
 
-  test "shows the reprocessing button when there are changed inputs and no errors",
-       %{conn: conn, test: test} do
+  test "shows the reprocessing button when there are changed inputs and no errors", %{conn: conn} do
     slug = Livebook.Utils.random_short_id()
     app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
-
-    Process.register(self(), test)
-
-    input = %{
-      type: :input,
-      ref: "ref1",
-      id: "input1",
-      destination: test,
-      attrs: %{type: :number, default: 1, label: "Name", debounce: :blur}
-    }
 
     id = Livebook.Utils.random_short_id() |> String.to_atom()
 
@@ -209,11 +192,15 @@ defmodule LivebookWeb.AppSessionLiveTest do
             | cells: [
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: source_for_output(input)
+                  | source: """
+                    input = Kino.Input.number("Number", default: 1)
+                    """
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: source_for_input_read(input.id)
+                  | source: """
+                    Kino.Input.read(input)
+                    """
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)
@@ -242,9 +229,11 @@ defmodule LivebookWeb.AppSessionLiveTest do
                       sessions: [%{pid: session_pid, app_status: %{execution: :error}}]
                     }}
 
-    Livebook.Session.set_input_value(session_pid, input.id, 10)
-
     {:ok, view, _} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
+
+    view
+    |> element(~s/[data-el-output] form/)
+    |> render_change(%{"html_value" => "10"})
 
     # The button should not appear on error
     refute render(view) =~
@@ -257,7 +246,10 @@ defmodule LivebookWeb.AppSessionLiveTest do
     assert_receive {:app_updated,
                     %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
 
-    Livebook.Session.set_input_value(session_pid, input.id, 20)
+    view
+    |> element(~s/[data-el-output] form/)
+    |> render_change(%{"html_value" => "20"})
+
     Livebook.SessionHelpers.wait_for_session_update(session_pid)
 
     assert render(view) =~

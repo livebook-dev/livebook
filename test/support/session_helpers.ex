@@ -23,12 +23,9 @@ defmodule Livebook.SessionHelpers do
     assert_receive {:operation, {:add_cell_evaluation_response, _, "setup", _, _}}
   end
 
-  def insert_cell_with_output(session_pid, section_id, output) do
-    code = source_for_output(output)
-    cell_id = insert_text_cell(session_pid, section_id, :code, code)
+  def evaluate_cell(session_pid, cell_id) do
     Session.queue_cell_evaluation(session_pid, cell_id)
     assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
-    cell_id
   end
 
   def bypass_url(port), do: "http://localhost:#{port}"
@@ -45,10 +42,13 @@ defmodule Livebook.SessionHelpers do
   end
 
   def insert_text_cell(session_pid, section_id, type, content \\ " ", attrs \\ %{}) do
-    Session.insert_cell(session_pid, section_id, 0, type, Map.merge(attrs, %{source: content}))
     data = Session.get_data(session_pid)
     {:ok, section} = Livebook.Notebook.fetch_section(data.notebook, section_id)
-    cell = hd(section.cells)
+    idx = length(section.cells)
+    Session.insert_cell(session_pid, section_id, idx, type, Map.merge(attrs, %{source: content}))
+    data = Session.get_data(session_pid)
+    {:ok, section} = Livebook.Notebook.fetch_section(data.notebook, section_id)
+    cell = List.last(section.cells)
     cell.id
   end
 
