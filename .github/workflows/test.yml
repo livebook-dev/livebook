@@ -33,6 +33,12 @@ jobs:
           key: ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
+      - name: Restore bun cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('assets/bun.lock') }}
       - name: Install mix dependencies
         run: mix deps.get
       - name: Check formatting
@@ -43,14 +49,10 @@ jobs:
         run: mix test
         env:
           TEST_GIT_SSH_KEY: ${{ secrets.TEST_GIT_SSH_KEY }}
-      - name: Restore bun cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('assets/bun.lock') }}
       - name: Install bun dependencies
-        run: mix bun.install --if-missing
+        run: |
+          mix bun.install --if-missing
+          mix bun assets install
       - name: Check assets formatting
         run: mix bun assets run format-check
       - name: Run assets tests

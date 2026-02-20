@@ -18,7 +18,7 @@ config :phoenix, :json_library, JSON
 
 # Configure bun (the version is required)
 config :bun,
-  version: "1.3.9",
+  version: "1.2.23",
   assets: [args: ~w(), cd: Path.expand("../assets", __DIR__)]
 
 # Additional mime types

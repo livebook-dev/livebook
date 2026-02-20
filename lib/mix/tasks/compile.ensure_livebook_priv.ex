@@ -13,10 +13,12 @@ defmodule Mix.Tasks.Compile.EnsureLivebookPriv do
     # In case Livebook is used as a library as in nerves_livebook,
     # the assets.setup is not called, so we use this custom compiler
     # to invoke the task and make the assets work transparently.
-    if not File.exists?(priv_static_dir) do
+    if Mix.env() == :prod and not File.exists?(priv_static_dir) do
       Mix.shell().info("Generating priv/static")
 
-      :ok = Mix.Task.run("assets.setup")
+      Mix.Task.run("bun.install", ~w"--if-missing")
+      Mix.Task.run("bun", ~w"assets install")
+      Mix.Task.run("bun", ~w" assets run build")
     end
 
     :ok
