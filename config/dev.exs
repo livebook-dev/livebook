@@ -17,8 +17,7 @@ config :livebook, LivebookWeb.Endpoint,
   debug_errors: true,
   check_origin: false,
   watchers: [
-    # We invoke node rather than an npm task, so that it works on Windows
-    node: ["build.js", "--watch", cd: Path.expand("../assets", __DIR__)]
+    bun_assets: {Bun, :install_and_run, [:assets, ~w(dev)]}
   ]
 
 config :livebook,
@@ -54,9 +53,14 @@ config :livebook,
 config :livebook, LivebookWeb.Endpoint,
   live_reload: [
     patterns: [
-      ~r"tmp/static_dev/.*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"lib/livebook_web/(live|views|components)/.*(ex)$",
-      ~r"lib/livebook_web/templates/.*(eex)$"
+      ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"lib/livebook_web/controllers/.*(ex|heex)$"
+    ],
+    notify: [
+      # For LV we configure re-render without reloading the page.
+      live_view: [
+        ~r"lib/livebook_web/(live|components)/.*(ex|heex)$"
+      ]
     ],
     web_console_logger: true
   ]

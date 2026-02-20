@@ -14,7 +14,7 @@ defmodule LivebookWeb.IframeEndpoint do
     ]
 
   @doc false
-  def static_from(), do: Path.join(Livebook.Config.priv_path(), "iframe_static")
+  def static_from(), do: Path.join(Livebook.Config.priv_path(), "static/iframe")
 
   plug :not_found
 

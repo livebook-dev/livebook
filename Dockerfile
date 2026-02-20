@@ -58,13 +58,14 @@ RUN mix do deps.get, deps.compile
 
 # Compile and build the release
 COPY rel rel
-COPY static static
+COPY priv/.gitkeep priv/.gitkeep
 COPY iframe/priv/static/iframe iframe/priv/static/iframe
 COPY proto proto
+COPY assets assets
 COPY lib lib
 # We need README.md during compilation (look for @external_resource "README.md")
 COPY README.md README.md
-RUN mix do compile, release livebook
+RUN mix do compile + assets.setup + release livebook
 
 # Final stage: prepares the runtime environment and copies over the release.
 #

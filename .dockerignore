@@ -13,6 +13,5 @@ npm-debug.log
 /tmp/
 /livebook
 /priv/static
-/priv/iframe_static
 # Ignore app release files, including build artifacts
 /rel/app

@@ -21,7 +21,7 @@ export MIX_ENV=prod
 export MIX_TARGET=app
 export ELIXIRKIT_CONFIGURATION=Release
 
-mix deps.get --only prod
+mix setup.prod
 
 cd rel/app/windows
 ./build_installer.sh

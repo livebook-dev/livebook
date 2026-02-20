@@ -59,7 +59,7 @@ build_app() {
   export MIX_TARGET=app
   export ELIXIRKIT_BUILD_ARGS="--configuration release --arch x86_64 --arch arm64"
 
-  mix deps.get --only prod
+  mix setup.prod
 
   cd rel/app/macos
   ./build_dmg.sh

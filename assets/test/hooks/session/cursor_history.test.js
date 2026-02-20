@@ -1,3 +1,4 @@
+import { describe, test, expect } from "vitest";
 import CursorHistory from "../../../js/hooks/session/cursor_history";
 
 test("goBack returns when there's at least one cell", () => {

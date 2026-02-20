@@ -2,10 +2,8 @@
 
 0. If applicable, release Kino first and update built-in notebooks to reference
    the new version.
-1. Make sure the latest CI "Assets" workflow finished.
-2. Switch to (or create) vx.y branch.
-3. If applicable cherry-pick the relevant commits from main onto the vx.y branch.
-   1. If you do that, push, wait for CI "Assets" workflow to finish, and pull.
+1. Switch to (or create) vx.y branch.
+2. If applicable cherry-pick the relevant commits from main onto the vx.y branch.
 3. Update version in `mix.exs` and finish changelog.
 4. Run `mix hex.build` as a sanity check.
 5. `git tag vx.y.z`, `git push --tags`

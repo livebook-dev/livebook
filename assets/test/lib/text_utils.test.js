@@ -1,3 +1,4 @@
+import { test, expect } from "vitest";
 import { replacedSuffixLength } from "../../js/lib/text_utils";
 
 test("replacedSuffixLength", () => {
