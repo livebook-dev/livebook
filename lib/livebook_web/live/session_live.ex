@@ -280,7 +280,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("insert_example_snippet_below", params, socket) do
-    data = socket.private.data
     %{"section_id" => section_id, "cell_id" => cell_id} = params
 
     socket =
@@ -294,7 +293,7 @@ defmodule LivebookWeb.SessionLive do
           {:noreply, put_flash(socket, :info, message)}
 
         :connected ->
-          case example_snippet_definition_by_name(data, params["definition_name"]) do
+          case example_snippet_definition_by_name(params["definition_name"]) do
             {:ok, definition} ->
               variant = Enum.fetch!(definition.variants, params["variant_idx"])
 
@@ -824,7 +823,7 @@ defmodule LivebookWeb.SessionLive do
                section_id: section_id,
                cell_id: cell_id,
                file_entry: file_entry,
-               handlers: handlers_for_file_entry(file_entry, socket.private.data.runtime)
+               handlers: handlers_for_file_entry(file_entry)
              }
            )
            |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-file")}
@@ -1073,7 +1072,7 @@ defmodule LivebookWeb.SessionLive do
              section_id: section_id,
              cell_id: cell_id,
              file_entry: file_entry,
-             handlers: handlers_for_file_entry(file_entry, socket.private.data.runtime)
+             handlers: handlers_for_file_entry(file_entry)
            }
          )
          |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-file")}
@@ -1621,10 +1620,9 @@ defmodule LivebookWeb.SessionLive do
     for info <- starred_notebooks, into: MapSet.new(), do: info.file
   end
 
-  defp example_snippet_definition_by_name(data, name) do
-    data.runtime
-    |> Livebook.Runtime.snippet_definitions()
-    |> Enum.find_value(:error, &(&1.type == :example && &1.name == name && {:ok, &1}))
+  defp example_snippet_definition_by_name(name) do
+    Livebook.Runtime.Definitions.example_snippet_definitions()
+    |> Enum.find_value(:error, &(&1.name == name && {:ok, &1}))
   end
 
   defp smart_cell_definition_by_kind(data, kind) do
@@ -1645,7 +1643,7 @@ defmodule LivebookWeb.SessionLive do
           :error -> socket
         end
 
-      Livebook.Runtime.fixed_dependencies?(socket.private.data.runtime) ->
+      not Livebook.Runtime.supports_dependencies?(socket.private.data.runtime) ->
         put_flash(socket, :error, "This runtime doesn't support adding dependencies")
 
       true ->
@@ -1761,10 +1759,9 @@ defmodule LivebookWeb.SessionLive do
     Enum.find(socket.private.data.notebook.file_entries, &(&1.name == name))
   end
 
-  defp handlers_for_file_entry(file_entry, runtime) do
+  defp handlers_for_file_entry(file_entry) do
     handlers =
-      for definition <- Livebook.Runtime.snippet_definitions(runtime),
-          definition.type == :file_action,
+      for definition <- Livebook.Runtime.Definitions.file_action_snippet_definitions(),
           do: %{definition: definition, cell_type: :code}
 
     handlers =
@@ -1837,9 +1834,7 @@ defmodule LivebookWeb.SessionLive do
       runtime_connected_nodes: Enum.sort(data.runtime_connected_nodes),
       smart_cell_definitions: Enum.sort_by(data.smart_cell_definitions, & &1.name),
       example_snippet_definitions:
-        data.runtime
-        |> Livebook.Runtime.snippet_definitions()
-        |> Enum.filter(&(&1.type == :example))
+        Livebook.Runtime.Definitions.example_snippet_definitions()
         |> Enum.sort_by(& &1.name),
       global_status: global_status(data),
       notebook_name: data.notebook.name,

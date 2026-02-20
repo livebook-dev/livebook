@@ -2371,7 +2371,7 @@ defmodule Livebook.Intellisense.ElixirTest do
       start_supervised!({
         Task,
         fn ->
-          Livebook.Runtime.take_ownership(runtime)
+          Livebook.Runtime.take_ownership(runtime, [])
 
           code =
             ~S'''
@@ -2389,7 +2389,7 @@ defmodule Livebook.Intellisense.ElixirTest do
             end
             '''
 
-          Livebook.Runtime.evaluate_code(runtime, :elixir, code, {:c1, :e1}, [])
+          Livebook.Runtime.evaluate_code(runtime, :elixir, code, {:c1, :e1}, [], [])
           receive do: ({:runtime_evaluation_response, :e1, _, _} -> :ok)
           send(parent, :continue)
 

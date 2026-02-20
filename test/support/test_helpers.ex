@@ -73,32 +73,6 @@ defmodule Livebook.TestHelpers do
   end
 
   @doc """
-  Builds code that renders the given output as part of evaluation.
-  """
-  def source_for_output(output) do
-    quote do
-      send(
-        Process.group_leader(),
-        {:io_request, self(), make_ref(), {:livebook_put_output, unquote(Macro.escape(output))}}
-      )
-    end
-    |> Macro.to_string()
-  end
-
-  @doc """
-  Builds code that renders the given output as part of evaluation.
-  """
-  def source_for_input_read(input_id) do
-    quote do
-      send(
-        Process.group_leader(),
-        {:io_request, self(), make_ref(), {:livebook_get_input_value, unquote(input_id)}}
-      )
-    end
-    |> Macro.to_string()
-  end
-
-  @doc """
   Builds code that awaits for a messages before finishing.
 
   Returns `{code, continue_fun}`, where calling `continue_fun` should
@@ -132,6 +106,15 @@ defmodule Livebook.TestHelpers do
   defmacro terminal_text(text, chunk \\ false) do
     quote do
       %{type: :terminal_text, text: unquote(text), chunk: unquote(chunk)}
+    end
+  end
+
+  @doc """
+  Builds an error output map.
+  """
+  defmacro error_output(message) do
+    quote do
+      %{type: :error, message: unquote(message)}
     end
   end
 

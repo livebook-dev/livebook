@@ -53,19 +53,11 @@ defmodule Livebook.Runtime.NoopRuntime do
     def set_smart_cell_parent_locators(_, _, _), do: :ok
     def stop_smart_cell(_, _), do: :ok
 
-    def fixed_dependencies?(_), do: false
-
-    def add_dependencies(_runtime, code, dependencies) do
-      Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
-    end
+    def supports_dependencies?(_), do: true
 
     def has_dependencies?(_runtime, _dependencies), do: true
 
-    def snippet_definitions(_runtime) do
-      Livebook.Runtime.Definitions.snippet_definitions()
-    end
-
-    def search_packages(_, _, _), do: make_ref()
+    def packages_source(_), do: :hex
 
     def put_system_envs(_, _), do: :ok
     def delete_system_envs(_, _), do: :ok

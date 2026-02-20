@@ -157,17 +157,13 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
     test "using livebook input sends input request to the caller", %{evaluator: evaluator} do
       code = """
-      ref = make_ref()
-      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_get_input_value, "input1"}})
-
-      receive do
-        {:io_reply, ^ref, {:ok, value}} -> value
-      end
+      input = Kino.Input.number("Number")
+      Kino.Input.read(input)
       """
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
-      assert_receive {:runtime_evaluation_input_request, :code_1, reply_to, "input1"}
+      assert_receive {:runtime_evaluation_input_request, :code_1, reply_to, _input_id}
       send(reply_to, {:runtime_evaluation_input_reply, {:ok, 10}})
 
       assert_receive {:runtime_evaluation_response, :code_1, terminal_text(ansi_number(10)),
@@ -380,7 +376,11 @@ defmodule Livebook.Runtime.EvaluatorTest do
       # The evaluation reference is the same, so the second one overrides
       # the first one and the first widget should eventually be killed.
 
-      Evaluator.evaluate_code(evaluator, :elixir, spawn_widget_code(), :code_1, [])
+      code = """
+      Kino.start_child!({Task, fn -> Process.sleep(:infinity) end})
+      """
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
       assert_receive {:runtime_evaluation_response, :code_1, terminal_text(widget_pid1_string),
                       metadata()}
@@ -389,7 +389,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       ref = Process.monitor(widget_pid1)
 
-      Evaluator.evaluate_code(evaluator, :elixir, spawn_widget_code(), :code_1, [])
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
       assert_receive {:runtime_evaluation_response, :code_1, terminal_text(widget_pid2_string),
                       metadata()}
@@ -405,13 +405,20 @@ defmodule Livebook.Runtime.EvaluatorTest do
       # The widget is spawned from a process that terminates,
       # so the widget should terminate immediately as well
 
-      Evaluator.evaluate_code(
-        evaluator,
-        :elixir,
-        spawn_widget_from_terminating_process_code(),
-        :code_1,
-        []
-      )
+      code = """
+      parent = self()
+
+      spawn(fn ->
+        pid = Kino.start_child!({Task, fn -> Process.sleep(:infinity) end})
+        send(parent, {:widget_pid, pid})
+      end)
+
+      receive do
+        {:widget_pid, pid} -> pid
+      end
+      """
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
       assert_receive {:runtime_evaluation_response, :code_1, terminal_text(widget_pid1_string),
                       metadata()}
@@ -1298,7 +1305,11 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
 
     test "kills widgets that no evaluation points to", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, :elixir, spawn_widget_code(), :code_1, [])
+      code = """
+      Kino.start_child!({Task, fn -> Process.sleep(:infinity) end})
+      """
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
       assert_receive {:runtime_evaluation_response, :code_1, terminal_text(widget_pid1_string),
                       metadata()}
@@ -1687,7 +1698,13 @@ defmodule Livebook.Runtime.EvaluatorTest do
   end
 
   describe "formatting" do
+    @tag :capture_log
     test "gracefully handles errors in the inspect protocol", %{evaluator: evaluator} do
+      # First Kino.Render will be called and raise on inspect, in which
+      # case we log an error (hence the capture_log above). Then as a
+      # fallback inspect is called and also raises. We expect to get an
+      # error output, rather than anything crashing.
+
       code = "%Livebook.TestModules.BadInspect{}"
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex")
 
@@ -1695,69 +1712,5 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       assert message =~ ":bad_return"
     end
-  end
-
-  # Helpers
-
-  # Returns a code that spawns a widget process, registers
-  # a pointer for it and adds monitoring, then returns widget
-  # pid from the evaluation
-  defp spawn_widget_code() do
-    """
-    widget_pid = spawn(fn ->
-      receive do
-        :stop -> :ok
-      end
-    end)
-
-    ref = make_ref()
-    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_reference_object, widget_pid, self()}})
-
-    receive do
-      {:io_reply, ^ref, :ok} -> :ok
-    end
-
-    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_monitor_object, widget_pid, widget_pid, :stop}})
-
-    receive do
-      {:io_reply, ^ref, :ok} -> :ok
-    end
-
-    widget_pid
-    """
-  end
-
-  defp spawn_widget_from_terminating_process_code() do
-    """
-    parent = self()
-
-    # Arbitrary process that spawns the widget and terminates afterwards
-    spawn(fn ->
-      widget_pid = spawn(fn ->
-        receive do
-          :stop -> :ok
-        end
-      end)
-
-      ref = make_ref()
-      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_reference_object, widget_pid, self()}})
-
-      receive do
-        {:io_reply, ^ref, :ok} -> :ok
-      end
-
-      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_monitor_object, widget_pid, widget_pid, :stop}})
-
-      receive do
-        {:io_reply, ^ref, :ok} -> :ok
-      end
-
-      send(parent, {:widget_pid, widget_pid})
-    end)
-
-    receive do
-      {:widget_pid, widget_pid} -> widget_pid
-    end
-    """
   end
 end

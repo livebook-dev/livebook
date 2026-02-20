@@ -39,7 +39,7 @@ defmodule Livebook.Runtime.Embedded do
   defp do_connect(runtime, caller) do
     server_pid =
       ErlDist.initialize(node(),
-        node_manager_opts: [unload_modules_on_termination: false]
+        node_manager_opts: [unload_modules_on_termination: false, capture_orphan_logs: false]
       )
 
     runtime = %{runtime | server_pid: server_pid}
@@ -58,7 +58,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     Livebook.Runtime.Embedded.__connect__(runtime)
   end
 
-  def take_ownership(runtime, opts \\ []) do
+  def take_ownership(runtime, opts) do
     RuntimeServer.attach(runtime.server_pid, self(), opts)
     Process.monitor(runtime.server_pid)
   end
@@ -71,7 +71,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     Livebook.Runtime.Embedded.new()
   end
 
-  def evaluate_code(runtime, language, code, locator, parent_locators, opts \\ []) do
+  def evaluate_code(runtime, language, code, locator, parent_locators, opts) do
     RuntimeServer.evaluate_code(
       runtime.server_pid,
       language,
@@ -129,26 +129,18 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
-  def fixed_dependencies?(_runtime) do
-    not Keyword.has_key?(config(), :load_packages)
-  end
-
-  def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
+  def supports_dependencies?(_runtime) do
+    Keyword.has_key?(config(), :load_packages)
   end
 
   def has_dependencies?(runtime, dependencies) do
     RuntimeServer.has_dependencies?(runtime.server_pid, dependencies)
   end
 
-  def snippet_definitions(_runtime) do
-    Livebook.Runtime.Definitions.snippet_definitions()
-  end
-
-  def search_packages(_runtime, send_to, search) do
+  def packages_source(_runtime) do
     {mod, fun, args} = config()[:load_packages]
     packages = apply(mod, fun, args)
-    Livebook.Runtime.Dependencies.search_packages_in_list(packages, send_to, search)
+    {:list, packages}
   end
 
   def put_system_envs(runtime, envs) do

@@ -134,6 +134,7 @@ defmodule Livebook.MixProject do
       {:lazy_html, "~> 0.1.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
       {:pythonx, "~> 0.4.2", only: :test},
+      {:kino, "~> 0.18.0", only: :test},
       # Docs
       {:ex_doc, "~> 0.39", only: :dev, runtime: false}
     ]

@@ -72,14 +72,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  See `Livebook.Runtime.evaluate_code/6`.
+
   Evaluates the given code using an `Livebook.Runtime.Evaluator`
-  process belonging to the given container and instructs
-  it to send all the outputs to the owner process.
+  process that belongs to the given container and instructs it to
+  send all the outputs to the owner process.
 
-  If no evaluator exists for the given container, a new
-  one is started.
-
-  See `Livebook.Runtime.Evaluator` for more details.
+  If no evaluator exists for the given container, a new one is started.
   """
   @spec evaluate_code(
           pid(),
@@ -94,9 +93,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Removes the specified evaluation from the history.
-
-  See `Livebook.Runtime.Evaluator` for more details.
+  See `Livebook.Runtime.forget_evaluation/2`.
   """
   @spec forget_evaluation(pid(), Runtime.locator()) :: :ok
   def forget_evaluation(pid, locator) do
@@ -104,7 +101,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Terminates the `Livebook.Runtime.Evaluator` process that belongs
+  See `Livebook.Runtime.drop_container/2`.
+
+  Terminates the `Livebook.Runtime.Evaluator` process that corresponds
   to the given container.
   """
   @spec drop_container(pid(), Runtime.container_ref()) :: :ok
@@ -113,14 +112,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Asynchronously sends an intellisense request to the server.
+  See `Livebook.Runtime.handle_intellisense/6`.
 
   Completions are forwarded to `Livebook.Runtime.Evaluator` process
   that belongs to the given container. If there's no evaluator,
-  there's also no binding and environment, so a generic
-  completion is handled by a temporary process.
-
-  See `Livebook.Runtime` for more details.
+  there's also no binding and environment, so a generic completion
+  is handled by a temporary process.
   """
   @spec handle_intellisense(
           pid(),
@@ -142,8 +139,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Reads file at the given absolute path within the runtime
-  file system.
+  See `Livebook.Runtime.read_file/2`.
   """
   @spec read_file(pid(), String.t()) :: {:ok, binary()} | {:error, String.t()}
   def read_file(pid, path) do
@@ -161,11 +157,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Transfers file at `path` to the runtime.
-
-  If the runtime is at the same host as the caller, no copying occurs.
-
-  See `Livebook.Runtime` for more details.
+  See `Livebook.Runtime.transfer_file/4`.
   """
   @spec transfer_file(pid(), String.t(), String.t(), (path :: String.t() | nil -> any())) :: :ok
   def transfer_file(pid, path, file_id, callback) do
@@ -203,9 +195,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Changes the file id set by `transfer_file/4`, if any.
-
-  See `Livebook.Runtime` for more details.
+  See `Livebook.Runtime.relabel_file/3`.
   """
   @spec relabel_file(pid(), String.t(), String.t()) :: :ok
   def relabel_file(pid, file_id, new_file_id) do
@@ -217,9 +207,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Removes the file created by `transfer_file/4`, if any.
-
-  See `Livebook.Runtime` for more details.
+  See `Livebook.Runtime.relabel_file/2`.
   """
   @spec revoke_file(pid(), String.t()) :: :ok
   def revoke_file(pid, file_id) do
@@ -231,7 +219,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Starts a new smart cell.
+  See `Livebook.Runtime.start_smart_cell/5`.
   """
   @spec start_smart_cell(
           pid(),
@@ -245,7 +233,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Updates the parent locator used by a smart cell as its context.
+  See `Livebook.Runtime.set_smart_cell_parent_locators/3`.
   """
   @spec set_smart_cell_parent_locators(
           pid(),
@@ -257,7 +245,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Stops the given smart cell.
+  See `Livebook.Runtime.stop_smart_cell/2`.
   """
   @spec stop_smart_cell(pid(), String.t()) :: :ok
   def stop_smart_cell(pid, ref) do
@@ -265,8 +253,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Checks if the given dependencies are already installed within the
-  runtime.
+  See `Livebook.Runtime.has_dependencies?/2`.
   """
   @spec has_dependencies?(pid(), list(Runtime.dependency())) :: boolean()
   def has_dependencies?(pid, dependencies) do
@@ -274,7 +261,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Sets the given environment variables.
+  See `Livebook.Runtime.put_system_envs/2`.
   """
   @spec put_system_envs(pid(), list({String.t(), String.t()})) :: :ok
   def put_system_envs(pid, envs) do
@@ -282,7 +269,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Unsets the given environment variables.
+  See `Livebook.Runtime.delete_system_envs/2`.
   """
   @spec delete_system_envs(pid(), list(String.t())) :: :ok
   def delete_system_envs(pid, names) do
@@ -290,7 +277,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Restores information from a past runtime.
+  See `Livebook.Runtime.restore_transient_state/2`.
   """
   @spec restore_transient_state(pid(), Runtime.transient_state()) :: :ok
   def restore_transient_state(pid, transient_state) do
@@ -298,7 +285,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Notifies the runtime about connected clients.
+  See `Livebook.Runtime.register_clients/2`.
   """
   @spec register_clients(pid(), list({Runtime.client_id(), Runtime.user_info()})) :: :ok
   def register_clients(pid, clients) do
@@ -306,7 +293,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Notifies the runtime about clients leaving.
+  See `Livebook.Runtime.unregister_clients/2`.
   """
   @spec unregister_clients(pid(), list(Runtime.client_id())) :: :ok
   def unregister_clients(pid, client_ids) do
@@ -314,7 +301,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Fetches information about a proxy request handler, if available.
+  See `Livebook.Runtime.fetch_proxy_handler_spec/1`.
   """
   @spec fetch_proxy_handler_spec(pid()) ::
           {:ok, {module(), atom(), list()}} | {:error, :not_found}
@@ -324,6 +311,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
+  @doc """
+  See `Livebook.Runtime.disconnect_node/1`.
+  """
+  @spec disconnect_node(pid(), node()) :: :ok
   def disconnect_node(pid, node) do
     GenServer.cast(pid, {:disconnect_node, node})
   end
@@ -350,7 +341,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     schedule_memory_usage_report()
 
-    {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
+    {:ok, evaluator_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
     {:ok, task_supervisor} = Task.Supervisor.start_link()
     {:ok, object_tracker} = Evaluator.ObjectTracker.start_link()
     {:ok, client_tracker} = Evaluator.ClientTracker.start_link()
@@ -790,16 +781,17 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     if Map.has_key?(state.evaluators, container_ref) do
       state
     else
-      {:ok, evaluator} =
-        ErlDist.EvaluatorSupervisor.start_evaluator(
-          state.evaluator_supervisor,
-          send_to: state.owner,
-          runtime_broadcast_to: state.runtime_broadcast_to,
-          object_tracker: state.object_tracker,
-          client_tracker: state.client_tracker,
-          ebin_path: state.ebin_path,
-          tmp_dir: evaluator_tmp_dir(state)
-        )
+      evaluator_opts = [
+        send_to: state.owner,
+        runtime_broadcast_to: state.runtime_broadcast_to,
+        object_tracker: state.object_tracker,
+        client_tracker: state.client_tracker,
+        ebin_path: state.ebin_path,
+        tmp_dir: evaluator_tmp_dir(state)
+      ]
+
+      {:ok, _pid, evaluator} =
+        DynamicSupervisor.start_child(state.evaluator_supervisor, {Evaluator, evaluator_opts})
 
       Process.monitor(evaluator.pid)
       %{state | evaluators: Map.put(state.evaluators, container_ref, evaluator)}
@@ -809,7 +801,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   defp discard_evaluator(state, container_ref) do
     case Map.fetch(state.evaluators, container_ref) do
       {:ok, evaluator} ->
-        ErlDist.EvaluatorSupervisor.terminate_evaluator(state.evaluator_supervisor, evaluator)
+        DynamicSupervisor.terminate_child(state.evaluator_supervisor, evaluator.pid)
         %{state | evaluators: Map.delete(state.evaluators, container_ref)}
 
       :error ->

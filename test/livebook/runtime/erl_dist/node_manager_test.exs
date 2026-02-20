@@ -12,7 +12,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManagerTest do
     assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, 5_000
     %{node: node, server_pid: server1} = runtime
 
-    Runtime.take_ownership(runtime)
+    Runtime.take_ownership(runtime, [])
 
     manager_pid = :erpc.call(node, Process, :whereis, [Livebook.Runtime.ErlDist.NodeManager])
     ref = Process.monitor(manager_pid)

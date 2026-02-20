@@ -8,7 +8,7 @@ defmodule Livebook.Runtime.StandaloneTest do
       pid = Runtime.Standalone.new() |> Runtime.connect()
       assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, 5_000
       %{node: node} = runtime
-      Runtime.take_ownership(runtime)
+      Runtime.take_ownership(runtime, [])
 
       # Make sure the node is running.
       Node.monitor(node, true)
@@ -26,7 +26,7 @@ defmodule Livebook.Runtime.StandaloneTest do
       pid = Runtime.Standalone.new() |> Runtime.connect()
       assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, 5_000
       %{node: node} = runtime
-      Runtime.take_ownership(runtime)
+      Runtime.take_ownership(runtime, [])
 
       assert evaluator_module_loaded?(node)
       assert manager_started?(node)
@@ -37,7 +37,7 @@ defmodule Livebook.Runtime.StandaloneTest do
     pid = Runtime.Standalone.new() |> Runtime.connect()
     assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, 5_000
     %{node: node} = runtime
-    Runtime.take_ownership(runtime)
+    Runtime.take_ownership(runtime, [])
 
     # Make sure the node is running.
     Node.monitor(node, true)

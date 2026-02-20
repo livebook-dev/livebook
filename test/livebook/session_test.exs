@@ -907,35 +907,21 @@ defmodule Livebook.SessionTest do
   # Integration tests concerning input communication
   # between runtime and session
 
-  @livebook_put_input_code """
-  input = %{
-    type: :input,
-    ref: "ref",
-    id: "input1",
-    destination: nil,
-    attrs: %{type: :number, default: "hey", label: "Name"}
-  }
-
-  send(
-    Process.group_leader(),
-    {:io_request, self(), make_ref(), {:livebook_put_output, input}}
-  )
-  """
-
-  @livebook_get_input_value_code """
-  ref = make_ref()
-  send(Process.group_leader(), {:io_request, self(), ref, {:livebook_get_input_value, "input1"}})
-
-  receive do
-    {:io_reply, ^ref, reply} -> reply
-  end
-  """
-
   describe "user input" do
     test "replies to runtime input request" do
-      input_code_cell = %{Notebook.Cell.new(:code) | source: @livebook_put_input_code}
+      input_code_cell = %{
+        Notebook.Cell.new(:code)
+        | source: """
+          input = Kino.Input.number("Number", default: 10)
+          """
+      }
 
-      code_cell = %{Notebook.Cell.new(:code) | source: @livebook_get_input_value_code}
+      code_cell = %{
+        Notebook.Cell.new(:code)
+        | source: """
+          Kino.Input.read(input)
+          """
+      }
 
       notebook = %{
         Notebook.new()
@@ -955,11 +941,18 @@ defmodule Livebook.SessionTest do
                       {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
                        %{evaluation_time_ms: _time_ms}}}
 
-      assert text_output =~ "hey"
+      assert text_output =~ "10"
     end
 
     test "replies with error when no matching input is found" do
-      code_cell = %{Notebook.Cell.new(:code) | source: @livebook_get_input_value_code}
+      code_cell = %{
+        Notebook.Cell.new(:code)
+        | source: """
+          # We try to read an input that has not been rendered.
+          input = Kino.Input.number("Number", default: 10)
+          Kino.Input.read(input)
+          """
+      }
 
       notebook = %{
         Notebook.new()
@@ -976,10 +969,10 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
+                      {:add_cell_evaluation_response, _, ^cell_id, error_output(message),
                        %{evaluation_time_ms: _time_ms}}}
 
-      assert text_output =~ ":error"
+      assert message =~ "failed to read input value, input not found"
     end
   end
 

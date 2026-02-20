@@ -463,7 +463,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <span class="text-sm font-medium">Reconnect and setup</span>
         <% end %>
       </button>
-      <%= unless Livebook.Runtime.fixed_dependencies?(@runtime) do %>
+      <%= if Livebook.Runtime.supports_dependencies?(@runtime) do %>
         <.menu id="setup-menu" position="bottom-left" distant>
           <:toggle>
             <button class="flex text-gray-600 hover:text-gray-800">
@@ -538,22 +538,22 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp package_search_button(assigns) do
     ~H"""
-    <%= if Livebook.Runtime.fixed_dependencies?(@runtime) do %>
-      <span
-        class="tooltip top"
-        data-tooltip="The current runtime does not support adding dependencies"
-      >
-        <.icon_button disabled>
-          <.remix_icon icon="play-list-add-line" />
-        </.icon_button>
-      </span>
-    <% else %>
+    <%= if Livebook.Runtime.supports_dependencies?(@runtime) do %>
       <span class="tooltip top" data-tooltip="Add package (sp)">
         <.icon_button
           patch={~p"/sessions/#{@session_id}/package-search"}
           role="button"
           data-btn-package-search
         >
+          <.remix_icon icon="play-list-add-line" />
+        </.icon_button>
+      </span>
+    <% else %>
+      <span
+        class="tooltip top"
+        data-tooltip="The current runtime does not support adding dependencies"
+      >
+        <.icon_button disabled>
           <.remix_icon icon="play-list-add-line" />
         </.icon_button>
       </span>

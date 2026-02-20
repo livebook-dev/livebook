@@ -17,7 +17,8 @@ end)
 # explicitly
 Livebook.Runtime.ErlDist.NodeManager.start(
   auto_termination: false,
-  unload_modules_on_termination: false
+  unload_modules_on_termination: false,
+  capture_orphan_logs: false
 )
 
 # Use the embedded runtime in tests by default, so they are cheaper

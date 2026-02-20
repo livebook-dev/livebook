@@ -248,10 +248,8 @@ defmodule Livebook.Runtime.Definitions do
     }
   ]
 
-  @snippet_definitions [
-    # Examples
+  @example_snippet_definitions [
     %{
-      type: :example,
       name: "Form",
       icon: "bill-line",
       variants: [
@@ -275,8 +273,10 @@ defmodule Livebook.Runtime.Definitions do
           packages: [kino]
         }
       ]
-    },
-    # File actions
+    }
+  ]
+
+  @file_action_snippet_definitions [
     %{
       type: :file_action,
       file_types: :any,
@@ -492,9 +492,47 @@ defmodule Livebook.Runtime.Definitions do
     }
   ]
 
+  @spec smart_cell_definitions() :: list(Livebook.Runtime.smart_cell_definition())
   def smart_cell_definitions(), do: @smart_cell_definitions
 
-  def snippet_definitions(), do: @snippet_definitions
+  @doc """
+  Code snippet with fixed source, serving as an example or boilerplate.
+  """
+  @spec example_snippet_definitions() ::
+          list(%{
+            type: :example,
+            name: String.t(),
+            icon: String.t(),
+            variants:
+              list(%{
+                name: String.t(),
+                source: String.t(),
+                packages: list(Livebook.Runtime.package())
+              })
+          })
+  def example_snippet_definitions(), do: @example_snippet_definitions
+
+  @doc """
+  Code snippet for acting on files of the given type.
+
+  The action is applicable to files matching any of the specified types,
+  where a type can be either:
+
+    * specific MIME type, like `text/csv`
+    * MIME type family, like `image/*`
+    * file extension, like `.csv`
+
+  The source is expected to include `{{NAME}}`, which is replaced with
+  the actual file name.
+  """
+  @spec file_action_snippet_definitions() ::
+          list(%{
+            file_types: :any | list(String.t()),
+            description: String.t(),
+            source: String.t(),
+            packages: list(Livebook.Runtime.package())
+          })
+  def file_action_snippet_definitions(), do: @file_action_snippet_definitions
 
   def pythonx_dependency() do
     %{dep: {:pythonx, "~> 0.4.2"}, config: []}

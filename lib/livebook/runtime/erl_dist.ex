@@ -41,7 +41,6 @@ defmodule Livebook.Runtime.ErlDist do
       Livebook.Runtime.ErlDist,
       Livebook.Runtime.ErlDist.NodeManager,
       Livebook.Runtime.ErlDist.RuntimeServer,
-      Livebook.Runtime.ErlDist.EvaluatorSupervisor,
       Livebook.Runtime.ErlDist.IOForwardGL,
       Livebook.Runtime.ErlDist.LoggerGLHandler,
       Livebook.Runtime.ErlDist.SmartCellGL,

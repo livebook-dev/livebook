@@ -342,13 +342,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
   end
 
-  test "clients monitoring", %{pid: pid, test: test} do
+  test "clients monitoring", %{pid: pid} do
     # Pretend we are the subscriber
-    Process.register(self(), test)
 
     code =
       """
-      pid = Process.whereis(#{inspect(test)})
+      pid = IEx.Helpers.pid("#{inspect(self())}")
 
       ref = make_ref()
       send(Process.group_leader(), {:io_request, self(), ref, {:livebook_monitor_clients, pid}})
