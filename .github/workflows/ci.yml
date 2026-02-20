@@ -1,4 +1,4 @@
-name: Test
+name: CI
 on:
   pull_request:
   push:
@@ -6,7 +6,8 @@ on:
       - main
       - "v*.*"
 jobs:
-  main:
+  linux:
+    name: Linux
     runs-on: ubuntu-latest
     env:
       MIX_ENV: test
@@ -59,6 +60,7 @@ jobs:
         run: mix bun assets run test
 
   windows:
+    name: Windows
     runs-on: windows-2022
     if: github.event_name == 'push'
     env:
@@ -81,9 +83,6 @@ jobs:
           version-type: strict
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
-      - name: Start epmd
-        run: $(elixir -e 'IO.puts "#{:code.root_dir()}/erts-#{:erlang.system_info(:version)}"')/bin/epmd.exe -daemon
-        shell: bash
       # Add tar that supports symlinks, see https://github.com/actions/virtual-environments/issues/4679
       - name: Add tar.exe
         run: |
@@ -106,35 +105,3 @@ jobs:
         run: mix test
         env:
           TEST_GIT_SSH_KEY: ${{ secrets.TEST_GIT_SSH_KEY }}
-      - name: Build the app
-        run: bash .github/scripts/app/build_windows.sh
-
-  macos:
-    runs-on: macos-latest
-    if: github.event_name == 'push'
-    steps:
-      - name: Checkout git repo
-        uses: actions/checkout@v4
-      - name: Read ./versions
-        run: |
-          . versions
-          echo "elixir=$elixir" >> $GITHUB_ENV
-          echo "otp=$otp" >> $GITHUB_ENV
-          echo "openssl=$openssl" >> $GITHUB_ENV
-      - name: Cache Mix Deps
-        uses: actions/cache@v4
-        with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-      - name: Cache Bootstrap OTP
-        uses: actions/cache@v4
-        with:
-          path: elixirkit/otp_bootstrap/_build/otp-rel-${{ env.otp }}-openssl-${{ env.openssl }}-macos-universal
-          key: ${{ runner.os }}-bootstrap-${{ env.otp }}-${{ hashFiles('elixirkit/otp_bootstrap/build.sh') }}
-      - name: Cache Elixir
-        uses: actions/cache@v4
-        with:
-          path: _build/elixir-${{ env.elixir }}
-          key: ${{ runner.os }}-elixir-${{ env.elixir }}
-      - name: Build the app
-        run: .github/scripts/app/build_macos.sh
