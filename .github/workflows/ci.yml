@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "v*.*"
+
 jobs:
   linux:
     name: Linux
@@ -14,17 +15,20 @@ jobs:
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v4
+
       - name: Read ./versions
         run: |
           . versions
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
           echo "openssl=$openssl" >> $GITHUB_ENV
+
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
+
       - name: Cache Mix
         uses: actions/cache@v4
         with:
@@ -34,28 +38,36 @@ jobs:
           key: ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
+
       - name: Restore bun cache
         uses: actions/cache@v4
         with:
           path: |
             ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('assets/bun.lock') }}
+
       - name: Install mix dependencies
         run: mix deps.get
+
       - name: Check formatting
         run: mix format --check-formatted
+
       - name: Check warnings
         run: mix compile --warnings-as-errors
+
       - name: Run tests
         run: mix test
         env:
           TEST_GIT_SSH_KEY: ${{ secrets.TEST_GIT_SSH_KEY }}
+
       - name: Install bun dependencies
         run: |
           mix bun.install --if-missing
           mix bun assets install
+
       - name: Check assets formatting
         run: mix bun assets run format-check
+
       - name: Run assets tests
         run: mix bun assets run test
 
@@ -65,11 +77,14 @@ jobs:
     if: github.event_name == 'push'
     env:
       MIX_ENV: test
+
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
+
       - name: Checkout git repo
         uses: actions/checkout@v4
+
       - name: Read ./versions
         shell: bash
         run: |
@@ -77,16 +92,19 @@ jobs:
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
           echo "openssl=$openssl" >> $GITHUB_ENV
+
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         with:
           version-type: strict
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
+
       # Add tar that supports symlinks, see https://github.com/actions/virtual-environments/issues/4679
       - name: Add tar.exe
         run: |
           "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+
       - name: Cache Mix
         uses: actions/cache@v4
         with:
@@ -97,10 +115,13 @@ jobs:
           # Reinstalling deps fails on Windows in rare cases, so we always use a new cache
           # restore-keys: |
           #   ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
+
       # Setup nmake, in case we need to compile Pythonx from source
       - uses: ilammy/msvc-dev-cmd@v1
+
       - name: Install mix dependencies
         run: mix deps.get
+
       - name: Run tests
         run: mix test
         env:

@@ -25,6 +25,7 @@ jobs:
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v4
+
       - name: Create release
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
@@ -73,7 +74,7 @@ jobs:
     name: "Desktop (${{ matrix.gui_target }})"
     needs: [create_release]
     permissions:
-      contents: write  # Required for uploading release assets
+      contents: write # Required for uploading release assets
     strategy:
       fail-fast: false
       matrix:
@@ -219,7 +220,7 @@ jobs:
     name: Docker (${{ matrix.name }})
     permissions:
       contents: read
-      packages: write  # Required for pushing to ghcr.io
+      packages: write # Required for pushing to ghcr.io
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -237,21 +238,26 @@ jobs:
               CUDA_VERSION_MINOR=8
     steps:
       - uses: actions/checkout@v4
+
       - run: |
           . versions
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
           echo "ubuntu=$ubuntu" >> $GITHUB_ENV
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -262,6 +268,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=nightly,enable=${{ github.ref_type != 'tag' }}
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
