@@ -127,16 +127,16 @@ server in solely client-side operations.
   /* When all setup cells satisfy collapse conditions, collapse the
      first one and hide the later ones */
   [data-el-setup-section]:not(
-      :has(
-        [data-el-cell][data-setup]:is(
-            [data-js-focused],
-            [data-eval-validity="fresh"]:not([data-js-empty]),
-            [data-eval-errored],
-            [data-js-changed]
-          )
-      ),
-      :focus-within
-    ) {
+    :has(
+      [data-el-cell][data-setup]:is(
+          [data-js-focused],
+          [data-eval-validity="fresh"]:not([data-js-empty]),
+          [data-eval-errored],
+          [data-js-changed]
+        )
+    ),
+    :focus-within
+  ) {
     [data-el-cell][data-setup]:not(:first-child) {
       @apply hidden;
     }
@@ -162,16 +162,16 @@ server in solely client-side operations.
 
   /* This is "else" for the above  */
   [data-el-setup-section]:is(
-      :has(
-        [data-el-cell][data-setup]:is(
-            [data-js-focused],
-            [data-eval-validity="fresh"]:not([data-js-empty]),
-            [data-eval-errored],
-            [data-js-changed]
-          )
-      ),
-      :focus-within
-    ) {
+    :has(
+      [data-el-cell][data-setup]:is(
+          [data-js-focused],
+          [data-eval-validity="fresh"]:not([data-js-empty]),
+          [data-eval-errored],
+          [data-js-changed]
+        )
+    ),
+    :focus-within
+  ) {
     [data-el-cell][data-setup] {
       [data-el-info-box] {
         @apply hidden;

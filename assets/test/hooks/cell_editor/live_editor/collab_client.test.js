@@ -1,17 +1,18 @@
+import { describe, test, expect, vi } from "vitest";
 import CollabClient, {
   Peer,
 } from "../../../../js/hooks/cell_editor/live_editor/collab_client";
 import Delta from "../../../../js/lib/delta";
 import { EditorSelection } from "@codemirror/state";
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 describe("when synchronized", () => {
   test("sends local delta immediately", () => {
     const connection = buildMockConnection();
     const collabClient = new CollabClient(connection, 0);
 
-    const onDelta = jest.fn();
+    const onDelta = vi.fn();
     collabClient.onDelta(onDelta);
 
     const delta = new Delta().insert("cat");
@@ -26,7 +27,7 @@ describe("when synchronized", () => {
     const connection = buildMockConnection();
     const collabClient = new CollabClient(connection, 0);
 
-    const onDelta = jest.fn();
+    const onDelta = vi.fn();
     collabClient.onDelta(onDelta);
 
     const remoteDelta = new Delta().retain(1).insert("dog");
@@ -36,7 +37,7 @@ describe("when synchronized", () => {
     expect(onDelta).toHaveBeenCalledWith(remoteDelta, { remote: true });
 
     // We are already in sync, so the client reports the revision in 5s
-    jest.runOnlyPendingTimers();
+    vi.runOnlyPendingTimers();
     expect(connection.sendRevision).toHaveBeenCalledWith(1);
   });
 
@@ -75,7 +76,7 @@ describe("with inflight delta", () => {
     const connection = buildMockConnection();
     const collabClient = new CollabClient(connection, 0);
 
-    const onDelta = jest.fn();
+    const onDelta = vi.fn();
     collabClient.onDelta(onDelta);
 
     const delta = new Delta().insert("cat");
@@ -98,7 +99,7 @@ describe("with inflight delta", () => {
     const connection = buildMockConnection();
     const collabClient = new CollabClient(connection, 0);
 
-    const onDelta = jest.fn();
+    const onDelta = vi.fn();
     collabClient.onDelta(onDelta);
 
     const delta = new Delta().insert("cat");
@@ -119,7 +120,7 @@ describe("with buffer delta", () => {
     const connection = buildMockConnection();
     const collabClient = new CollabClient(connection, 0);
 
-    const onDelta = jest.fn();
+    const onDelta = vi.fn();
     collabClient.onDelta(onDelta);
 
     const delta = new Delta().insert("cat");
@@ -157,7 +158,7 @@ describe("with buffer delta", () => {
     const connection = buildMockConnection();
     const collabClient = new CollabClient(connection, 0);
 
-    const onDelta = jest.fn();
+    const onDelta = vi.fn();
     collabClient.onDelta(onDelta);
 
     const delta = new Delta().insert("cat");
@@ -211,7 +212,7 @@ describe("peers", () => {
     connection.getClientId.mockReturnValue("client1");
     const collabClient = new CollabClient(connection, 0);
 
-    const onPeersChange = jest.fn();
+    const onPeersChange = vi.fn();
     collabClient.onPeersChange(onPeersChange);
 
     const remoteSelection = cursorSelection(4);
@@ -239,7 +240,7 @@ describe("peers", () => {
     connection.getClientId.mockReturnValue("client1");
     const collabClient = new CollabClient(connection, 0);
 
-    const onPeersChange = jest.fn();
+    const onPeersChange = vi.fn();
     collabClient.onPeersChange(onPeersChange);
 
     const remoteSelection = cursorSelection(4);
@@ -271,7 +272,7 @@ describe("peers", () => {
     connection.getClientId.mockReturnValue("client1");
     const collabClient = new CollabClient(connection, 0);
 
-    const onPeersChange = jest.fn();
+    const onPeersChange = vi.fn();
     collabClient.onPeersChange(onPeersChange);
 
     const newClients = {
@@ -289,17 +290,17 @@ describe("peers", () => {
 
 function buildMockConnection() {
   return {
-    onDelta: jest.fn(),
-    onAcknowledgement: jest.fn(),
-    onSelection: jest.fn(),
-    onClientsUpdate: jest.fn(),
-    destroy: jest.fn(),
-    getClients: jest.fn(),
-    getClientId: jest.fn(),
-    sendDelta: jest.fn(),
-    sendSelection: jest.fn(),
-    sendRevision: jest.fn(),
-    intellisenseRequest: jest.fn(),
+    onDelta: vi.fn(),
+    onAcknowledgement: vi.fn(),
+    onSelection: vi.fn(),
+    onClientsUpdate: vi.fn(),
+    destroy: vi.fn(),
+    getClients: vi.fn(),
+    getClientId: vi.fn(),
+    sendDelta: vi.fn(),
+    sendSelection: vi.fn(),
+    sendRevision: vi.fn(),
+    intellisenseRequest: vi.fn(),
   };
 }
 

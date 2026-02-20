@@ -18,7 +18,7 @@ defmodule Livebook.MixProject do
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
       test_elixirc_options: [docs: true],
-      compilers: [:phoenix_live_view] ++ Mix.compilers() ++ [:livebook_priv],
+      compilers: [:phoenix_live_view] ++ Mix.compilers() ++ [:ensure_livebook_priv],
       start_permanent: Mix.env() == :prod,
       listeners: [Phoenix.CodeReloader],
       aliases: aliases(),
@@ -65,16 +65,19 @@ defmodule Livebook.MixProject do
         "GitHub" => "https://github.com/livebook-dev/livebook"
       },
       files:
-        ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe proto/lib)
+        ~w(lib config priv/.gitkeep mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe proto/lib)
     ]
   end
 
   defp aliases do
     [
-      setup: ["deps.get", "cmd --cd assets npm install"],
-      "assets.deploy": ["cmd npm run deploy --prefix assets"],
-      "format.all": ["format", "cmd --cd assets npm run --silent format"],
-      "protobuf.generate": ["cmd --cd proto mix protobuf.generate"]
+      setup: ["deps.get", "assets.setup"],
+      "setup.prod": ["deps.get --prod", "assets.setup"],
+      "assets.setup": ["bun.install --if-missing", "bun assets install", "assets.build"],
+      "assets.build": ["bun assets run build"],
+      "format.all": ["format", "bun assets run --silent format"],
+      "protobuf.generate": ["cmd --cd proto mix protobuf.generate"],
+      "escript.build": ["assets.setup", "escript.build"]
     ]
   end
 
@@ -127,6 +130,7 @@ defmodule Livebook.MixProject do
       {:logger_json, "~> 6.1"},
       {:req, "~> 0.5.8"},
       {:nimble_zta, "~> 0.1.0"},
+      {:bun, "~> 1.6", runtime: Mix.env() == :dev},
       # Dev tools
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:tidewave, "~> 0.5", only: :dev},

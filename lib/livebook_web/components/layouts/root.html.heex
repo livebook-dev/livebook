@@ -10,16 +10,26 @@
     <.live_title>
       {assigns[:page_title] || "Livebook"}
     </.live_title>
-    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script>
       window.LIVEBOOK_BASE_URL_PATH = "<%= LivebookWeb.VerifiedRoutes.base_url_path() %>";
       window.LIVEBOOK_PUBLIC_BASE_URL_PATH = "<%= LivebookWeb.VerifiedRoutes.public_base_url_path() %>"
     </script>
+    <%= if dev?() do %>
+      <script phx-track-static type="module" src="http://localhost:4432/@vite/client">
+      </script>
+      <link phx-track-static rel="stylesheet" href="http://localhost:4432/css/app.css" />
+      <%!-- This prevents the script to be loaded twice in Chrome --%>
+      <link rel="modulepreload" href="http://localhost:4432/js/app.js" />
+      <script phx-track-static type="module" src="http://localhost:4432/js/app.js">
+      </script>
+    <% else %>
+      <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+      <%!-- This prevents the script to be loaded twice in Chrome --%>
+      <link rel="modulepreload" href={~p"/assets/app.js"} />
+      <script phx-track-static type="module" src={~p"/assets/app.js"}>
+      </script>
+    <% end %>
     <LivebookWeb.LayoutComponents.dev_script />
-    <%!-- This prevents the script to be loaded twice in Chrome --%>
-    <link rel="modulepreload" href={~p"/assets/app.js"} />
-    <script phx-track-static type="module" src={~p"/assets/app.js"}>
-    </script>
   </head>
   <body
     class="bg-white"

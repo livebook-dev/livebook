@@ -110,7 +110,7 @@ open_app() {
 mix_release() {
   (
     cd "${mix_project_dir}"
-    mix deps.get
+    mix setup
     mix release app --overwrite --path "$release_root"
   )
 

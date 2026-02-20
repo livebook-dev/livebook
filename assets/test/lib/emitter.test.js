@@ -1,9 +1,10 @@
+import { test, expect, vi } from "vitest";
 import Emitter from "../../js/lib/emitter";
 
 test("listener callbacks are called on dispatch", () => {
   const emitter = new Emitter();
-  const callback1 = jest.fn();
-  const callback2 = jest.fn();
+  const callback1 = vi.fn();
+  const callback2 = vi.fn();
 
   emitter.addListener(callback1);
   emitter.addListener(callback2);
@@ -15,7 +16,7 @@ test("listener callbacks are called on dispatch", () => {
 
 test("addListener returns a subscription object that can be destroyed", () => {
   const emitter = new Emitter();
-  const callback1 = jest.fn();
+  const callback1 = vi.fn();
 
   const subscription = emitter.addListener(callback1);
   subscription.destroy();

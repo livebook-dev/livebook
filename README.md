@@ -150,7 +150,7 @@ You can run latest Livebook directly from source.
 ```shell
 git clone https://github.com/livebook-dev/livebook.git
 cd livebook
-mix deps.get --only prod
+mix setup.prod
 
 # Run the Livebook server
 MIX_ENV=prod mix phx.server
