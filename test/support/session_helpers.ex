@@ -4,7 +4,6 @@ defmodule Livebook.SessionHelpers do
 
   import ExUnit.Assertions
   import Phoenix.LiveViewTest
-  import Livebook.TestHelpers
 
   def wait_for_session_update(session_pid) do
     # This call is synchronous, so it gives the session time
