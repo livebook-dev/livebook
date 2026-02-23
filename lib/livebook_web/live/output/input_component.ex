@@ -25,11 +25,11 @@ defmodule LivebookWeb.Output.InputComponent do
   @impl true
   def render(assigns) when assigns.input.attrs.type == :image do
     ~H"""
-    <div id={"#{@id}-form-#{@counter}"}>
+    <div>
       <.input_label label={@input.attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.ImageInputComponent}
-        id={"#{@id}-input"}
+        id={"#{@id}-input-#{@counter}"}
         input_component_id={@id}
         value={@value}
         height={@input.attrs.size && elem(@input.attrs.size, 0)}
@@ -47,11 +47,11 @@ defmodule LivebookWeb.Output.InputComponent do
 
   def render(assigns) when assigns.input.attrs.type == :audio do
     ~H"""
-    <div id={"#{@id}-form-#{@counter}"}>
+    <div>
       <.input_label label={@input.attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.AudioInputComponent}
-        id={"#{@id}-input"}
+        id={"#{@id}-input-#{@counter}"}
         input_component_id={@id}
         value={@value}
         format={@input.attrs.format}
@@ -67,11 +67,11 @@ defmodule LivebookWeb.Output.InputComponent do
 
   def render(assigns) when assigns.input.attrs.type == :file do
     ~H"""
-    <div id={"#{@id}-form-#{@counter}"}>
+    <div>
       <.input_label label={@input.attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.FileInputComponent}
-        id={"#{@id}-input"}
+        id={"#{@id}-input-#{@counter}"}
         input_component_id={@id}
         value={@value}
         accept={@input.attrs.accept}
@@ -86,7 +86,7 @@ defmodule LivebookWeb.Output.InputComponent do
 
   def render(assigns) when assigns.input.attrs.type == :utc_datetime do
     ~H"""
-    <div id={"#{@id}-form-#{@counter}"}>
+    <div>
       <.input_label
         label={@input.attrs.label}
         changed={@changed}
@@ -95,7 +95,7 @@ defmodule LivebookWeb.Output.InputComponent do
       <div class="inline-flex">
         <.text_field
           class="w-auto"
-          id={@id}
+          id={"#{@id}-input-#{@counter}"}
           type="datetime-local"
           data-el-input
           name="html_value"
@@ -115,7 +115,7 @@ defmodule LivebookWeb.Output.InputComponent do
 
   def render(assigns) when assigns.input.attrs.type == :utc_time do
     ~H"""
-    <div id={"#{@id}-form-#{@counter}"}>
+    <div>
       <.input_label
         label={@input.attrs.label}
         changed={@changed}
@@ -123,7 +123,7 @@ defmodule LivebookWeb.Output.InputComponent do
       />
       <div class="inline-flex">
         <.text_field
-          id={@id}
+          id={"#{@id}-input-#{@counter}"}
           type="time"
           data-el-input
           name="html_value"
