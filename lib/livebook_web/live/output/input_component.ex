@@ -143,9 +143,14 @@ defmodule LivebookWeb.Output.InputComponent do
 
   def render(assigns) do
     ~H"""
-    <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
+    <form id={"#{@id}-form"} phx-change="change" phx-submit="submit" phx-target={@myself}>
       <.input_label label={@input.attrs.label} changed={@changed} />
-      <.input_output id={"#{@id}-input"} attrs={@input.attrs} value={@value} myself={@myself} />
+      <.input_output
+        id={"#{@id}-input-#{@counter}"}
+        attrs={@input.attrs}
+        value={@value}
+        myself={@myself}
+      />
     </form>
     """
   end
