@@ -54,7 +54,7 @@ defmodule LivebookWeb.OpenLive do
           <span>New notebook</span>
         </.button>
       </:topbar_action>
-      <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto space-y-4">
+      <div class="p-4 md:px-12 md:py-6 max-w-(--breakpoint-lg) mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
           <LayoutComponents.title text="Open notebook" back_navigate={~p"/"} />
           <div class="hidden md:flex" role="navigation" aria-label="new notebook">

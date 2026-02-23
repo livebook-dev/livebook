@@ -135,7 +135,7 @@ defmodule LivebookWeb.AppsLive do
                       <span class="text-base font-semibold text-gray-800 flex-1 truncate group-hover:text-gray-900">
                         {app.notebook_name}
                       </span>
-                      <div class="flex items-center gap-1.5 flex-shrink-0">
+                      <div class="flex items-center gap-1.5 shrink-0">
                         <.remix_icon
                           :if={not app.public?}
                           icon="lock-password-line"
@@ -160,13 +160,13 @@ defmodule LivebookWeb.AppsLive do
                 <div class="max-w-md mx-auto">
                   <ol class="space-y-3">
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold flex-shrink-0">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold shrink-0">
                         1
                       </span>
                       <span>Open a notebook</span>
                     </li>
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold flex-shrink-0 mt-px">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold shrink-0 mt-px">
                         2
                       </span>
                       <div class="flex gap-x-1 items-center flex-wrap">
@@ -175,7 +175,7 @@ defmodule LivebookWeb.AppsLive do
                       </div>
                     </li>
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold flex-shrink-0 mt-px">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold shrink-0 mt-px">
                         3
                       </span>
                       <div class="flex gap-x-1 items-center flex-wrap">
@@ -187,7 +187,7 @@ defmodule LivebookWeb.AppsLive do
                       </div>
                     </li>
                     <li class="flex items-start gap-3 text-left text-sm text-gray-700 leading-relaxed">
-                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold flex-shrink-0">
+                      <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold shrink-0">
                         4
                       </span>
                       <span>Relaunch your Livebook app</span>

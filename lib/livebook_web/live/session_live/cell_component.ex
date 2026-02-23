@@ -76,7 +76,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         />
       </div>
       <div
-        class="markdown break-words"
+        class="markdown wrap-break-word"
         data-el-markdown-container
         id={"markdown-container-#{@cell_view.id}"}
         phx-update="ignore"

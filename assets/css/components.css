@@ -1,59 +1,59 @@
-@layer components {
-  .range-input {
-    height: 8px;
-    @apply appearance-none bg-gray-200 rounded-lg;
-  }
+range-input {
+  height: 8px;
+  @apply appearance-none bg-gray-200 rounded-lg;
+}
 
-  /*
+/*
   Note that we need separate selectors, because at most one of these
   pseudo-selectors is valid in the given browser, and an invalid one
   would cause the whole rule to be invalid and ignored
   */
-  .range-input::-moz-range-thumb {
-    @apply w-5 h-5 appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
-  }
+.range-input::-moz-range-thumb {
+  @apply w-5 h-5 appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
+}
 
-  .range-input::-webkit-slider-thumb {
-    @apply w-5 h-5 appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
-  }
+.range-input::-webkit-slider-thumb {
+  @apply w-5 h-5 appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
+}
 
-  /* Custom scrollbars */
+/* Custom scrollbars */
 
-  .tiny-scrollbar::-webkit-scrollbar {
+@utility tiny-scrollbar {
+  &::-webkit-scrollbar {
     width: 0.4rem;
     height: 0.4rem;
   }
 
-  .tiny-scrollbar::-webkit-scrollbar-thumb {
+  &::-webkit-scrollbar-thumb {
     border-radius: 0.25rem;
     @apply bg-gray-400;
   }
 
-  .tiny-scrollbar::-webkit-scrollbar-track {
+  &::-webkit-scrollbar-track {
     @apply bg-gray-100;
   }
+}
 
-  /* Tabs */
+/* Tabs */
 
-  .tabs {
-    @apply w-full flex overflow-x-auto;
-  }
+.tabs {
+  @apply w-full flex overflow-x-auto;
+}
 
-  .tabs .tab {
-    @apply flex items-center space-x-2 px-3 py-2 border-b-2 text-gray-400 border-gray-100 whitespace-nowrap focus-visible:bg-gray-50 focus-visible:outline-none focus-visible:rounded-t-lg;
-  }
+.tabs .tab {
+  @apply flex items-center space-x-2 px-3 py-2 border-b-2 text-gray-400 border-gray-100 whitespace-nowrap focus-visible:bg-gray-50 focus-visible:outline-none focus-visible:rounded-t-lg;
+}
 
-  .tabs .tab.active {
-    @apply text-blue-600 border-blue-600;
-  }
+.tabs .tab.active {
+  @apply text-blue-600 border-blue-600;
+}
 
-  /* Boxes */
+/* Boxes */
 
-  .error-box {
-    @apply rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium;
-  }
+.error-box {
+  @apply rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium;
+}
 
-  .info-box {
-    @apply p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg;
-  }
+.info-box {
+  @apply p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg;
 }

@@ -14,7 +14,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       data-el-insert-buttons
     >
       <div
-        class="absolute inset-0 h-[30px] z-[100] bg-white rounded-lg border-2 border-dashed border-gray-400"
+        class="absolute inset-0 h-[30px] z-100 bg-white rounded-lg border-2 border-dashed border-gray-400"
         data-el-insert-drop-area
         data-section-id={@section_id}
         data-cell-id={@cell_id}
@@ -23,7 +23,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       >
       </div>
       <div class={
-        "w-full md:absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
+        "w-full md:absolute z-10 hover:z-11 #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
       }>
         <.menu id={"cell-#{@id}-insert"} position="bottom-left" distant>
           <:toggle>

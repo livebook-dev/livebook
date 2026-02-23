@@ -79,7 +79,7 @@ defmodule LivebookWeb.CoreComponents do
 
   def flash_group(assigns) do
     ~H"""
-    <div class="fixed right-8 top-5 z-[1000] flex flex-col space-y-3">
+    <div class="fixed right-8 top-5 z-1000 flex flex-col space-y-3">
       <.flash kind="info" flash={@flash} />
       <.flash kind="success" flash={@flash} />
       <.flash kind="warning" flash={@flash} />
@@ -179,7 +179,7 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div
       id={@id}
-      class="fixed z-[10000] inset-0 hidden"
+      class="fixed z-10000 inset-0 hidden"
       phx-mounted={@show && show_modal(@id)}
       phx-remove={hide_modal(@id)}
       data-cancel={modal_on_cancel(@patch, @navigate)}
@@ -310,12 +310,12 @@ defmodule LivebookWeb.CoreComponents do
       >
         {render_slot(@toggle)}
       </div>
-      <div id={"#{@id}-overlay"} class="fixed z-[90] inset-0 hidden" phx-click-away={hide_menu(@id)}>
+      <div id={"#{@id}-overlay"} class="fixed z-90 inset-0 hidden" phx-click-away={hide_menu(@id)}>
       </div>
       <menu
         id={"#{@id}-content"}
         class={[
-          "absolute z-[100] hidden",
+          "absolute z-100 hidden",
           menu_position_class(@position),
           @md_position && menu_md_position_class(@md_position),
           @sm_position && menu_sm_position_class(@sm_position),
@@ -437,7 +437,7 @@ defmodule LivebookWeb.CoreComponents do
     <div class="group relative">
       {render_slot(@primary)}
       <div class="absolute -top-2 right-0 translate-x-full pl-2 hidden group-hover:flex group-focus-within:flex">
-        <menu class="relative mt-0 z-[100] rounded-lg bg-white flex flex-col py-2 shadow-[0_15px_99px_-0px_rgba(12,24,41,0.15)]">
+        <menu class="relative mt-0 z-100 rounded-lg bg-white flex flex-col py-2 shadow-[0_15px_99px_-0px_rgba(12,24,41,0.15)]">
           {render_slot(@inner_block)}
         </menu>
       </div>
@@ -457,7 +457,7 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <li class={[
       "w-full",
-      "[&>:first-child]:w-full [&>:first-child]:flex [&>:first-child]:space-x-3 [&>:first-child]:px-5 [&>:first-child]:py-2 [&>:first-child]:items-center [&>:first-child:hover]:bg-gray-100 [&>:first-child:focus-visible]:bg-gray-100 [&>:first-child:focus-visible]:outline-none [&>:first-child]:whitespace-nowrap font-medium",
+      "*:first:w-full *:first:flex *:first:space-x-3 *:first:px-5 *:first:py-2 *:first:items-center [&>:first-child:hover]:bg-gray-100 [&>:first-child:focus-visible]:bg-gray-100 [&>:first-child:focus-visible]:outline-none *:first:whitespace-nowrap font-medium",
       menu_item_class(@variant),
       @disabled && "pointer-events-none opacity-50"
     ]}>

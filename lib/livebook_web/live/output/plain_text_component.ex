@@ -45,7 +45,7 @@ defmodule LivebookWeb.Output.PlainTextComponent do
     ~H"""
     <div
       id={@id}
-      class="text-gray-700 whitespace-pre-wrap break-words"
+      class="text-gray-700 whitespace-pre-wrap wrap-break-word"
       phx-update="stream"
       phx-no-format
     ><span

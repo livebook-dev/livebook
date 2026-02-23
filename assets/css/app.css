@@ -1,6 +1,8 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import "tailwindcss";
+
+@source "../js";
+@source "../css";
+@source "../../lib/livebook_web";
 
 @import "./components.css";
 @import "./utilities.css";
@@ -10,3 +12,162 @@
 @import "./js_interop.css";
 @import "./tooltips.css";
 @import "./notebook.css";
+
+/* Add variants based on LiveView classes. */
+@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
+@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
+@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
+
+@theme {
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  --font-logo: "Red Hat Text";
+
+  --color-blue-50: #f5f7ff;
+  --color-blue-100: #ecf0ff;
+  --color-blue-200: #d8e0ff;
+  --color-blue-300: #b2c1ff;
+  --color-blue-400: #8ba2ff;
+  --color-blue-500: #6583ff;
+  --color-blue-600: #3e64ff;
+  --color-blue-700: #2d4cdb;
+  --color-blue-800: #1f37b7;
+  --color-blue-900: #132593;
+
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f0f5f9;
+  --color-gray-200: #e1e8f0;
+  --color-gray-300: #cad5e0;
+  --color-gray-400: #91a4b7;
+  --color-gray-500: #61758a;
+  --color-gray-600: #445668;
+  --color-gray-700: #304254;
+  --color-gray-800: #1c2a3a;
+  --color-gray-900: #0d1829;
+
+  --color-red-50: #fdf3f4;
+  --color-red-100: #fce8e9;
+  --color-red-200: #f8d1d2;
+  --color-red-300: #f1a3a6;
+  --color-red-400: #e97579;
+  --color-red-500: #e2474d;
+  --color-red-600: #db1920;
+  --color-red-700: #bc1227;
+  --color-red-800: #9d0c2b;
+  --color-red-900: #7f072b;
+
+  --color-green-50: #f3f9f3;
+  --color-green-100: #e9f4e9;
+  --color-green-200: #d2e7d1;
+  --color-green-300: #a5d0a3;
+  --color-green-400: #77b876;
+  --color-green-500: #4aa148;
+  --color-green-600: #1d891a;
+  --color-green-700: #137518;
+  --color-green-800: #0d6219;
+  --color-green-900: #084f18;
+
+  --color-yellow-50: #fffaf5;
+  --color-yellow-100: #fff7ec;
+  --color-yellow-200: #ffeed9;
+  --color-yellow-300: #ffdcb2;
+  --color-yellow-400: #ffcb8c;
+  --color-yellow-500: #ffb965;
+  --color-yellow-600: #ffa83f;
+  --color-yellow-700: #db842e;
+  --color-yellow-800: #b7641f;
+  --color-yellow-900: #934814;
+
+  --color-green-bright-50: #f0fdf4;
+  --color-green-bright-100: #dcfce7;
+  --color-green-bright-200: #bbf7d0;
+  --color-green-bright-300: #86efac;
+  --color-green-bright-400: #4ade80;
+  --color-green-bright-500: #22c55e;
+  --color-green-bright-600: #16a34a;
+  --color-green-bright-700: #15803d;
+  --color-green-bright-800: #166534;
+  --color-green-bright-900: #14532d;
+
+  --color-yellow-bright50: #fefce8;
+  --color-yellow-bright100: #fef9c3;
+  --color-yellow-bright200: #fef08a;
+  --color-yellow-bright300: #fde047;
+  --color-yellow-bright400: #facc15;
+  --color-yellow-bright500: #eab308;
+  --color-yellow-bright600: #ca8a04;
+  --color-yellow-bright700: #a16207;
+  --color-yellow-bright800: #854d0e;
+  --color-yellow-bright900: #713f12;
+
+  --color-brand-pink: #e44c75;
+
+  /* Anmations */
+
+  --animate-shake: shake 0.5s linear 0.2s;
+
+  @keyframes shake {
+    0% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-10px);
+    }
+    40% {
+      transform: translateX(8px);
+    }
+    60% {
+      transform: translateX(-6px);
+    }
+    80% {
+      transform: translateX(4px);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  --animate-delay-200: delay 200ms;
+
+  @keyframes delay {
+    0% {
+      opacity: 0;
+      height: 0;
+      width: 0;
+    }
+    99% {
+      opacity: 0;
+      height: 0;
+      width: 0;
+    }
+    100% {
+    }
+  }
+
+  --animate-fade-in-delayed: fade-in-delayed 100ms forwards;
+
+  @keyframes fade-in-delayed {
+    0% {
+      opacity: 0;
+    }
+    99% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}

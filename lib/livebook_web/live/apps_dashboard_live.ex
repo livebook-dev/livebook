@@ -27,7 +27,7 @@ defmodule LivebookWeb.AppsDashboardLive do
       teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
     >
-      <div class="space-y-2 p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
+      <div class="space-y-2 p-4 md:px-12 md:py-7 max-w-(--breakpoint-lg) mx-auto">
         <div class="flex items-center justify-between">
           <LayoutComponents.title text="Local apps" />
           <.link navigate={~p"/apps"} class="flex items-center text-blue-600">
@@ -79,13 +79,13 @@ defmodule LivebookWeb.AppsDashboardLive do
           </div>
           <div class="flex-col mb-8">
             <div class="p-4 border-x border-t border-gray-200 rounded-t-lg ">
-              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4">
-                <div class="break-words">
+              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4">
+                <div class="wrap-break-word">
                   <.labeled_text label="Name">
                     {app.notebook_name}
                     <span
                       :if={not app.public?}
-                      class="!inline tooltip top"
+                      class="inline! tooltip top"
                       data-tooltip="Password protected"
                     >
                       <.remix_icon icon="lock-line" />
@@ -270,7 +270,7 @@ defmodule LivebookWeb.AppsDashboardLive do
     ~H"""
     <div class="min-w-[650px]">
       <div class="px-2 pb-2">
-        <div class="grid grid-cols-[minmax(0,_0.5fr)_minmax(0,_0.75fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)] md:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4 px-2">
+        <div class="grid grid-cols-[minmax(0,0.5fr)_minmax(0,0.75fr)_minmax(0,0.5fr)_minmax(0,0.5fr)_minmax(0,0.5fr)] md:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 px-2">
           <div
             :for={col <- @col}
             class={[
@@ -282,7 +282,7 @@ defmodule LivebookWeb.AppsDashboardLive do
           </div>
         </div>
         <div :for={row <- @rows} class="whitespace-nowrap px-2 hover:bg-gray-50 hover:rounded-md">
-          <div class="grid grid-cols-[minmax(0,_0.5fr)_minmax(0,_0.75fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)] md:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4">
+          <div class="grid grid-cols-[minmax(0,0.5fr)_minmax(0,0.75fr)_minmax(0,0.5fr)_minmax(0,0.5fr)_minmax(0,0.5fr)] md:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4">
             <div
               :for={col <- @col}
               class={[

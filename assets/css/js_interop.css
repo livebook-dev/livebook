@@ -61,7 +61,7 @@ server in solely client-side operations.
   }
 
   [data-el-cell][data-js-focused] {
-    @apply border-blue-300 border-opacity-100;
+    @apply border-blue-300;
 
     [data-el-cell-focus-indicator] {
       @apply bg-blue-300;
@@ -275,7 +275,7 @@ server in solely client-side operations.
     }
 
     [data-el-sections-container] {
-      @apply space-y-0 mt-0;
+      @apply gap-1 mt-1;
     }
   }
 

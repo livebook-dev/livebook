@@ -1,92 +1,51 @@
-@layer utilities {
-  /* A set of reusable classes */
+/* A set of reusable classes */
 
-  .bg-editor {
-    background-color: #282c34;
+body {
+  --color-bg-editor: #282c34;
+  --color-bg-editor-lighter: #2f343e;
+  --color-border-editor: #363c46;
+  --color-text-editor: #c4cad6;
+
+  &[data-editor-theme="light"] {
+    --color-bg-editor: #fafafa;
+    --color-bg-editor-lighter: #ebebec;
+    --color-border-editor: #dfdfe0;
+    --color-text-editor: #383a41;
   }
+}
 
-  .bg-editor-lighter {
-    background-color: #2f343e;
-  }
+@utility bg-editor {
+  background-color: var(--color-bg-editor);
+}
 
-  .border-editor {
-    border-color: #363c46;
-  }
+@utility bg-editor-lighter {
+  background-color: var(--color-bg-editor-lighter);
+}
 
-  .text-editor {
-    color: #c4cad6;
-  }
+@utility border-editor {
+  border-color: var(--color-border-editor);
+}
 
-  body[data-editor-theme="light"] .bg-editor {
-    background-color: #fafafa;
-  }
+@utility text-editor {
+  color: var(--color-text-editor);
+}
 
-  body[data-editor-theme="light"] .bg-editor-lighter {
-    background-color: #ebebec;
-  }
+@utility font-editor {
+  font-family: "JetBrains Mono", "Droid Sans Mono", "monospace";
+  font-variant-ligatures: none;
+  font-size: 14px;
+}
 
-  body[data-editor-theme="light"] .border-editor {
-    border-color: #dfdfe0;
-  }
+@utility shadow-xl-center {
+  box-shadow:
+    0 0 25px -5px rgba(0, 0, 0, 0.1),
+    0 0 10px -5px rgba(0, 0, 0, 0.04);
+}
 
-  body[data-editor-theme="light"] .text-editor {
-    color: #383a41;
-  }
+@utility shadow-custom-1 {
+  box-shadow: 10px 5px 25px -8px rgba(0, 0, 0, 0.2);
+}
 
-  .font-editor {
-    font-family: "JetBrains Mono", "Droid Sans Mono", "monospace";
-    font-variant-ligatures: none;
-    font-size: 14px;
-  }
-
-  .shadow-xl-center {
-    box-shadow:
-      0 0 25px -5px rgba(0, 0, 0, 0.1),
-      0 0 10px -5px rgba(0, 0, 0, 0.04);
-  }
-
-  .shadow-custom-1 {
-    box-shadow: 10px 5px 25px -8px rgba(0, 0, 0, 0.2);
-  }
-
-  .flip-horizontally {
-    transform: scaleY(-1);
-  }
-
-  /* Animations */
-
-  .delay-200 {
-    animation: delay-frames 200ms;
-  }
-
-  @keyframes delay-frames {
-    0% {
-      opacity: 0;
-      height: 0;
-      width: 0;
-    }
-    99% {
-      opacity: 0;
-      height: 0;
-      width: 0;
-    }
-    100% {
-    }
-  }
-
-  .animate-fade-in-delayed {
-    animation: fade-in-delayed 100ms forwards;
-  }
-
-  @keyframes fade-in-delayed {
-    0% {
-      opacity: 0;
-    }
-    99% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 1;
-    }
-  }
+@utility flip-horizontally {
+  transform: scaleY(-1);
 }

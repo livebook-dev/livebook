@@ -813,7 +813,7 @@ defmodule LivebookWeb.SessionLive.Render do
           >
             <.remix_icon icon="circle-fill" class="mr-2 text-xs text-blue-500" />
             <div class={[
-              "flex-grow text-sm text-gray-700 text-medium whitespace-nowrap text-ellipsis overflow-hidden",
+              "grow text-sm text-gray-700 text-medium whitespace-nowrap text-ellipsis overflow-hidden",
               "group-hover:overflow-visible group-hover:whitespace-normal group-hover:break-all"
             ]}>
               {node}
@@ -1002,7 +1002,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
   def indicators(assigns) do
     ~H"""
-    <div class="flex items-center justify-between sticky px-2 top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
+    <div class="flex items-center justify-between sticky px-2 top-0 left-0 right-0 z-500 bg-white border-b border-gray-200">
       <div class="sm:hidden text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center">
         <button
           aria-label="hide sidebar"
@@ -1027,7 +1027,7 @@ defmodule LivebookWeb.SessionLive.Render do
           <.remix_icon icon="menu-unfold-line" />
         </button>
       </div>
-      <div class="sm:fixed bottom-[0.4rem] right-[1.5rem]">
+      <div class="sm:fixed bottom-[0.4rem] right-6">
         <div
           class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2"
           data-el-notebook-indicators
@@ -1312,7 +1312,7 @@ defmodule LivebookWeb.SessionLive.Render do
   def notebook_content(assigns) do
     ~H"""
     <div
-      class="relative w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
+      class="relative w-full max-w-(--breakpoint-lg) px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
       data-el-notebook-content
     >
       <div class="pb-4 mb-2 border-b border-gray-200">
@@ -1369,7 +1369,7 @@ defmodule LivebookWeb.SessionLive.Render do
               </.link>
             </.menu_item>
           </.menu>
-          <div class="px-[1px]">
+          <div class="px-px">
             <.star_button file={@data_view.file} starred_files={@starred_files} />
           </div>
         </div>
@@ -1408,7 +1408,7 @@ defmodule LivebookWeb.SessionLive.Render do
           </.button>
         </div>
       </div>
-      <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
+      <div class="mt-8 flex flex-col w-full gap-16" data-el-sections-container>
         <div :if={@data_view.section_views == []} class="flex justify-center">
           <LivebookWeb.SessionLive.InsertButtonsComponent.insert_button phx-click="append_section">
             + Section

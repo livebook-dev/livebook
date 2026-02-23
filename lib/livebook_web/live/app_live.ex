@@ -42,7 +42,7 @@ defmodule LivebookWeb.AppLive do
   def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20">
-      <div class="w-full max-w-screen-lg py-4 mx-auto">
+      <div class="w-full max-w-(--breakpoint-lg) py-4 mx-auto">
         <div class="absolute md:fixed right-8 md:left-4 top-3 w-10 h-10">
           <.link navigate={~p"/"}>
             <img src={~p"/images/logo.png"} height="40" widthz="40" alt="logo livebook" />

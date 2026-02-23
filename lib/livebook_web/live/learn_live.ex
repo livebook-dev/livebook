@@ -30,7 +30,7 @@ defmodule LivebookWeb.LearnLive do
       teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto space-y-4">
+      <div class="p-4 md:px-12 md:py-7 max-w-(--breakpoint-lg) mx-auto space-y-4">
         <div>
           <LayoutComponents.title text="Learn" />
           <p class="mt-4 mb-8 text-gray-700">

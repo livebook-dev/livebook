@@ -218,7 +218,7 @@ const JSView = {
     this.el.appendChild(this.iframePlaceholder);
 
     this.iframe = document.createElement("iframe");
-    this.iframe.className = "w-full h-0 absolute z-[1]";
+    this.iframe.className = "w-full h-0 absolute z-1";
 
     const notebookEl = document.querySelector(`[data-el-notebook]`);
     const notebookContentEl = notebookEl.querySelector(

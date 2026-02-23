@@ -58,7 +58,7 @@ defmodule LivebookWeb.HomeLive do
       <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
       <.memory_notification memory={@memory} app_service_url={@app_service_url} />
 
-      <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto">
+      <div class="p-4 md:px-12 md:py-6 max-w-(--breakpoint-lg) mx-auto">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
           <LayoutComponents.title text="Home" />
           <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">

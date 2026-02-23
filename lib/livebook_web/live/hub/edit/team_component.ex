@@ -85,7 +85,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         </h2>
       </LayoutComponents.topbar>
 
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
+      <div class="p-4 md:px-12 md:py-7 max-w-(--breakpoint-md) mx-auto">
         <div id={"#{@id}-component"}>
           <div class="mb-8 flex flex-col space-y-2">
             <LayoutComponents.title>
@@ -173,7 +173,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   <.emoji_field field={@form[:hub_emoji]} label="Emoji" />
                 </div>
 
-                <div class="!mt-6">
+                <div class="mt-6!">
                   <.button type="submit" phx-disable-with="Updating...">
                     Save
                   </.button>

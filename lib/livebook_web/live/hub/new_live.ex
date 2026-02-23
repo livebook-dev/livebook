@@ -46,7 +46,7 @@ defmodule LivebookWeb.Hub.NewLive do
         You are running Livebook in development but this page communicates with production servers.
       </LayoutComponents.topbar>
 
-      <div class="flex flex-col p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
+      <div class="flex flex-col p-4 md:px-12 md:py-7 max-w-(--breakpoint-md) mx-auto space-y-8">
         <div>
           <LayoutComponents.title text="Add organization" />
           <p class="mt-4 text-gray-700">
@@ -205,7 +205,7 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   defp selected_tab_button(id, id),
-    do: "border-black/10 bg-white drop-shadow-sm hover:!opacity-100"
+    do: "border-black/10 bg-white drop-shadow-sm hover:opacity-100!"
 
   defp selected_tab_button(_, _), do: "border-transparent text-gray-500 hover:text-gray-800"
 

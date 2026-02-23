@@ -108,7 +108,7 @@ defmodule LivebookWeb.AppSessionLive do
   def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
-      <div class="w-full max-w-screen-lg py-4 mx-auto" data-el-notebook-content>
+      <div class="w-full max-w-(--breakpoint-lg) py-4 mx-auto" data-el-notebook-content>
         <div class="absolute md:fixed right-4 md:left-4 md:right-auto top-3">
           <.menu id="app-menu" position="bottom-right" md_position="bottom-left">
             <:toggle>

@@ -22,7 +22,7 @@ defmodule LivebookWeb.NotebookCardsComponent do
             </span>
             {@card_icon && render_slot(@card_icon, {info, idx})}
           </div>
-          <div class="mt-1 flex-grow text-gray-600 text-sm">
+          <div class="mt-1 grow text-gray-600 text-sm">
             {@added_at_label}
             {LivebookWeb.HTMLHelpers.format_datetime_relatively(info.added_at)} ago
           </div>

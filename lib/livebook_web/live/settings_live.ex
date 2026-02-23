@@ -33,7 +33,7 @@ defmodule LivebookWeb.SettingsLive do
       teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
     >
-      <div id="settings-page" class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-16">
+      <div id="settings-page" class="p-4 md:px-12 md:py-7 max-w-(--breakpoint-md) mx-auto space-y-16">
         <!-- System settings section -->
         <div class="flex flex-col space-y-10">
           <div>
@@ -81,7 +81,7 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Updates
             </h2>
-            <form class="mt-4" phx-change="save" phx-nosubmit>
+            <form phx-change="save" phx-nosubmit>
               <.switch_field
                 name="update_check_enabled"
                 label="Show banner when a new Livebook version is available"
@@ -105,7 +105,7 @@ defmodule LivebookWeb.SettingsLive do
               Environment variables
             </h2>
 
-            <p class="mt-4 text-gray-700">
+            <p class="text-gray-700">
               Environment variables store global values, specific to this
               Livebook instance, which are available inside your notebooks.
               You can also configure the <code>PATH</code> environment to

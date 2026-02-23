@@ -49,7 +49,7 @@ defmodule LivebookWeb.SessionLive.PackageSearchComponent do
         />
       </form>
       <div class={[
-        "flex flex-col divide-y h-[20rem] pr-2 -mr-2 overflow-y-auto tiny-scrollbar",
+        "flex flex-col divide-y h-80 pr-2 -mr-2 overflow-y-auto tiny-scrollbar",
         if(@packages.loading, do: "opacity-30 transition-opacity duration-300")
       ]}>
         <.async_result :let={packages} assign={@packages}>
@@ -78,7 +78,7 @@ defmodule LivebookWeb.SessionLive.PackageSearchComponent do
   defp package(assigns) do
     ~H"""
     <div class="flex items-center">
-      <div class="flex-grow p-2 flex flex-col text-sm">
+      <div class="grow p-2 flex flex-col text-sm">
         <div class="flex text-gray-700">
           <%= if @package[:url] do %>
             <a class="font-semibold" href={@package[:url]} target="_blank">{@package.name}</a>

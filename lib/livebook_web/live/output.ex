@@ -398,7 +398,7 @@ defmodule LivebookWeb.Output do
 
     ~H"""
     <div
-      class="whitespace-pre-wrap break-words font-editor text-red-600"
+      class="whitespace-pre-wrap wrap-break-word font-editor text-red-600"
       role="complementary"
       aria-label="error message"
       phx-no-format
@@ -413,7 +413,7 @@ defmodule LivebookWeb.Output do
     <div id={@id} class="relative group/error">
       <div
         id={"#{@id}-message"}
-        class="whitespace-pre-wrap break-words font-editor text-gray-500"
+        class="whitespace-pre-wrap wrap-break-word font-editor text-gray-500"
         role="complementary"
         aria-label="error"
         phx-no-format

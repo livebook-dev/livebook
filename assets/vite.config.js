@@ -1,10 +1,12 @@
 import fs from "fs/promises";
 import path from "path";
 import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import { compression } from "vite-plugin-compression2";
 
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     resumeStdinPlugin(),
     copyIframePlugin(),
     compression({

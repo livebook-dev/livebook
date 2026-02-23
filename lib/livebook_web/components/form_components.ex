@@ -74,7 +74,7 @@ defmodule LivebookWeb.FormComponents do
       base_input_classes(),
       "border rounded-lg focus:border-blue-600",
       error_color_classes(errors),
-      if(errors != [], do: "border-red-600"),
+      if(errors == [], do: "border-gray-200", else: "border-red-600"),
       "invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
     ]
   end
@@ -441,7 +441,7 @@ defmodule LivebookWeb.FormComponents do
         <label
           :for={{value, description} <- @options}
           class={[
-            @full_width && "flex-grow text-center",
+            @full_width && "grow text-center",
             "px-3 py-2 first:rounded-l-lg last:rounded-r-lg font-medium text-sm whitespace-nowrap cursor-pointer",
             "border border-r-0 last:border-r border-gray-500",
             if(to_string(@value) == value,
@@ -493,7 +493,7 @@ defmodule LivebookWeb.FormComponents do
             id={"#{@id}-button"}
             type="button"
             data-emoji-button
-            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l-[1px] flex justify-center items-center cursor-pointer"
+            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l flex justify-center items-center cursor-pointer"
           >
             <.remix_icon icon="emotion-line" class="text-xl" />
           </button>
@@ -714,7 +714,7 @@ defmodule LivebookWeb.FormComponents do
         >
           <.remix_icon icon="close-line" />
         </button>
-        <span class="flex-grow"></span>
+        <span class="grow"></span>
         <span :if={@entry.preflighted?} class="text-sm font-medium">
           {@entry.progress}%
         </span>

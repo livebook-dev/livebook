@@ -331,7 +331,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
       class={[
         "border p-3 rounded-lg relative",
         cond do
-          !@authorized -> "!block cursor-not-allowed tooltip top opacity-50 bg-gray-50"
+          !@authorized -> "block! cursor-not-allowed tooltip top opacity-50 bg-gray-50"
           @selectable -> "cursor-pointer border-blue-600 bg-blue-50"
           true -> "cursor-pointer border-gray-200"
         end
@@ -351,7 +351,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
             <span :if={url = @deployment_group.url}>({url})</span>
           </h3>
         </div>
-        <div class="flex gap-2 flex-shrink-0">
+        <div class="flex gap-2 shrink-0">
           <div class={[
             "text-sm border-l pl-2",
             if(@authorized,

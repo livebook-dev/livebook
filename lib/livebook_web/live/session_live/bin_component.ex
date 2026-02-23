@@ -83,7 +83,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
               </div>
             </div>
           <% true -> %>
-            <div class="flex flex-col space-y-8 min-h-[30rem] pt-3">
+            <div class="flex flex-col space-y-8 min-h-120 pt-3">
               <div
                 :for={%{cell: cell} = entry <- Enum.take(@matching_entries, @limit)}
                 class="flex flex-col space-y-1"

@@ -19,7 +19,7 @@ defmodule LivebookWeb.LayoutComponents do
   def layout(assigns) do
     ~H"""
     <div class="flex grow h-full">
-      <div class="absolute md:static h-full z-[600]">
+      <div class="absolute md:static h-full z-600">
         <.live_region role="alert" />
         <.sidebar current_page={@current_page} current_user={@current_user} saved_hubs={@saved_hubs} />
       </div>
@@ -31,7 +31,7 @@ defmodule LivebookWeb.LayoutComponents do
           You are running an offline Workspace for deployment. You cannot modify its settings.
         </.topbar>
 
-        <div class="md:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-[500] bg-white border-b border-gray-200">
+        <div class="md:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-500 bg-white border-b border-gray-200">
           <div class="pt-1 text-xl text-gray-400 hover:text-gray-600 focus:text-gray-600">
             <button
               data-el-toggle-sidebar
@@ -69,7 +69,7 @@ defmodule LivebookWeb.LayoutComponents do
   defp sidebar(assigns) do
     ~H"""
     <nav
-      class="hidden md:flex w-[17rem] h-full py-2 md:py-5 bg-gray-900"
+      class="hidden md:flex w-68 h-full py-2 md:py-5 bg-gray-900"
       aria-label="sidebar"
       data-el-sidebar
     >
@@ -97,7 +97,7 @@ defmodule LivebookWeb.LayoutComponents do
                   width="40"
                   alt="logo livebook"
                 />
-                <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
+                <span class="text-gray-300 text-2xl font-logo -ml-px group-hover:text-white pt-1">
                   Livebook
                 </span>
               </.link>

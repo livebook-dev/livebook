@@ -113,7 +113,7 @@ if (hasCookiesAccess()) {
   const overlayEl = document.createElement("div");
 
   overlayEl.innerHTML = `
-    <div class="fixed top-0 bottom-0 left-0 right-0 z-[1000] px-4 py-8 bg-gray-900/95 flex justify-center items-center">
+    <div class="fixed top-0 bottom-0 left-0 right-0 z-1000 px-4 py-8 bg-gray-900/95 flex justify-center items-center">
       <div class="max-w-[600px] w-full flex flex-col">
         <div class="text-xl text-gray-100 font-medium">
           Action required
