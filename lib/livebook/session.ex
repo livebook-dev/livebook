@@ -3320,6 +3320,15 @@ defmodule Livebook.Session do
     Map.put_new(plain_text, :style, [])
   end
 
+  defp normalize_runtime_output(%{type: :input} = input) when input.attrs.type == :number do
+    update_in(input.attrs, fn attrs ->
+      attrs
+      |> Map.put_new(:min, nil)
+      |> Map.put_new(:max, nil)
+      |> Map.put_new(:step, nil)
+    end)
+  end
+
   # Traverse composite outputs
 
   defp normalize_runtime_output(%{type: :grid} = grid) do

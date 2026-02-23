@@ -268,8 +268,28 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  defp input_output(%{attrs: %{type: type}} = assigns)
-       when type in [:number, :url, :text] do
+  defp input_output(%{attrs: %{type: :number}} = assigns) do
+    ~H"""
+    <div class="inline-flex">
+      <.text_field
+        type="number"
+        data-el-input
+        id={@id}
+        name="html_value"
+        value={to_string(@value)}
+        phx-debounce={@attrs.debounce}
+        phx-target={@myself}
+        min={@attrs.min}
+        max={@attrs.max}
+        step={@attrs.step}
+        spellcheck="false"
+        autocomplete="off"
+      />
+    </div>
+    """
+  end
+
+  defp input_output(%{attrs: %{type: type}} = assigns) when type in [:url, :text] do
     ~H"""
     <div class="inline-flex">
       <.text_field
@@ -312,7 +332,6 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  defp html_input_type(:number), do: "number"
   defp html_input_type(:url), do: "url"
   defp html_input_type(:text), do: "text"
 
@@ -374,17 +393,15 @@ defmodule LivebookWeb.Output.InputComponent do
     {:ok, html_value}
   end
 
-  defp parse(html_value, %{type: :number}) do
+  defp parse(html_value, %{type: :number} = attrs) do
     if html_value == "" do
       {:ok, nil}
     else
-      case Integer.parse(html_value) do
-        {number, ""} ->
-          {:ok, number}
-
-        _ ->
-          {number, ""} = Float.parse(html_value)
-          {:ok, number}
+      with {:ok, number} <- parse_number(html_value),
+           true <- in_range?(number, attrs.min, attrs.max) do
+        {:ok, number}
+      else
+        _ -> :error
       end
     end
   end
@@ -461,6 +478,22 @@ defmodule LivebookWeb.Output.InputComponent do
     end
   end
 
+  defp parse_number(html_value) do
+    case Integer.parse(html_value) do
+      {number, ""} ->
+        {:ok, number}
+
+      _ ->
+        case Float.parse(html_value) do
+          {number, ""} ->
+            {:ok, number}
+
+          _ ->
+            :error
+        end
+    end
+  end
+
   defp truncate_datetime(datetime) do
     datetime
     |> NaiveDateTime.truncate(:second)
@@ -477,6 +510,10 @@ defmodule LivebookWeb.Output.InputComponent do
        when struct in [NaiveDateTime, Time, Date] do
     (min == nil or struct.compare(datetime, min) != :lt) and
       (max == nil or struct.compare(datetime, max) != :gt)
+  end
+
+  defp in_range?(number, min, max) when is_number(number) do
+    (min == nil or number >= min) and (max == nil or number <= max)
   end
 
   defp report_event(socket, value) do
