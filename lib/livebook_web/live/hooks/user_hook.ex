@@ -18,8 +18,7 @@ defmodule LivebookWeb.UserHook do
       |> assign_new(:teams_auth, fn ->
         LivebookWeb.AuthPlug.teams_auth(session)
       end)
-      |> attach_hook(:current_user_subscription, :handle_info, &handle_info/2)
-      |> attach_hook(:server_authorization_subscription, :handle_info, &handle_info/2)
+      |> attach_hook(:user_handle_info_subscription, :handle_info, &handle_info/2)
 
     if connected?(socket) do
       Livebook.Users.subscribe(socket.assigns.current_user.id)
@@ -38,11 +37,10 @@ defmodule LivebookWeb.UserHook do
     {:halt, assign(socket, :current_user, user)}
   end
 
-  defp handle_info({:server_authorization_updated, deployment_group}, socket) do
+  defp handle_info({:server_authorization_updated, %{hub_id: hub_id}}, socket) do
     # Since we checks if the updated deployment group we received belongs
     # to the current app server, we don't need to check here.
     current_user = socket.assigns.current_user
-    hub_id = deployment_group.hub_id
 
     if current_user.payload do
       metadata = Livebook.ZTA.LivebookTeams.build_metadata(hub_id, current_user.payload)

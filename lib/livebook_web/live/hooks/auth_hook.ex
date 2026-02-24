@@ -5,7 +5,7 @@ defmodule LivebookWeb.AuthHook do
 
   def on_mount(:default, _params, session, socket) do
     uri = get_connect_info(socket, :uri)
-    socket = attach_hook(socket, :authorization_subscription, :handle_info, &handle_info/2)
+    socket = attach_hook(socket, :auth_handle_info_subscription, :handle_info, &handle_info/2)
 
     if LivebookWeb.AuthPlug.authorized?(session || %{}, uri.port) do
       {:cont, socket}
