@@ -1,7 +1,7 @@
 defmodule LivebookWeb.AppsLive do
   use LivebookWeb, :live_view
 
-  @events [
+  @app_folder_events [
     :app_folder_created,
     :app_folder_updated,
     :app_folder_deleted
@@ -241,7 +241,7 @@ defmodule LivebookWeb.AppsLive do
      |> apply_filters()}
   end
 
-  def handle_info({type, _app_folder}, socket) when type in @events do
+  def handle_info({type, _app_folder}, socket) when type in @app_folder_events do
     {:noreply,
      socket
      |> load_app_folders()
