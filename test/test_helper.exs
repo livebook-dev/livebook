@@ -2,15 +2,21 @@
 # code evaluation and intellisense. Testing pyproject.toml evaluation
 # is tricky because it requires a separate VM, so we only rely on the
 # LV integration tests.
-ExUnit.CaptureIO.capture_io(fn ->
-  Pythonx.uv_init("""
-  [project]
-  name = "project"
-  version = "0.0.0"
-  requires-python = "==3.13.*"
-  dependencies = []
-  """)
-end)
+
+# TODO: Update `pythonx` to support Nix, downloaded binaries doesn't work
+nix? = System.find_executable("nix") != nil
+
+if not nix? do
+  ExUnit.CaptureIO.capture_io(fn ->
+    Pythonx.uv_init("""
+    [project]
+    name = "project"
+    version = "0.0.0"
+    requires-python = "==3.13.*"
+    dependencies = []
+    """)
+  end)
+end
 
 # Start manager on the current node and configure it not to terminate
 # automatically, so that we can use it to start runtime servers
@@ -89,9 +95,16 @@ teams_exclude =
 
 fly_exclude = if System.get_env("TEST_FLY_API_TOKEN"), do: [], else: [:fly]
 git_exclude = if System.get_env("TEST_GIT_SSH_KEY"), do: [], else: [:git]
+python_exclude = if nix?, do: [:python], else: []
 
 ExUnit.start(
   assert_receive_timeout: if(windows?, do: 5_000, else: 1_500),
   exclude:
-    erl_docs_exclude ++ windows_exclude ++ teams_exclude ++ fly_exclude ++ [:k8s] ++ git_exclude
+    erl_docs_exclude ++
+      windows_exclude ++
+      teams_exclude ++
+      fly_exclude ++
+      [:k8s] ++
+      git_exclude ++
+      python_exclude
 )
