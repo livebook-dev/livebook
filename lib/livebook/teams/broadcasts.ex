@@ -60,20 +60,6 @@ defmodule Livebook.Teams.Broadcasts do
   end
 
   @doc """
-  Unsubscribes from `subscribe/0`.
-  """
-  @spec unsubscribe(atom() | list(atom())) :: :ok
-  def unsubscribe(topics) when is_list(topics) do
-    for topic <- topics, do: unsubscribe(topic)
-
-    :ok
-  end
-
-  def unsubscribe(topic) do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "teams:#{topic}")
-  end
-
-  @doc """
   Broadcasts under `#{@clients_topic}` topic when hub received a new client connection.
   """
   @spec client_connected(String.t()) :: broadcast()
