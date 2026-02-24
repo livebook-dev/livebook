@@ -75,36 +75,22 @@ Livebook.HubHelpers.set_offline_hub()
 # Compile anything pending on TeamsServer
 Livebook.TeamsServer.setup()
 
+env = System.get_env()
+
 windows? = match?({:win32, _}, :os.type())
-
-erl_docs_exclude =
-  if match?({:error, _}, Code.fetch_docs(:gen_server)) do
-    [:erl_docs]
-  else
-    []
-  end
-
-windows_exclude = if windows?, do: [:unix], else: []
-
-teams_exclude =
-  if Livebook.TeamsServer.available?() do
-    []
-  else
-    [:teams_integration]
-  end
-
-fly_exclude = if System.get_env("TEST_FLY_API_TOKEN"), do: [], else: [:fly]
-git_exclude = if System.get_env("TEST_GIT_SSH_KEY"), do: [], else: [:git]
-python_exclude = if nix?, do: [:python], else: []
+without_docs? = match?({:error, _}, Code.fetch_docs(:gen_server))
+git_ssh_key? = Map.has_key?(env, "TEST_GIT_SSH_KEY")
+fly_api_token? = Map.has_key?(env, "TEST_FLY_API_TOKEN")
 
 ExUnit.start(
   assert_receive_timeout: if(windows?, do: 5_000, else: 1_500),
-  exclude:
-    erl_docs_exclude ++
-      windows_exclude ++
-      teams_exclude ++
-      fly_exclude ++
-      [:k8s] ++
-      git_exclude ++
-      python_exclude
+  exclude: [
+    python: nix?,
+    git: not git_ssh_key?,
+    fly: not fly_api_token?,
+    teams: not Livebook.TeamsServer.available?(),
+    unix: windows?,
+    k8s: true,
+    erl_docs: without_docs?
+  ]
 )
