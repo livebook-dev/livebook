@@ -1,5 +1,6 @@
 defmodule Livebook.Intellisense.PythonTest do
   use ExUnit.Case, async: true
+  @moduletag :python
 
   import Livebook.TestHelpers
 

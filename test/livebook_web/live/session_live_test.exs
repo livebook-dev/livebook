@@ -2919,6 +2919,7 @@ defmodule LivebookWeb.SessionLiveTest do
     Code.put_compiler_option(:debug_info, false)
   end
 
+  @tag :python
   test "python code evaluation end-to-end", %{conn: conn, session: session} do
     # Use the standalone runtime, to install Pythonx and setup the interpreter
     Session.set_runtime(session.pid, Runtime.Standalone.new())

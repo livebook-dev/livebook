@@ -1582,6 +1582,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
   end
 
   describe "python evaluation" do
+    @describetag :python
+
     test "evaluates python code", %{evaluator: evaluator} do
       code = """
       x = [1, 2, 3]
