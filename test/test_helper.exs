@@ -88,7 +88,7 @@ ExUnit.start(
     python: nix?,
     git: not git_ssh_key?,
     fly: not fly_api_token?,
-    teams: not Livebook.TeamsServer.available?(),
+    teams_integration: not Livebook.TeamsServer.available?(),
     unix: windows?,
     k8s: true,
     erl_docs: without_docs?
