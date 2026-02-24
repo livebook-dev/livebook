@@ -18,9 +18,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         desc: "Show signature help"
       },
       %{
-        seq: ["ctrl", "shift", "i"],
-        seq_mac: ["⌥", "⇧", "f"],
-        seq_windows: ["alt", "shift", "f"],
+        seq: ["ctrl", "shift", "f"],
+        seq_mac: ["⌘", "⇧", "f"],
         press_all: true,
         desc: "Format Elixir code",
         basic: true

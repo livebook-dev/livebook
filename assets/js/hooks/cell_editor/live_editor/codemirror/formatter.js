@@ -91,9 +91,8 @@ function startFormat(view) {
 
 const formatterKeymap = [
   {
-    key: "Ctrl-Shift-i",
-    mac: "Alt-Shift-f",
-    win: "Alt-Shift-f",
+    key: "Ctrl-Shift-f",
+    mac: "Cmd-Shift-f",
     run: startFormat,
   },
 ];
