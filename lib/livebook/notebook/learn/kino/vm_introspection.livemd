@@ -114,7 +114,7 @@ of processes, such as agents and servers, but there is
 one particular category that stands out, which are the
 supervisors.
 
-Supervisors are processes that supervisor other processes
+Supervisors are processes that supervise other processes
 and restart them in case something goes wrong. We can start
 our own supervisor like this:
 
