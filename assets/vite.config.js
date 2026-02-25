@@ -34,10 +34,6 @@ export default defineConfig({
   server: {
     port: 4432,
     origin: "http://localhost:4432",
-    cors: {
-      origin:
-        /^https?:\/\/(?:(?:[^:]+\.)?localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/,
-    },
   },
 });
 
