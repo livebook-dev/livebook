@@ -30,7 +30,7 @@ defmodule LivebookWeb.AppLive do
         Livebook.Teams.Broadcasts.subscribe(:app_deployments)
       end
 
-      {:ok, assign(socket, app: app)}
+      {:ok, assign(socket, app: app, apps_banner: Livebook.Config.apps_banner())}
     else
       {:ok, pid} = Livebook.Apps.fetch_pid(slug)
       session_id = Livebook.App.get_session_id(pid, user: socket.assigns.current_user)
@@ -41,13 +41,12 @@ defmodule LivebookWeb.AppLive do
   @impl true
   def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
+    <.apps_banner value={@apps_banner} />
     <div class="h-full relative overflow-y-auto px-4 md:px-20">
+      <div class="absolute right-8 md:left-4 top-3.5 w-10 h-10">
+        <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
+      </div>
       <div class="w-full max-w-(--breakpoint-lg) py-4 mx-auto">
-        <div class="absolute md:fixed right-8 md:left-4 top-3 w-10 h-10">
-          <.link navigate={~p"/"}>
-            <img src={~p"/images/logo.png"} height="40" widthz="40" alt="logo livebook" />
-          </.link>
-        </div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
             {@app.notebook_name}

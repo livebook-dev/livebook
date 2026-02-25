@@ -1,6 +1,8 @@
 defmodule LivebookWeb.AppsLive do
   use LivebookWeb, :live_view
 
+  import LivebookWeb.AppComponents
+
   @app_folder_events [
     :app_folder_created,
     :app_folder_updated,
@@ -19,6 +21,7 @@ defmodule LivebookWeb.AppsLive do
     {:ok,
      socket
      |> assign(
+       apps_banner: Livebook.Config.apps_banner(),
        search_term: "",
        selected_app_folder: "",
        apps: Livebook.Apps.list_authorized_apps(socket.assigns.current_user),
@@ -34,6 +37,7 @@ defmodule LivebookWeb.AppsLive do
   def render(assigns) do
     ~H"""
     <div class="h-full flex flex-col overflow-y-auto bg-white">
+      <.apps_banner value={@apps_banner} />
       <div class="border-b border-gray-200/70 bg-white/80 backdrop-blur-sm shadow-sm">
         <div class="max-w-6xl mx-auto px-10 py-3.5 flex items-center justify-between">
           <div class="w-10 h-10">

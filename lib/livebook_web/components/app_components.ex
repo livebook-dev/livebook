@@ -13,6 +13,27 @@ defmodule LivebookWeb.AppComponents do
   end
 
   @doc """
+  Renders the apps banner.
+
+  ## Examples
+
+      <.apps_banner value="MyAppsBanner" />
+  """
+  attr :value, :string, default: nil
+
+  def apps_banner(assigns) do
+    ~H"""
+    <div
+      :if={@value}
+      id="apps-banner"
+      class="font-medium w-full bg-gray-100 text-gray-600 text-center leading-6 py-2"
+    >
+      {@value}
+    </div>
+    """
+  end
+
+  @doc """
   Renders app status with indicator.
   """
   attr :status, :map, required: true

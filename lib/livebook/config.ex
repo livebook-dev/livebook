@@ -143,6 +143,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the apps top banner.
+  """
+  @spec apps_banner() :: String.t() | nil
+  def apps_banner() do
+    Application.get_env(:livebook, :apps_banner)
+  end
+
+  @doc """
   Returns the apps path.
   """
   @spec apps_path() :: String.t() | nil
@@ -730,6 +738,16 @@ defmodule Livebook.Config do
 
       other ->
         abort!(~s{expected #{env} to be either "auto" or "manual", got: #{inspect(other)}})
+    end
+  end
+
+  @doc """
+  Parses the apps banner from env.
+  """
+  def apps_banner!(env) do
+    case System.get_env(env) do
+      value when value in ["", nil] -> nil
+      value -> value
     end
   end
 
