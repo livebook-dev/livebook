@@ -68,7 +68,12 @@ defmodule LivebookWeb.SessionLive.PackageSearchComponent do
             <.remix_icon icon="windy-line" class="text-xl" />
             <div class="ml-2">No results</div>
           </div>
-          <.package :for={{package, idx} <- Enum.with_index(packages)} package={package} idx={idx} />
+          <.package
+            :for={{package, idx} <- Enum.with_index(packages)}
+            package={package}
+            idx={idx}
+            myself={@myself}
+          />
         </.async_result>
       </div>
     </div>
@@ -92,7 +97,12 @@ defmodule LivebookWeb.SessionLive.PackageSearchComponent do
         </div>
       </div>
       <div class="ml-2">
-        <.button color="gray" small aria-label="add" phx-click={JS.push("add", value: %{idx: @idx})}>
+        <.button
+          color="gray"
+          small
+          aria-label="add"
+          phx-click={JS.push("add", value: %{idx: @idx}, target: @myself)}
+        >
           <.remix_icon icon="add-line" />
           <span>Add</span>
         </.button>
