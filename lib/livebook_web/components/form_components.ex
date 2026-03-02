@@ -484,7 +484,7 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <div class="flex border bg-gray-50 rounded-lg space-x-4 items-center">
+      <div class="flex border border-gray-200 bg-gray-50 rounded-lg space-x-4 items-center">
         <div id={"#{@id}-picker"} class="flex w-full" phx-hook="EmojiPicker">
           <div class="grow p-1 pl-3">
             <span id={"#{@id}-preview"} data-emoji-preview>{@value}</span>
@@ -493,7 +493,7 @@ defmodule LivebookWeb.FormComponents do
             id={"#{@id}-button"}
             type="button"
             data-emoji-button
-            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l flex justify-center items-center cursor-pointer"
+            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l border-l-gray-200 flex justify-center items-center cursor-pointer"
           >
             <.remix_icon icon="emotion-line" class="text-xl" />
           </button>
