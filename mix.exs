@@ -253,7 +253,7 @@ defmodule Livebook.MixProject do
 
   defp docs() do
     [
-      logo: "static/images/logo.png",
+      logo: "assets/public/images/logo.png",
       main: "readme",
       api_reference: false,
       extra_section: "Guides",
