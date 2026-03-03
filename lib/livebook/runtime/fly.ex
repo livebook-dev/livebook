@@ -291,12 +291,10 @@ defmodule Livebook.Runtime.Fly do
         app_name,
         "--bind-addr",
         bind_addr,
-        "--access-token",
-        token,
         "--watch-stdin"
       ]
 
-      env = [{~c"FLY_NO_UPDATE_CHECK", ~c"1"}]
+      env = [{~c"FLY_NO_UPDATE_CHECK", ~c"1"}, {~c"FLY_ACCESS_TOKEN", ~c"#{token}"}]
 
       port =
         Port.open(

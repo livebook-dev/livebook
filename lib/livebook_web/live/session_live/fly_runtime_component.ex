@@ -440,7 +440,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
 
   @impl true
   def handle_event("set_token", %{"token" => token}, socket) do
-    {:noreply, socket |> assign(token: nullify(token)) |> load_org_and_regions()}
+    {:noreply, socket |> assign(token: nullify(token)) |> load_org_and_regions() |> load_app()}
   end
 
   def handle_event("set_app_name", %{"app_name" => app_name}, socket) do
