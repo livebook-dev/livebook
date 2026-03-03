@@ -64,8 +64,8 @@ defmodule Livebook.MixProject do
       links: %{
         "GitHub" => "https://github.com/livebook-dev/livebook"
       },
-      files:
-        ~w(lib config priv/.gitkeep mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe proto/lib)
+      # Note that when publishing, we include pre-built priv and not assets.
+      files: ~w(lib config priv mix.exs mix.lock README.md LICENSE CHANGELOG.md proto/lib)
     ]
   end
 
@@ -77,7 +77,16 @@ defmodule Livebook.MixProject do
       "assets.build": ["bun assets run build"],
       "format.all": ["format", "bun assets run --silent format"],
       "protobuf.generate": ["cmd --cd proto mix protobuf.generate"],
-      "escript.build": ["assets.setup", "escript.build"]
+      # Always build priv/ before publishing to Hex, so that no build
+      # is required on escript installation.
+      "hex.publish": [
+        "assets.setup",
+        # Compilation prunes code paths, so Hex task modules are no
+        # longer available. We need to bring the application back
+        # explicitly, in order to access its modules.
+        fn _ -> Mix.ensure_application!(:hex) end,
+        "hex.publish"
+      ]
     ]
   end
 

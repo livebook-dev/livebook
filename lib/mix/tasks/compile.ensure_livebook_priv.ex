@@ -13,6 +13,8 @@ defmodule Mix.Tasks.Compile.EnsureLivebookPriv do
     # In case Livebook is used as a library as in nerves_livebook,
     # the assets.setup is not called, so we use this custom compiler
     # to invoke the task and make the assets work transparently.
+    #
+    # This is also used when installing escript from GitHub.
     if Mix.env() == :prod and not File.exists?(priv_static_dir) do
       Mix.shell().info("Generating priv/static")
 
