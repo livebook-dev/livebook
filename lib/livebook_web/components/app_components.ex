@@ -26,7 +26,7 @@ defmodule LivebookWeb.AppComponents do
     <div
       :if={@value}
       id="apps-banner"
-      class="font-medium w-full bg-gray-100 text-gray-600 text-center leading-6 py-2"
+      class="w-full bg-gray-800 text-xs text-gray-400 text-center py-1 tracking-wider uppercase"
     >
       {@value}
     </div>
