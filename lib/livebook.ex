@@ -266,6 +266,10 @@ defmodule Livebook do
       config :livebook, :agent_name, agent_name
     end
 
+    if format = Livebook.Config.apps_banner!("LIVEBOOK_APPS_BANNER") do
+      config :livebook, :apps_banner, format
+    end
+
     if image_registry_url = Livebook.Config.image_registry_url!("LIVEBOOK_IMAGE_REGISTRY_URL") do
       config :livebook, :image_registry_url, image_registry_url
     end

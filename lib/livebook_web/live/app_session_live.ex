@@ -60,6 +60,7 @@ defmodule LivebookWeb.AppSessionLive do
        |> assign(
          slug: slug,
          session: session,
+         apps_banner: Livebook.Config.apps_banner(),
          page_title: get_page_title(data.notebook.name),
          client_id: client_id,
          data_view: data_to_view(data)
@@ -107,57 +108,58 @@ defmodule LivebookWeb.AppSessionLive do
 
   def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
+    <.apps_banner value={@apps_banner} />
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
+      <div class="absolute right-4 md:left-4 md:right-auto top-3.5">
+        <.menu id="app-menu" position="bottom-right" md_position="bottom-left">
+          <:toggle>
+            <button class="flex items-center text-gray-900">
+              <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
+              <.remix_icon icon="arrow-down-s-line" />
+            </button>
+          </:toggle>
+          <.menu_item :if={@livebook_authorized?}>
+            <.link navigate={~p"/"} role="menuitem">
+              <.remix_icon icon="home-6-line" />
+              <span>Home</span>
+            </.link>
+          </.menu_item>
+          <.menu_item>
+            <.link navigate={~p"/apps"} role="menuitem">
+              <.remix_icon icon="layout-grid-fill" />
+              <span>Apps</span>
+            </.link>
+          </.menu_item>
+          <.menu_item :if={@data_view.multi_session}>
+            <.link navigate={~p"/apps/#{@data_view.slug}"} role="menuitem">
+              <.remix_icon icon="play-list-add-line" />
+              <span>Sessions</span>
+            </.link>
+          </.menu_item>
+          <.menu_item :if={@data_view.show_source}>
+            <.link
+              patch={~p"/apps/#{@data_view.slug}/sessions/#{@session.id}/source"}
+              role="menuitem"
+            >
+              <.remix_icon icon="code-line" />
+              <span>View source</span>
+            </.link>
+          </.menu_item>
+          <.menu_item :if={@livebook_authorized?}>
+            <.link patch={~p"/sessions/#{@session.id}"} role="menuitem">
+              <.remix_icon icon="terminal-line" />
+              <span>Debug</span>
+            </.link>
+          </.menu_item>
+          <.menu_item :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}>
+            <button phx-click="logout" role="menuitem">
+              <.remix_icon icon="logout-box-line" />
+              <span>Logout</span>
+            </button>
+          </.menu_item>
+        </.menu>
+      </div>
       <div class="w-full max-w-(--breakpoint-lg) py-4 mx-auto" data-el-notebook-content>
-        <div class="absolute md:fixed right-4 md:left-4 md:right-auto top-3">
-          <.menu id="app-menu" position="bottom-right" md_position="bottom-left">
-            <:toggle>
-              <button class="flex items-center text-gray-900">
-                <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
-                <.remix_icon icon="arrow-down-s-line" />
-              </button>
-            </:toggle>
-            <.menu_item :if={@livebook_authorized?}>
-              <.link navigate={~p"/"} role="menuitem">
-                <.remix_icon icon="home-6-line" />
-                <span>Home</span>
-              </.link>
-            </.menu_item>
-            <.menu_item>
-              <.link navigate={~p"/apps"} role="menuitem">
-                <.remix_icon icon="layout-grid-fill" />
-                <span>Apps</span>
-              </.link>
-            </.menu_item>
-            <.menu_item :if={@data_view.multi_session}>
-              <.link navigate={~p"/apps/#{@data_view.slug}"} role="menuitem">
-                <.remix_icon icon="play-list-add-line" />
-                <span>Sessions</span>
-              </.link>
-            </.menu_item>
-            <.menu_item :if={@data_view.show_source}>
-              <.link
-                patch={~p"/apps/#{@data_view.slug}/sessions/#{@session.id}/source"}
-                role="menuitem"
-              >
-                <.remix_icon icon="code-line" />
-                <span>View source</span>
-              </.link>
-            </.menu_item>
-            <.menu_item :if={@livebook_authorized?}>
-              <.link patch={~p"/sessions/#{@session.id}"} role="menuitem">
-                <.remix_icon icon="terminal-line" />
-                <span>Debug</span>
-              </.link>
-            </.menu_item>
-            <.menu_item :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}>
-              <button phx-click="logout" role="menuitem">
-                <.remix_icon icon="logout-box-line" />
-                <span>Logout</span>
-              </button>
-            </.menu_item>
-          </.menu>
-        </div>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">

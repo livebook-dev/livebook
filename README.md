@@ -182,6 +182,8 @@ The following environment variables can be used to configure Livebook on boot:
   * `LIVEBOOK_APP_SERVICE_URL` - sets the application url to manage this
     Livebook instance within the cloud provider platform.
 
+  * `LIVEBOOK_APPS_BANNER` - sets the value to render at the top apps banner.
+
   * `LIVEBOOK_APPS_PATH` - the directory with app notebooks. When set, the apps
     are deployed on Livebook startup with the persisted settings. Password-protected
     notebooks will receive a random password, unless `LIVEBOOK_APPS_PATH_PASSWORD`

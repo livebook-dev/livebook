@@ -71,6 +71,18 @@ defmodule Livebook.ConfigTest do
     end
   end
 
+  test "apps_banner!/1 parses the apps banner" do
+    refute Config.apps_banner!("TEST_APPS_BANNER")
+
+    with_env([TEST_APPS_BANNER: ""], fn ->
+      refute Config.apps_banner!("TEST_APPS_BANNER")
+    end)
+
+    with_env([TEST_APPS_BANNER: "MyAppsBanner"], fn ->
+      assert Config.apps_banner!("TEST_APPS_BANNER") == "MyAppsBanner"
+    end)
+  end
+
   defp with_env(env_vars, fun) do
     existing =
       Enum.map(env_vars, fn {env, _value} ->
