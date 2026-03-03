@@ -7,9 +7,6 @@
     "format-check": "prettier --check '{js,test,css}/**/*.{js,json,css,md}' '*.js' --no-error-on-unmatched-pattern --log-level warn",
     "test": "vitest"
   },
-  "workspaces": [
-    "../deps/*"
-  ],
   "dependencies": {
     "@codemirror/autocomplete": "^6.11.1",
     "@codemirror/commands": "^6.3.3",
@@ -43,9 +40,9 @@
     "katex": "^0.16.28",
     "mermaid": "^11.3.0",
     "morphdom": "^2.6.1",
-    "phoenix": "workspace:*",
-    "phoenix_html": "workspace:*",
-    "phoenix_live_view": "workspace:*",
+    "phoenix": "file:../deps/phoenix",
+    "phoenix_html": "file:../deps/phoenix_html",
+    "phoenix_live_view": "file:../deps/phoenix_live_view",
     "picmo": "^5.7.2",
     "rehype-katex": "^7.0.0",
     "rehype-parse": "^9.0.0",
