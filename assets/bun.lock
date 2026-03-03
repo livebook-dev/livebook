@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 1,
   "workspaces": {
     "": {
       "dependencies": {
@@ -36,9 +35,9 @@
         "katex": "^0.16.28",
         "mermaid": "^11.3.0",
         "morphdom": "^2.6.1",
-        "phoenix": "workspace:*",
-        "phoenix_html": "workspace:*",
-        "phoenix_live_view": "workspace:*",
+        "phoenix": "file:../deps/phoenix",
+        "phoenix_html": "file:../deps/phoenix_html",
+        "phoenix_live_view": "file:../deps/phoenix_live_view",
         "picmo": "^5.7.2",
         "rehype-katex": "^7.0.0",
         "rehype-parse": "^9.0.0",
@@ -65,59 +64,6 @@
         "prettier": "^3.0.3",
         "vite": "^7.3.1",
         "vitest": "^4.0.18",
-      },
-    },
-    "../deps/phoenix": {
-      "name": "phoenix",
-      "version": "1.8.0",
-      "devDependencies": {
-        "@babel/cli": "7.28.0",
-        "@babel/core": "7.28.0",
-        "@babel/preset-env": "7.28.0",
-        "@eslint/js": "^9.28.0",
-        "@stylistic/eslint-plugin": "^5.0.0",
-        "documentation": "^14.0.3",
-        "eslint": "9.32.0",
-        "eslint-plugin-jest": "29.0.1",
-        "jest": "^30.0.0",
-        "jest-environment-jsdom": "^30.0.0",
-        "jsdom": "^26.1.0",
-        "mock-socket": "^9.3.1",
-      },
-    },
-    "../deps/phoenix_html": {
-      "name": "phoenix_html",
-      "version": "4.2.1",
-    },
-    "../deps/phoenix_live_view": {
-      "name": "phoenix_live_view",
-      "version": "1.1.24",
-      "dependencies": {
-        "morphdom": "2.7.8",
-      },
-      "devDependencies": {
-        "@babel/cli": "7.27.2",
-        "@babel/core": "7.27.4",
-        "@babel/preset-env": "7.27.2",
-        "@babel/preset-typescript": "^7.27.1",
-        "@eslint/js": "^9.29.0",
-        "@playwright/test": "^1.56.1",
-        "@types/jest": "^30.0.0",
-        "@types/phoenix": "^1.6.6",
-        "css.escape": "^1.5.1",
-        "eslint": "9.29.0",
-        "eslint-plugin-jest": "28.14.0",
-        "eslint-plugin-playwright": "^2.2.0",
-        "globals": "^16.2.0",
-        "jest": "^30.0.0",
-        "jest-environment-jsdom": "^30.0.0",
-        "jest-monocart-coverage": "^1.1.1",
-        "monocart-reporter": "^2.9.21",
-        "phoenix": "1.7.21",
-        "prettier": "3.5.3",
-        "ts-jest": "^29.4.0",
-        "typescript": "^5.8.3",
-        "typescript-eslint": "^8.34.0",
       },
     },
   },
@@ -1768,11 +1714,11 @@
 
     "pathe": ["pathe@2.0.3", "", {}, "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w=="],
 
-    "phoenix": ["phoenix@workspace:../deps/phoenix"],
+    "phoenix": ["phoenix@file:../deps/phoenix", { "devDependencies": { "@babel/cli": "7.28.0", "@babel/core": "7.28.0", "@babel/preset-env": "7.28.0", "@eslint/js": "^9.28.0", "@stylistic/eslint-plugin": "^5.0.0", "documentation": "^14.0.3", "eslint": "9.32.0", "eslint-plugin-jest": "29.0.1", "jest": "^30.0.0", "jest-environment-jsdom": "^30.0.0", "jsdom": "^26.1.0", "mock-socket": "^9.3.1" } }],
 
-    "phoenix_html": ["phoenix_html@workspace:../deps/phoenix_html"],
+    "phoenix_html": ["phoenix_html@file:../deps/phoenix_html", {}],
 
-    "phoenix_live_view": ["phoenix_live_view@workspace:../deps/phoenix_live_view"],
+    "phoenix_live_view": ["phoenix_live_view@file:../deps/phoenix_live_view", { "dependencies": { "morphdom": "2.7.8" }, "devDependencies": { "@babel/cli": "7.27.2", "@babel/core": "7.27.4", "@babel/preset-env": "7.27.2", "@babel/preset-typescript": "^7.27.1", "@eslint/js": "^9.29.0", "@playwright/test": "^1.56.1", "@types/jest": "^30.0.0", "@types/phoenix": "^1.6.6", "css.escape": "^1.5.1", "eslint": "9.29.0", "eslint-plugin-jest": "28.14.0", "eslint-plugin-playwright": "^2.2.0", "globals": "^16.2.0", "jest": "^30.0.0", "jest-environment-jsdom": "^30.0.0", "jest-monocart-coverage": "^1.1.1", "monocart-reporter": "^2.9.21", "phoenix": "1.7.21", "prettier": "3.5.3", "ts-jest": "^29.4.0", "typescript": "^5.8.3", "typescript-eslint": "^8.34.0" } }],
 
     "picmo": ["picmo@5.8.5", "", { "dependencies": { "emojibase": "^6.1.0" } }, "sha512-7I8jfuHALF9lkt3d+XCZGP+IwH7g91vYZv6XtRnJ99IDjnm92zel0L5DEo2FX0oaHUwRMBD/kn2knTZqwItudQ=="],
 
