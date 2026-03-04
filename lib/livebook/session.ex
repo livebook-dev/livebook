@@ -3329,6 +3329,16 @@ defmodule Livebook.Session do
     end)
   end
 
+  defp normalize_runtime_output(%{type: :control} = control) when control.attrs.type == :form do
+    update_in(control.attrs.fields, fn fields ->
+      Enum.map(fields, fn
+        {field, nil} -> {field, nil}
+        # Normalize each form input.
+        {field, input} -> {field, normalize_runtime_output(input)}
+      end)
+    end)
+  end
+
   # Traverse composite outputs
 
   defp normalize_runtime_output(%{type: :grid} = grid) do
