@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.19.2](https://github.com/livebook-dev/livebook/tree/v0.19.2) (2026-03-04)
+
+### Fixed
+
+- Fix compatibility with OTP 27 and earlier
+
 ## [v0.19.1](https://github.com/livebook-dev/livebook/tree/v0.19.1) (2026-03-04)
 
 ### Fixed
