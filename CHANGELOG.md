@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.19.1](https://github.com/livebook-dev/livebook/tree/v0.19.1) (2026-03-04)
+
+### Fixed
+
+- Fly runtime failing to start with proxy auth error on latest fly CLI ([#3145](https://github.com/livebook-dev/livebook/pull/3145))
+- Compatibility of form number input with prior kino versions
+
 ## [v0.19.0](https://github.com/livebook-dev/livebook/tree/v0.19.0) (2026-03-03)
 
 As part of this release, we reworked the desktop app to use Tauri, and we now have a Linux version of the app. The Linux support is considered in to be in beta mode, if you notice any unexpected behaviour, please let us know.
