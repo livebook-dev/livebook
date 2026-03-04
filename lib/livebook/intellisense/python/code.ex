@@ -428,7 +428,18 @@ defmodule Livebook.Intellisense.Python.Code do
           {:comment, value, rest}
 
         rest ->
-          identifier_regex = ~r/^[_\p{XID_Start}][_\p{XID_Continue}]*/u
+          # TODO: remove conditional once we require OTP 28
+          #
+          # The unicode properties \p{XID_Start} and \p{XID_Continue}
+          # are only supported since OTP 28, so we use a slightly
+          # simplified regex on older versions.
+          identifier_regex =
+            unquote(
+              if(System.otp_release() >= "28",
+                do: quote(do: ~r/^[_\p{XID_Start}][_\p{XID_Continue}]*/u),
+                else: quote(do: ~r/^[_\p{L}][_\p{L}\p{N}]*/u)
+              )
+            )
 
           case Regex.run(identifier_regex, rest) do
             [identifier] ->
