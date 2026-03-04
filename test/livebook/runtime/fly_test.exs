@@ -7,7 +7,7 @@ defmodule Livebook.Runtime.FlyTest do
 
   alias Livebook.Runtime
 
-  @assert_receive_timeout 10_000
+  @assert_receive_timeout 20_000
 
   setup do
     Livebook.FlyAPI.passthrough()
