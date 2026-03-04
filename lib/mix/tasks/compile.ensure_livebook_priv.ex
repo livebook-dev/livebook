@@ -20,13 +20,17 @@ defmodule Mix.Tasks.Compile.EnsureLivebookPriv do
     project_dir = Path.expand("../../..", __DIR__)
     priv_static_dir = Path.join(project_dir, "priv/static")
 
-    if Mix.env() == :prod and not File.exists?(priv_static_dir) do
+    actual_deps_dir = Mix.Project.deps_path()
+    project_deps_dir = Path.join(project_dir, "deps")
+
+    livebook_as_dependency? = actual_deps_dir != project_deps_dir
+
+    if Mix.env() == :prod and livebook_as_dependency? and not File.exists?(priv_static_dir) do
       # If livebook is a dependency, it doesn't get it's own deps/
       # dir, instead it is a sibling in the deps folder. We rely on
       # deps/ dir being available in assets/package.json. To make it
-      # work, we symlink the deps dir. If the deps dir is present,
-      # this simply fails.
-      _ = File.ln_s(Mix.Project.deps_path(), Path.join(project_dir, "deps"))
+      # work, we symlink the deps dir.
+      _ = File.ln_s(actual_deps_dir, project_deps_dir)
 
       Mix.shell().info("Generating priv/static")
 
