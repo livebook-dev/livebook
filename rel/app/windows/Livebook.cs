@@ -99,6 +99,7 @@ class LivebookApp : ApplicationContext
         notifyIcon.Click += notifyIconClicked;
 
         Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+        Environment.SetEnvironmentVariable("LOG_PATH", logPath);
 
         ElixirKit.API.Start(
             name: "app",

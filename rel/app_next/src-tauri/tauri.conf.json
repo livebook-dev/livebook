@@ -24,6 +24,7 @@
       {
         "ext": ["livemd"],
         "name": "Livebook",
+        "mimeType": "text/x-livebook",
         "role": "Editor"
       }
     ],
