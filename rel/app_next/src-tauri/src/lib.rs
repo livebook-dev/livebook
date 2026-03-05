@@ -126,7 +126,12 @@ pub fn run() {
             std::thread::spawn(move || {
                 let command = if cfg!(debug_assertions) {
                     let mix_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
-                    Command::new("mix", &["phx.server"])
+                    let (prog, args): (&str, &[&str]) = if cfg!(windows) {
+                        ("cmd", &["/c", "mix", "phx.server"])
+                    } else {
+                        ("mix", &["phx.server"])
+                    };
+                    Command::new(prog, args)
                         .current_dir(mix_root)
                         .env(&[("MIX_TARGET", "app_next")])
                 } else {
