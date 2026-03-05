@@ -6,7 +6,6 @@ use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 use tracing_subscriber::{
     filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt, Layer,
@@ -76,14 +75,12 @@ pub fn run() {
                     }
                     "view-logs" => {
                         if let Some(state) = app.try_state::<AppState>() {
-                            let _ = app
-                                .opener()
-                                .open_path(state.log_path.display().to_string(), None::<&str>);
+                            state.publish_open("/logs");
                         }
                     }
                     "boot-script" => {
                         if let Ok(path) = ensure_boot_script() {
-                            let _ = app.opener().open_path(path.display().to_string(), None::<&str>);
+                            app.state::<AppState>().publish_open(&format!("file://{}", path.display()));
                         }
                     }
                     "check-updates" => {
@@ -94,13 +91,7 @@ pub fn run() {
                 })
                 .build(app_handle)?;
 
-            let state = AppState::new(
-                log_path.clone(),
-                log_guard,
-                tray_menu,
-                copy_url_item,
-                tray,
-            );
+            let state = AppState::new(log_guard, tray_menu, copy_url_item, tray);
             app.manage(state);
 
             let initial_urls = extract_open_urls(std::env::args().skip(1).collect());
@@ -134,6 +125,8 @@ pub fn run() {
                     elixirkit::release(release_dir, "app")
                 };
 
+                let command = command.env_set("LOG_PATH", log_path.display().to_string());
+
                 let status = command.start(|(name, data)| {
                     if name == "ready" {
                         let state = handle.state::<AppState>();
@@ -141,9 +134,6 @@ pub fn run() {
 
                         state.set_url(data.to_string());
                         state.enable_tray_menu();
-                        if state.should_open_url() {
-                            let _ = handle.opener().open_url(data, None::<&str>);
-                        }
                     } else {
                         tracing::error!("unexpected event: {name}:{data}");
                         handle.exit(1);
@@ -151,7 +141,7 @@ pub fn run() {
                 });
 
                 if status != 0 {
-                    show_exit_dialog(&handle, status);
+                    show_exit_dialog(&handle, status, &log_path);
                 }
                 handle.exit(status);
             });
@@ -193,8 +183,6 @@ struct AppState {
     command: Arc<Mutex<Option<Arc<Command>>>>,
     pending_open: Arc<Mutex<Vec<String>>>,
     current_url: Arc<Mutex<Option<String>>>,
-    log_path: PathBuf,
-    did_open_url: Arc<Mutex<bool>>,
     _log_guard: Option<tracing_appender::non_blocking::WorkerGuard>,
     tray_menu: Menu<Wry>,
     copy_url_item: MenuItem<Wry>,
@@ -204,7 +192,6 @@ struct AppState {
 
 impl AppState {
     fn new(
-        log_path: PathBuf,
         log_guard: Option<tracing_appender::non_blocking::WorkerGuard>,
         tray_menu: Menu<Wry>,
         copy_url_item: MenuItem<Wry>,
@@ -214,8 +201,6 @@ impl AppState {
             command: Arc::new(Mutex::new(None)),
             pending_open: Arc::new(Mutex::new(Vec::new())),
             current_url: Arc::new(Mutex::new(None)),
-            log_path,
-            did_open_url: Arc::new(Mutex::new(false)),
             _log_guard: log_guard,
             tray_menu,
             copy_url_item,
@@ -246,16 +231,6 @@ impl AppState {
             .lock()
             .ok()
             .and_then(|value| value.clone())
-    }
-
-    fn should_open_url(&self) -> bool {
-        if let Ok(mut guard) = self.did_open_url.lock() {
-            if !*guard {
-                *guard = true;
-                return true;
-            }
-        }
-        false
     }
 
     fn enable_tray_menu(&self) {
@@ -313,18 +288,12 @@ fn menu_item(
         .expect("failed to create menu item")
 }
 
-fn show_exit_dialog(handle: &AppHandle, code: i32) {
-    let log_path = handle
-        .try_state::<AppState>()
-        .map(|state| state.log_path.clone());
-    let message = match log_path {
-        Some(path) => format!(
-            "Livebook exited with exit code {}.\nLogs available at: {}",
-            code,
-            path.display()
-        ),
-        None => format!("Livebook exited with exit code {code}."),
-    };
+fn show_exit_dialog(handle: &AppHandle, code: i32, log_path: &Path) {
+    let message = format!(
+        "Livebook exited with exit code {}.\nLogs available at: {}",
+        code,
+        log_path.display()
+    );
     handle.dialog().message(message).show(|_| {});
 }
 

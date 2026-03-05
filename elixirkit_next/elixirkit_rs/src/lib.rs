@@ -24,6 +24,7 @@ pub struct Command {
     args: Vec<String>,
     cwd: Option<PathBuf>,
     env: Vec<(String, String)>,
+    env_remove: Vec<String>,
 }
 
 impl Command {
@@ -34,6 +35,7 @@ impl Command {
             args: args.iter().map(|s| s.as_ref().to_string()).collect(),
             cwd: None,
             env: Vec::new(),
+            env_remove: Vec::new(),
         }
     }
 
@@ -47,6 +49,16 @@ impl Command {
             .iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
+        self
+    }
+
+    pub fn env_set(mut self, key: &str, value: impl Into<String>) -> Self {
+        self.env.push((key.to_string(), value.into()));
+        self
+    }
+
+    pub fn env_remove(mut self, key: &str) -> Self {
+        self.env_remove.push(key.to_string());
         self
     }
 
@@ -67,6 +79,9 @@ impl Command {
         command.args(&self.args);
         if let Some(cwd) = &self.cwd {
             command.current_dir(cwd);
+        }
+        for key in &self.env_remove {
+            command.env_remove(key);
         }
 
         let env_refs: Vec<(&str, &str)> = self
@@ -102,6 +117,7 @@ pub fn release(path: impl Into<PathBuf>, name: impl Into<String>) -> Command {
         args: vec!["start".to_string()],
         cwd: Some(path),
         env: Vec::new(),
+        env_remove: Vec::new(),
     }
 }
 

@@ -23,6 +23,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         logPath = "\(NSHomeDirectory())/Library/Logs/Livebook.log"
         bootScriptURL = NSURL.fileURL(withPath: "\(NSHomeDirectory())/.livebookdesktop.sh")
 
+        setenv("LOG_PATH", logPath, 1)
+
         ElixirKit.API.start(
             name: "app",
             logPath: logPath,
