@@ -20,6 +20,7 @@ defmodule LivebookWeb.SettingsLive do
          dialog_opened?: false
        },
        update_check_enabled: Livebook.UpdateCheck.enabled?(),
+       release_info: Livebook.Config.github_release_info(),
        page_title: "Settings - Livebook"
      )}
   end
@@ -61,9 +62,8 @@ defmodule LivebookWeb.SettingsLive do
                   <% end %>
                 </.labeled_text>
                 <.labeled_text label="Livebook">
-                  <% release_info = Livebook.Config.github_release_info() %>
-                  <a href={"https://github.com/#{release_info.repo}/releases/tag/v#{release_info.version}"} 
-                    class="underline hover:no-underline" 
+                  <a href={"https://github.com/#{@release_info.repo}/releases/tag/v#{@release_info.version}"}
+                    class="underline hover:no-underline"
                     target="_blank">
                     v{Livebook.Config.app_version()}
                   </a>
