@@ -2,6 +2,8 @@ use std::io::{self, BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::process::{Child, Stdio};
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -139,6 +141,8 @@ fn start_elixir(
         command.env(key, value);
     }
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    #[cfg(windows)]
+    command.creation_flags(0x08000000 /* CREATE_NO_WINDOW */);
 
     let mut child = command
         .spawn()
