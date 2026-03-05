@@ -20,6 +20,7 @@ defmodule LivebookWeb.SettingsLive do
          dialog_opened?: false
        },
        update_check_enabled: Livebook.UpdateCheck.enabled?(),
+       release_info: Livebook.Config.github_release_info(),
        page_title: "Settings - Livebook"
      )}
   end
@@ -54,14 +55,20 @@ defmodule LivebookWeb.SettingsLive do
                 <.labeled_text :if={app_name = Livebook.Config.app_service_name()} label="Application">
                   <%= if app_url = Livebook.Config.app_service_url() do %>
                     <a href={app_url} class="underline hover:no-underline" target="_blank">
-                      {app_name}
+                      {app_name} <.remix_icon icon="external-link-line" />
                     </a>
                   <% else %>
                     {app_name}
                   <% end %>
                 </.labeled_text>
                 <.labeled_text label="Livebook">
-                  v{Livebook.Config.app_version()}
+                  <a
+                    href={"https://github.com/#{@release_info.repo}/releases/tag/v#{@release_info.version}"}
+                    target="_blank"
+                  >
+                    v{@release_info.version}
+                    <.remix_icon icon="external-link-line" />
+                  </a>
                 </.labeled_text>
                 <.labeled_text label="Elixir">
                   v{System.version()}
