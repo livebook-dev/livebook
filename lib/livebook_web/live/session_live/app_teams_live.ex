@@ -42,7 +42,6 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         action: :deployment_groups
       )
       |> assign_deployment_groups()
-      |> assign_app_deployments()
       |> assign_agents()
       |> assign_deployment_group(deployment_group_id)
       |> assign_app_deployment()
@@ -75,7 +74,6 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         app_deployment={@app_deployment}
         deployment_groups={@deployment_groups}
         num_agents={@num_agents}
-        num_app_deployments={@num_app_deployments}
         deployment_group={@deployment_group}
         session={@session}
         messages={@messages}
@@ -203,7 +201,6 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
             <.deployment_group_entry
               deployment_group={@deployment_group}
               num_agents={@num_agents}
-              num_app_deployments={@num_app_deployments}
               authorized={@authorized[@deployment_group.id]}
               active
             />
@@ -265,7 +262,6 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
               :for={deployment_group <- @deployment_groups}
               deployment_group={deployment_group}
               num_agents={@num_agents}
-              num_app_deployments={@num_app_deployments}
               authorized={@authorized[deployment_group.id]}
               selectable
             />
@@ -322,7 +318,6 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   attr :authorized, :boolean, default: true
   attr :deployment_group, :map, required: true
   attr :num_agents, :map, required: true
-  attr :num_app_deployments, :map, required: true
   attr :rest, :global
 
   defp deployment_group_entry(assigns) do
@@ -368,7 +363,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
               else: "border-gray-300 text-gray-500"
             )
           ]}>
-            Apps deployed: {@num_app_deployments[@deployment_group.id] || 0}
+            Apps deployed: {@deployment_group.deployed_apps_counter}
           </div>
         </div>
       </div>

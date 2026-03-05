@@ -984,6 +984,15 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
+  defp handle_event(:deployment_status_updated, %{id: id, deployed_apps_counter: counter}, state) do
+    with {:ok, deployment_group} <- fetch_deployment_group(id, state) do
+      deployment_group = %{deployment_group | deployed_apps_counter: counter}
+
+      Teams.Broadcasts.deployment_group_updated(deployment_group)
+      put_deployment_group(state, deployment_group)
+    end
+  end
+
   defp dispatch_secrets(state, %{secrets: secrets}) do
     decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
 
