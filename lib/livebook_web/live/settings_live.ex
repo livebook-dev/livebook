@@ -62,10 +62,12 @@ defmodule LivebookWeb.SettingsLive do
                   <% end %>
                 </.labeled_text>
                 <.labeled_text label="Livebook">
-                  <a href={"https://github.com/#{@release_info.repo}/releases/tag/v#{@release_info.version}"}
-                    class="underline hover:no-underline"
-                    target="_blank">
+                  <a
+                    href={"https://github.com/#{@release_info.repo}/releases/tag/v#{@release_info.version}"}
+                    target="_blank"
+                  >
                     v{@release_info.version}
+                    <.remix_icon icon="external-link-line" />
                   </a>
                 </.labeled_text>
                 <.labeled_text label="Elixir">
