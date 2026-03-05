@@ -65,7 +65,7 @@ defmodule LivebookWeb.SettingsLive do
                   <a href={"https://github.com/#{@release_info.repo}/releases/tag/v#{@release_info.version}"}
                     class="underline hover:no-underline"
                     target="_blank">
-                    v{Livebook.Config.app_version()}
+                    v{@release_info.version}
                   </a>
                 </.labeled_text>
                 <.labeled_text label="Elixir">
