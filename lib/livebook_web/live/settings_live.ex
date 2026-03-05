@@ -55,7 +55,7 @@ defmodule LivebookWeb.SettingsLive do
                 <.labeled_text :if={app_name = Livebook.Config.app_service_name()} label="Application">
                   <%= if app_url = Livebook.Config.app_service_url() do %>
                     <a href={app_url} class="underline hover:no-underline" target="_blank">
-                      {app_name}
+                      {app_name} <.remix_icon icon="external-link-line" />
                     </a>
                   <% else %>
                     {app_name}
