@@ -11,6 +11,9 @@ use tracing_subscriber::{
     filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt, Layer,
 };
 
+#[cfg(target_os = "linux")]
+use tauri_plugin_deep_link::DeepLinkExt;
+
 const TRAY_ID: &str = "livebook-tray";
 
 pub fn run() {
@@ -105,6 +108,12 @@ pub fn run() {
                         state.publish_open(&url);
                     }
                 }
+            }
+
+            #[cfg(target_os = "linux")]
+            {
+                let _ = app.deep_link().register_all();
+                register_file_associations(app.handle());
             }
 
             // Check for updates on boot
@@ -316,9 +325,11 @@ fn normalize_urls(urls: Vec<url::Url>) -> Vec<String> {
 
 fn normalize_open_url(input: &str) -> Option<String> {
     let parsed = if cfg!(windows) && input.len() >= 2 && input.chars().nth(1) == Some(':') {
-        // Convert Windows paths like C:\foo.livemd to file://c:\foo.livemd
-        let path = PathBuf::from(input);
-        url::Url::from_file_path(path).ok()?
+        // Bare Windows path e.g. C:\foo.livemd
+        url::Url::from_file_path(PathBuf::from(input)).ok()?
+    } else if input.starts_with('/') {
+        // Bare Unix path e.g. /home/user/foo.livemd (%u may pass path instead of URI)
+        url::Url::from_file_path(input).ok()?
     } else {
         url::Url::parse(input).ok()?
     };
@@ -364,6 +375,45 @@ fn ensure_parent_dir(path: &Path) -> tauri::Result<()> {
         std::fs::create_dir_all(parent)?;
     }
     Ok(())
+}
+
+// On Linux, AppImage bundles are not system-integrated by default, so the file
+// associations declared in tauri.conf.json are never registered. This mirrors
+// what deep_link().register_all() does for URL schemes.
+//
+// Note: tauri.conf.json's bundle.fileAssociations is stripped from the runtime
+// config (always None), so we hardcode the values here. The ideal fix would be
+// for Tauri to include file_associations in the runtime config on Linux.
+#[cfg(target_os = "linux")]
+fn register_file_associations(app: &AppHandle) {
+    let Ok(data_dir) = app.path().data_dir() else {
+        return;
+    };
+
+    let mime_packages_dir = data_dir.join("mime/packages");
+    if std::fs::create_dir_all(&mime_packages_dir).is_ok() {
+        let xml = r#"<?xml version="1.0" encoding="utf-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="text/x-livebook">
+    <comment>Livebook Notebook</comment>
+    <glob pattern="*.livemd"/>
+  </mime-type>
+</mime-info>
+"#;
+        if std::fs::write(mime_packages_dir.join("livebook.xml"), xml).is_ok() {
+            let _ = std::process::Command::new("update-mime-database")
+                .arg(data_dir.join("mime"))
+                .status();
+        }
+    }
+
+    let exe = std::env::current_exe().unwrap_or_default();
+    let bin_name = exe.file_name().unwrap_or_default().to_string_lossy();
+    let desktop_file = format!("{bin_name}-handler.desktop");
+
+    let _ = std::process::Command::new("xdg-mime")
+        .args(["default", &desktop_file, "text/x-livebook"])
+        .status();
 }
 
 fn init_tracing(
