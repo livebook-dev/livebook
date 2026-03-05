@@ -6,11 +6,13 @@ use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 use tracing_subscriber::{
     filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt, Layer,
 };
+
+#[cfg(target_os = "linux")]
+use tauri_plugin_deep_link::DeepLinkExt;
 
 const TRAY_ID: &str = "livebook-tray";
 
@@ -76,14 +78,12 @@ pub fn run() {
                     }
                     "view-logs" => {
                         if let Some(state) = app.try_state::<AppState>() {
-                            let _ = app
-                                .opener()
-                                .open_path(state.log_path.display().to_string(), None::<&str>);
+                            state.publish_open("/logs");
                         }
                     }
                     "boot-script" => {
                         if let Ok(path) = ensure_boot_script() {
-                            let _ = app.opener().open_path(path.display().to_string(), None::<&str>);
+                            app.state::<AppState>().publish_open(&format!("file://{}", path.display()));
                         }
                     }
                     "check-updates" => {
@@ -94,13 +94,7 @@ pub fn run() {
                 })
                 .build(app_handle)?;
 
-            let state = AppState::new(
-                log_path.clone(),
-                log_guard,
-                tray_menu,
-                copy_url_item,
-                tray,
-            );
+            let state = AppState::new(log_guard, tray_menu, copy_url_item, tray);
             app.manage(state);
 
             let initial_urls = extract_open_urls(std::env::args().skip(1).collect());
@@ -116,6 +110,12 @@ pub fn run() {
                 }
             }
 
+            #[cfg(target_os = "linux")]
+            {
+                let _ = app.deep_link().register_all();
+                register_file_associations(app.handle());
+            }
+
             // Check for updates on boot
             let app_handle_for_updates = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -126,13 +126,20 @@ pub fn run() {
             std::thread::spawn(move || {
                 let command = if cfg!(debug_assertions) {
                     let mix_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
-                    Command::new("mix", &["phx.server"])
+                    let (prog, args): (&str, &[&str]) = if cfg!(windows) {
+                        ("cmd", &["/c", "mix", "phx.server"])
+                    } else {
+                        ("mix", &["phx.server"])
+                    };
+                    Command::new(prog, args)
                         .current_dir(mix_root)
                         .env(&[("MIX_TARGET", "app_next")])
                 } else {
                     let release_dir = handle.path().resource_dir().unwrap().join("rel");
                     elixirkit::release(release_dir, "app")
                 };
+
+                let command = command.env_set("LOG_PATH", log_path.display().to_string());
 
                 let status = command.start(|(name, data)| {
                     if name == "ready" {
@@ -141,9 +148,6 @@ pub fn run() {
 
                         state.set_url(data.to_string());
                         state.enable_tray_menu();
-                        if state.should_open_url() {
-                            let _ = handle.opener().open_url(data, None::<&str>);
-                        }
                     } else {
                         tracing::error!("unexpected event: {name}:{data}");
                         handle.exit(1);
@@ -151,7 +155,7 @@ pub fn run() {
                 });
 
                 if status != 0 {
-                    show_exit_dialog(&handle, status);
+                    show_exit_dialog(&handle, status, &log_path);
                 }
                 handle.exit(status);
             });
@@ -193,8 +197,6 @@ struct AppState {
     command: Arc<Mutex<Option<Arc<Command>>>>,
     pending_open: Arc<Mutex<Vec<String>>>,
     current_url: Arc<Mutex<Option<String>>>,
-    log_path: PathBuf,
-    did_open_url: Arc<Mutex<bool>>,
     _log_guard: Option<tracing_appender::non_blocking::WorkerGuard>,
     tray_menu: Menu<Wry>,
     copy_url_item: MenuItem<Wry>,
@@ -204,7 +206,6 @@ struct AppState {
 
 impl AppState {
     fn new(
-        log_path: PathBuf,
         log_guard: Option<tracing_appender::non_blocking::WorkerGuard>,
         tray_menu: Menu<Wry>,
         copy_url_item: MenuItem<Wry>,
@@ -214,8 +215,6 @@ impl AppState {
             command: Arc::new(Mutex::new(None)),
             pending_open: Arc::new(Mutex::new(Vec::new())),
             current_url: Arc::new(Mutex::new(None)),
-            log_path,
-            did_open_url: Arc::new(Mutex::new(false)),
             _log_guard: log_guard,
             tray_menu,
             copy_url_item,
@@ -246,16 +245,6 @@ impl AppState {
             .lock()
             .ok()
             .and_then(|value| value.clone())
-    }
-
-    fn should_open_url(&self) -> bool {
-        if let Ok(mut guard) = self.did_open_url.lock() {
-            if !*guard {
-                *guard = true;
-                return true;
-            }
-        }
-        false
     }
 
     fn enable_tray_menu(&self) {
@@ -313,18 +302,12 @@ fn menu_item(
         .expect("failed to create menu item")
 }
 
-fn show_exit_dialog(handle: &AppHandle, code: i32) {
-    let log_path = handle
-        .try_state::<AppState>()
-        .map(|state| state.log_path.clone());
-    let message = match log_path {
-        Some(path) => format!(
-            "Livebook exited with exit code {}.\nLogs available at: {}",
-            code,
-            path.display()
-        ),
-        None => format!("Livebook exited with exit code {code}."),
-    };
+fn show_exit_dialog(handle: &AppHandle, code: i32, log_path: &Path) {
+    let message = format!(
+        "Livebook exited with exit code {}.\nLogs available at: {}",
+        code,
+        log_path.display()
+    );
     handle.dialog().message(message).show(|_| {});
 }
 
@@ -347,9 +330,11 @@ fn normalize_urls(urls: Vec<url::Url>) -> Vec<String> {
 
 fn normalize_open_url(input: &str) -> Option<String> {
     let parsed = if cfg!(windows) && input.len() >= 2 && input.chars().nth(1) == Some(':') {
-        // Convert Windows paths like C:\foo.livemd to file://c:\foo.livemd
-        let path = PathBuf::from(input);
-        url::Url::from_file_path(path).ok()?
+        // Bare Windows path e.g. C:\foo.livemd
+        url::Url::from_file_path(PathBuf::from(input)).ok()?
+    } else if input.starts_with('/') {
+        // Bare Unix path e.g. /home/user/foo.livemd (%u may pass path instead of URI)
+        url::Url::from_file_path(input).ok()?
     } else {
         url::Url::parse(input).ok()?
     };
@@ -395,6 +380,45 @@ fn ensure_parent_dir(path: &Path) -> tauri::Result<()> {
         std::fs::create_dir_all(parent)?;
     }
     Ok(())
+}
+
+// On Linux, AppImage bundles are not system-integrated by default, so the file
+// associations declared in tauri.conf.json are never registered. This mirrors
+// what deep_link().register_all() does for URL schemes.
+//
+// Note: tauri.conf.json's bundle.fileAssociations is stripped from the runtime
+// config (always None), so we hardcode the values here. The ideal fix would be
+// for Tauri to include file_associations in the runtime config on Linux.
+#[cfg(target_os = "linux")]
+fn register_file_associations(app: &AppHandle) {
+    let Ok(data_dir) = app.path().data_dir() else {
+        return;
+    };
+
+    let mime_packages_dir = data_dir.join("mime/packages");
+    if std::fs::create_dir_all(&mime_packages_dir).is_ok() {
+        let xml = r#"<?xml version="1.0" encoding="utf-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="text/x-livebook">
+    <comment>Livebook Notebook</comment>
+    <glob pattern="*.livemd"/>
+  </mime-type>
+</mime-info>
+"#;
+        if std::fs::write(mime_packages_dir.join("livebook.xml"), xml).is_ok() {
+            let _ = std::process::Command::new("update-mime-database")
+                .arg(data_dir.join("mime"))
+                .status();
+        }
+    }
+
+    let exe = std::env::current_exe().unwrap_or_default();
+    let bin_name = exe.file_name().unwrap_or_default().to_string_lossy();
+    let desktop_file = format!("{bin_name}-handler.desktop");
+
+    let _ = std::process::Command::new("xdg-mime")
+        .args(["default", &desktop_file, "text/x-livebook"])
+        .status();
 }
 
 fn init_tracing(
