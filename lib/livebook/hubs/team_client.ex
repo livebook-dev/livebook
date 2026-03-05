@@ -568,7 +568,8 @@ defmodule Livebook.Hubs.TeamClient do
       groups_auth: deployment_group.groups_auth,
       deploy_auth: deployment_group.deploy_auth,
       authorization_groups: authorization_groups,
-      deployment_users: deployment_users
+      deployment_users: deployment_users,
+      deployed_apps_counter: deployment_group.deployed_apps_counter
     }
   end
 
@@ -587,7 +588,8 @@ defmodule Livebook.Hubs.TeamClient do
       url: nullify(deployment_group_created.url),
       teams_auth: deployment_group_created.teams_auth,
       authorization_groups: [],
-      deployment_users: []
+      deployment_users: [],
+      deployed_apps_counter: 0
     }
   end
 
