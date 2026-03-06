@@ -8,9 +8,7 @@ Mix.install(
     {:pythonx, "~> 0.4.9"},
     {:kino_pythonx, "~> 0.1.0"},
     {:kino_db, "~> 0.4.0"},
-    # TODO release adbc
-    # {:adbc, ">= 0.0.0"}
-    {:adbc, path: "~/git/adbc", override: true}
+    {:adbc, ">= 0.0.0"}
   ],
   config: [adbc: [drivers: [:duckdb]]]
 )
