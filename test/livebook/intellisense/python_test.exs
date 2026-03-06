@@ -308,6 +308,71 @@ defmodule Livebook.Intellisense.PythonTest do
                )
     end
 
+    test "callables with name" do
+      # NumPy functions are not regular functions, but they are callable,
+      # so we want to treat those as functions.
+
+      context =
+        intellisense_context_from_eval do
+          import Pythonx
+
+          ~PY"""
+          class GoodCallable:
+            def __init__(self):
+              self.__name__ = "good_callable"
+              self.__doc__ = "This is a good callable."
+
+            def __call__(self, number):
+              return number * 2
+
+          callable_good = GoodCallable()
+
+          class BadCallable:
+            def __init__(self):
+              self.__doc__ = "This is a bad callable."
+
+            # This is going to be invoked when accessing __name__, but it
+            # can return anything, and we should not consider this callable
+            # a function.
+            def __getattr__(self, attr):
+              return None
+
+            def __call__(self, number):
+              return number * 2
+
+          callable_bad = BadCallable()
+          """
+        end
+
+      assert %{
+               items: [
+                 %{
+                   label: "callable_bad",
+                   kind: :variable,
+                   documentation: "(variable)",
+                   insert_text: "callable_bad"
+                 },
+                 %{
+                   label: "callable_good",
+                   kind: :function,
+                   documentation: """
+                   This is a good callable.
+
+                   ```
+                   good_callable(number)
+                   ```\
+                   """,
+                   insert_text: "callable_good(${})"
+                 }
+               ]
+             } =
+               Intellisense.Python.handle_request(
+                 {:completion, "callable_"},
+                 context,
+                 node()
+               )
+    end
+
     test "class" do
       context =
         intellisense_context_from_eval do
