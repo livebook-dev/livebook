@@ -310,7 +310,31 @@ defmodule Livebook.Hubs.TeamClientTest do
     end
 
     test "dispatches the agents list", %{team: team, pid: pid, user_connected: user_connected} do
-      agent = build(:agent, hub_id: team.id, org_id: to_string(team.org_id))
+      deployment_group =
+        build(:deployment_group,
+          id: "1",
+          name: "sleepy-cat-#{System.unique_integer([:positive])}",
+          mode: :offline,
+          hub_id: team.id,
+          teams_auth: false
+        )
+
+      livebook_proto_deployment_group =
+        %LivebookProto.DeploymentGroup{
+          id: to_string(deployment_group.id),
+          name: deployment_group.name,
+          mode: to_string(deployment_group.mode),
+          secrets: [],
+          agent_keys: [],
+          teams_auth: deployment_group.teams_auth
+        }
+
+      agent =
+        build(:agent,
+          hub_id: team.id,
+          org_id: to_string(team.org_id),
+          deployment_group_id: to_string(deployment_group.id)
+        )
 
       livebook_proto_agent =
         %LivebookProto.Agent{
@@ -320,7 +344,11 @@ defmodule Livebook.Hubs.TeamClientTest do
           deployment_group_id: agent.deployment_group_id
         }
 
-      user_connected = %{user_connected | agents: [livebook_proto_agent]}
+      user_connected = %{
+        user_connected
+        | deployment_groups: [livebook_proto_deployment_group],
+          agents: [livebook_proto_agent]
+      }
 
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:agent_joined, ^agent}
