@@ -1,0 +1,384 @@
+<!-- livebook:{"default_language":"python"} -->
+
+# Working with Python
+
+```elixir
+Mix.install(
+  [
+    {:pythonx, "~> 0.4.9"},
+    {:kino_pythonx, "~> 0.1.0"},
+    {:kino_db, "~> 0.4.0"},
+    {:adbc, ">= 0.0.0"}
+  ],
+  config: [adbc: [drivers: [:duckdb]]]
+)
+```
+
+```pyproject.toml
+[project]
+name = "project"
+version = "0.0.0"
+requires-python = "==3.13.*"
+dependencies = [
+  "numpy==2.2.3",
+  "matplotlib==3.10.1",
+  "pandas==2.2.3",
+  "polars==1.24.0",
+  "altair==5.5.0",
+  "plotly==6.0.0",
+  "seaborn==0.13.2",
+  "pillow==11.1.0",
+  "pyarrow==23.0.0"
+]
+```
+
+## Introduction
+
+Besides Elixir, Livebook supports running Python code. Not only that, it allows you to mix Elixir and Python code seamlessly. In this notebook we will explore various ways in which you can use Python in your notebooks.
+
+To enable Python in a new notebook, you just need to click <kbd>+ Python</kbd> button right below the setup cell. This does two things:
+
+* adds `:pythonx` as an Elixir dependency, which embeds a fully fledged Python interpreter directly in Elixir
+* inserts a **pyproject.toml** cell, where you can configure all the Python packages you need, as detailed in the **uv** package manager [documentation](https://docs.astral.sh/uv/concepts/projects/dependencies/)
+
+By explicitly listing the required dependencies, Livebook knows exactly what to install, making the environment easily reproducible, no global `pip` installs required!
+
+Having done that, you can now insert Python cells and write typical Python code.
+
+> Note that Python cells also offer intellisense such as module/function/variable completion and on-hover documentation, which you can test throughout the cells below.
+
+## Visual representation
+
+As you can see in the setup section above, this notebook already lists a number of popular Python packages as dependencies. Livebook provides rich rendering for a variety of object, such as charts and dataframes, which we are going to see in this section.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Polars
+
+[Polars](https://pola.rs) dataframes.
+
+```python
+import polars as pl
+import datetime as dt
+```
+
+```python
+df = pl.DataFrame(
+  {
+    "name": ["Alice Archer", "Ben Brown", "Chloe Cooper", "Daniel Donovan"],
+    "birthdate": [
+      dt.date(1997, 1, 10),
+      dt.date(1985, 2, 15),
+      dt.date(1983, 3, 22),
+      dt.date(1981, 4, 30),
+    ],
+    "weight": [57.9, 72.5, 53.6, 83.1], # (kg)
+    "height": [1.56, 1.77, 1.65, 1.75], # (m)
+  }
+)
+
+df
+```
+
+### Pandas
+
+[Pandas](https://pandas.pydata.org) dataframes.
+
+```python
+import pandas as pd
+import datetime as dt
+```
+> Note: the cells with `import` may take a while the first time you run them. That's an expected Python behaviour when importing a large module tree. Python stores a cached module bytecode in disk, so even if you restart the notebook, subsequent imports of that module should be fast.
+
+```python
+df = pd.DataFrame(
+  {
+    "name": ["Alice Archer", "Ben Brown", "Chloe Cooper", "Daniel Donovan"],
+    "birthdate": [
+      dt.date(1997, 1, 10),
+      dt.date(1985, 2, 15),
+      dt.date(1983, 3, 22),
+      dt.date(1981, 4, 30),
+    ],
+    "weight": [57.9, 72.5, 53.6, 83.1], # (kg)
+    "height": [1.56, 1.77, 1.65, 1.75], # (m)
+  }
+)
+
+df
+```
+
+### Matplotlib
+
+[Matplotlib](https://matplotlib.org) plots.
+
+```python
+import matplotlib.pyplot as plt
+```
+
+```python
+plt.plot([1, 2], [1, 2])
+plt.gcf()
+```
+
+```python
+import numpy as np
+```
+
+```python
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+plt.plot(x, y, 'b-', label='sine wave')
+plt.title('Simple Sine Wave')
+plt.xlabel('x')
+plt.ylabel('sin(x)')
+plt.legend()
+plt.grid(True)
+
+plt.gcf()
+```
+
+### Seaborn
+
+[seaborn](https://seaborn.pydata.org) plots.
+
+```python
+import seaborn as sns
+```
+
+```python
+df = sns.load_dataset("penguins")
+
+sns.pairplot(df, hue="species")
+```
+
+### Vega-Altair
+
+[Vega-Altair](https://altair-viz.github.io) charts.
+
+```python
+import altair as alt
+import pandas as pd
+```
+
+```python
+source = pd.DataFrame({
+  "a": ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
+  "b": [28, 55, 43, 91, 81, 53, 19, 87, 52]
+})
+
+alt.Chart(source).mark_bar().encode(x="a", y="b")
+```
+
+### Plotly
+
+[Plotly](https://plotly.com/python) graphs.
+
+```python
+import plotly.express as px
+```
+
+```python
+px.line(x=["a", "b", "c"], y=[1, 3, 2], title="Sample figure")
+```
+
+```python
+import pandas as pd
+```
+
+```python
+df = pd.DataFrame({"a": [1, 3, 2], "b": [3, 2, 1]})
+
+px.bar(df)
+```
+
+### Pillow
+
+[Pillow](https://python-pillow.github.io) images.
+
+```python
+from PIL import Image
+from urllib.request import urlopen
+```
+
+```python
+url = "https://github.com/elixir-nx/nx/raw/v0.9/nx/nx.png"
+Image.open(urlopen(url))
+```
+
+## Elixir interoperability
+
+As we mentioned before, in Livebook you can mix Elixir and Python code together. For example, let's define a variable in an Elixir cell:
+
+```elixir
+elixir_variable = 1
+```
+
+We can access it under the same name in a Python cell:
+
+```python
+elixir_variable
+```
+
+> Hint: the language is shown in the bottom-right corner of each code cell. You can change the langauge by clicking the language icon. When inserting a new cell, you can also change the langauge by clicking on the dropdown icon.
+
+<!-- livebook:{"break_markdown":true} -->
+
+An important implication of the variable interoperability is that you can use `Kino` inputs to provide data for Python code.
+
+```elixir
+range_input = Kino.Input.range("How cool is that?")
+```
+
+```elixir
+number = Kino.Input.read(range_input)
+```
+
+```python
+if number % 3 == 0 and number % 5 == 0:
+  print("FizzBuzz")
+elif number % 3 == 0:
+  print("Fizz")
+elif number % 5 == 0:
+  print("Buzz")
+else:
+  print(number)
+```
+
+Note that as you change the slider value, the cell indicator in the bottom-right changes to *Stale*. The value change tracking propagates from Elixir all the way to the Python cell!
+
+<!-- livebook:{"break_markdown":true} -->
+
+One gotcha here is that sometimes the default encoding may not be what you'd expect. Specifically, this is the case with strings:
+
+```elixir
+hello_from_elixir = "Hello!"
+```
+
+```python
+hello_from_elixir
+```
+
+Elixir does not distinguish strings as a separate data type, strings are just binaries, with the expectation that they follow utf-8 encoding. When passed to Python, a string therefore becomes a `bytes` object. However, getting a Python string is as easy as decoding the bytes:
+
+```python
+hello_from_elixir.decode("utf-8")
+```
+
+## ADBC and data processing
+
+Here we are going to have a look at another type of interoperability, by combining Elixir and Python libraries.
+
+Elixir has a [adbc](https://hexdocs.pm/adbc/Adbc.html) package, with bindings for Arrow Database Connectivity (ADBC). ADBC provides a standard interface for querying databases and getting results in the Apache Arrow format.
+
+In fact, the Livebook's "Database connection" smart cell, already uses ADBC for some of the databases. Let's connect to an in-memory DuckDB for the sake of this example:
+
+<!-- livebook:{"attrs":"e30","chunks":null,"kind":"Elixir.KinoDB.ConnectionCell","livebook_object":"smart_cell"} -->
+
+```elixir
+:ok = Adbc.download_driver!(:duckdb)
+{:ok, db} = Kino.start_child({Adbc.Database, driver: :duckdb})
+{:ok, conn} = Kino.start_child({Adbc.Connection, database: db})
+```
+
+Now, we can query the database, but since there is nodata, we will simply use `SELECT` `VALUES`.
+
+In this case, we want to further process the query result in Python, so we are going to use the `Adbc.Connection.py_query/3` function. This will give use a Python table object that can be efficiently consumed by Python code.
+
+```elixir
+{:ok, py_table} =
+  Adbc.Connection.py_query(
+    conn,
+    """
+    SELECT *
+    FROM (VALUES
+      (1, 'Alice',   'Engineering', 92000.00),
+      (2, 'Bob',     'Marketing',   78000.00),
+      (3, 'Carol',   'Engineering', 105000.00),
+      (4, 'Dave',    'HR',          65000.00),
+      (5, 'Eve',     'Marketing',   83000.00),
+      (6, 'Frank',   'Engineering', 98000.00)
+    ) AS employees(id, name, department, salary)
+    ORDER BY department, salary DESC
+    """,
+    []
+  )
+```
+
+The object has type `pyarrow.Table` and can be easily converted into a dataframe:
+
+```python
+df = pl.from_arrow(py_table)
+df
+```
+
+which we can operate on as usual:
+
+```python
+summary = (
+  df
+  .group_by("department")
+  .agg([
+    pl.col("salary").cast(pl.Float64).mean().alias("avg_salary"),
+    pl.col("salary").max().alias("max_salary"),
+    pl.col("name").count().alias("headcount"),
+  ])
+  .sort("avg_salary", descending=True)
+)
+
+summary
+```
+
+Finally, if we want to get the result back as Elixir data structure, we can call `Adbc.Result.from_py/1`.
+
+```elixir
+{:ok, result} = Adbc.Result.from_py(summary)
+Adbc.Result.to_map(result)
+```
+
+```elixir
+result |> Table.to_rows() |> Enum.to_list()
+```
+
+## FLAME
+
+One important integration that we need to mention is [FLAME](https://hexdocs.pm/flame/FLAME.html). With FLAME it is possible to dynamically start separate runner machines and run code on those machines.
+
+Livebook comes with a **FLAME runner** smart cell for configuring and starting a runner pool, however for that to work, you need to run the given notebook using either Fly or Kubernetes runtime. You can click the runtime icon in the sidebar to explore further.
+
+That said, assuming we have a runner pool set up, running computation on another machine is as simple as:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+result =
+  FLAME.call(:runner, fn ->
+    1 + 1
+  end)
+```
+
+Now, when using the **FLAME runner** smart cell, the runner is automatically initialized with Python environment matching the notebook's one. This means we can also evaluate Python code in the runner, without any other setup, it would look something like this:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+result =
+  FLAME.call(:runner, fn ->
+    ~PY"""
+    1 + 1
+    """
+  end)
+```
+
+> Note that the `~PY` sigil is a convenience for running Python code and it implicitly picks up any variable referenced in the code snipppet. We could also use the more explicit `Pythonx.eval/3` API.
+
+The above call would return a remote Python object. A FLAME runner typically terminates if idle for a while, but since the Python object resides on that runner, the runner is kept around as long as we have a reference to the object!
+
+You can imagine an example use case for this kind of evaluation would be to load a model onto a runner with a GPU and get a reference to the remote model object (keeping the model itself on the runner). We could subsequently use `FLAME.call/2` to run inference thorugh that model.
+
+## Wrapping up
+
+As you can see, there are many levels of interoperability between Elixir and Python. In your notebooks, you can mix and match code from both languages. In turn, you get access to the extensive ecosystem of Python packages for enhancing your data workflows, while still being able to orchestrate it with Elixir.
+
+Enojy!
