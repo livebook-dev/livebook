@@ -472,10 +472,10 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     {:noreply, assign_agents(socket)}
   end
 
-  def handle_info({event, app_deployment}, socket)
+  def handle_info({event, %{slug: slug, hub_id: hub_id}}, socket)
       when event in [:app_deployment_started, :app_deployment_stopped] and
-             app_deployment.hub_id == socket.assigns.hub.id do
-    {:noreply, socket |> assign_app_deployments() |> assign_app_deployment()}
+             slug == socket.assigns.slug and hub_id == socket.assigns.hub.id do
+    {:noreply, assign_app_deployment(socket)}
   end
 
   def handle_info({:deployment_users_updated, deployment_group}, socket)
@@ -512,12 +512,6 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     assign(socket, deployment_groups: deployment_groups, authorized: authorized)
   end
 
-  defp assign_app_deployments(socket) do
-    app_deployments = Teams.get_app_deployments(socket.assigns.hub)
-    num_app_deployments = Enum.frequencies_by(app_deployments, & &1.deployment_group_id)
-    assign(socket, app_deployments: app_deployments, num_app_deployments: num_app_deployments)
-  end
-
   defp assign_agents(socket) do
     agents = Teams.get_agents(socket.assigns.hub)
     num_agents = Enum.frequencies_by(agents, & &1.deployment_group_id)
@@ -536,10 +530,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   defp assign_app_deployment(socket) do
     app_deployment =
       if deployment_group = socket.assigns.deployment_group do
-        Enum.find(
-          socket.assigns.app_deployments,
-          &(&1.slug == socket.assigns.slug and &1.deployment_group_id == deployment_group.id)
-        )
+        Teams.get_app_deployment(socket.assigns.hub, socket.assigns.slug, deployment_group.id)
       end
 
     assign(socket, app_deployment: app_deployment)
