@@ -70,6 +70,7 @@ message DeploymentGroup {
   bool groups_auth = 13;
   bool deploy_auth = 14;
   repeated DeploymentUser deployment_users = 15;
+  int32 deployed_apps_counter = 16;
 }
 
 message DeploymentGroupCreated {
@@ -103,6 +104,11 @@ message DeploymentGroupUpdated {
 
 message DeploymentGroupDeleted {
   string id = 1;
+}
+
+message DeploymentStatusUpdated {
+  string id = 1;
+  int32 deployed_apps_counter = 2;
 }
 
 message AgentKey {
@@ -266,6 +272,7 @@ message Event {
     AppFolderCreated app_folder_created = 19;
     AppFolderUpdated app_folder_updated = 20;
     AppFolderDeleted app_folder_deleted = 21;
+    DeploymentStatusUpdated deployment_status_updated = 22;
   }
 }
 

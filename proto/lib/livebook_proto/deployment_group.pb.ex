@@ -30,4 +30,6 @@ defmodule LivebookProto.DeploymentGroup do
     repeated: true,
     type: LivebookProto.DeploymentUser,
     json_name: "deploymentUsers"
+
+  field :deployed_apps_counter, 16, type: :int32, json_name: "deployedAppsCounter"
 end

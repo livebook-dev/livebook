@@ -105,6 +105,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns an app deployment from given data.
+  """
+  @spec get_app_deployment(String.t(), String.t(), String.t()) :: Teams.AppDeployment.t() | nil
+  def get_app_deployment(id, slug, deployment_group_id) do
+    GenServer.call(registry_name(id), {:get_app_deployment, slug, deployment_group_id})
+  end
+
+  @doc """
   Returns a list of cached app deployments that should be deployed on
   this instance.
   """
@@ -279,6 +287,13 @@ defmodule Livebook.Hubs.TeamClient do
     {:reply, state.app_deployments, state}
   end
 
+  def handle_call({:get_app_deployment, slug, deployment_group_id}, _caller, state) do
+    case fetch_app_deployment_from_slug(slug, deployment_group_id, state) do
+      {:ok, app_deployment} -> {:reply, app_deployment, state}
+      state -> {:reply, nil, state}
+    end
+  end
+
   def handle_call(:get_agent_app_deployments, _caller, state) do
     if state.deployment_group_id do
       app_deployments =
@@ -341,7 +356,8 @@ defmodule Livebook.Hubs.TeamClient do
   def handle_call({:check_app_access, groups, slug}, _caller, state) do
     if id = state.deployment_group_id do
       with {:ok, deployment_group} <- fetch_deployment_group(id, state),
-           {:ok, app_deployment} <- fetch_app_deployment_from_slug(slug, state) do
+           {:ok, app_deployment} <-
+             fetch_app_deployment_from_slug(slug, deployment_group.id, state) do
         app_access? =
           not deployment_group.teams_auth or
             not deployment_group.groups_auth or
@@ -568,7 +584,8 @@ defmodule Livebook.Hubs.TeamClient do
       groups_auth: deployment_group.groups_auth,
       deploy_auth: deployment_group.deploy_auth,
       authorization_groups: authorization_groups,
-      deployment_users: deployment_users
+      deployment_users: deployment_users,
+      deployed_apps_counter: deployment_group.deployed_apps_counter
     }
   end
 
@@ -587,7 +604,8 @@ defmodule Livebook.Hubs.TeamClient do
       url: nullify(deployment_group_created.url),
       teams_auth: deployment_group_created.teams_auth,
       authorization_groups: [],
-      deployment_users: []
+      deployment_users: [],
+      deployed_apps_counter: 0
     }
   end
 
@@ -966,6 +984,15 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
+  defp handle_event(:deployment_status_updated, %{id: id, deployed_apps_counter: counter}, state) do
+    with {:ok, deployment_group} <- fetch_deployment_group(id, state) do
+      deployment_group = %{deployment_group | deployed_apps_counter: counter}
+
+      Teams.Broadcasts.deployment_group_updated(deployment_group)
+      put_deployment_group(state, deployment_group)
+    end
+  end
+
   defp dispatch_secrets(state, %{secrets: secrets}) do
     decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
 
@@ -1167,8 +1194,13 @@ defmodule Livebook.Hubs.TeamClient do
   defp fetch_app_deployment(id, state),
     do: fetch_entry(state.app_deployments, &(&1.id == id), state)
 
-  defp fetch_app_deployment_from_slug(slug, state),
-    do: fetch_entry(state.app_deployments, &(&1.slug == slug), state)
+  defp fetch_app_deployment_from_slug(slug, deployment_group_id, state) do
+    fetch_entry(
+      state.app_deployments,
+      &(&1.slug == slug && &1.deployment_group_id == deployment_group_id),
+      state
+    )
+  end
 
   defp fetch_app_folder(id, state), do: fetch_entry(state.app_folders, &(&1.id == id), state)
 
