@@ -68,7 +68,7 @@ jobs:
         include:
           - platform: macos-15
             gui_target: "aarch64-apple-darwin"
-          - platform: macos-15
+          - platform: macos-15-intel
             gui_target: "x86_64-apple-darwin"
           - platform: windows-2022
             gui_target: "x86_64-pc-windows-msvc"
