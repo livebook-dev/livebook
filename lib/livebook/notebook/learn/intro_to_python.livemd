@@ -260,7 +260,7 @@ hello_from_elixir = "Hello!"
 hello_from_elixir
 ```
 
-Elixir does not distinguish strings as a separate data type, strings are just binaries, with the expectation that they follow utf-8 encoding. When passed to Python, a string therefore becomes a `bytes` object. However, getting a Python string is as easy as decoding the bytes:
+Elixir does not distinguish strings and binaries as separate data types - strings are just binaries, with the expectation that they follow utf-8 encoding. When passed to Python, a string therefore becomes a `bytes` object. However, converting it to a Python string is as easy as decoding the bytes:
 
 ```python
 hello_from_elixir.decode("utf-8")
