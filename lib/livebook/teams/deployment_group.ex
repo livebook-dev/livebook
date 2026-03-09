@@ -14,6 +14,7 @@ defmodule Livebook.Teams.DeploymentGroup do
           hub_id: String.t() | nil,
           teams_auth: boolean(),
           groups_auth: boolean(),
+          deployed_apps_counter: non_neg_integer(),
           authorization_groups: Ecto.Schema.embeds_many(Teams.AuthorizationGroup.t()),
           deployment_users: Ecto.Schema.embeds_many(Teams.DeploymentUser.t()),
           secrets: Ecto.Schema.has_many(Secrets.Secret.t()),
@@ -31,6 +32,7 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :teams_auth, :boolean, default: true
     field :groups_auth, :boolean, default: false
     field :deploy_auth, :boolean, default: false
+    field :deployed_apps_counter, :integer, default: 0
 
     has_many :secrets, Secrets.Secret
     has_many :agent_keys, Teams.AgentKey

@@ -257,6 +257,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
 
     refute_received {:app_deployment_started, %{deployment_group_id: ^id, hub_id: ^hub_id}}
+    refute_received {:deployment_group_updated, %{id: ^id, hub_id: ^hub_id}}
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
@@ -280,7 +281,13 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
     :ok = Livebook.Teams.deploy_app(team, app_deployment)
 
-    assert_receive {:app_deployment_started, %{deployment_group_id: ^id}}, 2_000
+    assert_receive {:app_deployment_started,
+                    %{id: app_deployment_id, deployment_group_id: ^id, hub_id: ^hub_id}},
+                   2_000
+
+    assert_receive {:deployment_group_updated,
+                    %{id: ^id, hub_id: ^hub_id, deployed_apps_counter: 1}},
+                   2_000
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
@@ -288,6 +295,24 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
            |> LazyHTML.from_fragment()
            |> LazyHTML.text()
            |> String.trim() == "1"
+
+    # Must update when receives `deployment_group_updated`
+    TeamsRPC.toggle_app_deployment(node, app_deployment_id, team.org_id)
+
+    assert_receive {:app_deployment_stopped,
+                    %{id: ^app_deployment_id, deployment_group_id: ^id, hub_id: ^hub_id}},
+                   2_000
+
+    assert_receive {:deployment_group_updated,
+                    %{id: ^id, hub_id: ^hub_id, deployed_apps_counter: 0}},
+                   2_000
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
+           |> render()
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.text()
+           |> String.trim() == "0"
   end
 
   test "shows the environment variables count", %{conn: conn, team: team, node: node, org: org} do
