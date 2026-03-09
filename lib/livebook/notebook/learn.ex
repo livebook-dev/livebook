@@ -84,6 +84,13 @@ defmodule Livebook.Notebook.Learn do
       }
     },
     %{
+      path: Path.join(__DIR__, "learn/intro_to_python.livemd"),
+      details: %{
+        description: "Learn how to use Python in your Livebook notebooks.",
+        cover_filename: "python.svg"
+      }
+    },
+    %{
       ref: :kino_intro,
       path: Path.join(__DIR__, "learn/kino/intro_to_kino.livemd")
     },
