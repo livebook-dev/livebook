@@ -209,7 +209,7 @@ Image.open(urlopen(url))
 
 ## Elixir interoperability
 
-As we mentioned before, in Livebook you can mix Elixir and Python code together. For example, let's define a variable in an Elixir cell:
+In Livebook you can mix Elixir and Python code together. For example, let's define a variable in an Elixir cell:
 
 ```elixir
 elixir_variable = 1
@@ -221,7 +221,7 @@ We can access it under the same name in a Python cell:
 elixir_variable
 ```
 
-> Hint: the language is shown in the bottom-right corner of each code cell. You can change the langauge by clicking the language icon. When inserting a new cell, you can also change the langauge by clicking on the dropdown icon.
+> Hint: the language is shown in the bottom-right corner of each code cell. You can change the language by clicking the language icon. When inserting a new cell, you can also change the langauge by clicking on the dropdown icon.
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -282,9 +282,9 @@ In fact, the Livebook's "Database connection" smart cell, already uses ADBC for 
 {:ok, conn} = Kino.start_child({Adbc.Connection, database: db})
 ```
 
-Now, we can query the database, but since there is nodata, we will simply use `SELECT` `VALUES`.
+Now, we can query the database, but since there is no data, let's use `SELECT` with `VALUES`.
 
-In this case, we want to further process the query result in Python, so we are going to use the `Adbc.Connection.py_query/3` function. This will give use a Python table object that can be efficiently consumed by Python code.
+In particular, because we want to further process the query result in Python, let's use the `Adbc.Connection.py_query/3` function. This will give use a Python table object that can be efficiently consumed by Python code.
 
 ```elixir
 {:ok, py_table} =
@@ -306,7 +306,7 @@ In this case, we want to further process the query result in Python, so we are g
   )
 ```
 
-The object has type `pyarrow.Table` and can be easily converted into a dataframe:
+The object has type `pyarrow.Table` and can be easily converted into a dataframe using the `polars` library:
 
 ```python
 df = pl.from_arrow(py_table)
@@ -341,13 +341,13 @@ Adbc.Result.to_map(result)
 result |> Table.to_rows() |> Enum.to_list()
 ```
 
-## FLAME
+## Distributed Python with FLAME
 
-One important integration that we need to mention is [FLAME](https://hexdocs.pm/flame/FLAME.html). With FLAME it is possible to dynamically start separate runner machines and run code on those machines.
+[FLAME](https://hexdocs.pm/flame/FLAME.html) makes it easy to dynamically start additional machines and run code on them. Our Python integration is fully interoperable with FLAME, allowing you to run distributed Python code and keep references to Python objects across machines.
 
 Livebook comes with a **FLAME runner** smart cell for configuring and starting a runner pool, however for that to work, you need to run the given notebook using either Fly or Kubernetes runtime. You can click the runtime icon in the sidebar to explore further.
 
-That said, assuming we have a runner pool set up, running computation on another machine is as simple as:
+The rest of this section will assume you have either a Fly or k8s runtime setup. Once that's done, running computation on another machine is as simple as:
 
 <!-- livebook:{"force_markdown":true} -->
 
@@ -356,29 +356,9 @@ result =
   FLAME.call(:runner, fn ->
     1 + 1
   end)
-```
-
-Now, when using the **FLAME runner** smart cell, the runner is automatically initialized with Python environment matching the notebook's one. This means we can also evaluate Python code in the runner, without any other setup, it would look something like this:
-
-<!-- livebook:{"force_markdown":true} -->
-
-```elixir
-result =
-  FLAME.call(:runner, fn ->
-    ~PY"""
-    1 + 1
-    """
-  end)
-```
-
-> Note that the `~PY` sigil is a convenience for running Python code and it implicitly picks up any variable referenced in the code snipppet. We could also use the more explicit `Pythonx.eval/3` API.
-
-The above call would return a remote Python object. A FLAME runner typically terminates if idle for a while, but since the Python object resides on that runner, the runner is kept around as long as we have a reference to the object!
-
-You can imagine an example use case for this kind of evaluation would be to load a model onto a runner with a GPU and get a reference to the remote model object (keeping the model itself on the runner). We could subsequently use `FLAME.call/2` to run inference thorugh that model.
 
 ## Wrapping up
 
 As you can see, there are many levels of interoperability between Elixir and Python. In your notebooks, you can mix and match code from both languages. In turn, you get access to the extensive ecosystem of Python packages for enhancing your data workflows, while still being able to orchestrate it with Elixir.
 
-Enojy!
+Enjoy!
