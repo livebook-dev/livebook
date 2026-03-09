@@ -356,6 +356,7 @@ result =
   FLAME.call(:runner, fn ->
     1 + 1
   end)
+```
 
 ## Wrapping up
 
