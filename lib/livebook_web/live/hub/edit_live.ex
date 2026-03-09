@@ -11,8 +11,7 @@ defmodule LivebookWeb.Hub.EditLive do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Hubs.Broadcasts.subscribe([:connection])
-
-      Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments, :agents])
+      Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :agents])
     end
 
     {:ok,

@@ -93,4 +93,9 @@ defmodule LivebookProto.Event do
     type: LivebookProto.AppFolderDeleted,
     json_name: "appFolderDeleted",
     oneof: 0
+
+  field :deployment_status_updated, 22,
+    type: LivebookProto.DeploymentStatusUpdated,
+    json_name: "deploymentStatusUpdated",
+    oneof: 0
 end

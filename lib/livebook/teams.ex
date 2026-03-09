@@ -220,6 +220,14 @@ defmodule Livebook.Teams do
   end
 
   @doc """
+  Gets an app deployment for a given Hub.
+  """
+  @spec get_app_deployment(Team.t(), String.t(), String.t()) :: Teams.AppDeployment.t() | nil
+  def get_app_deployment(team, slug, deployment_group_id) do
+    TeamClient.get_app_deployment(team.id, slug, deployment_group_id)
+  end
+
+  @doc """
   Gets a list of agents for a given Hub.
   """
   @spec get_agents(Team.t()) :: list(Teams.Agent.t())
@@ -230,7 +238,7 @@ defmodule Livebook.Teams do
   @doc """
   Gets a list of environment variables for a given Hub.
   """
-  @spec get_environment_variables(Team.t()) :: list(Teams.Agent.t())
+  @spec get_environment_variables(Team.t()) :: list(Teams.EnvironmentVariable.t())
   def get_environment_variables(team) do
     TeamClient.get_environment_variables(team.id)
   end
