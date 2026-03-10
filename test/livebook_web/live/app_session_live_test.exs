@@ -115,6 +115,47 @@ defmodule LivebookWeb.AppSessionLiveTest do
     Livebook.App.close(app.pid)
   end
 
+  test "renders with extended notebook container width", %{conn: conn} do
+    slug = Livebook.Utils.random_short_id()
+    app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+    notebook = %{Livebook.Notebook.new() | app_settings: app_settings}
+
+    Livebook.Apps.subscribe()
+    app_pid = deploy_notebook_sync(notebook)
+
+    assert_receive {:app_created, %{pid: ^app_pid}}
+
+    assert_receive {:app_updated,
+                    %{
+                      pid: ^app_pid,
+                      sessions: [%{pid: pid, app_status: %{execution: :executed}}]
+                    }}
+
+    {:ok, view, _} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
+    assert render(view) =~ "max-w-(--breakpoint-lg)"
+
+    Livebook.Session.set_notebook_attributes(pid, %{container_width: :wide})
+    notebook = Livebook.Session.get_notebook(pid)
+    app_pid = deploy_notebook_sync(notebook)
+
+    assert_receive {:app_updated, %{pid: ^app_pid}}
+
+    {:ok, view, _} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
+    assert render(view) =~ "max-w-[90rem]"
+
+    Livebook.Session.set_notebook_attributes(pid, %{container_width: :full})
+    notebook = Livebook.Session.get_notebook(pid)
+    app_pid = deploy_notebook_sync(notebook)
+
+    assert_receive {:app_updated, %{pid: ^app_pid}}
+
+    {:ok, view, _} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
+    refute render(view) =~ "max-w-(--breakpoint-lg)"
+    refute render(view) =~ "max-w-[90rem]"
+
+    Livebook.App.close(app_pid)
+  end
+
   test "shows an error message when session errors", %{conn: conn} do
     slug = Livebook.Utils.random_short_id()
     app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}

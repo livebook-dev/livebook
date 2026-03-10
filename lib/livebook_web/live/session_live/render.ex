@@ -2,6 +2,7 @@ defmodule LivebookWeb.SessionLive.Render do
   use LivebookWeb, :html
 
   import LivebookWeb.UserComponents
+  import LivebookWeb.NotebookComponents
   import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
@@ -894,6 +895,10 @@ defmodule LivebookWeb.SessionLive.Render do
     """
   end
 
+  defp container_width_label(:default), do: "Regular width"
+  defp container_width_label(:wide), do: "Wide width"
+  defp container_width_label(:full), do: "Full-width"
+
   defp app_teams_hub_info_content(assigns) do
     ~H"""
     <div class="flex flex-col space-y-4">
@@ -1312,7 +1317,10 @@ defmodule LivebookWeb.SessionLive.Render do
   def notebook_content(assigns) do
     ~H"""
     <div
-      class="relative w-full max-w-(--breakpoint-lg) px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
+      class={[
+        "relative w-full px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto",
+        container_width_class(@data_view.container_width)
+      ]}
       data-el-notebook-content
     >
       <div class="pb-4 mb-2 border-b border-gray-200">
@@ -1336,9 +1344,12 @@ defmodule LivebookWeb.SessionLive.Render do
               phx-no-format
             >{@data_view.notebook_name}</h1>
           </div>
+          <div class="px-[1px]">
+            <.star_button file={@data_view.file} starred_files={@starred_files} />
+          </div>
           <.session_menu session={@session} />
         </div>
-        <div class="flex flex-nowrap place-content-between items-center gap-2">
+        <div class="flex flex-nowrap items-center gap-2">
           <.menu position="bottom-left" id="notebook-hub-menu">
             <:toggle>
               <div
@@ -1369,9 +1380,41 @@ defmodule LivebookWeb.SessionLive.Render do
               </.link>
             </.menu_item>
           </.menu>
-          <div class="px-px">
-            <.star_button file={@data_view.file} starred_files={@starred_files} />
-          </div>
+          <div class="flex-grow"></div>
+          <.menu id="width-selector-menu" position="bottom-left">
+            <:toggle>
+              <span class="tooltip left" data-tooltip="Set notebook container width">
+                <button
+                  class="inline-flex items-center gap-1 px-2 py-1 mt-0.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                  aria-label="Container width"
+                >
+                  <.remix_icon icon="layout-column-line" class="text-base" />
+                  <span>{container_width_label(@data_view.container_width)}</span>
+                  <.remix_icon icon="arrow-down-s-line" class="text-sm -ml-0.5" />
+                </button>
+              </span>
+            </:toggle>
+            <.menu_item :for={
+              {label, value} <- [{"Regular", :default}, {"Wide", :wide}, {"Full", :full}]
+            }>
+              <button
+                id={"container-width-#{label}"}
+                phx-click={JS.push("set_container_width", value: %{width: value})}
+                aria-label={label}
+                role="menuitem"
+                class="w-full"
+              >
+                <div class="flex items-center gap-1 justify-between">
+                  <span>{label}</span>
+                  <.remix_icon
+                    :if={@data_view.container_width == value}
+                    icon="check-line"
+                    class="text-blue-600"
+                  />
+                </div>
+              </button>
+            </.menu_item>
+          </.menu>
         </div>
       </div>
       <div data-el-setup-section>
