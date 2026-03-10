@@ -63,6 +63,17 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
               '''
             }
           />
+          <.radio_button_group_field
+            field={f[:container_type]}
+            options={[{"default", "Default"}, {"wide", "Wide"}, {"full", "Full"}]}
+            label="Container type"
+            help={
+              ~S'''
+              Sets the container size for the app.
+              '''
+            }
+            full_width
+          />
           <div class="flex flex-col space-y-1">
             <.checkbox_field
               field={f[:access_type]}

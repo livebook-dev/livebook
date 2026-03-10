@@ -114,6 +114,7 @@ defmodule Livebook.LiveMarkdown.Export do
       :access_type,
       :show_source,
       :output_type,
+      :container_type,
       :app_folder_id
     ]
 

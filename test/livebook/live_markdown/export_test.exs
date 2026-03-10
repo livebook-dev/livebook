@@ -1153,12 +1153,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               access_type: :public,
               show_source: true,
               output_type: :rich,
+              container_type: :full,
               app_folder_id: "123"
           }
       }
 
       expected_document = """
-      <!-- livebook:{"app_settings":{"access_type":"public","app_folder_id":"123","auto_shutdown_ms":5000,"multi_session":true,"output_type":"rich","show_existing_sessions":true,"show_source":true,"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","app_folder_id":"123","auto_shutdown_ms":5000,"container_type":"full","multi_session":true,"output_type":"rich","show_existing_sessions":true,"show_source":true,"slug":"app"}} -->
 
       # My Notebook
       """

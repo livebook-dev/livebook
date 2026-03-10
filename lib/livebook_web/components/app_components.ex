@@ -178,4 +178,12 @@ defmodule LivebookWeb.AppComponents do
   def update_app_list(apps, {:app_closed, app}) do
     Enum.reject(apps, &(&1.slug == app.slug))
   end
+
+  @doc """
+  Returns the max width class from given container type.
+  """
+  @spec container_class(Livebook.Notebook.AppSettings.container_type()) :: String.t()
+  def container_class(:default), do: "max-w-default"
+  def container_class(:wide), do: "max-w-wide"
+  def container_class(:full), do: "max-w-full"
 end
