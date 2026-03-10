@@ -90,6 +90,13 @@ defmodule Livebook.LiveMarkdown.Export do
 
     metadata = put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
 
+    metadata =
+      if notebook.container_width in [:full, :wide] do
+        Map.put(metadata, :container_width, container_width_metadata(notebook.container_width))
+      else
+        metadata
+      end
+
     app_settings_metadata = app_settings_metadata(notebook.app_settings)
 
     file_entry_metadata =
@@ -143,6 +150,9 @@ defmodule Livebook.LiveMarkdown.Export do
   defp file_entry_metadata(%{type: :url, name: name, url: url}) do
     %{type: "url", name: name, url: url}
   end
+
+  defp container_width_metadata(:full), do: "full"
+  defp container_width_metadata(:wide), do: "wide"
 
   defp render_section(section, notebook, ctx) do
     name = ["## ", section.name]
