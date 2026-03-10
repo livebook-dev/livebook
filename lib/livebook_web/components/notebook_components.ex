@@ -132,4 +132,8 @@ defmodule LivebookWeb.NotebookComponents do
     </svg>
     """
   end
+
+  def container_width_class(:default), do: "max-w-(--breakpoint-lg)"
+  def container_width_class(:wide), do: "max-w-[90rem]"
+  def container_width_class(:full), do: "w-full"
 end

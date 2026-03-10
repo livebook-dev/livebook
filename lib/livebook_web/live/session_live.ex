@@ -756,6 +756,21 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("set_container_width", %{"width" => width}, socket) do
+    container_width =
+      case width do
+        "default" -> :default
+        "wide" -> :wide
+        "full" -> :full
+      end
+
+    Session.set_notebook_attributes(socket.assigns.session.pid, %{
+      container_width: container_width
+    })
+
+    {:noreply, socket}
+  end
+
   def handle_event("review_file_entry_access", %{"name" => name}, socket) do
     if file_entry = find_file_entry(socket, name) do
       on_confirm = fn socket ->
@@ -1869,7 +1884,8 @@ defmodule LivebookWeb.SessionLive do
       quarantine_file_entry_names: data.notebook.quarantine_file_entry_names,
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug,
-      deployment_group_id: data.notebook.deployment_group_id
+      deployment_group_id: data.notebook.deployment_group_id,
+      container_width: data.notebook.container_width
     }
   end
 
