@@ -918,7 +918,7 @@ defmodule LivebookWeb.CoreComponents do
       else
         "px-5 py-2 font-medium text-sm gap-1.5"
       end,
-      "inline-flex rounded-lg border whitespace-nowrap items-center justify-center focus-visible:outline-none",
+      ":not(.hidden):inline-flex rounded-lg border whitespace-nowrap items-center justify-center focus-visible:outline-none",
       if disabled do
         "cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400"
       else
