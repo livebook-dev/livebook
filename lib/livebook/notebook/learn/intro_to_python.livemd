@@ -358,6 +358,25 @@ result =
   end)
 ```
 
+Now, when using the **FLAME runner** smart cell, the runner is automatically initialized with Python environment matching the notebook's one. This means we can also evaluate Python code in the runner, without any other setup, it would look something like this:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+result =
+  FLAME.call(:runner, fn ->
+    ~PY"""
+    1 + 1
+    """
+  end)
+```
+
+> Note that the `~PY` sigil is a convenience for running Python code and it implicitly picks up any variable referenced in the code snipppet. You could also use the more explicit `Pythonx.eval/3` API.
+
+The above call would return a remote Python object. A FLAME runner typically terminates if idle for a while, but since the Python object resides on that runner, the runner is kept around as long as we have a reference to the object!
+
+This can be used to coordinate Python work across multiple machines, You can load a model onto a runner with a GPU and get a reference to the remote model object (keeping the model itself on the runner). You could subsequently use `FLAME.call/2` to run inference thorugh that model.
+
 ## Wrapping up
 
 As you can see, there are many levels of interoperability between Elixir and Python. In your notebooks, you can mix and match code from both languages. In turn, you get access to the extensive ecosystem of Python packages for enhancing your data workflows, while still being able to orchestrate it with Elixir.
