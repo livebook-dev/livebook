@@ -159,7 +159,10 @@ defmodule LivebookWeb.AppSessionLive do
           </.menu_item>
         </.menu>
       </div>
-      <div class="w-full max-w-(--breakpoint-lg) py-4 mx-auto" data-el-notebook-content>
+      <div
+        class={["w-full py-4 mx-auto", container_class(@data_view.container_type)]}
+        data-el-notebook-content
+      >
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
@@ -497,6 +500,7 @@ defmodule LivebookWeb.AppSessionLive do
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
       multi_session: data.notebook.app_settings.multi_session,
+      container_type: data.notebook.app_settings.container_type,
       errored_cell_id: errored_cell_id(data),
       any_stale?: any_stale?(data)
     }
