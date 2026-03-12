@@ -170,4 +170,12 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
+  .max-w-default {
+    max-width: var(--breakpoint-lg);
+  }
+
+  .max-w-wide {
+    max-width: 90rem;
+  }
 }
