@@ -160,10 +160,7 @@ defmodule LivebookWeb.AppSessionLive do
           </.menu_item>
         </.menu>
       </div>
-      <div
-        class={["w-full py-4 mx-auto", container_width_class(@data_view.container_width)]}
-        data-el-notebook-content
-      >
+      <div class="w-full py-4 mx-auto" data-el-notebook-content>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
@@ -494,14 +491,14 @@ defmodule LivebookWeb.AppSessionLive do
             id: cell.id,
             input_views: input_views_for_cell(cell, data, changed_input_ids),
             outputs: filter_outputs(cell.outputs, data.notebook.app_settings.output_type),
-            outputs_batch_number: data.cell_infos[cell.id].eval.outputs_batch_number
+            outputs_batch_number: data.cell_infos[cell.id].eval.outputs_batch_number,
+            output_size: cell.output_size
           }
         end,
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
       multi_session: data.notebook.app_settings.multi_session,
-      container_width: data.notebook.container_width,
       errored_cell_id: errored_cell_id(data),
       any_stale?: any_stale?(data)
     }

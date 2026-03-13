@@ -14,8 +14,52 @@ server in solely client-side operations.
 
 /* Session */
 
+
+
 [data-el-session] {
   /* Sections */
+
+  [data-el-section-headline],
+  [data-el-setup-section],
+  [data-el-notebook-header],
+  [data-el-insert-buttons],
+  [data-el-editor-container],
+  [data-el-cell-actions],
+  [data-el-cell-body-root] {
+    @apply max-w-default;
+  }
+
+  [data-output-size="default"] { 
+    [data-el-outputs-container],
+    [data-el-markdown-container] {
+      @apply w-full mx-auto max-w-default;
+    }
+  }
+
+  [data-output-size="wide"] { 
+    [data-el-outputs-container],
+    [data-el-markdown-container] {
+      @apply w-full mx-auto max-w-wide;
+    }
+  }
+
+  [data-output-size="full"] { 
+    [data-el-outputs-container],
+    [data-el-markdown-container] {
+      @apply w-full mx-auto max-w-full;
+    }
+  } 
+
+  [data-el-section-headline],
+  [data-el-setup-section],
+  [data-el-notebook-header],
+  [data-el-section-content],
+  [data-el-cell-body],
+  [data-el-cell-body-root],
+  [data-el-cell-actions],
+  [data-el-output] {
+    @apply w-full mx-auto;
+  }
 
   [data-el-notebook-headline],
   [data-el-section-headline] {
@@ -61,7 +105,7 @@ server in solely client-side operations.
   }
 
   [data-el-cell][data-js-focused] {
-    @apply border-blue-300;
+    @apply w-full border-blue-300;
 
     [data-el-cell-focus-indicator] {
       @apply bg-blue-300;
@@ -70,6 +114,7 @@ server in solely client-side operations.
 
   [data-el-cell]:not([data-js-focused]) {
     /* We use opacity, so the buttons are focusable via tab navigation */
+    @apply w-full;
 
     & [data-el-actions][data-secondary] {
       @apply opacity-0 pointer-events-none;

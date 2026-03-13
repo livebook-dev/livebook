@@ -133,6 +133,10 @@ defmodule LivebookWeb.NotebookComponents do
     """
   end
 
+  def container_width_label(:default), do: "Regular width"
+  def container_width_label(:wide), do: "Wide width"
+  def container_width_label(:full), do: "Full-width"
+
   def container_width_class(:default), do: "max-w-(--breakpoint-lg)"
   def container_width_class(:wide), do: "max-w-[90rem]"
   def container_width_class(:full), do: "w-full"

@@ -895,10 +895,6 @@ defmodule LivebookWeb.SessionLive.Render do
     """
   end
 
-  defp container_width_label(:default), do: "Regular width"
-  defp container_width_label(:wide), do: "Wide width"
-  defp container_width_label(:full), do: "Full-width"
-
   defp app_teams_hub_info_content(assigns) do
     ~H"""
     <div class="flex flex-col space-y-4">
@@ -1317,13 +1313,10 @@ defmodule LivebookWeb.SessionLive.Render do
   def notebook_content(assigns) do
     ~H"""
     <div
-      class={[
-        "relative w-full px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto",
-        container_width_class(@data_view.container_width)
-      ]}
+      class="relative w-full px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5"
       data-el-notebook-content
     >
-      <div class="pb-4 mb-2 border-b border-gray-200">
+      <div class="pb-4 mb-2 border-b border-gray-200" data-el-notebook-header>
         <div class="flex flex-nowrap items-center gap-2">
           <div
             class="grow"
@@ -1389,7 +1382,7 @@ defmodule LivebookWeb.SessionLive.Render do
                   aria-label="Container width"
                 >
                   <.remix_icon icon="layout-column-line" class="text-base" />
-                  <span>{container_width_label(@data_view.container_width)}</span>
+                  <span>{container_width_label(:default)}</span>
                   <.remix_icon icon="arrow-down-s-line" class="text-sm -ml-0.5" />
                 </button>
               </span>
@@ -1407,7 +1400,7 @@ defmodule LivebookWeb.SessionLive.Render do
                 <div class="flex items-center gap-1 justify-between">
                   <span>{label}</span>
                   <.remix_icon
-                    :if={@data_view.container_width == value}
+                    :if={:default == value}
                     icon="check-line"
                     class="text-blue-600"
                   />

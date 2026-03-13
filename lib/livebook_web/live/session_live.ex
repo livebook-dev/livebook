@@ -756,21 +756,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("set_container_width", %{"width" => width}, socket) do
-    container_width =
-      case width do
-        "default" -> :default
-        "wide" -> :wide
-        "full" -> :full
-      end
-
-    Session.set_notebook_attributes(socket.assigns.session.pid, %{
-      container_width: container_width
-    })
-
-    {:noreply, socket}
-  end
-
   def handle_event("review_file_entry_access", %{"name" => name}, socket) do
     if file_entry = find_file_entry(socket, name) do
       on_confirm = fn socket ->
@@ -1884,8 +1869,7 @@ defmodule LivebookWeb.SessionLive do
       quarantine_file_entry_names: data.notebook.quarantine_file_entry_names,
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug,
-      deployment_group_id: data.notebook.deployment_group_id,
-      container_width: data.notebook.container_width
+      deployment_group_id: data.notebook.deployment_group_id
     }
   end
 
@@ -1968,16 +1952,19 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :markdown,
+      output_size: cell.output_size,
       empty: cell.source == ""
     }
   end
 
   defp cell_to_view(%Cell.Code{} = cell, data, changed_input_ids) do
     info = data.cell_infos[cell.id]
+    output_size = if Cell.setup?(cell), do: :default, else: cell.output_size
 
     %{
       id: cell.id,
       type: :code,
+      output_size: output_size,
       setup: Cell.setup?(cell),
       language: cell.language,
       empty: cell.source == "",
@@ -1992,6 +1979,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :smart,
+      output_size: cell.output_size,
       empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data, changed_input_ids),
       reevaluate_automatically: cell.reevaluate_automatically,

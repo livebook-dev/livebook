@@ -4,14 +4,15 @@ defmodule Livebook.Notebook.Cell.Markdown do
   # It consists of text content that the user can edit and which is
   # rendered on the page.
 
-  defstruct [:id, :source]
+  defstruct [:id, :source, :output_size]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
 
   @type t :: %__MODULE__{
           id: Cell.id(),
-          source: String.t() | :__pruned__
+          source: String.t() | :__pruned__,
+          output_size: Cell.output_size()
         }
 
   @doc """
@@ -21,7 +22,8 @@ defmodule Livebook.Notebook.Cell.Markdown do
   def new() do
     %__MODULE__{
       id: Utils.random_id(),
-      source: ""
+      source: "",
+      output_size: :default
     }
   end
 end

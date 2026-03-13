@@ -37,6 +37,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-el-cell
       id={"cell-#{@cell_view.id}"}
       data-type={@cell_view.type}
+      data-output-size={@cell_view.output_size}
       data-setup={@cell_view[:setup]}
       data-focusable-id={@cell_view.id}
       data-js-empty={@cell_view.empty}
@@ -349,7 +350,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       |> assign_new(:secondary, fn -> [] end)
 
     ~H"""
-    <div class="mb-1 flex items-center justify-between">
+    <div class="mb-1 flex items-center justify-between" data-el-cell-actions>
       <div class="relative z-20 flex items-center justify-end space-x-2" data-el-actions data-primary>
         {render_slot(@primary)}
       </div>
@@ -372,7 +373,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
          also we actually want to make this element tab-focusable -->
     <div class="flex relative focus-visible:outline-none" data-el-cell-body tabindex="0">
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator></div>
-      <div class="w-full">
+      <div class="w-full mx-auto">
         {render_slot(@inner_block)}
       </div>
     </div>

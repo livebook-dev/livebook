@@ -49,3 +49,11 @@ body {
 @utility flip-horizontally {
   transform: scaleY(-1);
 }
+
+@utility max-w-default {
+  max-width: var(--breakpoint-lg);
+}
+
+@utility max-w-wide {
+  max-width: 90rem;
+}
