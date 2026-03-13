@@ -649,9 +649,8 @@ defmodule Livebook.Runtime.Evaluator do
           quoted = Code.string_to_quoted!(code, file: env.file)
 
           try do
-            {value, binding, env} =
-              Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
-
+            opts = maybe_dbg_callback() ++ [prune_binding: true]
+            {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, opts)
             {:ok, value, binding, env}
           catch
             kind, error ->
@@ -704,6 +703,15 @@ defmodule Livebook.Runtime.Evaluator do
       end
 
     {result, code_markers}
+  end
+
+  defp maybe_dbg_callback() do
+    if Code.ensure_loaded?(Kino.Debug) do
+      original = Application.fetch_env!(:elixir, :dbg_callback)
+      [{:dbg_callback, {Kino.Debug, :dbg, [original]}}]
+    else
+      []
+    end
   end
 
   defp extra_diagnostic?(%SyntaxError{}), do: true
