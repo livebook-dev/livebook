@@ -124,6 +124,42 @@ server in solely client-side operations.
     }
   }
 
+  /* Output size */
+
+  [data-el-cell] {
+    [data-el-cell-body-root],
+    [data-el-editor-box] {
+      @apply w-full mx-auto max-w-default;
+    }
+
+    [data-output-size="default"] {
+      @apply w-full mx-auto max-w-default;
+
+      [data-el-outputs-container],
+      [data-el-markdown-container] {
+        @apply w-full mx-auto max-w-default;
+      }
+    }
+
+    [data-output-size="wide"] {
+      @apply w-full mx-auto max-w-wide;
+
+      [data-el-outputs-container],
+      [data-el-markdown-container] {
+        @apply w-full mx-auto max-w-wide;
+      }
+    }
+
+    [data-output-size="full"] {
+      @apply w-full mx-auto max-w-full;
+
+      [data-el-outputs-container],
+      [data-el-markdown-container] {
+        @apply w-full mx-auto max-w-full;
+      }
+    }
+  }
+
   /* When all setup cells satisfy collapse conditions, collapse the
      first one and hide the later ones */
   [data-el-setup-section]:not(
@@ -327,21 +363,21 @@ server in solely client-side operations.
 }
 
 [data-el-notebook] {
-  /* Outputs (both session and app) */
+  /* Output size */
 
-  [data-el-cell][data-js-amplified] {
-    [data-el-amplify-outputs-button] > button {
-      @apply bg-gray-100 text-gray-900;
-    }
-
-    [data-el-outputs-container] {
-      @apply bg-white m-0 py-16;
-
-      width: 90vw;
-      position: relative;
-      left: calc(-45vw + 50%);
-    }
+  [data-output-size="default"] > [data-el-output] {
+    @apply w-full mx-auto max-w-default;
   }
+
+  [data-output-size="wide"] > [data-el-output] {
+    @apply w-full mx-auto max-w-wide;
+  }
+
+  [data-output-size="full"] > [data-el-output] {
+    @apply w-full mx-auto max-w-full;
+  }
+
+  /* Outputs (both session and app) */
 
   [data-el-output][data-border] {
     @apply p-4 border border-t-0 border-gray-200 divide-y divide-gray-200;

@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def render(assigns) do
     ~H"""
     <div
-      class="flex flex-col relative scroll-mt-[50px] sm:scroll-mt-0"
+      class="flex flex-col w-full mx-auto relative scroll-mt-[50px] sm:scroll-mt-0"
       data-el-cell
       id={"cell-#{@cell_view.id}"}
       data-type={@cell_view.type}
@@ -66,7 +66,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.delete_cell_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
-    <.cell_body>
+    <.cell_body cell_view={@cell_view}>
       <div class="pb-4" data-el-editor-box>
         <.cell_editor
           cell_id={@cell_view.id}
@@ -104,7 +104,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.setup_cell_info />
       </:secondary>
     </.cell_actions>
-    <.cell_body>
+    <.cell_body cell_view={@cell_view}>
       <div class="relative" data-el-cell-body-root>
         <div data-el-info-box>
           <div class="py-2 px-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 rounded-lg">
@@ -152,7 +152,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.pyproject_toml_cell_info />
       </:secondary>
     </.cell_actions>
-    <.cell_body>
+    <.cell_body cell_view={@cell_view}>
       <div class="relative" data-el-cell-body-root>
         <div data-el-editor-box>
           <.cell_editor
@@ -199,7 +199,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.delete_cell_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
-    <.cell_body>
+    <.cell_body cell_view={@cell_view}>
       <div class="relative" data-el-cell-body-root>
         <div class="relative" data-el-editor-box>
           <.cell_editor
@@ -263,7 +263,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.delete_cell_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
-    <.cell_body>
+    <.cell_body cell_view={@cell_view}>
       <div class="relative" data-el-cell-body-root>
         <div data-el-ui-box>
           <%= case @cell_view.status do %>
@@ -349,7 +349,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       |> assign_new(:secondary, fn -> [] end)
 
     ~H"""
-    <div class="mb-1 flex items-center justify-between">
+    <div
+      class="mb-1 flex items-center justify-between w-full max-w-default mx-auto"
+      data-el-cell-actions
+    >
       <div class="relative z-20 flex items-center justify-end space-x-2" data-el-actions data-primary>
         {render_slot(@primary)}
       </div>
@@ -370,9 +373,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <!-- By setting tabindex we can programmatically focus this element,
          also we actually want to make this element tab-focusable -->
-    <div class="flex relative focus-visible:outline-none" data-el-cell-body tabindex="0">
+    <div
+      class="flex relative focus-visible:outline-none"
+      data-output-size={@cell_view.output_size}
+      data-el-cell-body
+      tabindex="0"
+    >
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator></div>
-      <div class="w-full">
+      <div class="w-full mx-auto">
         {render_slot(@inner_block)}
       </div>
     </div>

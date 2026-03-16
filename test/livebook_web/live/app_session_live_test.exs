@@ -115,6 +115,75 @@ defmodule LivebookWeb.AppSessionLiveTest do
     Livebook.App.close(app.pid)
   end
 
+  test "renders app with custom output width", %{conn: conn} do
+    slug = Livebook.Utils.random_short_id()
+    app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+
+    notebook = %{
+      Livebook.Notebook.new()
+      | app_settings: app_settings,
+        sections: [
+          %{
+            Livebook.Notebook.Section.new()
+            | cells: [
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | source: """
+                    IO.puts("Default")
+                    Kino.nothing()
+                    """
+                },
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | source: """
+                    IO.puts("Wide")
+                    Kino.nothing()
+                    """,
+                    output_size: :wide
+                },
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | source: """
+                    Kino.Text.new("Full")
+                    """,
+                    output_size: :full
+                }
+              ]
+          }
+        ]
+    }
+
+    Livebook.Apps.subscribe()
+    app_pid = deploy_notebook_sync(notebook)
+
+    assert_receive {:app_created, %{pid: ^app_pid}}
+
+    assert_receive {:app_updated,
+                    %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
+
+    {:ok, _view, html} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
+
+    # it must be 2 because the setup cell uses `default` output size
+    assert html
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.query(~s/[data-output-size="default"] [data-el-output]/)
+           |> Enum.count() == 2
+
+    # only the second cell must be wide
+    assert html
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.query(~s/[data-output-size="wide"] [data-el-output]/)
+           |> Enum.count() == 1
+
+    # only the last cell must be full
+    assert html
+           |> LazyHTML.from_fragment()
+           |> LazyHTML.query(~s/[data-output-size="full"] [data-el-output]/)
+           |> Enum.count() == 1
+
+    Livebook.App.close(app_pid)
+  end
+
   test "shows an error message when session errors", %{conn: conn} do
     slug = Livebook.Utils.random_short_id()
     app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}

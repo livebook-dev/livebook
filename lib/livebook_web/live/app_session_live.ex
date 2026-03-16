@@ -159,7 +159,7 @@ defmodule LivebookWeb.AppSessionLive do
           </.menu_item>
         </.menu>
       </div>
-      <div class="w-full max-w-(--breakpoint-lg) py-4 mx-auto" data-el-notebook-content>
+      <div class="w-full py-4 mx-auto" data-el-notebook-content>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
@@ -178,7 +178,7 @@ defmodule LivebookWeb.AppSessionLive do
           <%= if @data_view.app_status.execution == :error do %>
             <div class={[
               "flex justify-between items-center px-4 py-2 border-l-4 shadow-custom-1",
-              "text-red-400 border-red-400"
+              "text-red-400 border-red-400 w-full max-w-default mx-auto"
             ]}>
               <div>
                 Something went wrong
