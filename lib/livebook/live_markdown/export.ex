@@ -211,21 +211,32 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_cell(%Cell.Smart{} = cell, ctx) do
+    metadata =
+      Map.merge(
+        cell_metadata(cell),
+        %{
+          livebook_object: "smart_cell",
+          kind: cell.kind,
+          # Attributes may include arbitrary values, including sequences
+          # like "-->" that would mess our format, so we always encode them
+          attrs: cell.attrs |> JSON.encode!(&encode_sorting/2) |> Base.encode64(padding: false),
+          chunks: cell.chunks && Enum.map(cell.chunks, &Tuple.to_list/1)
+        }
+      )
+
     %{Cell.Code.new() | source: cell.source, outputs: cell.outputs}
     |> render_cell(ctx)
-    |> prepend_metadata(%{
-      "livebook_object" => "smart_cell",
-      "kind" => cell.kind,
-      # Attributes may include arbitrary values, including sequences
-      # like "-->" that would mess our format, so we always encode them
-      "attrs" => cell.attrs |> JSON.encode!(&encode_sorting/2) |> Base.encode64(padding: false),
-      "chunks" => cell.chunks && Enum.map(cell.chunks, &Tuple.to_list/1)
-    })
+    |> prepend_metadata(metadata)
   end
 
   defp cell_metadata(%Cell.Code{} = cell) do
-    keys = [:reevaluate_automatically, :continue_on_error]
+    keys = [:reevaluate_automatically, :continue_on_error, :output_size]
     put_unless_default(%{}, Map.take(cell, keys), Map.take(Cell.Code.new(), keys))
+  end
+
+  defp cell_metadata(%Cell.Smart{} = cell) do
+    keys = [:output_size]
+    put_unless_default(%{}, Map.take(cell, keys), Map.take(Cell.Smart.new(), keys))
   end
 
   defp cell_metadata(_cell), do: %{}

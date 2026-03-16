@@ -1994,16 +1994,19 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :markdown,
+      output_size: cell.output_size,
       empty: cell.source == ""
     }
   end
 
   defp cell_to_view(%Cell.Code{} = cell, data, changed_input_ids) do
     info = data.cell_infos[cell.id]
+    output_size = if Cell.setup?(cell), do: :default, else: cell.output_size
 
     %{
       id: cell.id,
       type: :code,
+      output_size: output_size,
       setup: Cell.setup?(cell),
       language: cell.language,
       empty: cell.source == "",
@@ -2018,6 +2021,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :smart,
+      output_size: cell.output_size,
       empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data, changed_input_ids),
       reevaluate_automatically: cell.reevaluate_automatically,

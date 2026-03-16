@@ -490,7 +490,8 @@ defmodule LivebookWeb.AppSessionLive do
             id: cell.id,
             input_views: input_views_for_cell(cell, data, changed_input_ids),
             outputs: filter_outputs(cell.outputs, data.notebook.app_settings.output_type),
-            outputs_batch_number: data.cell_infos[cell.id].eval.outputs_batch_number
+            outputs_batch_number: data.cell_infos[cell.id].eval.outputs_batch_number,
+            output_size: cell.output_size
           }
         end,
       app_status: data.app_data.status,

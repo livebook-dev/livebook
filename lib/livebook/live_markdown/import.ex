@@ -260,10 +260,18 @@ defmodule Livebook.LiveMarkdown.Import do
 
     chunks = if(chunks = data["chunks"], do: Enum.map(chunks, &List.to_tuple/1))
 
+    output_size =
+      if data["output_size"] in ["wide", "full"] do
+        String.to_atom(data["output_size"])
+      else
+        :default
+      end
+
     cell = %{
       Notebook.Cell.new(:smart)
       | source: source,
         chunks: chunks,
+        output_size: output_size,
         outputs: outputs,
         kind: kind,
         attrs: attrs
@@ -558,6 +566,9 @@ defmodule Livebook.LiveMarkdown.Import do
 
       {"continue_on_error", continue_on_error}, attrs ->
         Map.put(attrs, :continue_on_error, continue_on_error)
+
+      {"output_size", output_size}, attrs when output_size in ["full", "wide"] ->
+        Map.put(attrs, :output_size, String.to_atom(output_size))
 
       _entry, attrs ->
         attrs

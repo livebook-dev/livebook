@@ -124,7 +124,9 @@ defmodule Livebook.Session.DataSync do
   defp key(%Cell.Smart{} = cell), do: {:smart_cell, cell.source, cell.attrs}
 
   defp cell_syncable_fields(%Cell.Code{}),
-    do: [:language, :reevaluate_automatically, :continue_on_error]
+    do: [:language, :reevaluate_automatically, :continue_on_error, :output_size]
+
+  defp cell_syncable_fields(%Cell.Smart{}), do: [:output_size]
 
   defp cell_syncable_fields(_other), do: []
 
@@ -357,8 +359,15 @@ defmodule Livebook.Session.DataSync do
           source_op ++ attrs_op
 
         %Cell.Smart{} ->
-          # Smart cells are controlled by Livebook, we ignore external edits.
-          []
+          # Smart cells are controlled by Livebook, we only sync with
+          # common cell-related metadata, anything else must be ignored.
+          updated_attrs = attrs_diff(before_cell, after_cell, cell_syncable_fields(before_cell))
+
+          if updated_attrs != %{} do
+            [{:set_cell_attributes, acc.cid, before_cell.id, updated_attrs}]
+          else
+            []
+          end
       end
 
     acc = %{acc | cell_idx: acc.cell_idx + 1}
