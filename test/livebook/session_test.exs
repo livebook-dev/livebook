@@ -63,7 +63,7 @@ defmodule Livebook.SessionTest do
 
       attrs = %{set_notebook_attributes: true}
       Session.set_notebook_attributes(session.pid, attrs)
-      assert_receive {:operation, {:set_notebook_attributes, _client_id, ^attrs}}
+      assert_receive {:operations, [{:set_notebook_attributes, _client_id, ^attrs}]}
     end
   end
 
@@ -74,7 +74,7 @@ defmodule Livebook.SessionTest do
       Session.subscribe(session.id)
 
       Session.insert_section(session.pid, 0)
-      assert_receive {:operation, {:insert_section, _client_id, 0, _id}}
+      assert_receive {:operations, [{:insert_section, _client_id, 0, _id}]}
     end
   end
 
@@ -85,11 +85,12 @@ defmodule Livebook.SessionTest do
       Session.subscribe(session.id)
 
       Session.insert_section(session.pid, 0)
-      assert_receive {:operation, {:insert_section, _client_id, 0, section_id}}
+      assert_receive {:operations, [{:insert_section, _client_id, 0, section_id}]}
 
       Session.insert_cell(session.pid, section_id, 0, :code)
 
-      assert_receive {:operation, {:insert_cell, _client_id, ^section_id, 0, :code, _id, _attrs}}
+      assert_receive {:operations,
+                      [{:insert_cell, _client_id, ^section_id, 0, :code, _id, _attrs}]}
     end
   end
 
@@ -102,7 +103,7 @@ defmodule Livebook.SessionTest do
       {section_id, _cell_id} = insert_section_and_cell(session.pid)
 
       Session.delete_section(session.pid, section_id, false)
-      assert_receive {:operation, {:delete_section, _client_id, ^section_id, false}}
+      assert_receive {:operations, [{:delete_section, _client_id, ^section_id, false}]}
     end
   end
 
@@ -115,7 +116,7 @@ defmodule Livebook.SessionTest do
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
 
       Session.delete_cell(session.pid, cell_id)
-      assert_receive {:operation, {:delete_cell, _client_id, ^cell_id}}
+      assert_receive {:operations, [{:delete_cell, _client_id, ^cell_id}]}
     end
   end
 
@@ -129,7 +130,7 @@ defmodule Livebook.SessionTest do
       Session.delete_cell(session.pid, cell_id)
 
       Session.restore_cell(session.pid, cell_id)
-      assert_receive {:operation, {:restore_cell, _client_id, ^cell_id}}
+      assert_receive {:operations, [{:restore_cell, _client_id, ^cell_id}]}
     end
   end
 
@@ -141,10 +142,13 @@ defmodule Livebook.SessionTest do
 
       Session.enable_language(session.pid, :python)
 
-      assert_receive {:operation,
-                      {:apply_cell_delta, _client_id, @setup_id, :primary, _delta, _selection, 0}}
+      assert_receive {:operations,
+                      [
+                        {:apply_cell_delta, _client_id, @setup_id, :primary, _delta, _selection,
+                         0}
+                      ]}
 
-      assert_receive {:operation, {:enable_language, _client_id, :python}}
+      assert_receive {:operations, [{:enable_language, _client_id, :python}]}
     end
 
     test "if there is a single empty cell, changes its language" do
@@ -154,8 +158,10 @@ defmodule Livebook.SessionTest do
 
       Session.enable_language(session.pid, :python)
 
-      assert_receive {:operation,
-                      {:set_cell_attributes, _client_id, _cell_id, %{language: :python}}}
+      assert_receive {:operations,
+                      [
+                        {:set_cell_attributes, _client_id, _cell_id, %{language: :python}}
+                      ]}
     end
   end
 
@@ -166,11 +172,11 @@ defmodule Livebook.SessionTest do
       Session.subscribe(session.id)
 
       Session.enable_language(session.pid, :python)
-      assert_receive {:operation, {:enable_language, _client_id, :python}}
+      assert_receive {:operations, [{:enable_language, _client_id, :python}]}
 
       Session.disable_language(session.pid, :python)
 
-      assert_receive {:operation, {:disable_language, _client_id, :python}}
+      assert_receive {:operations, [{:disable_language, _client_id, :python}]}
     end
 
     test "if there is a single empty cell, changes its language" do
@@ -180,8 +186,10 @@ defmodule Livebook.SessionTest do
 
       Session.enable_language(session.pid, :python)
 
-      assert_receive {:operation,
-                      {:set_cell_attributes, _client_id, _cell_id, %{language: :python}}}
+      assert_receive {:operations,
+                      [
+                        {:set_cell_attributes, _client_id, _cell_id, %{language: :python}}
+                      ]}
     end
   end
 
@@ -213,8 +221,8 @@ defmodule Livebook.SessionTest do
 
       cell_id = smart_cell.id
 
-      assert_receive {:operation, {:recover_smart_cell, _client_id, ^cell_id}}
-      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, _, _, _, _}}
+      assert_receive {:operations, [{:recover_smart_cell, _client_id, ^cell_id}]}
+      assert_receive {:operations, [{:smart_cell_started, _, ^cell_id, _, _, _, _}]}
     end
   end
 
@@ -233,10 +241,13 @@ defmodule Livebook.SessionTest do
       cell_id = smart_cell.id
       section_id = section.id
 
-      assert_receive {:operation, {:delete_cell, _client_id, ^cell_id}}
+      assert_receive {:operations, [{:delete_cell, _client_id, ^cell_id}]}
 
-      assert_receive {:operation,
-                      {:insert_cell, _client_id, ^section_id, 0, :code, _id, %{source: "content"}}}
+      assert_receive {:operations,
+                      [
+                        {:insert_cell, _client_id, ^section_id, 0, :code, _id,
+                         %{source: "content"}}
+                      ]}
     end
 
     test "inserts multiple cells when the smart cell has explicit chunks" do
@@ -260,13 +271,19 @@ defmodule Livebook.SessionTest do
       cell_id = smart_cell.id
       section_id = section.id
 
-      assert_receive {:operation, {:delete_cell, _client_id, ^cell_id}}
+      assert_receive {:operations, [{:delete_cell, _client_id, ^cell_id}]}
 
-      assert_receive {:operation,
-                      {:insert_cell, _client_id, ^section_id, 0, :code, _id, %{source: "chunk 1"}}}
+      assert_receive {:operations,
+                      [
+                        {:insert_cell, _client_id, ^section_id, 0, :code, _id,
+                         %{source: "chunk 1"}}
+                      ]}
 
-      assert_receive {:operation,
-                      {:insert_cell, _client_id, ^section_id, 1, :code, _id, %{source: "chunk 2"}}}
+      assert_receive {:operations,
+                      [
+                        {:insert_cell, _client_id, ^section_id, 1, :code, _id,
+                         %{source: "chunk 2"}}
+                      ]}
     end
   end
 
@@ -278,9 +295,10 @@ defmodule Livebook.SessionTest do
 
       Session.add_dependencies(session.pid, [%{dep: {:req, "~> 0.5.0"}, config: []}])
 
-      assert_receive {:operation,
-                      {:apply_cell_delta, "__server__", @setup_id, :primary, _delta, _selection,
-                       0}}
+      assert_receive {:operations,
+                      [
+                        {:apply_cell_delta, _, @setup_id, :primary, _delta, _selection, 0}
+                      ]}
 
       assert %{
                notebook: %{
@@ -321,11 +339,13 @@ defmodule Livebook.SessionTest do
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation, {:queue_cells_evaluation, _client_id, [^cell_id], []}}
+      assert_receive {:operations, [{:queue_cells_evaluation, _client_id, [^cell_id], []}]}
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, _,
-                       %{evaluation_time_ms: _time_ms}}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id, _,
+                         %{evaluation_time_ms: _time_ms}}
+                      ]}
     end
   end
 
@@ -340,7 +360,7 @@ defmodule Livebook.SessionTest do
 
       Session.cancel_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation, {:cancel_cell_evaluation, _client_id, ^cell_id}}
+      assert_receive {:operations, [{:cancel_cell_evaluation, _client_id, ^cell_id}]}
     end
   end
 
@@ -351,7 +371,7 @@ defmodule Livebook.SessionTest do
       Session.subscribe(session.id)
 
       Session.set_notebook_name(session.pid, "Cat's guide to life")
-      assert_receive {:operation, {:set_notebook_name, _client_id, "Cat's guide to life"}}
+      assert_receive {:operations, [{:set_notebook_name, _client_id, "Cat's guide to life"}]}
     end
 
     @tag :tmp_dir
@@ -380,7 +400,7 @@ defmodule Livebook.SessionTest do
       {section_id, _cell_id} = insert_section_and_cell(session.pid)
 
       Session.set_section_name(session.pid, section_id, "Chapter 1")
-      assert_receive {:operation, {:set_section_name, _client_id, ^section_id, "Chapter 1"}}
+      assert_receive {:operations, [{:set_section_name, _client_id, ^section_id, "Chapter 1"}]}
     end
   end
 
@@ -398,9 +418,11 @@ defmodule Livebook.SessionTest do
 
       Session.apply_cell_delta(session.pid, cell_id, :primary, delta, selection, revision)
 
-      assert_receive {:operation,
-                      {:apply_cell_delta, _client_id, ^cell_id, :primary, ^delta, ^selection,
-                       ^revision}}
+      assert_receive {:operations,
+                      [
+                        {:apply_cell_delta, _client_id, ^cell_id, :primary, ^delta, ^selection,
+                         ^revision}
+                      ]}
 
       # Sends new digest to clients
       digest = :erlang.md5("cats")
@@ -419,8 +441,10 @@ defmodule Livebook.SessionTest do
 
       Session.report_cell_revision(session.pid, cell_id, :primary, revision)
 
-      assert_receive {:operation,
-                      {:report_cell_revision, _client_id, ^cell_id, :primary, ^revision}}
+      assert_receive {:operations,
+                      [
+                        {:report_cell_revision, _client_id, ^cell_id, :primary, ^revision}
+                      ]}
     end
   end
 
@@ -434,7 +458,7 @@ defmodule Livebook.SessionTest do
       attrs = %{reevaluate_automatically: true}
 
       Session.set_cell_attributes(session.pid, cell_id, attrs)
-      assert_receive {:operation, {:set_cell_attributes, _client_id, ^cell_id, ^attrs}}
+      assert_receive {:operations, [{:set_cell_attributes, _client_id, ^cell_id, ^attrs}]}
     end
   end
 
@@ -449,9 +473,9 @@ defmodule Livebook.SessionTest do
 
       Session.connect_runtime(session.pid)
 
-      assert_receive {:operation, {:set_runtime, _client_id, ^runtime}}
-      assert_receive {:operation, {:connect_runtime, _client_id}}
-      assert_receive {:operation, {:runtime_connected, _client_id, _runtime}}
+      assert_receive {:operations, [{:set_runtime, _client_id, ^runtime}]}
+      assert_receive {:operations, [{:connect_runtime, _client_id}]}
+      assert_receive {:operations, [{:runtime_connected, _client_id, _runtime}]}
     end
   end
 
@@ -467,7 +491,7 @@ defmodule Livebook.SessionTest do
       Session.disconnect_runtime(session.pid)
       Session.disconnect_runtime([session.pid])
 
-      assert_receive {:operation, {:disconnect_runtime, _client_id}}
+      assert_receive {:operations, [{:disconnect_runtime, _client_id}]}
     end
   end
 
@@ -482,7 +506,7 @@ defmodule Livebook.SessionTest do
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session.pid, file)
 
-      assert_receive {:operation, {:set_file, _client_id, ^file}}
+      assert_receive {:operations, [{:set_file, _client_id, ^file}]}
     end
 
     @tag :tmp_dir
@@ -588,7 +612,7 @@ defmodule Livebook.SessionTest do
 
       Session.save(session.pid)
 
-      assert_receive {:operation, {:notebook_saved, _, []}}
+      assert_receive {:operations, [{:notebook_saved, _, []}]}
       assert {:ok, "# My notebook\n" <> _rest} = FileSystem.File.read(file)
     end
 
@@ -608,8 +632,44 @@ defmodule Livebook.SessionTest do
 
       Session.save(session.pid)
 
-      assert_receive {:operation, {:notebook_saved, _, []}}
+      assert_receive {:operations, [{:notebook_saved, _, []}]}
       assert {:ok, "# My notebook\n" <> _rest} = FileSystem.File.read(file)
+    end
+  end
+
+  describe "sync_file/1" do
+    @tag :tmp_dir
+    test "diffs state against the associated file and emits data operations", %{tmp_dir: tmp_dir} do
+      # Start with an empty notebook.
+      session = start_session(notebook: Notebook.new())
+
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      Session.set_file(session.pid, file)
+
+      :ok =
+        FileSystem.File.write(file, """
+        # My notebook
+
+        ## Introduction
+
+        Hello world!
+        """)
+
+      Session.subscribe(session.id)
+
+      Session.sync_file(session.pid)
+
+      assert_receive {:operations,
+                      [
+                        {:set_notebook_attributes, _, %{name: "My notebook"}},
+                        {:insert_section_into, _, nil, 0, section_id},
+                        {:set_section_name, _, section_id, "Introduction"},
+                        {:insert_cell, _, section_id, 0, :markdown, _cell_id,
+                         %{source: "Hello world!"}}
+                      ]}
+
+      assert %{notebook: %{name: "My notebook"}} = Session.get_data(session.pid)
     end
   end
 
@@ -868,9 +928,11 @@ defmodule Livebook.SessionTest do
 
     Session.queue_cell_evaluation(session.pid, cell_id)
     # Give it a bit more time as this involves starting a system process.
-    assert_receive {:operation,
-                    {:add_cell_evaluation_response, _, ^cell_id, _,
-                     %{evaluation_time_ms: _time_ms}}}
+    assert_receive {:operations,
+                    [
+                      {:add_cell_evaluation_response, _, ^cell_id, _,
+                       %{evaluation_time_ms: _time_ms}}
+                    ]}
   end
 
   test "if the runtime node goes down, notifies the subscribers" do
@@ -881,12 +943,12 @@ defmodule Livebook.SessionTest do
     # Wait for the runtime to be set
     Session.set_runtime(session.pid, Runtime.Standalone.new())
     Session.connect_runtime(session.pid)
-    assert_receive {:operation, {:runtime_connected, _, runtime}}
+    assert_receive {:operations, [{:runtime_connected, _, runtime}]}
 
     # Terminate the other node, the session should detect that
     Node.spawn(runtime.node, System, :halt, [])
 
-    assert_receive {:operation, {:runtime_down, _}}
+    assert_receive {:operations, [{:runtime_down, _}]}
     assert_receive {:error, "runtime terminated unexpectedly - no connection"}
   end
 
@@ -901,7 +963,7 @@ defmodule Livebook.SessionTest do
     updated_user = %{user | name: "Jake Peralta"}
     Livebook.Users.broadcast_change(updated_user)
 
-    assert_receive {:operation, {:update_user, _client_id, ^updated_user}}
+    assert_receive {:operations, [{:update_user, _client_id, ^updated_user}]}
   end
 
   # Integration tests concerning input communication
@@ -937,9 +999,11 @@ defmodule Livebook.SessionTest do
       Session.subscribe(session.id)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
-                       %{evaluation_time_ms: _time_ms}}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
+                         %{evaluation_time_ms: _time_ms}}
+                      ]}
 
       assert text_output =~ "10"
     end
@@ -968,9 +1032,11 @@ defmodule Livebook.SessionTest do
       Session.subscribe(session.id)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, error_output(message),
-                       %{evaluation_time_ms: _time_ms}}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id, error_output(message),
+                         %{evaluation_time_ms: _time_ms}}
+                      ]}
 
       assert message =~ "failed to read input value, input not found"
     end
@@ -1001,7 +1067,7 @@ defmodule Livebook.SessionTest do
       delta = Text.Delta.new() |> Text.Delta.retain(7) |> Text.Delta.insert("!")
       cell_id = smart_cell.id
 
-      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, nil, %{}, nil}}
+      assert_receive {:operations, [{:smart_cell_started, _, ^cell_id, ^delta, nil, %{}, nil}]}
     end
 
     test "sends an event to the smart cell server when the editor source changes" do
@@ -1305,7 +1371,7 @@ defmodule Livebook.SessionTest do
     Session.subscribe(session.id)
 
     Session.save(session.pid)
-    assert_receive {:operation, {:notebook_saved, _, []}}
+    assert_receive {:operations, [{:notebook_saved, _, []}]}
 
     assert [notebook_path] = Path.wildcard(notebook_glob)
     assert Path.basename(notebook_path) =~ "untitled_notebook"
@@ -1314,7 +1380,7 @@ defmodule Livebook.SessionTest do
     Session.set_notebook_name(session.pid, "Cat's guide to life")
 
     Session.save(session.pid)
-    assert_receive {:operation, {:notebook_saved, _, []}}
+    assert_receive {:operations, [{:notebook_saved, _, []}]}
 
     assert [notebook_path] = Path.wildcard(notebook_glob)
     assert Path.basename(notebook_path) =~ "cats_guide_to_life"
@@ -1342,7 +1408,7 @@ defmodule Livebook.SessionTest do
     # Send client-specific output
     send(session.pid, {:runtime_evaluation_output_to, client_id, cell_id, frame_output})
 
-    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^frame_output}}
+    assert_receive {:operations, [{:add_cell_evaluation_output, _, ^cell_id, ^frame_output}]}
 
     # The assets should be available
     assert :ok = Session.fetch_assets(session.pid, hash)
@@ -1377,12 +1443,12 @@ defmodule Livebook.SessionTest do
       Apps.subscribe()
 
       Session.deploy_app(session.pid)
-      assert_receive {:operation, {:set_deployed_app_slug, _client_id, ^slug}}
+      assert_receive {:operations, [{:set_deployed_app_slug, _client_id, ^slug}]}
 
       assert_receive {:app_created, %{slug: ^slug, pid: app_pid}}
       App.close(app_pid)
 
-      assert_receive {:operation, {:set_deployed_app_slug, _client_id, nil}}
+      assert_receive {:operations, [{:set_deployed_app_slug, _client_id, nil}]}
     end
 
     test "deploys notebook with attachment files" do
@@ -2017,12 +2083,12 @@ defmodule Livebook.SessionTest do
     legacy_output = {:text, "Hola"}
     expected_output = terminal_text("Hola")
     send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
-    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+    assert_receive {:operations, [{:add_cell_evaluation_output, _, ^cell_id, ^expected_output}]}
 
     legacy_output = {:markdown, "Hola"}
     expected_output = %{type: :markdown, text: "Hola", chunk: false}
     send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
-    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+    assert_receive {:operations, [{:add_cell_evaluation_output, _, ^cell_id, ^expected_output}]}
 
     legacy_output =
       {:input,
@@ -2045,7 +2111,7 @@ defmodule Livebook.SessionTest do
       }
 
     send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
-    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+    assert_receive {:operations, [{:add_cell_evaluation_output, _, ^cell_id, ^expected_output}]}
   end
 
   defmodule Global do
@@ -2102,7 +2168,7 @@ defmodule Livebook.SessionTest do
       log =
         capture_log([level: :info, metadata: [:session_mode, :code, :event]], fn ->
           Session.queue_cell_evaluation(session.pid, cell_id)
-          assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+          assert_receive {:operations, [{:add_cell_evaluation_response, _, ^cell_id, _, _}]}
         end)
 
       # Logs from other test might be captured, so we're using an unique_id
@@ -2188,9 +2254,9 @@ defmodule Livebook.SessionTest do
 
   defp insert_section_and_cell(session_pid) do
     Session.insert_section(session_pid, 0)
-    assert_receive {:operation, {:insert_section, _, 0, section_id}}
+    assert_receive {:operations, [{:insert_section, _, 0, section_id}]}
     Session.insert_cell(session_pid, section_id, 0, :code)
-    assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :code, cell_id, _attrs}}
+    assert_receive {:operations, [{:insert_cell, _, ^section_id, 0, :code, cell_id, _attrs}]}
 
     {section_id, cell_id}
   end

@@ -392,81 +392,86 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Moves cell by the given offset.
-
-  The cell may move to another section if the offset indicates so.
+  Moves cell to the given location given by section id and index.
   """
-  @spec move_cell(t(), Cell.id(), integer()) :: t()
-  def move_cell(notebook, cell_id, offset) do
-    # We firstly create a flat list of cells interspersed with `:separator`
-    # at section boundaries. Then we move the given cell by the given offset.
-    # Finally we split the flat list back into cell lists
-    # and put them in the corresponding sections.
+  @spec move_cell(t(), Cell.id(), Section.id(), integer()) :: t()
+  def move_cell(notebook, cell_id, section_id, index) do
+    case fetch_cell_and_section(notebook, cell_id) do
+      {:ok, cell, section} ->
+        index =
+          if section.id == section_id do
+            current_idx = Enum.find_index(section.cells, &(&1.id == cell_id))
 
-    separated_cells =
-      notebook.sections
-      |> Enum.map_intersperse(:separator, & &1.cells)
-      |> List.flatten()
+            if index >= current_idx do
+              # If the position is in the same section after the current
+              # position, we need to adjust it to account for the delete
+              # that we do first.
+              index - 1
+            else
+              index
+            end
+          else
+            index
+          end
 
-    idx =
-      Enum.find_index(separated_cells, fn
-        :separator -> false
-        cell -> cell.id == cell_id
-      end)
+        notebook
+        |> delete_cell(cell_id)
+        |> insert_cell(section_id, index, cell)
 
-    new_idx = (idx + offset) |> clamp_index(separated_cells)
-
-    {cell, separated_cells} = List.pop_at(separated_cells, idx)
-    separated_cells = List.insert_at(separated_cells, new_idx, cell)
-
-    cell_groups = group_cells(separated_cells)
-
-    sections =
-      notebook.sections
-      |> Enum.zip(cell_groups)
-      |> Enum.map(fn {section, cells} -> %{section | cells: cells} end)
-
-    %{notebook | sections: sections}
-  end
-
-  defp group_cells(separated_cells) do
-    separated_cells
-    |> Enum.reverse()
-    |> do_group_cells([])
-  end
-
-  defp do_group_cells([], groups), do: groups
-
-  defp do_group_cells([:separator | separated_cells], []) do
-    do_group_cells(separated_cells, [[], []])
-  end
-
-  defp do_group_cells([:separator | separated_cells], groups) do
-    do_group_cells(separated_cells, [[] | groups])
-  end
-
-  defp do_group_cells([cell | separated_cells], []) do
-    do_group_cells(separated_cells, [[cell]])
-  end
-
-  defp do_group_cells([cell | separated_cells], [group | groups]) do
-    do_group_cells(separated_cells, [[cell | group] | groups])
-  end
-
-  defp clamp_index(index, list) do
-    index |> max(0) |> min(length(list) - 1)
+      :error ->
+        notebook
+    end
   end
 
   @doc """
-  Checks if `section` can be moved by `offset`.
+  Returns the target position when moving the given cell by `offset`,
+  or `nil` if not possible.
+  """
+  @spec cell_move_position(t(), Cell.id(), Section.t(), -1 | 1) ::
+          {Section.id(), integer()} | nil
+  def cell_move_position(notebook, cell_id, section, -1) do
+    cell_idx = Enum.find_index(section.cells, &(&1.id == cell_id))
+
+    if cell_idx > 0 do
+      {section.id, cell_idx - 1}
+    else
+      if prev_section = prev_section(notebook.sections, section.id) do
+        {prev_section.id, length(prev_section.cells) - 1}
+      end
+    end
+  end
+
+  def cell_move_position(notebook, cell_id, section, 1) do
+    cell_idx = Enum.find_index(section.cells, &(&1.id == cell_id))
+    num_cells = length(section.cells)
+
+    if cell_idx + 2 <= num_cells do
+      {section.id, cell_idx + 2}
+    else
+      if next_section = next_section(notebook.sections, section.id) do
+        {next_section.id, 0}
+      end
+    end
+  end
+
+  defp prev_section([%{id: section_id} | _sections], section_id), do: nil
+  defp prev_section([section, %{id: section_id} | _sections], section_id), do: section
+  defp prev_section([_section | sections], section_id), do: prev_section(sections, section_id)
+
+  defp next_section([%{id: section_id}], section_id), do: nil
+  defp next_section([%{id: section_id}, section | _sections], section_id), do: section
+  defp next_section([_section | sections], section_id), do: next_section(sections, section_id)
+
+  @doc """
+  Checks if `section` can be moved to the given index.
 
   Specifically, this function checks if after the move
   all child sections are still below their parent sections.
   """
-  @spec can_move_section_by?(t(), Section.t(), integer()) :: boolean()
-  def can_move_section_by?(notebook, section, offset)
+  @spec can_move_section_to?(t(), Section.t(), integer()) :: boolean()
+  def can_move_section_to?(notebook, section, index)
 
-  def can_move_section_by?(notebook, %{parent_id: nil} = section, offset) do
+  def can_move_section_to?(notebook, %{parent_id: nil} = section, index) do
     notebook.sections
     |> Enum.with_index()
     |> Enum.filter(fn {that_section, _idx} -> that_section.parent_id == section.id end)
@@ -476,15 +481,28 @@ defmodule Livebook.Notebook do
         true
 
       child_indices ->
-        section_idx = section_index(notebook, section.id)
-        section_idx + offset < Enum.min(child_indices)
+        index < Enum.min(child_indices)
     end
   end
 
-  def can_move_section_by?(notebook, section, offset) do
+  def can_move_section_to?(notebook, section, index) do
     parent_idx = section_index(notebook, section.parent_id)
-    section_idx = section_index(notebook, section.id)
-    parent_idx < section_idx + offset
+    parent_idx < index
+  end
+
+  @doc """
+  Returns the target index when moving the given section by `offset`,
+  or `nil` if not possible.
+  """
+  @spec section_move_position(t(), Section.id(), -1 | 1) :: integer() | nil
+  def section_move_position(notebook, section_id, -1) do
+    idx = section_index(notebook, section_id)
+    if idx > 0, do: idx - 1
+  end
+
+  def section_move_position(notebook, section_id, 1) do
+    idx = section_index(notebook, section_id)
+    if idx + 2 <= length(notebook.sections), do: idx + 2
   end
 
   @doc """
@@ -498,20 +516,21 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Moves section by the given offset.
+  Moves section to the given index.
   """
   @spec move_section(t(), Section.id(), integer()) :: t()
-  def move_section(notebook, section_id, offset) do
-    # We first find the index of the given section.
-    # Then we find its' new index from given offset.
-    # Finally, we move the section, and return the new notebook.
-
+  def move_section(notebook, section_id, index) do
     idx = section_index(notebook, section_id)
-    new_idx = (idx + offset) |> clamp_index(notebook.sections)
+
+    index =
+      if index > idx do
+        index - 1
+      else
+        index
+      end
 
     {section, sections} = List.pop_at(notebook.sections, idx)
-    sections = List.insert_at(sections, new_idx, section)
-
+    sections = List.insert_at(sections, index, section)
     %{notebook | sections: sections}
   end
 

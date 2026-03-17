@@ -14,17 +14,17 @@ defmodule Livebook.SessionHelpers do
 
   def connect_and_await_runtime(session_pid) do
     Session.connect_runtime(session_pid)
-    assert_receive {:operation, {:runtime_connected, _, _}}
+    assert_receive {:operations, [{:runtime_connected, _, _}]}
   end
 
   def evaluate_setup(session_pid) do
     Session.queue_cell_evaluation(session_pid, "setup")
-    assert_receive {:operation, {:add_cell_evaluation_response, _, "setup", _, _}}
+    assert_receive {:operations, [{:add_cell_evaluation_response, _, "setup", _, _}]}
   end
 
   def evaluate_cell(session_pid, cell_id) do
     Session.queue_cell_evaluation(session_pid, cell_id)
-    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+    assert_receive {:operations, [{:add_cell_evaluation_response, _, ^cell_id, _, _}]}
   end
 
   def bypass_url(port), do: "http://localhost:#{port}"

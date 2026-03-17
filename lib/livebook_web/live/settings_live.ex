@@ -20,6 +20,7 @@ defmodule LivebookWeb.SettingsLive do
          dialog_opened?: false
        },
        update_check_enabled: Livebook.UpdateCheck.enabled?(),
+       dev_endpoints_enabled: Livebook.Settings.dev_endpoints_enabled?(),
        release_info: Livebook.Config.github_release_info(),
        page_title: "Settings - Livebook"
      )}
@@ -35,7 +36,6 @@ defmodule LivebookWeb.SettingsLive do
       saved_hubs={@saved_hubs}
     >
       <div id="settings-page" class="p-4 md:px-12 md:py-7 max-w-(--breakpoint-md) mx-auto space-y-16">
-        <!-- System settings section -->
         <div class="flex flex-col space-y-10">
           <div>
             <LayoutComponents.title text="System settings" />
@@ -45,7 +45,6 @@ defmodule LivebookWeb.SettingsLive do
               launch.
             </p>
           </div>
-          <!-- System details -->
           <div class="flex flex-col space-y-2">
             <h2 class="text-xl text-gray-800 font-medium">
               About
@@ -83,7 +82,6 @@ defmodule LivebookWeb.SettingsLive do
               </div>
             </div>
           </div>
-          <!-- Updates -->
           <div class="flex flex-col space-y-4">
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Updates
@@ -96,7 +94,6 @@ defmodule LivebookWeb.SettingsLive do
               />
             </form>
           </div>
-          <!-- Autosave path configuration -->
           <div class="flex flex-col space-y-4">
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Autosave
@@ -106,7 +103,22 @@ defmodule LivebookWeb.SettingsLive do
             </p>
             <.autosave_path_select state={@autosave_path_state} />
           </div>
-          <!-- Environment variables configuration -->
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              Dev endpoints
+            </h2>
+            <p class="text-gray-700">
+              Enables local HTTP endpoints under <code>/dev</code> for
+              programmatic control of Livebook from development tools.
+            </p>
+            <form phx-change="save" phx-nosubmit>
+              <.switch_field
+                name="dev_endpoints_enabled"
+                label="Enable dev endpoints"
+                value={@dev_endpoints_enabled}
+              />
+            </form>
+          </div>
           <div class="flex flex-col space-y-4">
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Environment variables
@@ -133,7 +145,6 @@ defmodule LivebookWeb.SettingsLive do
             </div>
           </div>
         </div>
-        <!-- User settings section -->
         <div class="flex flex-col space-y-10 pb-8">
           <div>
             <LayoutComponents.title text="User settings" />
@@ -142,7 +153,6 @@ defmodule LivebookWeb.SettingsLive do
               experience and is saved in your browser.
             </p>
           </div>
-          <!-- Editor configuration -->
           <div class="flex flex-col space-y-4">
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Code editor
@@ -325,6 +335,12 @@ defmodule LivebookWeb.SettingsLive do
     enabled = enabled == "true"
     Livebook.UpdateCheck.set_enabled(enabled)
     {:noreply, assign(socket, :update_check_enabled, enabled)}
+  end
+
+  def handle_event("save", %{"dev_endpoints_enabled" => enabled}, socket) do
+    enabled = enabled == "true"
+    Livebook.Settings.set_dev_endpoints_enabled(enabled)
+    {:noreply, assign(socket, :dev_endpoints_enabled, enabled)}
   end
 
   def handle_event("save", %{"env_var" => attrs}, socket) do

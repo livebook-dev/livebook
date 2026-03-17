@@ -37,7 +37,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> element(~s/#select-hub-#{id}/)
       |> render_click()
 
-      assert_receive {:operation, {:set_notebook_hub, _, ^id}}
+      assert_receive {:operations, [{:set_notebook_hub, _, ^id}]}
       assert Session.get_notebook(session.pid).hub_id == id
     end
 
@@ -46,7 +46,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       id = team.id
       Session.set_notebook_hub(session.pid, id)
 
-      assert_receive {:operation, {:set_notebook_hub, _, ^id}}
+      assert_receive {:operations, [{:set_notebook_hub, _, ^id}]}
       assert Session.get_notebook(session.pid).hub_id == id
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -103,7 +103,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       render_submit(form, attrs)
 
       # receives the operation event
-      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert_receive {:operations, [{:sync_hub_secrets, "__server__"}]}
       assert secret in Livebook.Hubs.get_secrets(team)
 
       # checks the secret on the UI
@@ -145,7 +145,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert Livebook.Hubs.create_secret(team, secret) == :ok
 
       # receives the operation event
-      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert_receive {:operations, [{:sync_hub_secrets, "__server__"}]}
       assert secret in Livebook.Hubs.get_secrets(team)
 
       # checks the secret on the UI
@@ -167,7 +167,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       cell_id = insert_text_cell(session.pid, section_id, :code, code)
 
       Session.queue_cell_evaluation(session.pid, cell_id)
-      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+      assert_receive {:operations, [{:add_cell_evaluation_response, _, ^cell_id, _, _}]}
 
       # enters the session to check if the button exists
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -184,7 +184,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       render_submit(form_element, %{secret: attrs})
 
       # receives the operation event
-      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert_receive {:operations, [{:sync_hub_secrets, "__server__"}]}
       assert secret in Livebook.Hubs.get_secrets(team)
 
       # checks if the secret exists and is inside the session,
@@ -193,9 +193,11 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_session_secret(view, session.pid, secret, :hub_secrets)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       %{type: :terminal_text, text: output}, _}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id,
+                         %{type: :terminal_text, text: output}, _}
+                      ]}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
@@ -214,7 +216,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       cell_id = insert_text_cell(session.pid, section_id, :code, code)
 
       Session.queue_cell_evaluation(session.pid, cell_id)
-      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+      assert_receive {:operations, [{:add_cell_evaluation_response, _, ^cell_id, _, _}]}
 
       # enters the session to check if the button exists
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -226,7 +228,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert Livebook.Hubs.create_secret(team, secret) == :ok
 
       # receives the operation event
-      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert_receive {:operations, [{:sync_hub_secrets, "__server__"}]}
       assert secret in Livebook.Hubs.get_secrets(team)
 
       # remove the secret from session
@@ -250,9 +252,11 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_session_secret(view, session.pid, secret, :hub_secrets)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       %{type: :terminal_text, text: output}, _}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id,
+                         %{type: :terminal_text, text: output}, _}
+                      ]}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
@@ -286,7 +290,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # change the hub to Personal
       # and checks the file systems from Personal
       Session.set_notebook_hub(session.pid, personal_id)
-      assert_receive {:operation, {:set_notebook_hub, _client, ^personal_id}}
+      assert_receive {:operations, [{:set_notebook_hub, _client, ^personal_id}]}
 
       file_entry_select = element(view, "#add-file-entry-select")
 
@@ -298,7 +302,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # change the hub to Team
       # and checks the file systems from Team
       Session.set_notebook_hub(session.pid, team.id)
-      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+      assert_receive {:operations, [{:set_notebook_hub, _client, ^team_id}]}
 
       assert render(file_entry_select) =~ "local"
       refute render(file_entry_select) =~ personal_file_system.id
@@ -327,7 +331,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # change the hub to Personal
       # and checks the file systems from Offline hub
       Session.set_notebook_hub(session.pid, hub_id)
-      assert_receive {:operation, {:set_notebook_hub, _client, ^hub_id}}
+      assert_receive {:operations, [{:set_notebook_hub, _client, ^hub_id}]}
 
       # checks the file systems from Offline hub
       file_entry_select = element(view, "#add-file-entry-select")
@@ -351,7 +355,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       )
 
       Session.set_notebook_hub(session.pid, team_id)
-      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+      assert_receive {:operations, [{:set_notebook_hub, _client, ^team_id}]}
 
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
       file = FileSystem.File.local(notebook_path)
@@ -386,7 +390,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         )
 
       Session.set_notebook_hub(session.pid, team_id)
-      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+      assert_receive {:operations, [{:set_notebook_hub, _client, ^team_id}]}
 
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
       file = FileSystem.File.local(notebook_path)
@@ -407,7 +411,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> form("#select_deployment_group_form", %{deployment_group: %{id: id}})
       |> render_change()
 
-      assert_receive {:operation, {:set_notebook_deployment_group, _client, ^id}}
+      assert_receive {:operations, [{:set_notebook_deployment_group, _client, ^id}]}
     end
 
     @tag :tmp_dir
@@ -416,7 +420,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       team_id = team.id
 
       Session.set_notebook_hub(session.pid, team_id)
-      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+      assert_receive {:operations, [{:set_notebook_hub, _client, ^team_id}]}
 
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
       file = FileSystem.File.local(notebook_path)
@@ -543,7 +547,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> element(~s/[phx-click="select_deployment_group"][phx-value-id="#{deployment_group.id}"]/)
       |> render_click()
 
-      assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
+      assert_receive {:operations, [{:set_notebook_deployment_group, _, ^id}]}
       assert render(view) =~ "The selected deployment group has no app servers."
 
       view
@@ -606,7 +610,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> element(~s/[phx-click="select_deployment_group"][phx-value-id="#{deployment_group.id}"]/)
       |> render_click()
 
-      assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
+      assert_receive {:operations, [{:set_notebook_deployment_group, _, ^id}]}
       assert render(view) =~ "The selected deployment group has no app servers."
 
       view
@@ -695,7 +699,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:deployment_group_created, %{id: ^id}}
 
       Session.set_notebook_deployment_group(session.pid, id)
-      assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
+      assert_receive {:operations, [{:set_notebook_deployment_group, _, ^id}]}
 
       %{files_dir: files_dir} = session
       image_file = FileSystem.File.resolve(files_dir, "image.jpg")
@@ -732,7 +736,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:deployment_group_updated, %{id: ^id, deploy_auth: true}}
 
       Session.set_notebook_deployment_group(session.pid, id)
-      assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
+      assert_receive {:operations, [{:set_notebook_deployment_group, _, ^id}]}
 
       %{files_dir: files_dir} = session
       image_file = FileSystem.File.resolve(files_dir, "image.jpg")
@@ -771,7 +775,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         )
 
       Session.set_notebook_hub(session.pid, team_id)
-      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+      assert_receive {:operations, [{:set_notebook_hub, _client, ^team_id}]}
 
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
       file = FileSystem.File.local(notebook_path)
@@ -821,7 +825,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       id = to_string(app_folder.id)
 
       assert_receive {:app_folder_created, %{id: ^id, name: "Tidewave"}}
-      assert_receive {:operation, {:sync_hub_app_folders, _}}
+      assert_receive {:operations, [{:sync_hub_app_folders, _}]}
 
       assert render(view) =~
                ~s(<option value="">Select a folder...</option><option value="#{id}">Tidewave</option></select>)
@@ -829,14 +833,14 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       {:ok, %{name: "Wavetide"}} = TeamsRPC.update_app_folder(node, app_folder, name: "Wavetide")
 
       assert_receive {:app_folder_updated, %{id: ^id, name: "Wavetide"}}
-      assert_receive {:operation, {:sync_hub_app_folders, _}}
+      assert_receive {:operations, [{:sync_hub_app_folders, _}]}
       refute render(view) =~ ~s(<option value="#{id}">Tidewave</option>)
       assert render(view) =~ ~s(<option value="#{id}">Wavetide</option>)
 
       TeamsRPC.delete_app_folder(node, app_folder)
 
       assert_receive {:app_folder_deleted, %{id: ^id, name: "Wavetide"}}
-      assert_receive {:operation, {:sync_hub_app_folders, _}}
+      assert_receive {:operations, [{:sync_hub_app_folders, _}]}
       refute render(view) =~ ~s(<option value="#{id}">Tidewave</option>)
       refute render(view) =~ ~s(<option value="#{id}">Wavetide</option>)
     end

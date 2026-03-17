@@ -62,6 +62,25 @@ defmodule Livebook.Settings do
   end
 
   @doc """
+  Returns whether the dev endpoints are enabled.
+  """
+  @spec dev_endpoints_enabled?() :: boolean()
+  def dev_endpoints_enabled?() do
+    case Storage.fetch_key(:settings, "global", :dev_endpoints_enabled) do
+      {:ok, value} -> value
+      :error -> false
+    end
+  end
+
+  @doc """
+  Sets whether the dev endpoints are enabled.
+  """
+  @spec set_dev_endpoints_enabled(boolean()) :: :ok
+  def set_dev_endpoints_enabled(enabled) do
+    Storage.insert(:settings, "global", dev_endpoints_enabled: enabled)
+  end
+
+  @doc """
   Gets a list of environment variables from storage.
   """
   @spec fetch_env_vars() :: list(EnvVar.t())
