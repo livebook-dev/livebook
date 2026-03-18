@@ -285,6 +285,7 @@ defmodule Livebook.MixProject do
       "docs/authentication.md",
       {"docs/runtime.md", title: "Runtimes"},
       "docs/stamping.md",
+      "docs/dev_endpoints.md",
       "docs/deployment/docker.md",
       "docs/deployment/clustering.md",
       "docs/deployment/fips.md",

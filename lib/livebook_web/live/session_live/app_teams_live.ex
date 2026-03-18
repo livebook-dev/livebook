@@ -479,7 +479,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   end
 
   def handle_info(
-        {:operation, {:set_notebook_deployment_group, _client_id, deployment_group_id}},
+        {:operations, [{:set_notebook_deployment_group, _client_id, deployment_group_id}]},
         socket
       ) do
     {:noreply,

@@ -432,14 +432,34 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("move_cell", %{"cell_id" => cell_id, "offset" => offset}, socket) do
     offset = ensure_integer(offset)
-    Session.move_cell(socket.assigns.session.pid, cell_id, offset)
+
+    notebook = socket.private.data.notebook
+
+    case Notebook.fetch_cell_and_section(notebook, cell_id) do
+      {:ok, _cell, section} ->
+        section_with_idx = Notebook.cell_move_position(notebook, cell_id, section, offset)
+
+        with {section_id, index} <- section_with_idx do
+          Session.move_cell(socket.assigns.session.pid, cell_id, section_id, index)
+        end
+
+      :error ->
+        :ok
+    end
 
     {:noreply, socket}
   end
 
   def handle_event("move_section", %{"section_id" => section_id, "offset" => offset}, socket) do
     offset = ensure_integer(offset)
-    Session.move_section(socket.assigns.session.pid, section_id, offset)
+
+    notebook = socket.private.data.notebook
+
+    index = Notebook.section_move_position(notebook, section_id, offset)
+
+    if index do
+      Session.move_section(socket.assigns.session.pid, section_id, index)
+    end
 
     {:noreply, socket}
   end
@@ -923,8 +943,8 @@ defmodule LivebookWeb.SessionLive do
   end
 
   @impl true
-  def handle_info({:operation, operation}, socket) do
-    {:noreply, handle_operation(socket, operation)}
+  def handle_info({:operations, operations}, socket) do
+    {:noreply, handle_operations(socket, operations)}
   end
 
   def handle_info({:error, error}, socket) when socket.assigns.live_action == :runtime_settings do
@@ -1032,7 +1052,7 @@ defmodule LivebookWeb.SessionLive do
       socket =
         Enum.reduce(values, socket, fn {input_id, value}, socket ->
           operation = {:set_input_value, socket.assigns.client_id, input_id, value}
-          handle_operation(socket, operation)
+          handle_operations(socket, [operation])
         end)
 
       {:noreply, socket}
@@ -1252,21 +1272,39 @@ defmodule LivebookWeb.SessionLive do
     push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")
   end
 
-  defp handle_operation(socket, operation) do
+  defp handle_operations(socket, [operation]) do
     case Session.Data.apply_operation(socket.private.data, operation) do
       {:ok, data, actions} ->
         socket
         |> assign_private(data: data)
+        |> after_operation(socket, operation)
+        |> handle_actions(actions)
         |> assign(
           data_view:
             update_data_view(socket.assigns.data_view, socket.private.data, data, operation)
         )
-        |> after_operation(socket, operation)
-        |> handle_actions(actions)
 
       :error ->
         socket
     end
+  end
+
+  defp handle_operations(socket, operations) do
+    socket =
+      Enum.reduce(operations, socket, fn operation, socket ->
+        case Session.Data.apply_operation(socket.private.data, operation) do
+          {:ok, data, actions} ->
+            socket
+            |> assign_private(data: data)
+            |> after_operation(socket, operation)
+            |> handle_actions(actions)
+
+          :error ->
+            socket
+        end
+      end)
+
+    assign(socket, data_view: data_to_view(socket.private.data))
   end
 
   defp after_operation(socket, _prev_socket, {:client_join, client_id, user}) do
@@ -1363,7 +1401,11 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp after_operation(socket, _prev_socket, {:move_cell, client_id, cell_id, _offset}) do
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:move_cell, client_id, cell_id, _section_id, _index}
+       ) do
     if client_id == socket.assigns.client_id do
       push_event(socket, "cell_moved", %{cell_id: cell_id})
     else
@@ -1371,7 +1413,7 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp after_operation(socket, _prev_socket, {:move_section, client_id, section_id, _offset}) do
+  defp after_operation(socket, _prev_socket, {:move_section, client_id, section_id, _index}) do
     if client_id == socket.assigns.client_id do
       push_event(socket, "section_moved", %{section_id: section_id})
     else

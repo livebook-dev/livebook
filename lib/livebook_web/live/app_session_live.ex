@@ -360,8 +360,8 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   @impl true
-  def handle_info({:operation, operation}, socket) do
-    {:noreply, handle_operation(socket, operation)}
+  def handle_info({:operations, operations}, socket) do
+    {:noreply, Enum.reduce(operations, socket, &handle_operation(&2, &1))}
   end
 
   def handle_info({:set_input_values, values, local}, socket) do

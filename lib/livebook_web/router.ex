@@ -21,6 +21,10 @@ defmodule LivebookWeb.Router do
     plug :within_iframe_secure_headers
   end
 
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
   pipeline :auth do
     # If identity provider is enabled and we don't have access
     # we don't want to show Livebook's authentication
@@ -56,6 +60,14 @@ defmodule LivebookWeb.Router do
     get "/sessions/node/:node_id/assets/:hash/*file_parts", SessionController, :show_cached_asset
     get "/sessions/audio-input/:token", SessionController, :show_input_audio
     get "/sessions/image-input/:token", SessionController, :show_input_image
+  end
+
+  scope "/dev", LivebookWeb do
+    pipe_through :api
+
+    post "/sync", DevController, :sync
+    post "/open", DevController, :open
+    post "/restamp", DevController, :restamp
   end
 
   live_session :default,
