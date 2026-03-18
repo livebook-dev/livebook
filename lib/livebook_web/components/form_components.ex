@@ -281,14 +281,19 @@ defmodule LivebookWeb.FormComponents do
 
   attr :rest, :global
 
+  slot :inner_block
+
   def switch_field(assigns) do
     assigns = assigns_from_field(assigns)
 
     ~H"""
     <div>
       <div class="flex items-center gap-1 sm:gap-3 justify-between">
-        <span :if={@label} class="text-gray-700 flex gap-1 items-center">
-          {@label}
+        <span
+          :if={@label || @inner_block != []}
+          class="text-gray-700 flex gap-1 items-center"
+        >
+          {@label || render_slot(@inner_block)}
           <.help :if={@help} text={@help} />
         </span>
         <label class={[

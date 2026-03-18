@@ -107,16 +107,22 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Dev endpoints
             </h2>
-            <p class="text-gray-700">
-              Enables local HTTP endpoints under <code>/dev</code> for
-              programmatic control of Livebook from development tools.
-            </p>
             <form phx-change="save" phx-nosubmit>
               <.switch_field
                 name="dev_endpoints_enabled"
-                label="Enable dev endpoints"
                 value={@dev_endpoints_enabled}
-              />
+              >
+                <span>
+                  Control Livebook via local HTTP endpoints under <code>/dev</code>
+                  <a
+                    class="text-sm text-uppercase text-blue-600 ml-2"
+                    href="https://hexdocs.pm/livebook/dev_endpoints.html"
+                    target="_blank"
+                  >
+                    Learn more <.remix_icon icon="external-link-line" />
+                  </a>
+                </span>
+              </.switch_field>
             </form>
           </div>
           <div class="flex flex-col space-y-4">
