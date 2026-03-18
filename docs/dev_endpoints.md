@@ -98,9 +98,9 @@ For example, to watch all notebooks in the current directory using `fswatch`, yo
 fswatch *.livemd | xargs -I{} curl -X POST http://localhost:32123/dev/sync -H 'content-type: application/json' -d '{"file":"{}"}'
 ```
 
-### Claude Code hooks
+### Coding agent hooks
 
-If you are editing notebooks using Claude Code, you can add hooks to automatically synchronize file changes into the corresponding session open in Livebook.
+If you are editing notebooks using coding agents, you can add hooks to automatically synchronize file changes into the corresponding session open in Livebook. Below we will see an example for Claude Code on Unix systems, but it can be adapted to other agents and environments:
 
 **.claude/settings.json**
 
