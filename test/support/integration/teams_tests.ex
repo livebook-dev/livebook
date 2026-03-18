@@ -178,7 +178,7 @@ defmodule Livebook.TeamsIntegrationHelper do
     }
   end
 
-  def authenticate_user_on_teams(name, node, team) do
+  def authenticate_user_on_teams(name, node, team, opts \\ nil) do
     conn =
       Phoenix.ConnTest.build_conn()
       |> Plug.Conn.put_req_header(
@@ -193,7 +193,7 @@ defmodule Livebook.TeamsIntegrationHelper do
 
     uri =
       conn
-      |> LivebookWeb.ConnCase.with_authorization(team.id, name)
+      |> LivebookWeb.ConnCase.with_authorization(team.id, name, opts)
       |> get("/", %{teams_redirect: "", redirect_to: URI.to_string(redirect_to)})
       |> Phoenix.ConnTest.redirected_to()
       |> URI.parse()
@@ -203,7 +203,7 @@ defmodule Livebook.TeamsIntegrationHelper do
 
     session =
       conn
-      |> LivebookWeb.ConnCase.with_authorization(team.id, name)
+      |> LivebookWeb.ConnCase.with_authorization(team.id, name, opts)
       |> get("/", %{teams_identity: "", code: code})
       |> Plug.Conn.get_session()
 

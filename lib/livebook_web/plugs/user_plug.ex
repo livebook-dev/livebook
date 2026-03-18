@@ -154,6 +154,7 @@ defmodule LivebookWeb.UserPlug do
     def authenticate(module, %Plug.Conn{} = conn, opts) do
       session = get_session(conn)
       name = session["zta_name_test_override"] || @zta_name
+      opts = session["zta_opts_test_override"] || opts
 
       module.authenticate(name, conn, opts)
     end
