@@ -201,8 +201,8 @@ defmodule Livebook.Session.Data do
           | {:delete_section, client_id(), Section.id(), delete_cells :: boolean()}
           | {:delete_cell, client_id(), Cell.id()}
           | {:restore_cell, client_id(), Cell.id()}
-          | {:move_cell, client_id(), Cell.id(), offset :: integer()}
-          | {:move_section, client_id(), Section.id(), offset :: integer()}
+          | {:move_cell, client_id(), Cell.id(), Section.id(), index()}
+          | {:move_section, client_id(), Section.id(), index()}
           | {:enable_language, client_id(), atom()}
           | {:disable_language, client_id(), atom()}
           | {:queue_cells_evaluation, client_id(), list(Cell.id()), evaluation_opts :: keyword()}
@@ -503,7 +503,7 @@ defmodule Livebook.Session.Data do
 
   def apply_operation(data, {:delete_section, _client_id, id, delete_cells}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, id),
-         true <- section != hd(data.notebook.sections) or delete_cells,
+         true <- section != hd(data.notebook.sections) or section.cells == [] or delete_cells,
          [] <- Notebook.child_sections(data.notebook, section.id) do
       data
       |> with_actions()
@@ -549,14 +549,13 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:move_cell, _client_id, id, offset}) do
+  def apply_operation(data, {:move_cell, _client_id, id, section_id, index}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          false <- Cell.setup?(cell),
-         true <- offset != 0,
-         true <- can_move_cell_by?(data, cell, section, offset) do
+         true <- can_move_cell_to_section?(data, cell, section, section_id) do
       data
       |> with_actions()
-      |> move_cell(cell, offset)
+      |> move_cell(cell, section_id, index)
       |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> set_dirty()
@@ -566,13 +565,14 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:move_section, _client_id, id, offset}) do
+  def apply_operation(data, {:move_section, _client_id, id, index}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, id),
-         true <- offset != 0,
-         true <- Notebook.can_move_section_by?(data.notebook, section, offset) do
+         current_idx = Notebook.section_index(data.notebook, id),
+         true <- index != current_idx,
+         true <- Notebook.can_move_section_to?(data.notebook, section, index) do
       data
       |> with_actions()
-      |> move_section(section, offset)
+      |> move_section(section, index)
       |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> set_dirty()
@@ -1312,28 +1312,26 @@ defmodule Livebook.Session.Data do
     |> set!(bin_entries: List.delete(data.bin_entries, cell_bin_entry))
   end
 
-  defp can_move_cell_by?(data, cell, section, offset) do
+  defp can_move_cell_to_section?(data, cell, section, new_section_id) do
     case data.cell_infos[cell.id] do
       %{eval: %{status: :evaluating}} ->
-        notebook = Notebook.move_cell(data.notebook, cell.id, offset)
-        {:ok, _cell, new_section} = Notebook.fetch_cell_and_section(notebook, cell.id)
-        section.id == new_section.id
+        section.id == new_section_id
 
       _info ->
         true
     end
   end
 
-  defp move_cell({data, _} = data_actions, cell, offset) do
-    updated_notebook = Notebook.move_cell(data.notebook, cell.id, offset)
+  defp move_cell({data, _} = data_actions, cell, section_id, index) do
+    updated_notebook = Notebook.move_cell(data.notebook, cell.id, section_id, index)
 
     data_actions
     |> set!(notebook: updated_notebook)
     |> unqueue_cells_after_moved(data.notebook)
   end
 
-  defp move_section({data, _} = data_actions, section, offset) do
-    updated_notebook = Notebook.move_section(data.notebook, section.id, offset)
+  defp move_section({data, _} = data_actions, section, index) do
+    updated_notebook = Notebook.move_section(data.notebook, section.id, index)
 
     data_actions
     |> set!(notebook: updated_notebook)

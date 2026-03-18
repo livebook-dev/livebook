@@ -13,6 +13,8 @@ defmodule Livebook.LiveMarkdown.Import do
     {notebook, valid_hub?, build_messages} = build_notebook(elements)
     {notebook, postprocess_messages} = postprocess_notebook(notebook)
 
+    has_stamp? = stamp_data != nil
+
     {notebook, stamp_verified?, metadata_messages} =
       if stamp_data != nil and valid_hub? do
         postprocess_stamp(notebook, markdown, stamp_data)
@@ -24,7 +26,7 @@ defmodule Livebook.LiveMarkdown.Import do
       earmark_messages ++
         rewrite_messages ++ build_messages ++ postprocess_messages ++ metadata_messages
 
-    {notebook, %{warnings: messages, stamp_verified?: stamp_verified?}}
+    {notebook, %{warnings: messages, has_stamp?: has_stamp?, stamp_verified?: stamp_verified?}}
   end
 
   defp earmark_message_to_string({_severity, line_number, message}) do
@@ -689,7 +691,11 @@ defmodule Livebook.LiveMarkdown.Import do
     end
   end
 
-  defp apply_stamp_metadata(notebook, metadata) do
+  @doc """
+  Updates notebook with metadata map decrypted from notebook stamp.
+  """
+  @spec apply_stamp_metadata(Notebook.t(), map()) :: Notebook.t()
+  def apply_stamp_metadata(notebook, metadata) do
     Enum.reduce(metadata, notebook, fn
       {:hub_secret_names, hub_secret_names}, notebook ->
         %{notebook | hub_secret_names: hub_secret_names}

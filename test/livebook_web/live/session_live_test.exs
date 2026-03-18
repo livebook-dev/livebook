@@ -161,9 +161,11 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       terminal_text("\e[32m\"true\"\e[0m"), _}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id,
+                         terminal_text("\e[32m\"true\"\e[0m"), _}
+                      ]}
     end
 
     test "cancelling cell evaluation", %{conn: conn, session: session} do
@@ -804,8 +806,11 @@ defmodule LivebookWeb.SessionLiveTest do
         {:runtime_evaluation_output_to, client_id, cell_id, terminal_text("line 1\n", true)}
       )
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text("line 1\n", true)}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_output, _, ^cell_id,
+                         terminal_text("line 1\n", true)}
+                      ]}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
@@ -829,8 +834,10 @@ defmodule LivebookWeb.SessionLiveTest do
         {:runtime_evaluation_output_to_clients, cell_id, terminal_text("line 1\n")}
       )
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text("line 1\n")}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_output, _, ^cell_id, terminal_text("line 1\n")}
+                      ]}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
@@ -933,8 +940,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element("#runtime-settings-modal form")
       |> render_submit(%{data: %{}})
 
-      assert_receive {:operation, {:set_runtime, _pid, %Runtime.Standalone{}}}
-      assert_receive {:operation, {:runtime_connected, _pid, %Runtime.Standalone{} = runtime}}
+      assert_receive {:operations, [{:set_runtime, _pid, %Runtime.Standalone{}}]}
+      assert_receive {:operations, [{:runtime_connected, _pid, %Runtime.Standalone{} = runtime}]}
 
       assert_patch(view, "/sessions/#{session.id}")
       assert render(view) =~ Atom.to_string(runtime.node)
@@ -959,7 +966,7 @@ defmodule LivebookWeb.SessionLiveTest do
       node = :node@host
       send(session.pid, {:runtime_connected_nodes, [node]})
 
-      assert_receive {:operation, {:set_runtime_connected_nodes, _pid, _nodes}}
+      assert_receive {:operations, [{:set_runtime_connected_nodes, _pid, _nodes}]}
 
       refute render(view) =~ "No connected nodes"
       assert render(view) =~ "#{node}"
@@ -1720,11 +1727,11 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {_, client_id} = Session.register_client(session.pid, client_pid, user1)
 
-      assert_receive {:operation, {:client_join, ^client_id, _user}}
+      assert_receive {:operations, [{:client_join, ^client_id, _user}]}
       assert render(view) =~ "Jake Peralta"
 
       send(client_pid, :stop)
-      assert_receive {:operation, {:client_leave, ^client_id}}
+      assert_receive {:operations, [{:client_leave, ^client_id}]}
       refute render(view) =~ "Jake Peralta"
     end
 
@@ -1748,7 +1755,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render(view) =~ "Jake Peralta"
 
       Livebook.Users.broadcast_change(%{user1 | name: "Raymond Holt"})
-      assert_receive {:operation, {:update_user, _client_id, _user}}
+      assert_receive {:operations, [{:update_user, _client_id, _user}]}
 
       refute render(view) =~ "Jake Peralta"
       assert render(view) =~ "Raymond Holt"
@@ -2179,8 +2186,10 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_session_secret(view, session.pid, secret)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}
+                      ]}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
@@ -2224,8 +2233,10 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_session_secret(view, session.pid, secret)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}
+                      ]}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
@@ -2257,7 +2268,7 @@ defmodule LivebookWeb.SessionLiveTest do
       %{name: secret_name, value: secret_value} = insert_secret()
 
       # receives the operation event
-      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert_receive {:operations, [{:sync_hub_secrets, "__server__"}]}
 
       # selects the notebook's hub with team hub id
       Session.set_notebook_hub(session.pid, hub.id)
@@ -2287,7 +2298,7 @@ defmodule LivebookWeb.SessionLiveTest do
       render_submit(form, attrs)
 
       # receives the operation event
-      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert_receive {:operations, [{:sync_hub_secrets, "__server__"}]}
 
       # validates the secret
       secrets = Livebook.Hubs.get_secrets(hub)
@@ -2314,9 +2325,11 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       terminal_text("\e[35mnil\e[0m"), _}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id,
+                         terminal_text("\e[35mnil\e[0m"), _}
+                      ]}
 
       attrs = params_for(:env_var, name: name, value: "MyEnvVarValue")
       Settings.set_env_var(attrs)
@@ -2325,9 +2338,11 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       terminal_text("\e[32m\"MyEnvVarValue\"\e[0m"), _}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id,
+                         terminal_text("\e[32m\"MyEnvVarValue\"\e[0m"), _}
+                      ]}
 
       Settings.set_env_var(%{attrs | value: "OTHER_VALUE"})
 
@@ -2335,9 +2350,11 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       terminal_text("\e[32m\"OTHER_VALUE\"\e[0m"), _}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id,
+                         terminal_text("\e[32m\"OTHER_VALUE\"\e[0m"), _}
+                      ]}
 
       Settings.unset_env_var(name)
 
@@ -2345,9 +2362,11 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       terminal_text("\e[35mnil\e[0m"), _}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id,
+                         terminal_text("\e[35mnil\e[0m"), _}
+                      ]}
     end
 
     @tag :tmp_dir
@@ -2387,8 +2406,10 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text(output, true)}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_output, _, ^cell_id, terminal_text(output, true)}
+                      ]}
 
       assert output == expected_path
       # assert output == "\e[32m\"#{String.replace(expected_path, "\\", "\\\\")}\"\e[0m"
@@ -2399,8 +2420,10 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, terminal_text(output, true)}}
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_output, _, ^cell_id, terminal_text(output, true)}
+                      ]}
 
       assert output == initial_os_path
     end
@@ -2431,7 +2454,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{#add-file-entry-form})
       |> render_submit(%{"data" => %{"name" => "image.jpg", "copy" => "true"}})
 
-      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
+      assert_receive {:operations, [{:add_file_entries, _client_id, [%{name: "image.jpg"}]}]}
 
       assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
                Session.get_data(session.pid)
@@ -2498,7 +2521,7 @@ defmodule LivebookWeb.SessionLiveTest do
         "data" => %{"name" => "image.jpg", "copy" => "true", "url" => file_url}
       })
 
-      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
+      assert_receive {:operations, [{:add_file_entries, _client_id, [%{name: "image.jpg"}]}]}
 
       assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
                Session.get_data(session.pid)
@@ -2553,7 +2576,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{#add-file-entry-form})
       |> render_submit(%{"data" => %{"name" => "image.jpg"}})
 
-      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
+      assert_receive {:operations, [{:add_file_entries, _client_id, [%{name: "image.jpg"}]}]}
 
       assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
                Session.get_data(session.pid)
@@ -2681,8 +2704,10 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-files-list] menu button/, "Move to attachments")
       |> render_click()
 
-      assert_receive {:operation,
-                      {:add_file_entries, _client_id, [%{type: :attachment, name: "image.jpg"}]}}
+      assert_receive {:operations,
+                      [
+                        {:add_file_entries, _client_id, [%{type: :attachment, name: "image.jpg"}]}
+                      ]}
 
       assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
                Session.get_data(session.pid)
@@ -2720,7 +2745,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       render_confirm(view)
 
-      assert_receive {:operation, {:allow_file_entry, _client_id, "document.pdf"}}
+      assert_receive {:operations, [{:allow_file_entry, _client_id, "document.pdf"}]}
 
       refute view
              |> element(~s/[data-el-files-list]/)
@@ -2766,7 +2791,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert_receive {:app_created, %{slug: ^slug} = app}
 
-      assert_receive {:operation, {:set_deployed_app_slug, _client_id, ^slug}}
+      assert_receive {:operations, [{:set_deployed_app_slug, _client_id, ^slug}]}
 
       assert render(view) =~ "/apps/#{slug}"
 
@@ -2902,7 +2927,7 @@ defmodule LivebookWeb.SessionLiveTest do
       ''')
 
     Session.queue_cell_evaluation(session.pid, cell_id)
-    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+    assert_receive {:operations, [{:add_cell_evaluation_response, _, ^cell_id, _, _}]}
 
     assert has_element?(
              view,
@@ -2941,8 +2966,10 @@ defmodule LivebookWeb.SessionLiveTest do
     |> element(~s{[data-el-session]})
     |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-    assert_receive {:operation,
-                    {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}},
+    assert_receive {:operations,
+                    [
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}
+                    ]},
                    40_000
 
     assert output == "2"

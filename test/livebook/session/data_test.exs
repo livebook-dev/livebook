@@ -1066,18 +1066,7 @@ defmodule Livebook.Session.DataTest do
   describe "apply_operation/2 given :move_cell" do
     test "returns an error given invalid cell id" do
       data = Data.new()
-      operation = {:move_cell, @cid, "nonexistent", 1}
-      assert :error = Data.apply_operation(data, operation)
-    end
-
-    test "returns an error given no offset" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}}
-        ])
-
-      operation = {:move_cell, @cid, "c1", 0}
+      operation = {:move_cell, @cid, "nonexistent", "s1", 0}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -1096,11 +1085,11 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"], []}
         ])
 
-      operation = {:move_cell, @cid, "c1", 1}
+      operation = {:move_cell, @cid, "c1", "s2", 0}
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "given negative offset, moves the cell upwards" do
+    test "moving a cell upwards" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -1110,7 +1099,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 3, :code, "c4", %{}}
         ])
 
-      operation = {:move_cell, @cid, "c3", -1}
+      operation = {:move_cell, @cid, "c3", "s1", 1}
 
       assert {:ok,
               %{
@@ -1122,7 +1111,7 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "given positive offset, moves the cell downards" do
+    test "moving a cell downards" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -1132,7 +1121,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 3, :code, "c4", %{}}
         ])
 
-      operation = {:move_cell, @cid, "c2", 1}
+      operation = {:move_cell, @cid, "c2", "s1", 3}
 
       assert {:ok,
               %{
@@ -1157,7 +1146,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 1, :code, "c4", %{}}
         ])
 
-      operation = {:move_cell, @cid, "c2", 1}
+      operation = {:move_cell, @cid, "c2", "s2", 0}
 
       assert {:ok,
               %{
@@ -1184,7 +1173,7 @@ defmodule Livebook.Session.DataTest do
           )
         ])
 
-      operation = {:move_cell, @cid, "c1", 1}
+      operation = {:move_cell, @cid, "c1", "s1", 2}
 
       assert {:ok,
               %{
@@ -1210,7 +1199,7 @@ defmodule Livebook.Session.DataTest do
           )
         ])
 
-      operation = {:move_cell, @cid, "c3", -1}
+      operation = {:move_cell, @cid, "c3", "s1", 1}
 
       assert {:ok,
               %{
@@ -1232,7 +1221,7 @@ defmodule Livebook.Session.DataTest do
           evaluate_cells_operations([@setup_id, "c1"])
         ])
 
-      operation = {:move_cell, @cid, "c2", -1}
+      operation = {:move_cell, @cid, "c2", "s1", 0}
 
       assert {:ok,
               %{
@@ -1254,7 +1243,7 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"], []}
         ])
 
-      operation = {:move_cell, @cid, "c2", -1}
+      operation = {:move_cell, @cid, "c2", "s1", 0}
 
       assert {:ok,
               %{
@@ -1282,7 +1271,7 @@ defmodule Livebook.Session.DataTest do
           )
         ])
 
-      operation = {:move_cell, @cid, "c2", 1}
+      operation = {:move_cell, @cid, "c2", "s2", 0}
 
       assert {:ok,
               %{
@@ -1308,8 +1297,10 @@ defmodule Livebook.Session.DataTest do
           )
         ])
 
-      {:ok, data_moved, []} = Data.apply_operation(data, {:move_cell, @cid, "c2", -1})
-      {:ok, data_reversed, []} = Data.apply_operation(data_moved, {:move_cell, @cid, "c2", 1})
+      {:ok, data_moved, []} = Data.apply_operation(data, {:move_cell, @cid, "c2", "s1", 0})
+
+      {:ok, data_reversed, []} =
+        Data.apply_operation(data_moved, {:move_cell, @cid, "c2", "s1", 2})
 
       assert data_reversed == data
     end
@@ -1322,14 +1313,14 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "returns an error given no offset" do
+    test "returns an error given same position" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_section, @cid, 1, "s2"}
         ])
 
-      operation = {:move_section, @cid, "s2", 0}
+      operation = {:move_section, @cid, "s2", 1}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -1342,7 +1333,7 @@ defmodule Livebook.Session.DataTest do
           {:set_section_parent, @cid, "s2", "s1"}
         ])
 
-      operation = {:move_section, @cid, "s1", 1}
+      operation = {:move_section, @cid, "s1", 2}
 
       assert :error = Data.apply_operation(data, operation)
     end
@@ -1356,12 +1347,12 @@ defmodule Livebook.Session.DataTest do
           {:set_section_parent, @cid, "s2", "s1"}
         ])
 
-      operation = {:move_section, @cid, "s2", -1}
+      operation = {:move_section, @cid, "s2", 0}
 
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "given negative offset, moves the section upwards" do
+    test "moving a section upwards" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -1372,7 +1363,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 1, :code, "c4", %{}}
         ])
 
-      operation = {:move_section, @cid, "s2", -1}
+      operation = {:move_section, @cid, "s2", 0}
 
       assert {:ok,
               %{
@@ -1385,7 +1376,7 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "given positive offset, moves the section downwards" do
+    test "moving a section downwards" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -1396,7 +1387,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 1, :code, "c4", %{}}
         ])
 
-      operation = {:move_section, @cid, "s1", 1}
+      operation = {:move_section, @cid, "s1", 2}
 
       assert {:ok,
               %{
@@ -1426,7 +1417,7 @@ defmodule Livebook.Session.DataTest do
           )
         ])
 
-      operation = {:move_section, @cid, "s1", 1}
+      operation = {:move_section, @cid, "s1", 2}
 
       assert {:ok,
               %{
@@ -1454,7 +1445,7 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"], []}
         ])
 
-      operation = {:move_section, @cid, "s2", -1}
+      operation = {:move_section, @cid, "s2", 0}
 
       assert {:ok,
               %{
@@ -1487,7 +1478,7 @@ defmodule Livebook.Session.DataTest do
           )
         ])
 
-      operation = {:move_section, @cid, "s2", 1}
+      operation = {:move_section, @cid, "s2", 3}
 
       assert {:ok,
               %{

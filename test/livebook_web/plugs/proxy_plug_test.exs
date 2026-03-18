@@ -32,8 +32,10 @@ defmodule LivebookWeb.ProxyPlugTest do
       Session.subscribe(session.id)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, _, %{errored: false}}},
+      assert_receive {:operations,
+                      [
+                        {:add_cell_evaluation_response, _, ^cell_id, _, %{errored: false}}
+                      ]},
                      4_000
 
       url = "/proxy/sessions/#{session.id}/"

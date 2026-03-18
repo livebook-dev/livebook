@@ -49,21 +49,118 @@ defmodule Livebook.NotebookTest do
     end
   end
 
-  describe "move_cell/3" do
+  describe "move_cell/4" do
     test "preserves empty sections" do
       cell1 = Cell.new(:markdown)
+      s2 = %{Section.new() | id: "s2", cells: []}
 
       notebook = %{
         Notebook.new()
         | sections: [
             %{Section.new() | cells: [cell1]},
-            %{Section.new() | cells: []}
+            s2
           ]
       }
 
-      new_notebook = Notebook.move_cell(notebook, cell1.id, 1)
+      new_notebook = Notebook.move_cell(notebook, cell1.id, "s2", 0)
 
       assert %{sections: [%{cells: []}, %{cells: [^cell1]}]} = new_notebook
+    end
+  end
+
+  describe "cell_move_position/4" do
+    test "returns previous position within the same section" do
+      c1 = %{Cell.new(:code) | id: "c1"}
+      c2 = %{Cell.new(:code) | id: "c2"}
+      c3 = %{Cell.new(:code) | id: "c3"}
+      s1 = %{Section.new() | id: "s1", cells: [c1, c2, c3]}
+      notebook = %{Notebook.new() | sections: [s1]}
+
+      assert Notebook.cell_move_position(notebook, "c3", s1, -1) == {"s1", 1}
+    end
+
+    test "returns position in the previous section when cell is first in its section" do
+      c1 = %{Cell.new(:code) | id: "c1"}
+      c2 = %{Cell.new(:code) | id: "c2"}
+      c3 = %{Cell.new(:code) | id: "c3"}
+      s1 = %{Section.new() | id: "s1", cells: [c1, c2]}
+      s2 = %{Section.new() | id: "s2", cells: [c3]}
+      notebook = %{Notebook.new() | sections: [s1, s2]}
+
+      assert Notebook.cell_move_position(notebook, "c3", s2, -1) == {"s1", 1}
+    end
+
+    test "returns nil when cell is first in the first section" do
+      c1 = %{Cell.new(:code) | id: "c1"}
+      c2 = %{Cell.new(:code) | id: "c2"}
+      s1 = %{Section.new() | id: "s1", cells: [c1, c2]}
+      notebook = %{Notebook.new() | sections: [s1]}
+
+      assert Notebook.cell_move_position(notebook, "c1", s1, -1) == nil
+    end
+
+    test "returns next position within the same section" do
+      c1 = %{Cell.new(:code) | id: "c1"}
+      c2 = %{Cell.new(:code) | id: "c2"}
+      c3 = %{Cell.new(:code) | id: "c3"}
+      s1 = %{Section.new() | id: "s1", cells: [c1, c2, c3]}
+      notebook = %{Notebook.new() | sections: [s1]}
+
+      assert Notebook.cell_move_position(notebook, "c1", s1, 1) == {"s1", 2}
+    end
+
+    test "returns position in the next section when cell is last in its section" do
+      c1 = %{Cell.new(:code) | id: "c1"}
+      c2 = %{Cell.new(:code) | id: "c2"}
+      c3 = %{Cell.new(:code) | id: "c3"}
+      s1 = %{Section.new() | id: "s1", cells: [c1, c2]}
+      s2 = %{Section.new() | id: "s2", cells: [c3]}
+      notebook = %{Notebook.new() | sections: [s1, s2]}
+
+      assert Notebook.cell_move_position(notebook, "c2", s1, 1) == {"s2", 0}
+    end
+
+    test "returns nil when cell is last in the last section" do
+      c1 = %{Cell.new(:code) | id: "c1"}
+      c2 = %{Cell.new(:code) | id: "c2"}
+      s1 = %{Section.new() | id: "s1", cells: [c1, c2]}
+      notebook = %{Notebook.new() | sections: [s1]}
+
+      assert Notebook.cell_move_position(notebook, "c2", s1, 1) == nil
+    end
+  end
+
+  describe "section_move_position/3" do
+    test "returns previous index" do
+      s1 = %{Section.new() | id: "s1"}
+      s2 = %{Section.new() | id: "s2"}
+      notebook = %{Notebook.new() | sections: [s1, s2]}
+
+      assert Notebook.section_move_position(notebook, "s2", -1) == 0
+    end
+
+    test "returns nil when section is first" do
+      s1 = %{Section.new() | id: "s1"}
+      s2 = %{Section.new() | id: "s2"}
+      notebook = %{Notebook.new() | sections: [s1, s2]}
+
+      assert Notebook.section_move_position(notebook, "s1", -1) == nil
+    end
+
+    test "returns next index" do
+      s1 = %{Section.new() | id: "s1"}
+      s2 = %{Section.new() | id: "s2"}
+      notebook = %{Notebook.new() | sections: [s1, s2]}
+
+      assert Notebook.section_move_position(notebook, "s1", 1) == 2
+    end
+
+    test "returns nil when section is last" do
+      s1 = %{Section.new() | id: "s1"}
+      s2 = %{Section.new() | id: "s2"}
+      notebook = %{Notebook.new() | sections: [s1, s2]}
+
+      assert Notebook.section_move_position(notebook, "s2", 1) == nil
     end
   end
 

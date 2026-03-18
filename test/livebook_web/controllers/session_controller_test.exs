@@ -445,7 +445,7 @@ defmodule LivebookWeb.SessionControllerTest do
     # We need runtime in place to actually copy the archive
     Session.subscribe(session.id)
     Session.connect_runtime(session.pid)
-    assert_receive {:operation, {:runtime_connected, _, _}}
+    assert_receive {:operations, [{:runtime_connected, _, _}]}
 
     conn = get(conn, ~p"/public/sessions/#{session.id}/assets/#{hash}/main.js")
 

@@ -390,7 +390,11 @@ defmodule Livebook.LiveMarkdown.Export do
     end
   end
 
-  defp notebook_stamp_metadata(notebook) do
+  @doc """
+  Returns metadata map to be stored encrypted in notebook stamp.
+  """
+  @spec notebook_stamp_metadata(Notebook.t()) :: map()
+  def notebook_stamp_metadata(notebook) do
     keys = [:hub_secret_names]
 
     metadata = put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))

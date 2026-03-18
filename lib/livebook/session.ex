@@ -122,6 +122,7 @@ defmodule Livebook.Session do
           autosave_path: String.t() | nil,
           save_task_ref: reference() | nil,
           saved_default_file: FileSystem.File.t() | nil,
+          saved_md5: String.t() | nil,
           memory_usage: memory_usage(),
           worker_pid: pid(),
           registered_file_deletion_delay: pos_integer(),
@@ -281,7 +282,7 @@ defmodule Livebook.Session do
     * `:session_closed`
     * `{:session_updated, session}`
     * `{:hydrate_bin_entries, entries}`
-    * `{:operation, operation}`
+    * `{:operations, operations}`
     * `{:error, error}`
 
   """
@@ -438,17 +439,17 @@ defmodule Livebook.Session do
   @doc """
   Requests a cell to be moved with respect to other cells.
   """
-  @spec move_cell(pid(), Cell.id(), integer()) :: :ok
-  def move_cell(pid, cell_id, offset) do
-    GenServer.cast(pid, {:move_cell, self(), cell_id, offset})
+  @spec move_cell(pid(), Cell.id(), Section.id(), integer()) :: :ok
+  def move_cell(pid, cell_id, section_id, index) do
+    GenServer.cast(pid, {:move_cell, self(), cell_id, section_id, index})
   end
 
   @doc """
   Requests a section to be moved with respect to other sections.
   """
   @spec move_section(pid(), Section.id(), integer()) :: :ok
-  def move_section(pid, section_id, offset) do
-    GenServer.cast(pid, {:move_section, self(), section_id, offset})
+  def move_section(pid, section_id, index) do
+    GenServer.cast(pid, {:move_section, self(), section_id, index})
   end
 
   @doc """
@@ -787,6 +788,18 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Requests the session to sync its notebook state from the persisted
+  file.
+
+  This is useful when the file content changes via external operations
+  and the user wants to reflect those changes in the running session.
+  """
+  @spec sync_file(pid()) :: :ok
+  def sync_file(pid) do
+    GenServer.cast(pid, :sync_file)
+  end
+
+  @doc """
   Copies the given file into a session-owned location.
 
   Only the most recent file for the given `key` is kept, old files
@@ -975,6 +988,7 @@ defmodule Livebook.Session do
         autosave_path: opts[:autosave_path],
         save_task_ref: nil,
         saved_default_file: nil,
+        saved_md5: nil,
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
         worker_pid: worker_pid,
         registered_file_deletion_delay: opts[:registered_file_deletion_delay] || 15_000,
@@ -1273,15 +1287,15 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:move_cell, client_pid, cell_id, offset}, state) do
+  def handle_cast({:move_cell, client_pid, cell_id, section_id, index}, state) do
     client_id = client_id(state, client_pid)
-    operation = {:move_cell, client_id, cell_id, offset}
+    operation = {:move_cell, client_id, cell_id, section_id, index}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:move_section, client_pid, section_id, offset}, state) do
+  def handle_cast({:move_section, client_pid, section_id, index}, state) do
     client_id = client_id(state, client_pid)
-    operation = {:move_section, client_id, section_id, offset}
+    operation = {:move_section, client_id, section_id, index}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1614,6 +1628,34 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast(:sync_file, state) do
+    state =
+      with %FileSystem.File{} = file <- state.data.file,
+           {:ok, content} <- FileSystem.File.read(file),
+           # When using a file watcher, our save may trigger another
+           # sync, so we check if the file changed since our last
+           # save to shortcut that scenario.
+           true <- state.saved_md5 == nil or state.saved_md5 != :erlang.md5(content),
+           {notebook, _info} <- Livebook.LiveMarkdown.notebook_from_livemd(content) do
+        operations = Livebook.Session.DataSync.sync(state.data, notebook, @client_id)
+        state = handle_operations(state, operations)
+
+        # If autosave is configured, trigger it immediately after sync.
+        # The export may differ from the current file contents, and we
+        # don't want the autosave to kick in later when the user keeps
+        # modifying the file (it often triggers an editor popup).
+        if state.data.notebook.autosave_interval_s do
+          maybe_save_notebook_async(state)
+        else
+          state
+        end
+      else
+        _ -> state
+      end
+
+    {:noreply, state}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, reason}, state)
       when ref == state.runtime_connect.ref do
@@ -1717,7 +1759,7 @@ defmodule Livebook.Session do
     state =
       if client_pid do
         operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
-        send(client_pid, {:operation, operation})
+        send(client_pid, {:operations, [operation]})
 
         # Keep track of assets infos, so we can look them up when fetching
         new_asset_infos =
@@ -1741,7 +1783,7 @@ defmodule Livebook.Session do
   def handle_info({:runtime_evaluation_output_to_clients, cell_id, output}, state) do
     output = normalize_runtime_output(output)
     operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
-    broadcast_operation(state.session_id, operation)
+    broadcast_message(state.session_id, {:operations, [operation]})
 
     # Keep track of assets infos, so we can look them up when fetching
     new_asset_infos =
@@ -1885,10 +1927,10 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({ref, {:save_finished, result, warnings, file, default?}}, state)
+  def handle_info({ref, {:save_finished, result, md5, warnings, file, default?}}, state)
       when ref == state.save_task_ref do
     state = %{state | save_task_ref: nil}
-    {:noreply, handle_save_finished(state, result, warnings, file, default?)}
+    {:noreply, handle_save_finished(state, result, md5, warnings, file, default?)}
   end
 
   def handle_info({:runtime_memory_usage, runtime_memory}, state) do
@@ -2382,17 +2424,23 @@ defmodule Livebook.Session do
   #     to reflect the new `Livebook.Session.Data`
   #
   defp handle_operation(state, operation) do
-    broadcast_operation(state.session_id, operation)
+    handle_operations(state, [operation])
+  end
 
-    case Data.apply_operation(state.data, operation) do
-      {:ok, new_data, actions} ->
-        %{state | data: new_data}
-        |> after_operation(state, operation)
-        |> handle_actions(actions)
+  defp handle_operations(state, operations) do
+    broadcast_message(state.session_id, {:operations, operations})
 
-      :error ->
-        state
-    end
+    Enum.reduce(operations, state, fn operation, state ->
+      case Data.apply_operation(state.data, operation) do
+        {:ok, new_data, actions} ->
+          %{state | data: new_data}
+          |> after_operation(state, operation)
+          |> handle_actions(actions)
+
+        :error ->
+          state
+      end
+    end)
   end
 
   defp after_operation(state, _prev_state, {:set_notebook_name, _client_id, _name}) do
@@ -2781,10 +2829,6 @@ defmodule Livebook.Session do
     broadcast_message(state.session_id, {:hydrate_cell_source_digest, cell_id, tag, digest})
   end
 
-  defp broadcast_operation(session_id, operation) do
-    broadcast_message(session_id, {:operation, operation})
-  end
-
   defp broadcast_error(session_id, error) do
     broadcast_message(session_id, {:error, error})
   end
@@ -2840,7 +2884,8 @@ defmodule Livebook.Session do
         Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
           {content, warnings} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
           result = FileSystem.File.write(file, content)
-          {:save_finished, result, warnings, file, default?}
+          md5 = :erlang.md5(content)
+          {:save_finished, result, md5, warnings, file, default?}
         end)
 
       %{state | save_task_ref: ref}
@@ -2857,7 +2902,8 @@ defmodule Livebook.Session do
     if file && should_save_notebook?(state) do
       {content, warnings} = Livebook.LiveMarkdown.notebook_to_livemd(state.data.notebook)
       result = FileSystem.File.write(file, content)
-      handle_save_finished(state, result, warnings, file, default?)
+      md5 = :erlang.md5(content)
+      handle_save_finished(state, result, md5, warnings, file, default?)
     else
       state
     end
@@ -2906,14 +2952,14 @@ defmodule Livebook.Session do
     end
   end
 
-  defp handle_save_finished(state, result, warnings, file, default?) do
+  defp handle_save_finished(state, result, md5, warnings, file, default?) do
     case result do
       :ok ->
         if state.saved_default_file && state.saved_default_file != file do
           FileSystem.File.remove(state.saved_default_file)
         end
 
-        state = %{state | saved_default_file: if(default?, do: file, else: nil)}
+        state = %{state | saved_default_file: if(default?, do: file, else: nil), saved_md5: md5}
 
         handle_operation(state, {:notebook_saved, @client_id, warnings})
 
