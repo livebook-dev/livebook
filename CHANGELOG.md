@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.19.4](https://github.com/livebook-dev/livebook/tree/v0.19.4) (2026-03-18)
+
+### Added
+
+- Dev endpoint for syncing changes from file ([#3154](https://github.com/livebook-dev/livebook/pull/3154), [#3155](https://github.com/livebook-dev/livebook/pull/3155))
+- Dev endpoint for restamping notebooks ([#3154](https://github.com/livebook-dev/livebook/pull/3154))
+
+### Fixed
+
+- Fixed a few UI styling regressions
+
 ## [v0.19.3](https://github.com/livebook-dev/livebook/tree/v0.19.3) (2026-03-09)
 
 ### Added
@@ -14,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - (Desktop) Fixed "View logs" ([#3148](https://github.com/livebook-dev/livebook/pull/3148))
 - (Desktop) Registering .livemd file associations at runtime on AppImage on Linux ([#3148](https://github.com/livebook-dev/livebook/pull/3148))
 - (Desktop) Fixed xdg-open breaking on Linux inside AppImage due to injected env vars ([#3148](https://github.com/livebook-dev/livebook/pull/3148))
-- (Desktop) Console window appearning  when starting app on Windows ([#3148](https://github.com/livebook-dev/livebook/pull/3148))
+- (Desktop) Console window appearning when starting app on Windows ([#3148](https://github.com/livebook-dev/livebook/pull/3148))
 - (Desktop) Fixed macOS x86 app expecting arm64
 - Cell stale indicator missing color
 
