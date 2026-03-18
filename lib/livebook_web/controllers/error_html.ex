@@ -50,7 +50,13 @@ defmodule LivebookWeb.ErrorHTML do
         <link rel="icon" type="image/svg+xml" href={~p"/favicons/favicon.svg"} />
         <link rel="alternate icon" type="image/png" href={~p"/favicons/favicon.png"} />
         <title>{@status} - Livebook</title>
-        <link rel="stylesheet" href={~p"/assets/app.css"} />
+        <%= if LivebookWeb.Layouts.dev?() do %>
+          <script phx-track-static type="module" src="http://localhost:4432/@vite/client">
+          </script>
+          <link phx-track-static rel="stylesheet" href="http://localhost:4432/css/app.css" />
+        <% else %>
+          <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+        <% end %>
       </head>
       <body>
         <div class="h-screen flex items-center justify-center bg-gray-900">
