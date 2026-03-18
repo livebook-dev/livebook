@@ -1629,17 +1629,26 @@ defmodule Livebook.Session do
   end
 
   def handle_cast(:sync_file, state) do
-    # Note: when using a file watcher, our save may trigger another
-    # sync, so we check if the file changed since our last save to
-    # shortcut that scenario.
-
     state =
       with %FileSystem.File{} = file <- state.data.file,
            {:ok, content} <- FileSystem.File.read(file),
+           # When using a file watcher, our save may trigger another
+           # sync, so we check if the file changed since our last
+           # save to shortcut that scenario.
            true <- state.saved_md5 == nil or state.saved_md5 != :erlang.md5(content),
            {notebook, _info} <- Livebook.LiveMarkdown.notebook_from_livemd(content) do
         operations = Livebook.Session.DataSync.sync(state.data, notebook, @client_id)
-        handle_operations(state, operations)
+        state = handle_operations(state, operations)
+
+        # If autosave is configured, trigger it immediately after sync.
+        # The export may differ from the current file contents, and we
+        # don't want the autosave to kick in later when the user keeps
+        # modifying the file (it often triggers an editor popup).
+        if state.data.notebook.autosave_interval_s do
+          maybe_save_notebook_async(state)
+        else
+          state
+        end
       else
         _ -> state
       end
