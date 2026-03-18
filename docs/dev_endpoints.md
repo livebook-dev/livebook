@@ -98,6 +98,81 @@ For example, to watch all notebooks in the current directory using `fswatch`, yo
 fswatch *.livemd | xargs -I{} curl -X POST http://localhost:32123/dev/sync -H 'content-type: application/json' -d '{"file":"{}"}'
 ```
 
+### Coding agent hooks
+
+If you are editing notebooks using coding agents, you can add hooks to automatically synchronize file changes into the corresponding session open in Livebook. Below we will see an example for Claude Code on Unix systems, but it can be adapted to other agents and environments:
+
+**.claude/settings.json**
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/livebook.sh prewrite"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/livebook.sh postwrite"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**.claude/hooks/livebook.sh**
+
+```shell
+#!/bin/bash
+
+livebook_url="http://localhost:32123"
+
+file_path=$(jq -r '.tool_input.file_path // empty')
+
+[[ "$file_path" == *.livemd ]] || exit 0
+
+call_endpoint() {
+  local endpoint="$1"
+  local error
+  error=$(curl -sfS -X POST "$endpoint" \
+    -H 'Content-Type: application/json' \
+    -d "{\"file\": \"$file_path\"}" 2>&1)
+  if [[ $? -ne 0 ]]; then
+    jq -n --arg msg "Livebook hook error: $error" '{systemMessage: $msg}'
+    exit 0
+  fi
+}
+
+case "$1" in
+  prewrite)
+    [[ -f "$file_path" ]] && call_endpoint "$livebook_url/dev/open"
+    ;;
+  postwrite)
+    call_endpoint "$livebook_url/dev/open"
+    call_endpoint "$livebook_url/dev/sync"
+    ;;
+  *)
+    jq -n --arg msg "Usage: $0 prewrite|postwrite" '{systemMessage: $msg}'
+    exit 0
+    ;;
+esac
+
+exit 0
+```
+
 ### Git-based restamping
 
 If you store notebooks in a Git repository, you can use the following script to restamp changed notebooks. The script assumes that the committed notebooks have valid stamps and the changed notebooks are not yet committed.
