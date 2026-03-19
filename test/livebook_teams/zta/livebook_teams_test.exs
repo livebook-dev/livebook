@@ -116,19 +116,18 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
   test "uses cached version of the identity payload", %{test: test, team: team, node: node} do
     start_supervised!({LivebookTeams, name: test, identity_key: team.id})
-    {conn, code} = authenticate_user_on_teams(test, node, team, max_age: 1)
+    {conn, code} = authenticate_user_on_teams(test, node, team)
     id = conn.assigns.current_user.id
     groups = [%{"provider_id" => "1", "group_name" => "Foo"}]
 
     TeamsRPC.update_user_info_groups(node, code, groups)
 
     # simulates the actual request when cached token expires
-    assert {conn, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, max_age: 1)
+    assert {conn, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, [])
 
     # it should request our `Req.Test` and get the updated user info
     Process.sleep(1001)
 
-    assert {_conn, %{id: ^id, groups: ^groups}} =
-             LivebookTeams.authenticate(test, conn, max_age: 0)
+    assert {_conn, %{id: ^id, groups: ^groups}} = LivebookTeams.authenticate(test, conn, [])
   end
 end
