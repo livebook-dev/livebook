@@ -117,17 +117,26 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
   test "uses cached version of the identity payload", %{test: test, team: team, node: node} do
     start_supervised!({LivebookTeams, name: test, identity_key: team.id})
     {conn, code} = authenticate_user_on_teams(test, node, team)
+    access_token = get_session(conn, :livebook_teams_access_token)
+
     id = conn.assigns.current_user.id
     groups = [%{"provider_id" => "1", "group_name" => "Foo"}]
 
-    TeamsRPC.update_user_info_groups(node, code, groups)
+    # simulate when Teams API is down
+    send(test, {:hub_connection_error, team.id, "connection refused"})
+    assert GenServer.call(test, :use_cache?)
+    assert %{"id" => ^id} = GenServer.call(test, {:user_info, access_token})
 
-    # simulates the actual request when cached token expires
+    # update the groups, but doesn't return because API is "down"
+    TeamsRPC.update_user_info_groups(node, code, groups)
     assert {conn, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, [])
 
-    # it should request our `Req.Test` and get the updated user info
-    Process.sleep(1001)
+    # now, get Teams back up again and gets the updated userinfo from Teams
+    assert %{"id" => ^id} = GenServer.call(test, {:user_info, access_token})
+    send(test, {:hub_connected, team.id})
 
+    refute GenServer.call(test, :use_cache?)
+    refute GenServer.call(test, {:user_info, access_token})
     assert {_conn, %{id: ^id, groups: ^groups}} = LivebookTeams.authenticate(test, conn, [])
   end
 end

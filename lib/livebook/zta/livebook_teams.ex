@@ -1,5 +1,6 @@
 defmodule Livebook.ZTA.LivebookTeams do
   use LivebookWeb, :verified_routes
+  use GenServer
 
   alias Livebook.Teams
 
@@ -8,40 +9,94 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   @behaviour NimbleZTA
 
-  # 3 hours in seconds
-  @default_token_max_age 3 * 60 * 60
-
-  @impl true
+  @impl NimbleZTA
   def child_spec(opts) do
-    %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
+    name = Keyword.fetch!(opts, :name)
+    %{id: name, start: {__MODULE__, :start_link, [opts]}}
   end
 
   def start_link(opts) do
-    name = Keyword.fetch!(opts, :name)
-    identity_key = Keyword.fetch!(opts, :identity_key)
-    team = Livebook.Hubs.fetch_hub!(identity_key)
-
-    NimbleZTA.put(name, team)
-    :ignore
+    {name, opts} = Keyword.pop!(opts, :name)
+    {:ok, _} = GenServer.start_link(__MODULE__, opts, name: name)
   end
 
-  @impl true
-  def authenticate(name, conn, opts) do
-    team = maybe_update_zta_metadata(name)
-    max_age = Keyword.get(opts, :max_age, @default_token_max_age)
-    conn = put_private(conn, :lt_user_info_token_max_age, max_age)
+  @impl NimbleZTA
+  def authenticate(name, conn, _opts) do
+    team = GenServer.call(name, :team)
 
     if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
-      handle_request(conn, team, conn.params)
+      handle_request(name, conn, team, conn.params)
     else
       {conn, %{}}
     end
   end
 
+  @impl GenServer
+  def init(opts) do
+    hub_id = Keyword.fetch!(opts, :identity_key)
+    Livebook.Hubs.Broadcasts.subscribe([:connection, :crud])
+    Teams.Broadcasts.subscribe([:app_server, :clients])
+
+    {:ok, %{id: hub_id, team: nil, users: %{}, use_cache?: false}}
+  end
+
+  @impl GenServer
+  def handle_call(:team, _from, state) do
+    if state.team do
+      {:reply, state.team, state}
+    else
+      team = Livebook.Hubs.fetch_hub!(state.id)
+      {:reply, team, put_in(state.team, team)}
+    end
+  end
+
+  @impl GenServer
+  def handle_call(:use_cache?, _from, state) do
+    {:reply, state.use_cache?, state}
+  end
+
+  @impl GenServer
+  def handle_call({:user_info, access_token}, _from, state) do
+    {:reply, get_in(state.users[access_token]), state}
+  end
+
+  @impl true
+  def handle_cast({:store, id, data}, state) do
+    {:noreply, put_in(state.users[id], data)}
+  end
+
+  @impl GenServer
+  def handle_info({:hub_changed, id}, state) when state.id == id do
+    team = Livebook.Hubs.fetch_hub!(id)
+    {:noreply, put_in(state.team, team)}
+  end
+
+  def handle_info({:hub_connected, id}, state) when state.id == id do
+    {:noreply, %{state | users: %{}, use_cache?: false}}
+  end
+
+  def handle_info({:hub_connection_error, id, "connection refused"}, state)
+      when state.team.id == id do
+    {:noreply, put_in(state.use_cache?, true)}
+  end
+
+  def handle_info({:server_authorization_updated, %{hub_id: id}}, state)
+      when state.team.id == id do
+    {:noreply, %{state | users: %{}, use_cache?: false}}
+  end
+
+  def handle_info({:client_connected, id}, state) when state.id == id do
+    {:noreply, %{state | users: %{}, use_cache?: false}}
+  end
+
+  def handle_info(_message, state) do
+    {:noreply, state}
+  end
+
   # Our extension to NimbleZTA to deal with logouts
   def logout(name, conn) do
     token = get_session(conn, :livebook_teams_access_token)
-    team = maybe_update_zta_metadata(name)
+    team = GenServer.call(name, :team)
 
     url =
       Livebook.Config.teams_url()
@@ -56,18 +111,10 @@ defmodule Livebook.ZTA.LivebookTeams do
     |> redirect(external: url)
   end
 
-  defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
-    max_age = conn.private.lt_user_info_token_max_age
-
+  defp handle_request(name, conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
-      conn =
-        if key_base = team.org_public_key do
-          token = Plug.Crypto.sign(key_base, team.teams_key, payload, max_age: max_age)
-          put_session(conn, :livebook_teams_user_info, token)
-        else
-          conn
-        end
+      GenServer.cast(name, {:store, access_token, payload})
 
       {conn
        |> put_session(:livebook_teams_access_token, access_token)
@@ -82,14 +129,14 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  defp handle_request(conn, _team, %{"teams_identity" => _, "failed_reason" => reason}) do
+  defp handle_request(_name, conn, _team, %{"teams_identity" => _, "failed_reason" => reason}) do
     {conn
      |> put_session(:teams_failed_reason, reason)
      |> redirect(to: conn.request_path)
      |> halt(), nil}
   end
 
-  defp handle_request(conn, team, %{"teams_redirect" => _, "redirect_to" => redirect_to}) do
+  defp handle_request(_name, conn, team, %{"teams_redirect" => _, "redirect_to" => redirect_to}) do
     case Teams.Requests.create_auth_request(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
         uri =
@@ -109,17 +156,30 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  defp handle_request(conn, team, _params) do
+  defp handle_request(name, conn, team, _params) do
     case get_session(conn) do
-      %{"livebook_teams_access_token" => access_token, "livebook_teams_user_info" => token} ->
-        max_age = conn.private.lt_user_info_token_max_age
+      %{"livebook_teams_access_token" => access_token} ->
+        if GenServer.call(name, :use_cache?) do
+          if payload = GenServer.call(name, {:user_info, access_token}) do
+            {conn, build_metadata(team.id, payload)}
+          else
+            {conn
+             |> put_status(:service_unavailable)
+             |> put_view(LivebookWeb.ErrorHTML)
+             |> render("503.html")
+             |> halt(), nil}
+          end
+        else
+          case Teams.Requests.get_user_info(team, access_token) do
+            {:ok, payload} ->
+              GenServer.cast(name, {:store, access_token, payload})
+              {conn, build_metadata(team.id, payload)}
 
-        case decode_token(team.org_public_key, team.teams_key, token, max_age: max_age) do
-          {:ok, payload} -> {conn, build_metadata(team.id, payload)}
-          _otherwise -> validate_access_token(conn, team, access_token)
+            _ ->
+              request_user_authentication(conn)
+          end
         end
 
-      # it means, we couldn't reach to Teams server
       %{"teams_error" => true} ->
         {conn
          |> put_status(:bad_request)
@@ -141,19 +201,6 @@ defmodule Livebook.ZTA.LivebookTeams do
 
       _ ->
         request_user_authentication(conn)
-    end
-  end
-
-  defp decode_token(nil, _, _, _), do: :error
-
-  defp decode_token(key_base, salt, token, opts) do
-    Plug.Crypto.verify(key_base, salt, token, opts)
-  end
-
-  defp validate_access_token(conn, team, access_token) do
-    case Teams.Requests.get_user_info(team, access_token) do
-      {:ok, payload} -> {conn, build_metadata(team.id, payload)}
-      _ -> request_user_authentication(conn)
     end
   end
 
@@ -191,18 +238,6 @@ defmodule Livebook.ZTA.LivebookTeams do
     """
 
     {conn |> html(html_document) |> halt(), nil}
-  end
-
-  defp maybe_update_zta_metadata(name) do
-    team = NimbleZTA.get(name)
-
-    if team.org_public_key do
-      team
-    else
-      team = Livebook.Hubs.fetch_hub!(team.id)
-      NimbleZTA.put(name, team)
-      team
-    end
   end
 
   @doc """
