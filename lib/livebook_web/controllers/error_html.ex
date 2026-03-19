@@ -25,6 +25,16 @@ defmodule LivebookWeb.ErrorHTML do
     """
   end
 
+  def render("503.html", assigns) do
+    ~H"""
+    <.error_page
+      status={503}
+      title="Service unavailable"
+      details="The server is currently down or under maintenance"
+    />
+    """
+  end
+
   def render(_template, assigns) do
     ~H"""
     <.error_page
