@@ -227,7 +227,16 @@ defmodule Livebook.Teams.Requests do
   """
   @spec get_user_info(Team.t(), String.t()) :: api_result()
   def get_user_info(team, access_token) do
-    get("/api/v1/org/identity", %{access_token: access_token}, team)
+    req = build_req(team)
+    params = %{access_token: access_token}
+
+    case Req.get(req, url: "/api/v1/org/identity", params: params) do
+      {:error, %Req.TransportError{reason: :econnrefused}} ->
+        {:transport_error, "connection refused"}
+
+      otherwise ->
+        handle_response(otherwise)
+    end
   end
 
   @doc """
@@ -321,6 +330,17 @@ defmodule Livebook.Teams.Requests do
     |> Req.Request.put_new_header("x-lb-version", Livebook.Config.app_version())
     |> Livebook.Utils.req_attach_defaults()
     |> add_team_auth(team)
+    |> put_test_req_options()
+  end
+
+  if Mix.env() == :test do
+    defp put_test_req_options(req) do
+      Req.Request.merge_options(req, retry: false)
+    end
+  else
+    defp put_test_req_options(req) do
+      req
+    end
   end
 
   defp add_team_auth(req, nil), do: req

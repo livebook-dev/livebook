@@ -8,6 +8,8 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   @behaviour NimbleZTA
 
+  @exp_timestamp_sec System.os_time(:second) + 3 * 3600
+
   @impl NimbleZTA
   def child_spec(opts) do
     %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
@@ -16,17 +18,19 @@ defmodule Livebook.ZTA.LivebookTeams do
   def start_link(opts) do
     name = Keyword.fetch!(opts, :name)
     id = Keyword.fetch!(opts, :identity_key)
-    table = :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
+    team = Livebook.Hubs.fetch_hub!(id)
 
-    :persistent_term.put(__MODULE__, table)
-    NimbleZTA.put(name, id)
+    if :ets.whereis(__MODULE__) == :undefined do
+      :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
+    end
+
+    NimbleZTA.put(name, team)
     :ignore
   end
 
   @impl NimbleZTA
   def authenticate(name, conn, _opts) do
-    id = NimbleZTA.get(name)
-    team = Livebook.Hubs.fetch_hub!(id)
+    team = NimbleZTA.get(name)
 
     if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
       handle_request(conn, team, conn.params)
@@ -38,8 +42,7 @@ defmodule Livebook.ZTA.LivebookTeams do
   # Our extension to NimbleZTA to deal with logouts
   def logout(name, conn) do
     token = get_session(conn, :livebook_teams_access_token)
-    id = NimbleZTA.get(name)
-    team = Livebook.Hubs.fetch_hub!(id)
+    team = NimbleZTA.get(name)
 
     url =
       Livebook.Config.teams_url()
@@ -57,13 +60,13 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
-      table = :persistent_term.get(__MODULE__)
-      :ets.insert(table, {access_token, {expiration_timestamp(), payload}})
+      metadata = build_metadata(team.id, payload)
+      :ets.insert(__MODULE__, {access_token, {@exp_timestamp_sec, metadata}})
 
       {conn
        |> put_session(:livebook_teams_access_token, access_token)
        |> redirect(to: conn.request_path)
-       |> halt(), build_metadata(team.id, payload)}
+       |> halt(), metadata}
     else
       _ ->
         {conn
@@ -165,48 +168,31 @@ defmodule Livebook.ZTA.LivebookTeams do
     {conn |> html(html_document) |> halt(), nil}
   end
 
-  defp expiration_timestamp do
-    DateTime.utc_now()
-    |> DateTime.add(3, :hour)
-    |> DateTime.to_unix()
-  end
-
   defp validate_access_token(conn, team, access_token) do
-    table = :persistent_term.get(__MODULE__)
+    case Teams.Requests.get_user_info(team, access_token) do
+      {:ok, payload} ->
+        {conn, build_metadata(team.id, payload)}
 
-    if not Livebook.Hubs.TeamClient.connected?(team.id) do
-      now = DateTime.utc_now()
-      data = :ets.lookup_element(table, access_token, 2, nil)
+      {:transport_error, "connection refused"} ->
+        data = :ets.lookup_element(__MODULE__, access_token, 2, nil)
 
-      case {DateTime.to_unix(now), data} do
-        {_, nil} ->
-          {conn
-           |> put_status(:service_unavailable)
-           |> put_view(LivebookWeb.ErrorHTML)
-           |> render("503.html")
-           |> halt(), nil}
+        case {System.os_time(:second), data} do
+          {current_timestamp, {exp, metadata}} when current_timestamp <= exp ->
+            {conn, metadata}
 
-        {current_timestamp, {exp, payload}} when current_timestamp <= exp ->
-          {conn, build_metadata(team.id, payload)}
+          {_, entry} ->
+            entry && :ets.delete(__MODULE__, access_token)
 
-        {_, {_, _}} ->
-          :ets.delete(table, access_token)
+            {conn
+             |> put_status(:service_unavailable)
+             |> put_view(LivebookWeb.ErrorHTML)
+             |> render("503.html")
+             |> halt(), nil}
+        end
 
-          {conn
-           |> put_status(:service_unavailable)
-           |> put_view(LivebookWeb.ErrorHTML)
-           |> render("503.html")
-           |> halt(), nil}
-      end
-    else
-      case Teams.Requests.get_user_info(team, access_token) do
-        {:ok, payload} ->
-          {conn, build_metadata(team.id, payload)}
-
-        _ ->
-          :ets.delete(table, access_token)
-          request_user_authentication(conn)
-      end
+      _otherwise ->
+        :ets.delete(__MODULE__, access_token)
+        request_user_authentication(conn)
     end
   end
 
