@@ -113,4 +113,52 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert html_response(conn, 200) =~ "window.location.href = "
     end
   end
+
+  defmodule Global do
+    # We need to "turn off" the Teams API during test
+    use Livebook.TeamsIntegrationCase, async: false
+
+    alias Livebook.ZTA.LivebookTeams
+
+    @moduletag teams_for: :agent
+    setup :teams
+
+    @moduletag subscribe_to_hubs_topics: [:connection]
+    @moduletag subscribe_to_teams_topics: [:clients, :agents]
+
+    test "uses cached version of the identity payload", %{test: test, team: team, node: node} do
+      start_supervised!({LivebookTeams, name: test, identity_key: team.id})
+      {conn, code} = authenticate_user_on_teams(test, node, team)
+
+      id = conn.assigns.current_user.id
+      access_token = get_session(conn, :livebook_teams_access_token)
+      groups = [%{"provider_id" => "1", "group_name" => "Foo"}]
+
+      # simulate the Teams API is down
+      url = Livebook.Config.teams_url()
+      Application.put_env(:livebook, :teams_url, "http://localhost:1234")
+
+      # update the groups, but doesn't return because Livebook is using the cached one
+      TeamsRPC.update_user_info_groups(node, code, groups)
+      assert {_, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, [])
+
+      # simulate if the token already expired
+      exp = System.os_time(:second) - 5 * 60
+      {_, metadata} = :ets.lookup_element(LivebookTeams, access_token, 2)
+      :ets.insert(LivebookTeams, {access_token, {exp, metadata}})
+
+      # now it should return status 503
+      assert {%{status: 503, halted: true, resp_body: body}, nil} =
+               LivebookTeams.authenticate(test, conn, [])
+
+      assert body =~ "The server is currently down or under maintenance"
+
+      # still show 503 error page because Teams isn't up yet
+      assert {%{status: 503, halted: true}, nil} = LivebookTeams.authenticate(test, conn, [])
+
+      # now gets the updated userinfo from Teams
+      Application.put_env(:livebook, :teams_url, url)
+      assert {_conn, %{id: ^id, groups: ^groups}} = LivebookTeams.authenticate(test, conn, [])
+    end
+  end
 end
