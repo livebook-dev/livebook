@@ -115,11 +115,13 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
   end
 
   test "uses cached version of the identity payload", %{test: test, team: team, node: node} do
-    pid = Livebook.Hubs.TeamClient.get_pid(team.id)
     start_supervised!({LivebookTeams, name: test, identity_key: team.id})
     {conn, code} = authenticate_user_on_teams(test, node, team)
+
     id = conn.assigns.current_user.id
+    access_token = get_session(conn, :livebook_teams_access_token)
     groups = [%{"provider_id" => "1", "group_name" => "Foo"}]
+    pid = Livebook.Hubs.TeamClient.get_pid(team.id)
 
     # simulate the Teams API is down
     assert Livebook.Hubs.TeamClient.connected?(team.id)
@@ -128,15 +130,23 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
     # update the groups, but doesn't return because Livebook is using the cached one
     TeamsRPC.update_user_info_groups(node, code, groups)
-    assert {conn, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, [])
+    assert {_, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, [])
 
     # simulate if the token already expired
-    {_, access_token} = get_session(conn, :livebook_teams_access_token)
-    expiration_timestamp = DateTime.utc_now() |> DateTime.add(-5, :second) |> DateTime.to_unix()
-    conn = put_session(conn, :livebook_teams_access_token, {expiration_timestamp, access_token})
+    expiration_timestamp =
+      DateTime.utc_now()
+      |> DateTime.add(-5, :second)
+      |> DateTime.to_unix()
+
+    table = :persistent_term.get(LivebookTeams)
+    {_, payload} = :ets.lookup_element(table, access_token, 2)
+    :ets.insert(table, {access_token, {expiration_timestamp, payload}})
 
     # now it should return status 503
-    assert {%{status: 503, halted: true}, nil} = LivebookTeams.authenticate(test, conn, [])
+    assert {%{status: 503, halted: true, resp_body: body}, nil} =
+             LivebookTeams.authenticate(test, conn, [])
+
+    assert body =~ "The server is currently down or under maintenance"
 
     # simulate the Teams API is up
     send(pid, :connected)

@@ -16,8 +16,10 @@ defmodule Livebook.ZTA.LivebookTeams do
   def start_link(opts) do
     name = Keyword.fetch!(opts, :name)
     id = Keyword.fetch!(opts, :identity_key)
-    NimbleZTA.put(name, id)
+    table = :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
 
+    :persistent_term.put(__MODULE__, table)
+    NimbleZTA.put(name, id)
     :ignore
   end
 
@@ -35,7 +37,7 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   # Our extension to NimbleZTA to deal with logouts
   def logout(name, conn) do
-    {_, token} = get_session(conn, :livebook_teams_access_token)
+    token = get_session(conn, :livebook_teams_access_token)
     id = NimbleZTA.get(name)
     team = Livebook.Hubs.fetch_hub!(id)
 
@@ -55,8 +57,11 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
+      table = :persistent_term.get(__MODULE__)
+      :ets.insert(table, {access_token, {expiration_timestamp(), payload}})
+
       {conn
-       |> put_session(:livebook_teams_access_token, {expiration_timestamp(), access_token})
+       |> put_session(:livebook_teams_access_token, access_token)
        |> redirect(to: conn.request_path)
        |> halt(), build_metadata(team.id, payload)}
     else
@@ -97,14 +102,18 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   defp handle_request(conn, team, _params) do
     case get_session(conn) do
-      %{"livebook_teams_access_token" => {expiration_timestamp, access_token}} ->
-        current_timestamp = DateTime.utc_now() |> DateTime.to_unix()
+      %{"livebook_teams_access_token" => access_token} ->
+        table = :persistent_term.get(__MODULE__)
 
         if not Livebook.Hubs.TeamClient.connected?(team.id) do
+          current_timestamp = DateTime.utc_now() |> DateTime.to_unix()
+          {expiration_timestamp, payload} = :ets.lookup_element(table, access_token, 2)
+
           if current_timestamp <= expiration_timestamp do
-            payload = conn.assigns.current_user.payload
             {conn, build_metadata(team.id, payload)}
           else
+            :ets.delete(table, access_token)
+
             {conn
              |> put_status(:service_unavailable)
              |> put_view(LivebookWeb.ErrorHTML)
@@ -113,8 +122,12 @@ defmodule Livebook.ZTA.LivebookTeams do
           end
         else
           case Teams.Requests.get_user_info(team, access_token) do
-            {:ok, payload} -> {conn, build_metadata(team.id, payload)}
-            _ -> request_user_authentication(conn)
+            {:ok, payload} ->
+              {conn, build_metadata(team.id, payload)}
+
+            _ ->
+              :ets.delete(table, access_token)
+              request_user_authentication(conn)
           end
         end
 
