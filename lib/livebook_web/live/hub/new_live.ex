@@ -148,7 +148,7 @@ defmodule LivebookWeb.Hub.NewLive do
     ~H"""
     <div
       id="clipboard"
-      class="flex items-center justify-between border rounded-lg px-4 py-2.5 bg-white"
+      class="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2.5 bg-white"
     >
       <.icon_button class="invisible">
         <.remix_icon icon="clipboard-line" />
