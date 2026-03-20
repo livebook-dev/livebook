@@ -103,34 +103,7 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp handle_request(conn, team, _params) do
     case get_session(conn) do
       %{"livebook_teams_access_token" => access_token} ->
-        table = :persistent_term.get(__MODULE__)
-        data = :ets.lookup_element(table, access_token, 2, nil)
-
-        if data && not Livebook.Hubs.TeamClient.connected?(team.id) do
-          current_timestamp = DateTime.utc_now() |> DateTime.to_unix()
-          {expiration_timestamp, payload} = data
-
-          if current_timestamp <= expiration_timestamp do
-            {conn, build_metadata(team.id, payload)}
-          else
-            :ets.delete(table, access_token)
-
-            {conn
-             |> put_status(:service_unavailable)
-             |> put_view(LivebookWeb.ErrorHTML)
-             |> render("503.html")
-             |> halt(), nil}
-          end
-        else
-          case Teams.Requests.get_user_info(team, access_token) do
-            {:ok, payload} ->
-              {conn, build_metadata(team.id, payload)}
-
-            _ ->
-              :ets.delete(table, access_token)
-              request_user_authentication(conn)
-          end
-        end
+        validate_access_token(conn, team, access_token)
 
       %{"teams_error" => true} ->
         {conn
@@ -196,6 +169,45 @@ defmodule Livebook.ZTA.LivebookTeams do
     DateTime.utc_now()
     |> DateTime.add(3, :hour)
     |> DateTime.to_unix()
+  end
+
+  defp validate_access_token(conn, team, access_token) do
+    table = :persistent_term.get(__MODULE__)
+
+    if not Livebook.Hubs.TeamClient.connected?(team.id) do
+      now = DateTime.utc_now()
+      data = :ets.lookup_element(table, access_token, 2, nil)
+
+      case {DateTime.to_unix(now), data} do
+        {_, nil} ->
+          {conn
+           |> put_status(:service_unavailable)
+           |> put_view(LivebookWeb.ErrorHTML)
+           |> render("503.html")
+           |> halt(), nil}
+
+        {current_timestamp, {exp, payload}} when current_timestamp <= exp ->
+          {conn, build_metadata(team.id, payload)}
+
+        {_, {_, _}} ->
+          :ets.delete(table, access_token)
+
+          {conn
+           |> put_status(:service_unavailable)
+           |> put_view(LivebookWeb.ErrorHTML)
+           |> render("503.html")
+           |> halt(), nil}
+      end
+    else
+      case Teams.Requests.get_user_info(team, access_token) do
+        {:ok, payload} ->
+          {conn, build_metadata(team.id, payload)}
+
+        _ ->
+          :ets.delete(table, access_token)
+          request_user_authentication(conn)
+      end
+    end
   end
 
   @doc """

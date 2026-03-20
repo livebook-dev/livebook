@@ -148,6 +148,9 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
     assert body =~ "The server is currently down or under maintenance"
 
+    # still show 503 error page because Teams isn't up yet
+    assert {%{status: 503, halted: true}, nil} = LivebookTeams.authenticate(test, conn, [])
+
     # simulate the Teams API is up
     send(pid, :connected)
     assert Livebook.Hubs.TeamClient.connected?(team.id)
