@@ -104,10 +104,11 @@ defmodule Livebook.ZTA.LivebookTeams do
     case get_session(conn) do
       %{"livebook_teams_access_token" => access_token} ->
         table = :persistent_term.get(__MODULE__)
+        data = :ets.lookup_element(table, access_token, 2, nil)
 
-        if not Livebook.Hubs.TeamClient.connected?(team.id) do
+        if data && not Livebook.Hubs.TeamClient.connected?(team.id) do
           current_timestamp = DateTime.utc_now() |> DateTime.to_unix()
-          {expiration_timestamp, payload} = :ets.lookup_element(table, access_token, 2)
+          {expiration_timestamp, payload} = data
 
           if current_timestamp <= expiration_timestamp do
             {conn, build_metadata(team.id, payload)}
