@@ -225,14 +225,14 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to get the user information from given access token.
   """
-  @spec get_user_info(Team.t(), String.t()) :: api_result()
+  @spec get_user_info(Team.t(), String.t()) :: api_result() | :econnrefused
   def get_user_info(team, access_token) do
     req = build_req(team)
     params = %{access_token: access_token}
 
     case Req.get(req, url: "/api/v1/org/identity", params: params) do
       {:error, %Req.TransportError{reason: :econnrefused}} ->
-        {:transport_error, "connection refused"}
+        :econnrefused
 
       otherwise ->
         handle_response(otherwise)

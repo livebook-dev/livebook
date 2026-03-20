@@ -173,7 +173,7 @@ defmodule Livebook.ZTA.LivebookTeams do
       {:ok, payload} ->
         {conn, build_metadata(team.id, payload)}
 
-      {:transport_error, "connection refused"} ->
+      :econnrefused ->
         data = :ets.lookup_element(__MODULE__, access_token, 2, nil)
 
         case {System.os_time(:second), data} do
