@@ -8,21 +8,27 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   @behaviour NimbleZTA
 
-  @impl true
+  @exp_timestamp_sec System.os_time(:second) + 3 * 3600
+
+  @impl NimbleZTA
   def child_spec(opts) do
     %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
   end
 
   def start_link(opts) do
     name = Keyword.fetch!(opts, :name)
-    identity_key = Keyword.fetch!(opts, :identity_key)
-    team = Livebook.Hubs.fetch_hub!(identity_key)
+    id = Keyword.fetch!(opts, :identity_key)
+    team = Livebook.Hubs.fetch_hub!(id)
+
+    if :ets.whereis(__MODULE__) == :undefined do
+      :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
+    end
 
     NimbleZTA.put(name, team)
     :ignore
   end
 
-  @impl true
+  @impl NimbleZTA
   def authenticate(name, conn, _opts) do
     team = NimbleZTA.get(name)
 
@@ -53,7 +59,10 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
-         {:ok, metadata} <- get_user_info(team, access_token) do
+         {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
+      metadata = build_metadata(team.id, payload)
+      :ets.insert(__MODULE__, {access_token, {@exp_timestamp_sec, metadata}})
+
       {conn
        |> put_session(:livebook_teams_access_token, access_token)
        |> redirect(to: conn.request_path)
@@ -99,7 +108,6 @@ defmodule Livebook.ZTA.LivebookTeams do
       %{"livebook_teams_access_token" => access_token} ->
         validate_access_token(conn, team, access_token)
 
-      # it means, we couldn't reach to Teams server
       %{"teams_error" => true} ->
         {conn
          |> put_status(:bad_request)
@@ -121,13 +129,6 @@ defmodule Livebook.ZTA.LivebookTeams do
 
       _ ->
         request_user_authentication(conn)
-    end
-  end
-
-  defp validate_access_token(conn, team, access_token) do
-    case get_user_info(team, access_token) do
-      {:ok, metadata} -> {conn, metadata}
-      _ -> request_user_authentication(conn)
     end
   end
 
@@ -167,9 +168,31 @@ defmodule Livebook.ZTA.LivebookTeams do
     {conn |> html(html_document) |> halt(), nil}
   end
 
-  defp get_user_info(team, access_token) do
-    with {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
-      {:ok, build_metadata(team.id, payload)}
+  defp validate_access_token(conn, team, access_token) do
+    case Teams.Requests.get_user_info(team, access_token) do
+      {:ok, payload} ->
+        {conn, build_metadata(team.id, payload)}
+
+      :econnrefused ->
+        data = :ets.lookup_element(__MODULE__, access_token, 2, nil)
+
+        case {System.os_time(:second), data} do
+          {current_timestamp, {exp, metadata}} when current_timestamp <= exp ->
+            {conn, metadata}
+
+          {_, entry} ->
+            entry && :ets.delete(__MODULE__, access_token)
+
+            {conn
+             |> put_status(:service_unavailable)
+             |> put_view(LivebookWeb.ErrorHTML)
+             |> render("503.html")
+             |> halt(), nil}
+        end
+
+      _otherwise ->
+        :ets.delete(__MODULE__, access_token)
+        request_user_authentication(conn)
     end
   end
 

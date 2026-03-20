@@ -27,7 +27,7 @@ defmodule Livebook.TeamsIntegrationCase do
     url = TeamsServer.url()
     node = TeamsServer.get_node()
 
-    Application.put_env(:livebook, :teams_url, url, persistent: true)
+    Application.put_env(:livebook, :teams_url, url)
 
     {:ok, node: node}
   end
