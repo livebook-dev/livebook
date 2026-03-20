@@ -1,6 +1,5 @@
 defmodule Livebook.ZTA.LivebookTeams do
   use LivebookWeb, :verified_routes
-  use GenServer
 
   alias Livebook.Teams
 
@@ -11,92 +10,34 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   @impl NimbleZTA
   def child_spec(opts) do
-    name = Keyword.fetch!(opts, :name)
-    %{id: name, start: {__MODULE__, :start_link, [opts]}}
+    %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
   end
 
   def start_link(opts) do
-    {name, opts} = Keyword.pop!(opts, :name)
-    {:ok, _} = GenServer.start_link(__MODULE__, opts, name: name)
+    name = Keyword.fetch!(opts, :name)
+    id = Keyword.fetch!(opts, :identity_key)
+    NimbleZTA.put(name, id)
+
+    :ignore
   end
 
   @impl NimbleZTA
   def authenticate(name, conn, _opts) do
-    team = GenServer.call(name, :team)
+    id = NimbleZTA.get(name)
+    team = Livebook.Hubs.fetch_hub!(id)
 
     if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
-      handle_request(name, conn, team, conn.params)
+      handle_request(conn, team, conn.params)
     else
       {conn, %{}}
     end
   end
 
-  @impl GenServer
-  def init(opts) do
-    hub_id = Keyword.fetch!(opts, :identity_key)
-    Livebook.Hubs.Broadcasts.subscribe([:connection, :crud])
-    Teams.Broadcasts.subscribe([:app_server, :clients])
-
-    {:ok, %{id: hub_id, team: nil, users: %{}, use_cache?: false}}
-  end
-
-  @impl GenServer
-  def handle_call(:team, _from, state) do
-    if state.team do
-      {:reply, state.team, state}
-    else
-      team = Livebook.Hubs.fetch_hub!(state.id)
-      {:reply, team, put_in(state.team, team)}
-    end
-  end
-
-  @impl GenServer
-  def handle_call(:use_cache?, _from, state) do
-    {:reply, state.use_cache?, state}
-  end
-
-  @impl GenServer
-  def handle_call({:user_info, access_token}, _from, state) do
-    {:reply, get_in(state.users[access_token]), state}
-  end
-
-  @impl true
-  def handle_cast({:store, id, data}, state) do
-    {:noreply, put_in(state.users[id], data)}
-  end
-
-  @impl GenServer
-  def handle_info({:hub_changed, id}, state) when state.id == id do
-    team = Livebook.Hubs.fetch_hub!(id)
-    {:noreply, put_in(state.team, team)}
-  end
-
-  def handle_info({:hub_connected, id}, state) when state.id == id do
-    {:noreply, %{state | users: %{}, use_cache?: false}}
-  end
-
-  def handle_info({:hub_connection_error, id, "connection refused"}, state)
-      when state.team.id == id do
-    {:noreply, put_in(state.use_cache?, true)}
-  end
-
-  def handle_info({:server_authorization_updated, %{hub_id: id}}, state)
-      when state.team.id == id do
-    {:noreply, %{state | users: %{}, use_cache?: false}}
-  end
-
-  def handle_info({:client_connected, id}, state) when state.id == id do
-    {:noreply, %{state | users: %{}, use_cache?: false}}
-  end
-
-  def handle_info(_message, state) do
-    {:noreply, state}
-  end
-
   # Our extension to NimbleZTA to deal with logouts
   def logout(name, conn) do
-    token = get_session(conn, :livebook_teams_access_token)
-    team = GenServer.call(name, :team)
+    {_, token} = get_session(conn, :livebook_teams_access_token)
+    id = NimbleZTA.get(name)
+    team = Livebook.Hubs.fetch_hub!(id)
 
     url =
       Livebook.Config.teams_url()
@@ -111,13 +52,11 @@ defmodule Livebook.ZTA.LivebookTeams do
     |> redirect(external: url)
   end
 
-  defp handle_request(name, conn, team, %{"teams_identity" => _, "code" => code}) do
+  defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
-      GenServer.cast(name, {:store, access_token, payload})
-
       {conn
-       |> put_session(:livebook_teams_access_token, access_token)
+       |> put_session(:livebook_teams_access_token, {expiration_timestamp(), access_token})
        |> redirect(to: conn.request_path)
        |> halt(), build_metadata(team.id, payload)}
     else
@@ -129,14 +68,14 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  defp handle_request(_name, conn, _team, %{"teams_identity" => _, "failed_reason" => reason}) do
+  defp handle_request(conn, _team, %{"teams_identity" => _, "failed_reason" => reason}) do
     {conn
      |> put_session(:teams_failed_reason, reason)
      |> redirect(to: conn.request_path)
      |> halt(), nil}
   end
 
-  defp handle_request(_name, conn, team, %{"teams_redirect" => _, "redirect_to" => redirect_to}) do
+  defp handle_request(conn, team, %{"teams_redirect" => _, "redirect_to" => redirect_to}) do
     case Teams.Requests.create_auth_request(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
         uri =
@@ -156,11 +95,14 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  defp handle_request(name, conn, team, _params) do
+  defp handle_request(conn, team, _params) do
     case get_session(conn) do
-      %{"livebook_teams_access_token" => access_token} ->
-        if GenServer.call(name, :use_cache?) do
-          if payload = GenServer.call(name, {:user_info, access_token}) do
+      %{"livebook_teams_access_token" => {expiration_timestamp, access_token}} ->
+        current_timestamp = DateTime.utc_now() |> DateTime.to_unix()
+
+        if not Livebook.Hubs.TeamClient.connected?(team.id) do
+          if current_timestamp <= expiration_timestamp do
+            payload = conn.assigns.current_user.payload
             {conn, build_metadata(team.id, payload)}
           else
             {conn
@@ -171,12 +113,8 @@ defmodule Livebook.ZTA.LivebookTeams do
           end
         else
           case Teams.Requests.get_user_info(team, access_token) do
-            {:ok, payload} ->
-              GenServer.cast(name, {:store, access_token, payload})
-              {conn, build_metadata(team.id, payload)}
-
-            _ ->
-              request_user_authentication(conn)
+            {:ok, payload} -> {conn, build_metadata(team.id, payload)}
+            _ -> request_user_authentication(conn)
           end
         end
 
@@ -238,6 +176,12 @@ defmodule Livebook.ZTA.LivebookTeams do
     """
 
     {conn |> html(html_document) |> halt(), nil}
+  end
+
+  defp expiration_timestamp do
+    DateTime.utc_now()
+    |> DateTime.add(3, :hour)
+    |> DateTime.to_unix()
   end
 
   @doc """

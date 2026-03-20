@@ -115,28 +115,34 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
   end
 
   test "uses cached version of the identity payload", %{test: test, team: team, node: node} do
+    pid = Livebook.Hubs.TeamClient.get_pid(team.id)
     start_supervised!({LivebookTeams, name: test, identity_key: team.id})
     {conn, code} = authenticate_user_on_teams(test, node, team)
-    access_token = get_session(conn, :livebook_teams_access_token)
-
     id = conn.assigns.current_user.id
     groups = [%{"provider_id" => "1", "group_name" => "Foo"}]
 
-    # simulate when Teams API is down
-    send(test, {:hub_connection_error, team.id, "connection refused"})
-    assert GenServer.call(test, :use_cache?)
-    assert %{"id" => ^id} = GenServer.call(test, {:user_info, access_token})
+    # simulate the Teams API is down
+    assert Livebook.Hubs.TeamClient.connected?(team.id)
+    send(pid, {:service_unavailable, "connection refused"})
+    refute Livebook.Hubs.TeamClient.connected?(team.id)
 
-    # update the groups, but doesn't return because API is "down"
+    # update the groups, but doesn't return because Livebook is using the cached one
     TeamsRPC.update_user_info_groups(node, code, groups)
     assert {conn, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, [])
 
-    # now, get Teams back up again and gets the updated userinfo from Teams
-    assert %{"id" => ^id} = GenServer.call(test, {:user_info, access_token})
-    send(test, {:hub_connected, team.id})
+    # simulate if the token already expired
+    {_, access_token} = get_session(conn, :livebook_teams_access_token)
+    expiration_timestamp = DateTime.utc_now() |> DateTime.add(-5, :second) |> DateTime.to_unix()
+    conn = put_session(conn, :livebook_teams_access_token, {expiration_timestamp, access_token})
 
-    refute GenServer.call(test, :use_cache?)
-    refute GenServer.call(test, {:user_info, access_token})
+    # now it should return status 503
+    assert {%{status: 503, halted: true}, nil} = LivebookTeams.authenticate(test, conn, [])
+
+    # simulate the Teams API is up
+    send(pid, :connected)
+    assert Livebook.Hubs.TeamClient.connected?(team.id)
+
+    # now gets the updated userinfo from Teams
     assert {_conn, %{id: ^id, groups: ^groups}} = LivebookTeams.authenticate(test, conn, [])
   end
 end
