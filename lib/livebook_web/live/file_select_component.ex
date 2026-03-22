@@ -525,7 +525,7 @@ defmodule LivebookWeb.FileSelectComponent do
     send_event(socket.assigns.target, {:mount_file_system, file_system})
     send_event(socket.assigns.target, {:set_file, file, %{exists: true}})
 
-    {:noreply, assign(socket, loading: true)}
+    {:noreply, socket}
   end
 
   def handle_event("set_path", %{"path" => path}, socket) do
@@ -546,7 +546,7 @@ defmodule LivebookWeb.FileSelectComponent do
       end
 
     send_event(socket.assigns.target, {:set_file, file, info})
-    {:noreply, assign(socket, loading: socket.assigns.file.path != path)}
+    {:noreply, socket}
   end
 
   def handle_event("clear_error", %{}, socket) do
@@ -642,8 +642,13 @@ defmodule LivebookWeb.FileSelectComponent do
     current_file_infos = assigns[:file_infos] || []
     {dir, prefix} = dir_and_prefix(assigns.file)
 
+    dir_changed? = dir != assigns.current_dir
+
+    # Only show loading when changing directories (which requires listing files)
+    socket = if dir_changed?, do: assign(socket, :loading, true), else: socket
+
     {file_infos, socket} =
-      if dir != assigns.current_dir or force_reload? do
+      if dir_changed? or force_reload? do
         case get_file_infos(dir, assigns.extnames, assigns.running_files) do
           {:ok, file_infos} ->
             {file_infos, assign(socket, :current_dir, dir)}
