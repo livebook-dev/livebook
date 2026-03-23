@@ -8,8 +8,6 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   @behaviour NimbleZTA
 
-  @exp_timestamp_sec System.os_time(:second) + 3 * 3600
-
   @impl NimbleZTA
   def child_spec(opts) do
     %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
@@ -61,7 +59,7 @@ defmodule Livebook.ZTA.LivebookTeams do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
       metadata = build_metadata(team.id, payload)
-      :ets.insert(__MODULE__, {access_token, {@exp_timestamp_sec, metadata}})
+      :ets.insert(__MODULE__, {access_token, {System.os_time(:second) + 3 * 3600, metadata}})
 
       {conn
        |> put_session(:livebook_teams_access_token, access_token)
