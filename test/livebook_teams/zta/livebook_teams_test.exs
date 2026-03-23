@@ -147,9 +147,9 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       metadata_node = get_session(conn, :livebook_teams_metadata_node)
 
       {_, metadata} =
-        :erpc.call(metadata_node, fn -> :ets.lookup_element(test, access_token, 2) end)
+        :erpc.call(metadata_node, :ets, :lookup_element, [test, access_token, 2, nil])
 
-      :erpc.call(metadata_node, fn -> :ets.insert(test, {access_token, {exp, metadata}}) end)
+      :erpc.call(metadata_node, :ets, :insert, [test, {access_token, {exp, metadata}}])
 
       # now it should return status 503
       assert {%{status: 503, halted: true, resp_body: body}, nil} =
