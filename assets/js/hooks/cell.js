@@ -68,6 +68,26 @@ const Cell = {
       this.el.setAttribute("data-js-hover", "");
     });
 
+    // Prevent scroll jump when clicking on cell output by handling mousedown
+    // on the cell body. This ensures clicking on output doesn't trigger
+    // unwanted scroll behavior when the cell body receives focus.
+    const cellBody = this.el.querySelector(`[data-el-cell-body]`);
+    if (cellBody) {
+      cellBody.addEventListener("mousedown", (event) => {
+        // If clicking on output (not an editor), prevent default focus scroll
+        if (!event.target.closest(`[data-el-editor-container]`)) {
+          // Save scroll position before focus changes
+          const scrollX = window.scrollX;
+          const scrollY = window.scrollY;
+
+          // After focus is applied, restore scroll position
+          requestAnimationFrame(() => {
+            window.scrollTo(scrollX, scrollY);
+          });
+        }
+      });
+    }
+
     this.el.addEventListener("mouseleave", (event) => {
       this.el.removeAttribute("data-js-hover");
     });
