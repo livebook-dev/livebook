@@ -57,7 +57,8 @@ defmodule Livebook.ZTA.LivebookTeams do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
       metadata = build_metadata(team.id, payload)
-      :ets.insert(name, {access_token, {System.os_time(:second) + 3 * 3600, metadata}})
+      exp = System.os_time(:second) + 3 * 3600
+      :ets.insert(name, {access_token, {exp, metadata}})
 
       {conn
        |> put_session(:livebook_teams_access_token, access_token)
