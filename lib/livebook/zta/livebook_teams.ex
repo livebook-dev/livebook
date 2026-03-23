@@ -174,7 +174,12 @@ defmodule Livebook.ZTA.LivebookTeams do
         {conn, build_metadata(team.id, payload)}
 
       :econnrefused ->
-        data = :erpc.call(node, :ets, :lookup_element, [name, access_token, 2, nil])
+        data =
+          try do
+            :erpc.call(node, :ets, :lookup_element, [name, access_token, 2, nil])
+          catch
+            _, _ -> nil
+          end
 
         case {System.os_time(:second), data} do
           {current_timestamp, {exp, metadata}} when current_timestamp <= exp ->
