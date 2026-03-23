@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.19.5](https://github.com/livebook-dev/livebook/tree/v0.19.5) (2026-03-23)
+
+### Changed
+
+- Cache app users authentication within a time window if Livebook Teams is down ([#3156](https://github.com/livebook-dev/livebook/pull/3156))
+
 ## [v0.19.4](https://github.com/livebook-dev/livebook/tree/v0.19.4) (2026-03-18)
 
 ### Added
