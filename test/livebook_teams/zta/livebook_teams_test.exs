@@ -144,8 +144,12 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
       # simulate if the token already expired
       exp = System.os_time(:second) - 5 * 60
-      {_, metadata} = :ets.lookup_element(LivebookTeams, access_token, 2)
-      :ets.insert(LivebookTeams, {access_token, {exp, metadata}})
+      metadata_node = get_session(conn, :livebook_teams_metadata_node)
+
+      {_, metadata} =
+        :erpc.call(metadata_node, :ets, :lookup_element, [test, access_token, 2, nil])
+
+      :erpc.call(metadata_node, :ets, :insert, [test, {access_token, {exp, metadata}}])
 
       # now it should return status 503
       assert {%{status: 503, halted: true, resp_body: body}, nil} =

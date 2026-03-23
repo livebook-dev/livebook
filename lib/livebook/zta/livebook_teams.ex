@@ -18,9 +18,7 @@ defmodule Livebook.ZTA.LivebookTeams do
     id = Keyword.fetch!(opts, :identity_key)
     team = Livebook.Hubs.fetch_hub!(id)
 
-    if :ets.whereis(__MODULE__) == :undefined do
-      :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
-    end
+    :ets.new(name, [:named_table, :public, :set, read_concurrency: true])
 
     NimbleZTA.put(name, team)
     :ignore
@@ -31,7 +29,7 @@ defmodule Livebook.ZTA.LivebookTeams do
     team = NimbleZTA.get(name)
 
     if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
-      handle_request(conn, team, conn.params)
+      handle_request(name, conn, team, conn.params)
     else
       {conn, %{}}
     end
@@ -55,14 +53,16 @@ defmodule Livebook.ZTA.LivebookTeams do
     |> redirect(external: url)
   end
 
-  defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
+  defp handle_request(name, conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
          {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
       metadata = build_metadata(team.id, payload)
-      :ets.insert(__MODULE__, {access_token, {System.os_time(:second) + 3 * 3600, metadata}})
+      exp = System.os_time(:second) + 3 * 3600
+      :ets.insert(name, {access_token, {exp, metadata}})
 
       {conn
        |> put_session(:livebook_teams_access_token, access_token)
+       |> put_session(:livebook_teams_metadata_node, node())
        |> redirect(to: conn.request_path)
        |> halt(), metadata}
     else
@@ -74,14 +74,14 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  defp handle_request(conn, _team, %{"teams_identity" => _, "failed_reason" => reason}) do
+  defp handle_request(_name, conn, _team, %{"teams_identity" => _, "failed_reason" => reason}) do
     {conn
      |> put_session(:teams_failed_reason, reason)
      |> redirect(to: conn.request_path)
      |> halt(), nil}
   end
 
-  defp handle_request(conn, team, %{"teams_redirect" => _, "redirect_to" => redirect_to}) do
+  defp handle_request(_name, conn, team, %{"teams_redirect" => _, "redirect_to" => redirect_to}) do
     case Teams.Requests.create_auth_request(team) do
       {:ok, %{"authorize_uri" => authorize_uri}} ->
         uri =
@@ -101,10 +101,10 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
-  defp handle_request(conn, team, _params) do
+  defp handle_request(name, conn, team, _params) do
     case get_session(conn) do
       %{"livebook_teams_access_token" => access_token} ->
-        validate_access_token(conn, team, access_token)
+        validate_access_token(name, conn, team, access_token)
 
       %{"teams_error" => true} ->
         {conn
@@ -166,20 +166,27 @@ defmodule Livebook.ZTA.LivebookTeams do
     {conn |> html(html_document) |> halt(), nil}
   end
 
-  defp validate_access_token(conn, team, access_token) do
+  defp validate_access_token(name, conn, team, access_token) do
+    node = get_session(conn, :livebook_teams_metadata_node)
+
     case Teams.Requests.get_user_info(team, access_token) do
       {:ok, payload} ->
         {conn, build_metadata(team.id, payload)}
 
       :econnrefused ->
-        data = :ets.lookup_element(__MODULE__, access_token, 2, nil)
+        data =
+          try do
+            :erpc.call(node, :ets, :lookup_element, [name, access_token, 2, nil])
+          catch
+            _, _ -> nil
+          end
 
         case {System.os_time(:second), data} do
           {current_timestamp, {exp, metadata}} when current_timestamp <= exp ->
             {conn, metadata}
 
           {_, entry} ->
-            entry && :ets.delete(__MODULE__, access_token)
+            entry && :erpc.call(node, :ets, :delete, [name, access_token])
 
             {conn
              |> put_status(:service_unavailable)
