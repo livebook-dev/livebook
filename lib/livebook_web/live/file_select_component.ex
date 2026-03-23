@@ -644,22 +644,30 @@ defmodule LivebookWeb.FileSelectComponent do
 
     dir_changed? = dir != assigns.current_dir
 
-    # Only show loading when changing directories (which requires listing files)
-    socket = if dir_changed?, do: assign(socket, :loading, true), else: socket
+    if dir_changed? or force_reload? do
+      # Start async file listing operation
+      start_async_file_listing(socket, dir, prefix, current_file_infos)
+    else
+      # Just re-annotate with the current prefix (search filter changed)
+      update_file_display(socket, current_file_infos, prefix)
+    end
+  end
 
-    {file_infos, socket} =
-      if dir_changed? or force_reload? do
-        case get_file_infos(dir, assigns.extnames, assigns.running_files) do
-          {:ok, file_infos} ->
-            {file_infos, assign(socket, :current_dir, dir)}
+  defp start_async_file_listing(socket, dir, prefix, current_file_infos) do
+    extnames = socket.assigns.extnames
+    running_files = socket.assigns.running_files
 
-          {:error, error} ->
-            {current_file_infos, put_error(socket, error)}
-        end
-      else
-        {current_file_infos, socket}
+    socket
+    |> start_async(:list_files, fn ->
+      case get_file_infos(dir, extnames, running_files) do
+        {:ok, file_infos} -> {:ok, file_infos, dir, prefix}
+        {:error, error} -> {:error, error, current_file_infos, prefix}
       end
+    end)
+    |> assign(loading: true)
+  end
 
+  defp update_file_display(socket, file_infos, prefix) do
     file_infos = annotate_matching(file_infos, prefix)
 
     {unhighlighted_file_infos, highlighted_file_infos} =
@@ -672,9 +680,33 @@ defmodule LivebookWeb.FileSelectComponent do
     assign(socket,
       file_infos: file_infos,
       unhighlighted_file_infos: unhighlighted_file_infos,
-      highlighted_file_infos: highlighted_file_infos,
-      loading: false
+      highlighted_file_infos: highlighted_file_infos
     )
+  end
+
+  @impl true
+  def handle_async(:list_files, {:ok, {:ok, file_infos, dir, prefix}}, socket) do
+    socket =
+      socket
+      |> assign(current_dir: dir)
+      |> update_file_display(file_infos, prefix)
+      |> assign(loading: false)
+
+    {:noreply, socket}
+  end
+
+  def handle_async(:list_files, {:ok, {:error, error, current_file_infos, prefix}}, socket) do
+    socket =
+      socket
+      |> update_file_display(current_file_infos, prefix)
+      |> put_error(error)
+      |> assign(loading: false)
+
+    {:noreply, socket}
+  end
+
+  def handle_async(:list_files, {:exit, _reason}, socket) do
+    {:noreply, assign(socket, loading: false)}
   end
 
   defp annotate_matching(file_infos, prefix) do
