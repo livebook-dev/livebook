@@ -27,11 +27,7 @@ defmodule LivebookWeb.FileSelectComponentTest do
     file = FileSystem.File.local(notebooks_path() <> "/")
 
     # Initial render in one directory
-    html =
-      render_component(
-        FileSelectComponent,
-        attrs(file: file, id: "test-loading-dir-change")
-      )
+    html = render_component(FileSelectComponent, attrs(file: file))
 
     # Loading should not be shown after initial render
     refute html =~ ~s(role="status")
@@ -39,11 +35,7 @@ defmodule LivebookWeb.FileSelectComponentTest do
     # Simulate changing to a different directory via send_update with a new file
     new_file = FileSystem.File.local(p("/"))
 
-    html =
-      render_component(
-        FileSelectComponent,
-        attrs(file: new_file, id: "test-loading-dir-change")
-      )
+    html = render_component(FileSelectComponent, attrs(file: new_file))
 
     # After changing directory, loading should be reset to false after listing
     refute html =~ ~s(role="status")
@@ -54,11 +46,7 @@ defmodule LivebookWeb.FileSelectComponentTest do
     running_file = FileSystem.File.local(notebooks_path() <> "/basic.livemd")
 
     # Initial render with no running files
-    html =
-      render_component(
-        FileSelectComponent,
-        attrs(file: file, id: "test-loading-running", running_files: [])
-      )
+    html = render_component(FileSelectComponent, attrs(file: file, running_files: []))
 
     refute html =~ ~s(role="status")
     # Verify basic.livemd is shown but not marked as running
@@ -66,11 +54,7 @@ defmodule LivebookWeb.FileSelectComponentTest do
     refute html =~ "play-circle-line"
 
     # Update with running_files changed
-    html =
-      render_component(
-        FileSelectComponent,
-        attrs(file: file, id: "test-loading-running", running_files: [running_file])
-      )
+    html = render_component(FileSelectComponent, attrs(file: file, running_files: [running_file]))
 
     # Loading should not be shown when only running_files changes
     refute html =~ ~s(role="status")
