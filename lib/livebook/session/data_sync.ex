@@ -204,14 +204,52 @@ defmodule Livebook.Session.DataSync do
 
   defp do_annotate_moves([], _ops_map), do: []
 
-  defp annotate_updates([{:del, key1, item1}, {:ins, key2, item2} | ops])
-       when elem(key1, 0) == elem(key2, 0) do
-    # If the same block type, then we change it into an update.
-    [{:upd, key1, key2, item1, item2} | annotate_updates(ops)]
+  defp annotate_updates(ops) do
+    # We could simply match on consecutive :del and :ins, however the
+    # diff may include a sequence of :del ops and then a sequence of
+    # :ins ops. They may not match in a zip way either, for example,
+    # the first :del may not match the insert, but the second :del
+    # does, so we should keep the first :del and make thse second one
+    # into an :upd.
+    #
+    # To do this, we go through the ops and accumulate consecutive
+    # :del ops, then once we get to an :ins, we traverse those :del
+    # ops in the same order, looking for a matching one. If a :del
+    # is matching, we flush an :upd and continue going thorugh ops.
+    # Otherwise, we flush the non-matching :del as is and try the
+    # next :del in the sequence. Finally, if there is no matching
+    # :del, we flush :ins as is and continue going through the ops.
+    do_annotate_updates(ops, [], [])
   end
 
-  defp annotate_updates([op | ops]), do: [op | annotate_updates(ops)]
-  defp annotate_updates([]), do: []
+  defp do_annotate_updates([{:del, key, item} | ops], pending_dels, acc) do
+    do_annotate_updates(ops, [{:del, key, item} | pending_dels], acc)
+  end
+
+  defp do_annotate_updates([{:ins, key, item} | ops], pending_dels, acc) do
+    find_matching_del(Enum.reverse(pending_dels), {:ins, key, item}, ops, acc)
+  end
+
+  defp do_annotate_updates([op | ops], pending_dels, acc) do
+    do_annotate_updates(ops, [], [op | pending_dels ++ acc])
+  end
+
+  defp do_annotate_updates([], pending_dels, acc) do
+    Enum.reverse(pending_dels ++ acc)
+  end
+
+  defp find_matching_del([{:del, key1, item1} | dels], {:ins, key2, item2}, ops, acc)
+       when elem(key1, 0) == elem(key2, 0) do
+    do_annotate_updates(ops, Enum.reverse(dels), [{:upd, key1, key2, item1, item2} | acc])
+  end
+
+  defp find_matching_del([del | dels], ins, ops, acc) do
+    find_matching_del(dels, ins, ops, [del | acc])
+  end
+
+  defp find_matching_del([], ins, ops, acc) do
+    do_annotate_updates(ops, [], [ins | acc])
+  end
 
   defp diff_to_data_ops(diff, data, client_id) do
     acc = %{
