@@ -8,7 +8,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
   def render(assigns) do
     ~H"""
     <div
-      class="flex relative top-0.5 m-0 mx-auto w-full max-w-default justify-center"
+      class="relative top-0.5 m-0 flex justify-center"
       role="toolbar"
       aria-label="insert new"
       data-el-insert-buttons

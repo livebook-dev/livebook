@@ -16,7 +16,7 @@ defmodule LivebookWeb.Output do
 
   def output(assigns) do
     ~H"""
-    <div id={@id} data-el-output data-border={border?(@output)}>
+    <div id={@id} class="max-w-full" data-el-output data-border={border?(@output)}>
       {render_output(@output, %{
         id: "#{@id}-output",
         session_id: @session_id,

@@ -1312,10 +1312,10 @@ defmodule LivebookWeb.SessionLive.Render do
   def notebook_content(assigns) do
     ~H"""
     <div
-      class="relative w-full px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5"
+      class="relative w-full max-w-(--breakpoint-lg) px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
       data-el-notebook-content
     >
-      <div class="w-full mx-auto max-w-default pb-4 mb-2 border-b border-gray-200">
+      <div class="pb-4 mb-2 border-b border-gray-200">
         <div class="flex flex-nowrap items-center gap-2">
           <div
             class="grow"
@@ -1374,7 +1374,7 @@ defmodule LivebookWeb.SessionLive.Render do
           </div>
         </div>
       </div>
-      <div class="w-full mx-auto max-w-default" data-el-setup-section>
+      <div data-el-setup-section>
         <div class="flex flex-col gap-2">
           <.live_component
             :for={setup_cell_view <- @data_view.setup_cell_views}
@@ -1408,7 +1408,7 @@ defmodule LivebookWeb.SessionLive.Render do
           </.button>
         </div>
       </div>
-      <div class="mt-8 flex flex-col w-full gap-16 items-center" data-el-sections-container>
+      <div class="mt-8 flex flex-col w-full gap-16" data-el-sections-container>
         <div :if={@data_view.section_views == []} class="flex justify-center">
           <LivebookWeb.SessionLive.InsertButtonsComponent.insert_button phx-click="append_section">
             + Section

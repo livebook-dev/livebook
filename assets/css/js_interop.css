@@ -124,42 +124,6 @@ server in solely client-side operations.
     }
   }
 
-  /* Output size */
-
-  [data-el-cell] {
-    [data-el-cell-body-root],
-    [data-el-editor-box] {
-      @apply w-full mx-auto max-w-default;
-    }
-
-    [data-output-size="default"] {
-      @apply w-full mx-auto max-w-default;
-
-      [data-el-outputs-container],
-      [data-el-markdown-container] {
-        @apply w-full mx-auto max-w-default;
-      }
-    }
-
-    [data-output-size="wide"] {
-      @apply w-full mx-auto max-w-wide;
-
-      [data-el-outputs-container],
-      [data-el-markdown-container] {
-        @apply w-full mx-auto max-w-wide;
-      }
-    }
-
-    [data-output-size="full"] {
-      @apply w-full mx-auto max-w-full;
-
-      [data-el-outputs-container],
-      [data-el-markdown-container] {
-        @apply w-full mx-auto max-w-full;
-      }
-    }
-  }
-
   /* When all setup cells satisfy collapse conditions, collapse the
      first one and hide the later ones */
   [data-el-setup-section]:not(
@@ -363,18 +327,41 @@ server in solely client-side operations.
 }
 
 [data-el-notebook] {
-  /* Output size */
+  /* Output size (both session and app) */
 
   [data-output-size="default"] > [data-el-output] {
-    @apply w-full mx-auto max-w-default;
+    @apply w-full mx-auto;
+
+    max-width: var(--breakpoint-lg);
   }
 
-  [data-output-size="wide"] > [data-el-output] {
-    @apply w-full mx-auto max-w-wide;
+  [data-output-size="wide"] {
+    > [data-el-output] {
+      @apply w-full mx-auto;
+
+      max-width: 90rem;
+    }
+
+    [data-el-outputs-container] {
+      @apply bg-white m-0 relative;
+
+      width: 90rem;
+      left: calc(-29vw + 50%);
+    }
   }
 
-  [data-output-size="full"] > [data-el-output] {
-    @apply w-full mx-auto max-w-full;
+  [data-output-size="full"] {
+    > [data-el-output] {
+      @apply w-full mx-auto;
+      max-width: 92vw;
+    }
+
+    [data-el-outputs-container] {
+      @apply bg-white m-0 relative;
+
+      width: 92vw;
+      left: calc(-46vw + 50%);
+    }
   }
 
   /* Outputs (both session and app) */

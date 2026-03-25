@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def render(assigns) do
     ~H"""
     <div
-      class="flex flex-col w-full mx-auto relative scroll-mt-[50px] sm:scroll-mt-0"
+      class="flex flex-col relative scroll-mt-[50px] sm:scroll-mt-0"
       data-el-cell
       id={"cell-#{@cell_view.id}"}
       data-type={@cell_view.type}
@@ -349,10 +349,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       |> assign_new(:secondary, fn -> [] end)
 
     ~H"""
-    <div
-      class="mb-1 flex items-center justify-between w-full max-w-default mx-auto"
-      data-el-cell-actions
-    >
+    <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-el-actions data-primary>
         {render_slot(@primary)}
       </div>
@@ -380,7 +377,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       tabindex="0"
     >
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator></div>
-      <div class="w-full mx-auto">
+      <div class="w-full">
         {render_slot(@inner_block)}
       </div>
     </div>

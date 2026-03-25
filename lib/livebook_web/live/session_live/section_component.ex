@@ -5,13 +5,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
 
   def render(assigns) do
     ~H"""
-    <section
-      class="w-full mx-auto max-w-full"
-      data-el-section
-      data-section-id={@section_view.id}
-    >
+    <section data-el-section data-section-id={@section_view.id}>
       <div
-        class="flex w-full mx-auto max-w-default items-center relative"
+        class="flex items-center relative"
         data-el-section-headline
         id={@section_view.id}
         data-focusable-id={@section_view.id}
@@ -143,8 +139,8 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       >
         {LivebookWeb.HTMLHelpers.pluralize(length(@section_view.cell_views), "cell", "cells")} collapsed
       </h3>
-      <div class="w-full" data-el-section-content>
-        <div class="flex flex-col gap-1 w-full items-center">
+      <div class="container" data-el-section-content>
+        <div class="flex flex-col gap-1">
           <.live_component
             module={LivebookWeb.SessionLive.InsertButtonsComponent}
             id={"insert-buttons-#{@section_view.id}-first"}
