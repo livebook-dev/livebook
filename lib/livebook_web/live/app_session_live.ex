@@ -178,7 +178,7 @@ defmodule LivebookWeb.AppSessionLive do
           <%= if @data_view.app_status.execution == :error do %>
             <div class={[
               "flex justify-between items-center px-4 py-2 border-l-4 shadow-custom-1",
-              "text-red-400 border-red-400 w-full mx-auto max-w-(--breakpoing-lg)"
+              "text-red-400 border-red-400 w-full mx-auto max-w-(--breakpoint-lg)"
             ]}>
               <div>
                 Something went wrong
