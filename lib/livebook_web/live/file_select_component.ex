@@ -706,7 +706,12 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   def handle_async(:list_files, {:exit, _reason}, socket) do
-    {:noreply, assign(socket, loading: false)}
+    socket =
+      socket
+      |> put_error("Listing files failed")
+      |> assign(loading: false)
+
+    {:noreply, socket}
   end
 
   defp annotate_matching(file_infos, prefix) do
