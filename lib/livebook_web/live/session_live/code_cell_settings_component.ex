@@ -41,7 +41,7 @@ defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
             label="Continue on error"
             value={@continue_on_error}
           />
-          <div class="flex flex w-full justify-between">
+          <div class="flex w-full justify-between">
             <span class="text-gray-700 flex gap-1 items-center">
               Cell output size
             </span>
