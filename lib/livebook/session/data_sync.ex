@@ -121,7 +121,11 @@ defmodule Livebook.Session.DataSync do
   defp key(%Cell.Code{} = cell),
     do: {:code_cell, cell.source, Map.take(cell, cell_syncable_fields(cell))}
 
-  defp key(%Cell.Smart{} = cell), do: {:smart_cell, cell.source, cell.attrs}
+  # Note that smart cell attributes in memory may be different than
+  # onces after notebook export end import (e.g. atoms are stringified).
+  # We could encode them here, but source should be enough as a key,
+  # since attrs generally determine the source.
+  defp key(%Cell.Smart{} = cell), do: {:smart_cell, cell.source}
 
   defp cell_syncable_fields(%Cell.Code{}),
     do: [:language, :reevaluate_automatically, :continue_on_error]
