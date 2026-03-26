@@ -240,6 +240,8 @@ const JSView = {
     resizeObserver.observe(notebookContentEl);
     resizeObserver.observe(notebookEl);
 
+    // We also observe the containing cell, since the outputs width is
+    // configurable and can change dynamically.
     if (cellBodyEl) resizeObserver.observe(cellBodyEl);
 
     // The placeholder may be hidden, in which case we want to hide
