@@ -257,6 +257,10 @@ defmodule Livebook.TeamsRPC do
     :erpc.call(node, TeamsRPC, :allow_auth_request, [token])
   end
 
+  def revoke_auth_request(node, code) do
+    :erpc.call(node, TeamsRPC, :revoke_auth_request, [code])
+  end
+
   def toggle_teams_authentication(node, deployment_group) do
     :erpc.call(node, TeamsRPC, :toggle_teams_authentication, [deployment_group])
   end
