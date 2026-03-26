@@ -395,12 +395,13 @@ Fly is a platform for running full stack apps and databases close to your users.
 
 ## Sponsors
 
-<a href="https://huggingface.co/">
-  <img height="70" src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo-with-title.png" alt="Hugging Face">
-</a>
+[<img src="https://nlnet.nl/logo/banner.png" alt="NLnet foundation logo" width="20%" />](https://nlnet.nl)
+[<img src="https://nlnet.nl/image/logos/NGI0_tag.svg" alt="NGI Zero Logo" width="20%" />](https://nlnet.nl/commonsfund)
 
-The platform where the machine learning community<br />
-collaborates on models, datasets, and applications.
+This project was a recipient of [NGI0 Commons Fund](https://nlnet.nl/commonsfund),<br />
+a fund established by [NLnet](https://nlnet.nl) with financial support from the<br />
+European Commission's [Next Generation Internet](https://ngi.eu) program.<br />
+[Learn more](https://nlnet.nl/project/Livebook-Python).
 
 <br />
 
