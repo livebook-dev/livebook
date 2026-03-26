@@ -92,6 +92,20 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert html_response(conn, 403) =~
                "Failed to authenticate with Livebook Teams: you do not belong to this org"
     end
+
+    test "deletes the cache if access token is invalid",
+         %{test: test, node: node, team: team} do
+      {conn, code} = authenticate_user_on_teams(test, node, team)
+      access_token = get_session(conn, :livebook_teams_access_token)
+      metadata_node = get_session(conn, :livebook_teams_metadata_node)
+
+      TeamsRPC.revoke_auth_request(node, code)
+      assert :erpc.call(metadata_node, :ets, :lookup_element, [test, access_token, 2, nil])
+
+      assert {%{halted: true} = conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert html_response(conn, 200) =~ "window.location.href = "
+      refute :erpc.call(metadata_node, :ets, :lookup_element, [test, access_token, 2, nil])
+    end
   end
 
   describe "logout/2" do
@@ -126,10 +140,10 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
     @moduletag subscribe_to_hubs_topics: [:connection]
     @moduletag subscribe_to_teams_topics: [:clients, :agents]
 
-    test "uses cached version of the identity payload", %{test: test, team: team, node: node} do
-      start_supervised!({LivebookTeams, name: test, identity_key: team.id})
-      {conn, code} = authenticate_user_on_teams(test, node, team)
+    setup :livebook_teams_auth
 
+    test "uses cached version of the identity payload",
+         %{conn: conn, test: test, node: node, code: code} do
       id = conn.assigns.current_user.id
       access_token = get_session(conn, :livebook_teams_access_token)
       groups = [%{"provider_id" => "1", "group_name" => "Foo"}]
