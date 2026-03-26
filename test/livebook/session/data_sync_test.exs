@@ -203,18 +203,20 @@ defmodule Livebook.Session.DataSyncTest do
       Notebook.new()
       | sections: [
           %{Section.new() | id: "s1", name: "Section 1"},
-          %{Section.new() | id: "s2", name: "Section 2", parent_id: "s1"}
+          %{Section.new() | id: "s2", name: "Section 2"},
+          %{Section.new() | id: "s3", name: "Section 3", parent_id: "s1"}
         ]
     }
 
     after_notebook = %{
       Notebook.new()
       | sections: [
-          %{Section.new() | id: "a-s2", name: "Section 2"}
+          %{Section.new() | id: "a-s2", name: "Section 2"},
+          %{Section.new() | id: "a-s3", name: "Section 3"}
         ]
     }
 
-    expected_ops = [{:unset_section_parent, @cid, "s2"}, {:delete_section, @cid, "s1", false}]
+    expected_ops = [{:unset_section_parent, @cid, "s3"}, {:delete_section, @cid, "s1", false}]
     assert_ops_and_result(before_notebook, after_notebook, expected_ops)
   end
 
@@ -358,6 +360,46 @@ defmodule Livebook.Session.DataSyncTest do
 
     delta = Delta.diff("x = 1", "x = 2")
     expected_ops = [{:apply_cell_delta, @cid, "c1", :primary, delta, nil, 0}]
+    assert_ops_and_result(before_notebook, after_notebook, expected_ops)
+  end
+
+  test "consecutive code cells source updated" do
+    before_notebook = %{
+      Notebook.new()
+      | sections: [
+          %{
+            Section.new()
+            | id: "s1",
+              cells: [
+                %{Cell.new(:code) | id: "c1", source: "x = 1"},
+                %{Cell.new(:code) | id: "c2", source: "y = 2"}
+              ]
+          }
+        ]
+    }
+
+    after_notebook = %{
+      Notebook.new()
+      | sections: [
+          %{
+            Section.new()
+            | id: "a-s1",
+              cells: [
+                %{Cell.new(:code) | id: "a-c1", source: "x = 2"},
+                %{Cell.new(:code) | id: "a-c2", source: "y = 3"}
+              ]
+          }
+        ]
+    }
+
+    delta1 = Delta.diff("x = 1", "x = 2")
+    delta2 = Delta.diff("y = 2", "y = 3")
+
+    expected_ops = [
+      {:apply_cell_delta, @cid, "c1", :primary, delta1, nil, 0},
+      {:apply_cell_delta, @cid, "c2", :primary, delta2, nil, 0}
+    ]
+
     assert_ops_and_result(before_notebook, after_notebook, expected_ops)
   end
 
