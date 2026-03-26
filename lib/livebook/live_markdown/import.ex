@@ -248,7 +248,7 @@ defmodule Livebook.LiveMarkdown.Import do
     {outputs, output_counter} = Notebook.index_outputs(outputs, output_counter)
     %{"kind" => kind, "attrs" => attrs} = data
 
-    attrs =
+    smart_cell_attrs =
       case attrs do
         # Import map attributes for backward compatibility
         %{} ->
@@ -259,23 +259,18 @@ defmodule Livebook.LiveMarkdown.Import do
       end
 
     chunks = if(chunks = data["chunks"], do: Enum.map(chunks, &List.to_tuple/1))
+    attrs = cell_metadata_to_attrs(:smart, data)
 
-    output_size =
-      if data["output_size"] in ["wide", "full"] do
-        String.to_atom(data["output_size"])
-      else
-        :default
-      end
-
-    cell = %{
-      Notebook.Cell.new(:smart)
-      | source: source,
-        chunks: chunks,
-        output_size: output_size,
-        outputs: outputs,
-        kind: kind,
-        attrs: attrs
-    }
+    cell =
+      %{
+        Notebook.Cell.new(:smart)
+        | source: source,
+          chunks: chunks,
+          outputs: outputs,
+          kind: kind,
+          attrs: smart_cell_attrs
+      }
+      |> Map.merge(attrs)
 
     build_notebook(elems, [cell | cells], sections, messages, output_counter)
   end
@@ -567,6 +562,16 @@ defmodule Livebook.LiveMarkdown.Import do
       {"continue_on_error", continue_on_error}, attrs ->
         Map.put(attrs, :continue_on_error, continue_on_error)
 
+      {"output_size", output_size}, attrs when output_size in ["full", "wide"] ->
+        Map.put(attrs, :output_size, String.to_atom(output_size))
+
+      _entry, attrs ->
+        attrs
+    end)
+  end
+
+  defp cell_metadata_to_attrs(:smart, metadata) do
+    Enum.reduce(metadata, %{}, fn
       {"output_size", output_size}, attrs when output_size in ["full", "wide"] ->
         Map.put(attrs, :output_size, String.to_atom(output_size))
 

@@ -2009,19 +2009,18 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :markdown,
-      output_size: cell.output_size,
+      output_size: :default,
       empty: cell.source == ""
     }
   end
 
   defp cell_to_view(%Cell.Code{} = cell, data, changed_input_ids) do
     info = data.cell_infos[cell.id]
-    output_size = if Cell.setup?(cell), do: :default, else: cell.output_size
 
     %{
       id: cell.id,
       type: :code,
-      output_size: output_size,
+      output_size: cell.output_size,
       setup: Cell.setup?(cell),
       language: cell.language,
       empty: cell.source == "",
