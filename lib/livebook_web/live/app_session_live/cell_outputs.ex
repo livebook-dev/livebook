@@ -28,6 +28,7 @@ defmodule LivebookWeb.AppSessionLive.CellOutputsComponent do
       phx-update="stream"
       class="empty:hidden"
       data-output-size={@cell_view.output_size}
+      data-el-app-outputs-container
       phx-no-format
     ><LivebookWeb.Output.output
        :for={{dom_id, output} <- @streams.outputs}

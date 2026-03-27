@@ -329,14 +329,14 @@ server in solely client-side operations.
 [data-el-notebook] {
   /* Output size (both session and app) */
 
-  [data-output-size="default"] > [data-el-output] {
+  [data-output-size="default"][data-el-app-outputs-container] {
     @apply w-full mx-auto;
 
     max-width: var(--breakpoint-lg);
   }
 
   [data-output-size="wide"] {
-    > [data-el-output] {
+    &[data-el-app-outputs-container] {
       @apply w-full mx-auto;
 
       max-width: 90rem;
@@ -351,8 +351,9 @@ server in solely client-side operations.
   }
 
   [data-output-size="full"] {
-    > [data-el-output] {
+    &[data-el-app-outputs-container] {
       @apply w-full mx-auto;
+
       max-width: 92vw;
     }
 
