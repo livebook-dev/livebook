@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.19.6](https://github.com/livebook-dev/livebook/tree/v0.19.6) (2026-03-27)
+
+### Fixed
+
+* Some smart cells getting cleared on notebook `/dev/sync` ([#3161](https://github.com/livebook-dev/livebook/pull/3161))
+* Reauthentication failures when accessing Livebook Teams apps ([#3164](https://github.com/livebook-dev/livebook/pull/3164))
+
 ## [v0.19.5](https://github.com/livebook-dev/livebook/tree/v0.19.5) (2026-03-23)
 
 ### Changed
