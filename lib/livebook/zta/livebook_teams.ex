@@ -169,18 +169,18 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp validate_access_token(name, conn, team, access_token) do
     node = get_session(conn, :livebook_teams_metadata_node)
 
-    entry =
-      try do
-        :erpc.call(node, :ets, :lookup_element, [name, access_token, 2, nil])
-      catch
-        _, _ -> nil
-      end
-
     case Teams.Requests.get_user_info(team, access_token) do
       {:ok, payload} ->
         {conn, build_metadata(team.id, payload)}
 
       :econnrefused ->
+        entry =
+          try do
+            :erpc.call(node, :ets, :lookup_element, [name, access_token, 2, nil])
+          catch
+            _, _ -> nil
+          end
+
         case {System.os_time(:second), entry} do
           {current_timestamp, {exp, metadata}} when current_timestamp <= exp ->
             {conn, metadata}
@@ -196,7 +196,12 @@ defmodule Livebook.ZTA.LivebookTeams do
         end
 
       _otherwise ->
-        entry && :erpc.call(node, :ets, :delete, [name, access_token])
+        try do
+          :erpc.call(node, :ets, :delete, [name, access_token])
+        catch
+          _, _ -> nil
+        end
+
         request_user_authentication(conn)
     end
   end
