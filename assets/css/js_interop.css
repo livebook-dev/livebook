@@ -346,7 +346,7 @@ server in solely client-side operations.
       @apply bg-white m-0 relative;
 
       width: 90rem;
-      left: calc(-29vw + 50%);
+      left: calc(-45rem + 50%);
     }
   }
 
