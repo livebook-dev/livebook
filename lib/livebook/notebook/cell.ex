@@ -16,6 +16,8 @@ defmodule Livebook.Notebook.Cell do
 
   @type indexed_output :: {non_neg_integer(), Livebook.Runtime.output()}
 
+  @type output_size :: :default | :wide | :full
+
   @setup_cell_id_prefix "setup"
   @setup_cell_id "setup"
 
@@ -111,4 +113,16 @@ defmodule Livebook.Notebook.Cell do
   """
   @spec extra_setup_cell_id(atom()) :: id()
   def extra_setup_cell_id(language), do: "#{@setup_cell_id_prefix}-#{language}"
+
+  @doc """
+  Return the list of supported output sizes.
+  """
+  @spec output_sizes() :: list(%{name: String.t(), size: String.t()})
+  def output_sizes() do
+    [
+      %{name: "Regular width", size: "default"},
+      %{name: "Wide width", size: "wide"},
+      %{name: "Full-width", size: "full"}
+    ]
+  end
 end

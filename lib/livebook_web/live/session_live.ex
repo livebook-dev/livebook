@@ -931,6 +931,21 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
   end
 
+  def handle_event("cycle_output_size", %{"value" => current, "cell_id" => cell_id}, socket) do
+    new_output_size =
+      case current do
+        "default" -> :wide
+        "wide" -> :full
+        "full" -> :default
+      end
+
+    Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
+      output_size: new_output_size
+    })
+
+    {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+  end
+
   @impl true
   def handle_call({:get_input_value, input_id}, _from, socket) do
     reply =
@@ -1994,6 +2009,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :markdown,
+      output_size: :default,
       empty: cell.source == ""
     }
   end
@@ -2004,6 +2020,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :code,
+      output_size: cell.output_size,
       setup: Cell.setup?(cell),
       language: cell.language,
       empty: cell.source == "",
@@ -2018,6 +2035,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :smart,
+      output_size: cell.output_size,
       empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data, changed_input_ids),
       reevaluate_automatically: cell.reevaluate_automatically,
