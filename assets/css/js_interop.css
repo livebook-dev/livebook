@@ -327,21 +327,45 @@ server in solely client-side operations.
 }
 
 [data-el-notebook] {
-  /* Outputs (both session and app) */
+  /* Output size (both session and app) */
 
-  [data-el-cell][data-js-amplified] {
-    [data-el-amplify-outputs-button] > button {
-      @apply bg-gray-100 text-gray-900;
+  [data-output-size="default"][data-el-app-outputs-container] {
+    @apply w-full mx-auto;
+
+    max-width: var(--breakpoint-lg);
+  }
+
+  [data-output-size="wide"] {
+    &[data-el-app-outputs-container] {
+      @apply w-full mx-auto;
+
+      max-width: 90rem;
     }
 
     [data-el-outputs-container] {
-      @apply bg-white m-0 py-16;
+      @apply bg-white m-0 relative;
 
-      width: 90vw;
-      position: relative;
-      left: calc(-45vw + 50%);
+      width: 90rem;
+      left: calc(-45rem + 50%);
     }
   }
+
+  [data-output-size="full"] {
+    &[data-el-app-outputs-container] {
+      @apply w-full mx-auto;
+
+      max-width: 92vw;
+    }
+
+    [data-el-outputs-container] {
+      @apply bg-white m-0 relative;
+
+      width: 92vw;
+      left: calc(-46vw + 50%);
+    }
+  }
+
+  /* Outputs (both session and app) */
 
   [data-el-output][data-border] {
     @apply p-4 border border-t-0 border-gray-200 divide-y divide-gray-200;

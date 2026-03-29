@@ -662,6 +662,20 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render(view) =~ "Python is not enabled for the current notebook."
       assert render(view) =~ "Enable Python"
     end
+
+    test "setting cell output size", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(~s/[data-p-cell-id='"#{cell_id}"'] [aria-label="toggle output size"]/)
+      |> render_click()
+
+      assert %{notebook: %{sections: [%{cells: [%Cell.Code{output_size: :wide}]}]}} =
+               Session.get_data(session.pid)
+    end
   end
 
   describe "outputs" do

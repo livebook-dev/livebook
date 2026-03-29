@@ -418,13 +418,24 @@ defmodule Livebook.Session.DataSyncTest do
             Section.new()
             | id: "a-s1",
               cells: [
-                %{Cell.new(:code) | id: "a-c1", source: "x = 1", reevaluate_automatically: true}
+                %{
+                  Cell.new(:code)
+                  | id: "a-c1",
+                    source: "x = 1",
+                    reevaluate_automatically: true,
+                    continue_on_error: true,
+                    output_size: :wide
+                }
               ]
           }
         ]
     }
 
-    expected_ops = [{:set_cell_attributes, @cid, "c1", %{reevaluate_automatically: true}}]
+    expected_ops = [
+      {:set_cell_attributes, @cid, "c1",
+       %{reevaluate_automatically: true, continue_on_error: true, output_size: :wide}}
+    ]
+
     assert_ops_and_result(before_notebook, after_notebook, expected_ops)
   end
 
@@ -459,7 +470,7 @@ defmodule Livebook.Session.DataSyncTest do
     assert_ops_and_result(before_notebook, after_notebook, expected_ops)
   end
 
-  test "smart cell changes are ignored" do
+  test "smart cell output size updated" do
     before_notebook = %{
       Notebook.new()
       | sections: [
@@ -477,13 +488,22 @@ defmodule Livebook.Session.DataSyncTest do
           %{
             Section.new()
             | id: "a-s1",
-              cells: [%{Cell.new(:smart) | id: "a-c1", source: "x = 2", attrs: %{}}]
+              cells: [
+                %{
+                  Cell.new(:smart)
+                  | id: "a-c1",
+                    source: "x = 2",
+                    attrs: %{foo: :bar},
+                    output_size: :full
+                }
+              ]
           }
         ]
     }
 
+    expected_ops = [{:set_cell_attributes, @cid, "c1", %{output_size: :full}}]
     data = Livebook.Session.Data.new(notebook: before_notebook)
-    assert DataSync.sync(data, after_notebook, @cid) == []
+    assert DataSync.sync(data, after_notebook, @cid) == expected_ops
   end
 
   # Cell moves

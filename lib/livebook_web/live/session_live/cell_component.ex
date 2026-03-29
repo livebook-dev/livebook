@@ -37,6 +37,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-el-cell
       id={"cell-#{@cell_view.id}"}
       data-type={@cell_view.type}
+      data-output-size={@cell_view.output_size}
       data-setup={@cell_view[:setup]}
       data-focusable-id={@cell_view.id}
       data-js-empty={@cell_view.empty}
@@ -192,7 +193,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:primary>
       <:secondary>
         <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
-        <.amplify_output_button />
+        <.cycle_output_size_button cell_id={@cell_view.id} output_size={@cell_view.output_size} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
@@ -256,7 +257,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <:secondary>
         <.toggle_source_button />
         <.convert_smart_cell_button cell_id={@cell_view.id} />
-        <.amplify_output_button />
+        <.cycle_output_size_button cell_id={@cell_view.id} output_size={@cell_view.output_size} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
@@ -571,11 +572,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  def amplify_output_button(assigns) do
+  def cycle_output_size_button(assigns) do
     ~H"""
-    <span class="tooltip top" data-tooltip="Amplify output" data-el-amplify-outputs-button>
-      <.icon_button aria-label="amplify outputs">
-        <.remix_icon icon="zoom-in-line" />
+    <span class="tooltip top" data-tooltip={output_size_name(@output_size)}>
+      <.icon_button
+        aria-label="toggle output size"
+        phx-click={JS.push("cycle_output_size", value: %{value: @output_size, cell_id: @cell_id})}
+      >
+        <.remix_icon icon="expand-width-line" />
       </.icon_button>
     </span>
     """
@@ -924,6 +928,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp duration_label(_time_ms), do: nil
+
+  defp output_size_name(size) do
+    Enum.find_value(
+      Livebook.Notebook.Cell.output_sizes(),
+      &(&1.size == to_string(size) && &1.name)
+    )
+  end
 
   defp smart_cell_js_view_ref(%{type: :smart, status: :started, js_view: %{ref: ref}}), do: ref
   defp smart_cell_js_view_ref(_cell_view), do: nil

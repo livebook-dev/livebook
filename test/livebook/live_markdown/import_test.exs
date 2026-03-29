@@ -21,7 +21,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     $x_{i} + y_{i}$
 
-    <!-- livebook:{"continue_on_error":true,"reevaluate_automatically":true} -->
+    <!-- livebook:{"continue_on_error":true,"output_size":"wide","reevaluate_automatically":true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -43,7 +43,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Process.info()
     ```
 
-    <!-- livebook:{"attrs":"eyJ0ZXh0IjoiTXkgdGV4dCJ9","livebook_object":"smart_cell","kind":"text"} -->
+    <!-- livebook:{"attrs":"eyJ0ZXh0IjoiTXkgdGV4dCJ9","livebook_object":"smart_cell","kind":"text","output_size":"full"} -->
 
     ```elixir
     IO.puts("My text")
@@ -92,7 +92,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      continue_on_error: true,
                      source: """
                      Enum.to_list(1..10)\
-                     """
+                     """,
+                     output_size: :wide
                    },
                    %Cell.Markdown{
                      source: """
@@ -126,6 +127,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      IO.puts("My text")\
                      """,
                      attrs: %{"text" => "My text"},
+                     output_size: :full,
                      kind: "text"
                    },
                    %Cell.Smart{

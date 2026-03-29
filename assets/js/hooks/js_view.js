@@ -225,6 +225,8 @@ const JSView = {
       `[data-el-notebook-content]`,
     );
 
+    const outputsContainerEl = this.el.closest(`[data-el-outputs-container]`);
+
     // Most placeholder position changes are accompanied by changes
     // to the notebook content element height (adding cells, inserting
     // newlines in the editor, etc). On the other hand, toggling the
@@ -237,6 +239,10 @@ const JSView = {
     });
     resizeObserver.observe(notebookContentEl);
     resizeObserver.observe(notebookEl);
+
+    // We also observe the outputs container, since the outputs width is
+    // configurable and can change dynamically.
+    if (outputsContainerEl) resizeObserver.observe(outputsContainerEl);
 
     // The placeholder may be hidden, in which case we want to hide
     // the iframe as well. This could be the case when viewing the

@@ -13,6 +13,7 @@ defmodule Livebook.Notebook.Cell.Smart do
   defstruct [
     :id,
     :source,
+    :output_size,
     :chunks,
     :outputs,
     :reevaluate_automatically,
@@ -28,6 +29,7 @@ defmodule Livebook.Notebook.Cell.Smart do
   @type t :: %__MODULE__{
           id: Cell.id(),
           source: String.t() | :__pruned__,
+          output_size: Cell.output_size(),
           chunks: Livebook.Runtime.chunks() | nil,
           outputs: list(Cell.indexed_output()),
           reevaluate_automatically: boolean(),
@@ -47,6 +49,7 @@ defmodule Livebook.Notebook.Cell.Smart do
     %__MODULE__{
       id: Utils.random_id(),
       source: "",
+      output_size: :default,
       chunks: nil,
       outputs: [],
       reevaluate_automatically: false,
