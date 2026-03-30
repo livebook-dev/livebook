@@ -37,7 +37,12 @@ defmodule LivebookWeb.FileSelectComponentTest do
 
     html = render_component(FileSelectComponent, attrs(file: new_file))
 
-    # After changing directory, loading should be reset to false after listing
+    # After changing directory, loading should be reset to false after async listing completes
+    # Note: render_component is synchronous, so by the time it returns, the async
+    # file listing via start_async has already completed and loading is false.
+    # The loading state is properly managed internally:
+    # 1. When directory changes, start_async is called with loading: true
+    # 2. When async completes, handle_async sets loading: false
     refute html =~ ~s(role="status")
   end
 
@@ -53,10 +58,11 @@ defmodule LivebookWeb.FileSelectComponentTest do
     assert html =~ "basic.livemd"
     refute html =~ "play-circle-line"
 
-    # Update with running_files changed
+    # Update with running_files changed (same directory, no dir change)
     html = render_component(FileSelectComponent, attrs(file: file, running_files: [running_file]))
 
-    # Loading should not be shown when only running_files changes
+    # Loading should not be triggered when only running_files changes
+    # because update_file_infos detects no directory change
     refute html =~ ~s(role="status")
     # Verify basic.livemd is now marked as running
     assert html =~ "play-circle-line"
