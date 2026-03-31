@@ -198,9 +198,16 @@ defmodule Livebook.Application do
   @app? Mix.target() in [:app, :app_next]
 
   if @app? do
-    defp app_specs, do: [LivebookApp]
+    defp app_specs do
+      [
+        {ElixirKit.PubSub, connect: System.fetch_env!("ELIXIRKIT_PUBSUB")},
+        LivebookApp
+      ]
+    end
   else
-    defp app_specs, do: []
+    defp app_specs do
+      []
+    end
   end
 
   # In order to provide good first experience with the desktop app,

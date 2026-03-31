@@ -1,5 +1,7 @@
-use elixirkit::Command;
+use elixirkit::PubSub;
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -7,6 +9,7 @@ use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_updater::UpdaterExt;
+use tracing::Level;
 use tracing_subscriber::{
     filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt, Layer,
 };
@@ -94,7 +97,15 @@ pub fn run() {
                 })
                 .build(app_handle)?;
 
-            let state = AppState::new(log_guard, tray_menu, copy_url_item, tray);
+            let pubsub = match PubSub::listen("tcp://127.0.0.1:0") {
+                Ok(ps) => ps,
+                Err(e) => {
+                    tracing::error!("Failed to bind ElixirKit: {e}");
+                    return Err(e.into());
+                }
+            };
+
+            let state = AppState::new(pubsub.clone(), log_guard, tray_menu, copy_url_item, tray);
             app.manage(state);
 
             let initial_urls = extract_open_urls(std::env::args().skip(1).collect());
@@ -122,37 +133,61 @@ pub fn run() {
                 let _ = check_for_updates_on_boot(app_handle_for_updates).await;
             });
 
+            // Subscribe for messages from Elixir
             let handle = app.handle().clone();
-            std::thread::spawn(move || {
-                let command = if cfg!(debug_assertions) {
+            pubsub.subscribe("messages", move |msg| {
+                if let Some(url) = msg.strip_prefix(b"ready:") {
+                    let url = String::from_utf8_lossy(url).into_owned();
+                    let state = handle.state::<AppState>();
+                    state.set_ready(url);
+                } else {
+                    tracing::error!("unexpected message: {}", String::from_utf8_lossy(msg));
+                }
+            });
+
+            // Start Elixir in background
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                let mut cmd = if cfg!(debug_assertions) {
                     let mix_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
-                    let (prog, args): (&str, &[&str]) = if cfg!(windows) {
-                        ("cmd", &["/c", "mix", "phx.server"])
-                    } else {
-                        ("mix", &["phx.server"])
-                    };
-                    Command::new(prog, args)
-                        .current_dir(mix_root)
-                        .env(&[("MIX_TARGET", "app_next")])
+                    let mut cmd = elixirkit::mix("phx.server", &[], &pubsub);
+                    cmd.current_dir(mix_root);
+                    cmd.env("MIX_TARGET", "app_next");
+                    cmd
                 } else {
                     let release_dir = handle.path().resource_dir().unwrap().join("rel");
-                    elixirkit::release(release_dir, "app")
+                    elixirkit::release(&release_dir, "app", &pubsub)
+                };
+                cmd.env("LOG_PATH", log_path.display().to_string());
+                cmd.stdin(Stdio::null());
+                cmd.stdout(Stdio::piped());
+                cmd.stderr(Stdio::piped());
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    cmd.creation_flags(0x08000000 /* CREATE_NO_WINDOW */);
+                }
+
+                let mut child = match cmd.spawn() {
+                    Ok(c) => c,
+                    Err(e) => {
+                        tracing::error!("Failed to start Elixir: {e}");
+                        handle.exit(1);
+                        return;
+                    }
                 };
 
-                let command = command.env_set("LOG_PATH", log_path.display().to_string());
+                if let Some(stdout) = child.stdout.take() {
+                    spawn_output_thread(stdout, false);
+                }
+                if let Some(stderr) = child.stderr.take() {
+                    spawn_output_thread(stderr, true);
+                }
 
-                let status = command.start(|(name, data)| {
-                    if name == "ready" {
-                        let state = handle.state::<AppState>();
-                        state.set_elixir_command(&command);
-
-                        state.set_url(data.to_string());
-                        state.enable_tray_menu();
-                    } else {
-                        tracing::error!("unexpected event: {name}:{data}");
-                        handle.exit(1);
-                    }
-                });
+                let status = match child.wait() {
+                    Ok(s) => s.code().unwrap_or(1),
+                    Err(_) => 1,
+                };
 
                 if status != 0 {
                     show_exit_dialog(&handle, status, &log_path);
@@ -194,7 +229,8 @@ pub fn run() {
 }
 
 struct AppState {
-    command: Arc<Mutex<Option<Arc<Command>>>>,
+    pubsub: PubSub,
+    ready: Arc<Mutex<bool>>,
     pending_open: Arc<Mutex<Vec<String>>>,
     current_url: Arc<Mutex<Option<String>>>,
     _log_guard: Option<tracing_appender::non_blocking::WorkerGuard>,
@@ -206,13 +242,15 @@ struct AppState {
 
 impl AppState {
     fn new(
+        pubsub: PubSub,
         log_guard: Option<tracing_appender::non_blocking::WorkerGuard>,
         tray_menu: Menu<Wry>,
         copy_url_item: MenuItem<Wry>,
         tray: tauri::tray::TrayIcon<Wry>,
     ) -> Self {
         Self {
-            command: Arc::new(Mutex::new(None)),
+            pubsub,
+            ready: Arc::new(Mutex::new(false)),
             pending_open: Arc::new(Mutex::new(Vec::new())),
             current_url: Arc::new(Mutex::new(None)),
             _log_guard: log_guard,
@@ -224,13 +262,31 @@ impl AppState {
     }
 
     fn publish_open(&self, url: &str) {
-        if let Some(command) = self.command.lock().ok().and_then(|guard| guard.clone()) {
-            command.send(("open", url));
+        if *self.ready.lock().unwrap() {
+            if let Err(e) = self.pubsub.broadcast("messages", format!("open:{url}").as_bytes()) {
+                tracing::error!("Failed to broadcast open: {e}");
+            }
             return;
         }
 
         if let Ok(mut pending) = self.pending_open.lock() {
             pending.push(url.to_string());
+        }
+    }
+
+    fn set_ready(&self, url: String) {
+        self.set_url(url);
+        self.enable_tray_menu();
+
+        *self.ready.lock().unwrap() = true;
+
+        // Flush pending opens
+        if let Ok(mut pending) = self.pending_open.lock() {
+            for url in pending.drain(..) {
+                if let Err(e) = self.pubsub.broadcast("messages", format!("open:{url}").as_bytes()) {
+                    tracing::error!("Failed to broadcast open: {e}");
+                }
+            }
         }
     }
 
@@ -269,20 +325,33 @@ impl AppState {
         let _ = self.tray.set_show_menu_on_left_click(true);
         let _ = self.copy_url_item.set_enabled(true);
     }
+}
 
-    fn set_elixir_command(&self, command: &Command) {
-        if let Ok(mut guard) = self.command.lock() {
-            *guard = Some(Arc::new(command.clone()));
-        }
+fn spawn_output_thread(reader: impl Read + Send + 'static, is_stderr: bool) {
+    std::thread::spawn(move || {
+        let mut reader = BufReader::new(reader);
+        let mut line = String::new();
+        loop {
+            line.clear();
+            let bytes = reader.read_line(&mut line).unwrap_or(0);
+            if bytes == 0 {
+                break;
+            }
 
-        if let Ok(mut pending) = self.pending_open.lock() {
-            if let Some(cmd) = self.command.lock().ok().and_then(|guard| guard.clone()) {
-                for url in pending.drain(..) {
-                    cmd.send(("open", &url));
+            let line = line.trim_end_matches(&['\r', '\n'][..]);
+            if is_stderr {
+                if tracing::enabled!(Level::ERROR) {
+                    tracing::error!(target: "elixir", "{line}");
+                } else {
+                    eprintln!("{line}");
                 }
+            } else if tracing::enabled!(Level::INFO) {
+                tracing::info!(target: "elixir", "{line}");
+            } else {
+                println!("{line}");
             }
         }
-    }
+    });
 }
 
 fn menu_item(
