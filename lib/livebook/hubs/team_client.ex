@@ -142,11 +142,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
-  Returns if the Team client uses Livebook Teams identity provider.
+  Returns the identity status for the Team client.
+
+  Returns `:pending` when the Teams connection has not been established yet,
+  `:enabled` when Teams authentication is enabled, and `:disabled` otherwise.
   """
-  @spec identity_enabled?(String.t()) :: boolean()
-  def identity_enabled?(id) do
-    GenServer.call(registry_name(id), :identity_enabled?)
+  @spec identity_status(String.t()) :: :pending | :enabled | :disabled
+  def identity_status(id) do
+    GenServer.call(registry_name(id), :identity_status)
   end
 
   @doc """
@@ -325,14 +328,18 @@ defmodule Livebook.Hubs.TeamClient do
     {:reply, environment_variables, state}
   end
 
-  def handle_call(:identity_enabled?, _caller, %{deployment_group_id: nil} = state) do
-    {:reply, false, state}
+  def handle_call(:identity_status, _caller, %{deployment_group_id: nil} = state) do
+    {:reply, :pending, state}
   end
 
-  def handle_call(:identity_enabled?, _caller, %{deployment_group_id: id} = state) do
+  def handle_call(:identity_status, _caller, %{deployment_group_id: id} = state) do
     case fetch_deployment_group(id, state) do
-      {:ok, deployment_group} -> {:reply, deployment_group.teams_auth, state}
-      _ -> {:reply, false, state}
+      {:ok, deployment_group} ->
+        auth_via_teams_config = if(deployment_group.teams_auth, do: :enabled, else: :disabled)
+        {:reply, auth_via_teams_config, state}
+
+      _ ->
+        {:reply, :disabled, state}
     end
   end
 

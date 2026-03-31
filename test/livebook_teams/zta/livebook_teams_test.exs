@@ -179,4 +179,31 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert {_conn, %{id: ^id, groups: ^groups}} = LivebookTeams.authenticate(test, conn, [])
     end
   end
+
+  defmodule PendingConnection do
+    # No TeamsIntegrationCase needed — we test the scenario where
+    # the TeamClient has never connected to Teams
+    use LivebookWeb.ConnCase, async: true
+
+    alias Livebook.ZTA.LivebookTeams
+
+    setup %{conn: conn, test: test} do
+      team = build(:team, user_id: nil)
+      Livebook.Hubs.save_hub(team)
+      on_exit(fn -> Livebook.Hubs.delete_hub(team.id) end)
+
+      start_supervised!({LivebookTeams, name: test, identity_key: team.id})
+
+      {:ok, conn: conn, team: team}
+    end
+
+    test "returns 503 when Teams connection is pending", %{conn: conn, test: test} do
+      conn = init_test_session(conn, %{})
+
+      assert {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert conn.halted
+      assert conn.status == 503
+      assert conn.resp_body =~ "it has not yet established a connection to Livebook Teams"
+    end
+  end
 end
