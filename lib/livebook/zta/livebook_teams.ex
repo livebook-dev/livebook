@@ -28,10 +28,24 @@ defmodule Livebook.ZTA.LivebookTeams do
   def authenticate(name, conn, _opts) do
     team = NimbleZTA.get(name)
 
-    if Livebook.Hubs.TeamClient.identity_enabled?(team.id) do
-      handle_request(name, conn, team, conn.params)
-    else
-      {conn, %{}}
+    case Livebook.Hubs.TeamClient.identity_status(team.id) do
+      :enabled ->
+        handle_request(name, conn, team, conn.params)
+
+      :disabled ->
+        {conn, %{}}
+
+      :pending ->
+        {conn
+         |> put_status(:service_unavailable)
+         |> put_view(LivebookWeb.ErrorHTML)
+         |> render("error.html", %{
+           status: 503,
+           details:
+             "This Livebook instance cannot be accessed because it has not yet" <>
+               " established a connection to Livebook Teams."
+         })
+         |> halt(), nil}
     end
   end
 
