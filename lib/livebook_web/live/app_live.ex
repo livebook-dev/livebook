@@ -21,7 +21,7 @@ defmodule LivebookWeb.AppLive do
     {:ok, assign(socket, app: app), layout: false}
   end
 
-  def mount(%{"slug" => slug}, _session, socket) do
+  def mount(%{"slug" => slug} = params, _session, socket) do
     if socket.assigns.app_settings.multi_session do
       {:ok, app} = Livebook.Apps.fetch_app(slug)
 
@@ -30,7 +30,8 @@ defmodule LivebookWeb.AppLive do
         Livebook.Teams.Broadcasts.subscribe(:app_deployments)
       end
 
-      {:ok, assign(socket, app: app, apps_banner: Livebook.Config.apps_banner())}
+      {:ok,
+       assign(socket, app: app, query_params: params, apps_banner: Livebook.Config.apps_banner())}
     else
       {:ok, pid} = Livebook.Apps.fetch_pid(slug)
       session_id = Livebook.App.get_session_id(pid, user: socket.assigns.current_user)
@@ -113,11 +114,26 @@ defmodule LivebookWeb.AppLive do
 
   @impl true
   def handle_params(_params, _url, socket) when socket.assigns.live_action == :new_session do
-    session_id =
-      Livebook.App.get_session_id(socket.assigns.app.pid, user: socket.assigns.current_user)
+    app = socket.assigns.app
+    opts = [user: socket.assigns.current_user]
 
-    {:noreply,
-     push_navigate(socket, to: ~p"/apps/#{socket.assigns.app.slug}/sessions/#{session_id}")}
+    opts =
+      if socket.assigns.app_settings.multi_session do
+        params =
+          Enum.reduce(socket.assigns.query_params, %{}, fn {key, value}, acc ->
+            case Regex.run(~r/^[Ll][Bb]_(.*)$/, key) do
+              [_, key] -> Map.put(acc, key, value)
+              _otherwise -> acc
+            end
+          end)
+
+        Keyword.put(opts, :session_params, params)
+      else
+        opts
+      end
+
+    session_id = Livebook.App.get_session_id(app.pid, opts)
+    {:noreply, push_navigate(socket, to: ~p"/apps/#{app.slug}/sessions/#{session_id}")}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}

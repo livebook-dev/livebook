@@ -112,6 +112,53 @@ defmodule LivebookWeb.AppLiveTest do
       App.close(app_pid)
     end
 
+    test "creating a new session with query params", %{conn: conn} do
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug, multi_session: true}
+      notebook = %{Notebook.new() | app_settings: app_settings}
+
+      Apps.subscribe()
+      app_pid = deploy_notebook_sync(notebook)
+
+      assert_receive {:app_created, %{pid: ^app_pid, sessions: []}}
+
+      query_params = %{
+        "lb_username" => "Jake Peralta",
+        "Lb_UserId" => "123",
+        "lB_eMAIl" => "jake.peralta@mail.com",
+        "LB_action" => "view",
+        "password" => "chonkycat",
+        "foo" => "bar"
+      }
+
+      {:ok, view, _} = live(conn, ~p"/apps/#{slug}?#{query_params}")
+
+      {:error, {:live_redirect, %{to: to}}} =
+        view
+        |> element("a", "New session")
+        |> render_click()
+
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{id: session_id, pid: pid}]}}
+      assert to == ~p"/apps/#{slug}/sessions/#{session_id}"
+
+      send(pid, {:runtime_app_info_request, self()})
+      assert_receive {:runtime_app_info_reply, app_info}
+
+      assert app_info ==
+               {:ok,
+                %{
+                  type: :multi_session,
+                  session_params: %{
+                    "username" => "Jake Peralta",
+                    "UserId" => "123",
+                    "eMAIl" => "jake.peralta@mail.com",
+                    "action" => "view"
+                  }
+                }}
+
+      App.close(app_pid)
+    end
+
     test "does not list existing session if configured not to", %{conn: conn} do
       slug = Utils.random_short_id()
 
