@@ -334,9 +334,8 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:identity_status, _caller, %{deployment_group_id: id} = state) do
     case fetch_deployment_group(id, state) do
-      {:ok, deployment_group} ->
-        auth_via_teams_config = if(deployment_group.teams_auth, do: :enabled, else: :disabled)
-        {:reply, auth_via_teams_config, state}
+      {:ok, %{teams_auth: true}} ->
+        {:reply, :enabled, state}
 
       _ ->
         {:reply, :disabled, state}
