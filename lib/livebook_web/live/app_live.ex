@@ -120,12 +120,10 @@ defmodule LivebookWeb.AppLive do
     opts =
       if socket.assigns.app_settings.multi_session do
         params =
-          Enum.reduce(socket.assigns.query_params, %{}, fn {key, value}, acc ->
-            case Regex.run(~r/^[Ll][Bb]_(.*)$/, key) do
-              [_, key] -> Map.put(acc, key, value)
-              _otherwise -> acc
-            end
-          end)
+          for {key, value} <- socket.assigns.query_params,
+              key = lb_query_param(key),
+              into: %{},
+              do: {key, value}
 
         Keyword.put(opts, :session_params, params)
       else
@@ -160,4 +158,8 @@ defmodule LivebookWeb.AppLive do
   defp active_sessions(sessions) do
     Enum.filter(sessions, &(&1.app_status.lifecycle == :active))
   end
+
+  defp lb_query_param("lb_" <> param), do: param
+  defp lb_query_param("LB_" <> param), do: param
+  defp lb_query_param(_), do: nil
 end

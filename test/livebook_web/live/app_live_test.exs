@@ -142,19 +142,12 @@ defmodule LivebookWeb.AppLiveTest do
       assert to == ~p"/apps/#{slug}/sessions/#{session_id}"
 
       send(pid, {:runtime_app_info_request, self()})
-      assert_receive {:runtime_app_info_reply, app_info}
+      assert_receive {:runtime_app_info_reply, {:ok, app_info}}
 
-      assert app_info ==
-               {:ok,
-                %{
-                  type: :multi_session,
-                  session_params: %{
-                    "username" => "Jake Peralta",
-                    "UserId" => "123",
-                    "eMAIl" => "jake.peralta@mail.com",
-                    "action" => "view"
-                  }
-                }}
+      assert app_info == %{
+               type: :multi_session,
+               session_params: %{"username" => "Jake Peralta", "action" => "view"}
+             }
 
       App.close(app_pid)
     end

@@ -347,12 +347,12 @@ defmodule Livebook.App do
     if temporary_sessions?(state.deployment_bundle.notebook.app_settings) do
       state
     else
-      {:ok, state, _app_session} = start_app_session(state)
+      {:ok, state, _app_session} = start_app_session(state, nil, nil)
       state
     end
   end
 
-  defp start_app_session(state, user \\ nil, params \\ nil) do
+  defp start_app_session(state, user, params) do
     user = if(state.deployment_bundle.notebook.teams_enabled, do: user)
 
     files_source =
