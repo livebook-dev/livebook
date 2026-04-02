@@ -213,6 +213,41 @@ defmodule Livebook.AppTest do
 
       assert %{sessions: [%{id: ^session_id, started_by: ^user}]} = App.get_by_pid(app_pid)
     end
+
+    test "stores session creator params in multi-session mode" do
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug, multi_session: true}
+      notebook = %{Notebook.new() | app_settings: app_settings, teams_enabled: true}
+      user = %{Livebook.Users.User.new() | name: "Jake Peralta"}
+
+      app_pid = start_app(notebook)
+      assert %{sessions: []} = App.get_by_pid(app_pid)
+
+      params = %{
+        "username" => user.name,
+        "foo" => "bar"
+      }
+
+      session_id = App.get_session_id(app_pid, user: user, session_params: params)
+
+      assert %{sessions: [%{id: ^session_id, pid: pid, started_by: ^user}]} =
+               App.get_by_pid(app_pid)
+
+      send(pid, {:runtime_app_info_request, self()})
+      assert_receive {:runtime_app_info_reply, {:ok, app_info}}
+
+      assert app_info == %{
+               type: :multi_session,
+               session_params: params,
+               started_by: %{
+                 email: user.email,
+                 id: user.id,
+                 name: user.name,
+                 payload: user.payload,
+                 source: :session
+               }
+             }
+    end
   end
 
   describe "automatic shutdown" do

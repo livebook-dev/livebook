@@ -140,13 +140,17 @@ defmodule Livebook.App do
     * `:user` - the user requesting the session. In multi-session app,
       we track who starts each session
 
+    * `:session_params` - the session parameters. In multi-session app,
+      we expose the parameters used to request the session.
+
   """
   @spec get_session_id(pid(), keyword()) :: Livebook.Session.id()
   def get_session_id(pid, opts \\ []) do
-    opts = Keyword.validate!(opts, [:user])
+    opts = Keyword.validate!(opts, [:user, :session_params])
     user = opts[:user]
+    params = opts[:session_params]
 
-    GenServer.call(pid, {:get_session_id, user})
+    GenServer.call(pid, {:get_session_id, user, params})
   end
 
   @doc """
@@ -231,7 +235,7 @@ defmodule Livebook.App do
     {:reply, self_from_state(state), state}
   end
 
-  def handle_call({:get_session_id, user}, _from, state) do
+  def handle_call({:get_session_id, user, params}, _from, state) do
     {session_id, state} =
       case {state.deployment_bundle.notebook.app_settings.multi_session,
             single_session_app_session(state)} do
@@ -240,7 +244,7 @@ defmodule Livebook.App do
 
         {multi_session, _} ->
           user = if(multi_session, do: user)
-          {:ok, state, app_session} = start_app_session(state, user)
+          {:ok, state, app_session} = start_app_session(state, user, params)
           {app_session.id, notify_update(state)}
       end
 
@@ -343,12 +347,12 @@ defmodule Livebook.App do
     if temporary_sessions?(state.deployment_bundle.notebook.app_settings) do
       state
     else
-      {:ok, state, _app_session} = start_app_session(state)
+      {:ok, state, _app_session} = start_app_session(state, nil, nil)
       state
     end
   end
 
-  defp start_app_session(state, user \\ nil) do
+  defp start_app_session(state, user, params) do
     user = if(state.deployment_bundle.notebook.teams_enabled, do: user)
 
     files_source =
@@ -364,6 +368,7 @@ defmodule Livebook.App do
       app_permanent: state.deployment_bundle.permanent,
       auto_shutdown_ms: state.deployment_bundle.notebook.app_settings.auto_shutdown_ms,
       started_by: user,
+      session_params: params,
       deployed_by: state.deployment_bundle.deployed_by
     ]
 

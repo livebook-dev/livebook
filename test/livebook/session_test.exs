@@ -1643,6 +1643,45 @@ defmodule Livebook.SessionTest do
 
       App.close(app_pid)
     end
+
+    test "app session responds to app info request with session params" do
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug, multi_session: true}
+      notebook = %{Notebook.new() | app_settings: app_settings, teams_enabled: true}
+
+      user = %{
+        Livebook.Users.User.new()
+        | id: "1234",
+          name: "Jake Peralta",
+          email: "jperalta@example.com"
+      }
+
+      params = %{
+        "username" => user.name,
+        "foo" => "bar"
+      }
+
+      app_pid = deploy_notebook_sync(notebook)
+      session_id = App.get_session_id(app_pid, user: user, session_params: params)
+      {:ok, session} = Livebook.Sessions.fetch_session(session_id)
+
+      send(session.pid, {:runtime_app_info_request, self()})
+      assert_receive {:runtime_app_info_reply, {:ok, app_info}}
+
+      assert app_info == %{
+               session_params: params,
+               type: :multi_session,
+               started_by: %{
+                 source: :session,
+                 id: "1234",
+                 name: "Jake Peralta",
+                 email: "jperalta@example.com",
+                 payload: nil
+               }
+             }
+
+      App.close(app_pid)
+    end
   end
 
   test "responds to app session request when not app" do
