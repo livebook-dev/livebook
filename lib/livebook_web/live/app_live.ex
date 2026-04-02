@@ -21,7 +21,7 @@ defmodule LivebookWeb.AppLive do
     {:ok, assign(socket, app: app), layout: false}
   end
 
-  def mount(%{"slug" => slug}, _session, socket) do
+  def mount(%{"slug" => slug} = params, _session, socket) do
     if socket.assigns.app_settings.multi_session do
       {:ok, app} = Livebook.Apps.fetch_app(slug)
 
@@ -30,7 +30,8 @@ defmodule LivebookWeb.AppLive do
         Livebook.Teams.Broadcasts.subscribe(:app_deployments)
       end
 
-      {:ok, assign(socket, app: app, apps_banner: Livebook.Config.apps_banner())}
+      {:ok,
+       assign(socket, app: app, query_params: params, apps_banner: Livebook.Config.apps_banner())}
     else
       {:ok, pid} = Livebook.Apps.fetch_pid(slug)
       session_id = Livebook.App.get_session_id(pid, user: socket.assigns.current_user)
@@ -113,11 +114,24 @@ defmodule LivebookWeb.AppLive do
 
   @impl true
   def handle_params(_params, _url, socket) when socket.assigns.live_action == :new_session do
-    session_id =
-      Livebook.App.get_session_id(socket.assigns.app.pid, user: socket.assigns.current_user)
+    app = socket.assigns.app
+    opts = [user: socket.assigns.current_user]
 
-    {:noreply,
-     push_navigate(socket, to: ~p"/apps/#{socket.assigns.app.slug}/sessions/#{session_id}")}
+    opts =
+      if socket.assigns.app_settings.multi_session do
+        params =
+          for {key, value} <- socket.assigns.query_params,
+              key = lb_query_param(key),
+              into: %{},
+              do: {key, value}
+
+        Keyword.put(opts, :session_params, params)
+      else
+        opts
+      end
+
+    session_id = Livebook.App.get_session_id(app.pid, opts)
+    {:noreply, push_navigate(socket, to: ~p"/apps/#{app.slug}/sessions/#{session_id}")}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
@@ -144,4 +158,8 @@ defmodule LivebookWeb.AppLive do
   defp active_sessions(sessions) do
     Enum.filter(sessions, &(&1.app_status.lifecycle == :active))
   end
+
+  defp lb_query_param("lb_" <> param), do: param
+  defp lb_query_param("LB_" <> param), do: param
+  defp lb_query_param(_), do: nil
 end

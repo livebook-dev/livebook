@@ -205,6 +205,9 @@ defmodule Livebook.Session do
     * `:deployed_by` - the user that deployed the app, to which this
       session belongs to. This is only relevant for app sessions
 
+    * `:session_params` - the user parameters from query string, used to
+      start the session. This is only relevant to multi-session apps.
+
   """
   @spec start_link(keyword()) :: {:ok, pid, t()} | {:error, any()}
   def start_link(opts) do
@@ -1001,7 +1004,8 @@ defmodule Livebook.Session do
         auto_shutdown_ms: opts[:auto_shutdown_ms],
         auto_shutdown_timer_ref: nil,
         started_by: opts[:started_by],
-        deployed_by: opts[:deployed_by]
+        deployed_by: opts[:deployed_by],
+        session_params: opts[:session_params]
       }
 
       {:ok, state}
@@ -3185,6 +3189,13 @@ defmodule Livebook.Session do
     case state.data do
       %{mode: :app, notebook: %{app_settings: %{multi_session: true}}} ->
         info = %{type: :multi_session}
+
+        info =
+          if params = state.session_params do
+            Map.put(info, :session_params, params)
+          else
+            info
+          end
 
         if user = state.started_by do
           started_by = user_info(user)
