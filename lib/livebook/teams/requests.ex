@@ -228,15 +228,17 @@ defmodule Livebook.Teams.Requests do
   @spec get_user_info(Team.t(), String.t(), boolean()) :: api_result() | :econnrefused
   def get_user_info(team, access_token, valid_cache?) do
     req = build_req(team)
-    econnrefused = %Req.TransportError{reason: :econnrefused}
     params = %{access_token: access_token}
 
-    fun = fn _, result ->
-      if match?(^econnrefused, result), do: not valid_cache?
+    fun = fn
+      _, %Req.TransportError{reason: :econnrefused} -> not valid_cache?
+      _, %Req.Response{status: status} when status in [408, 429, 500, 502, 503, 504] -> true
+      _, %Req.TransportError{reason: reason} when reason in [:timeout, :closed] -> true
+      _, _ -> false
     end
 
     case Req.get(req, url: "/api/v1/org/identity", params: params, retry: fun) do
-      {:error, ^econnrefused} -> :econnrefused
+      {:error, %Req.TransportError{reason: :econnrefused}} -> :econnrefused
       otherwise -> handle_response(otherwise)
     end
   end
