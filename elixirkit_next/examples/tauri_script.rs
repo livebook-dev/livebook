@@ -120,7 +120,8 @@ fn run() {
 
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn_blocking(move || {
-                let status = elixirkit::elixir(&["-e", script_exs], &pubsub)
+                let status = elixirkit::elixir(&["-e", script_exs])
+                    .env("ELIXIRKIT_PUBSUB", pubsub.url())
                     .status()
                     .expect("failed to start Elixir");
 

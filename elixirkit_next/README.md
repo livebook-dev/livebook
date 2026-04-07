@@ -20,7 +20,8 @@ pubsub.subscribe("topic", move |msg| {
     }
 });
 
-let status = elixirkit::elixir(&["script.exs"], &pubsub)
+let status = elixirkit::elixir(&["script.exs"])
+    .env("ELIXIRKIT_PUBSUB", pubsub.url())
     .status()
     .expect("failed to start Elixir");
 

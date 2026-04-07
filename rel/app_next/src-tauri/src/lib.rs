@@ -150,13 +150,16 @@ pub fn run() {
             tauri::async_runtime::spawn_blocking(move || {
                 let mut cmd = if cfg!(debug_assertions) {
                     let mix_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
-                    let mut cmd = elixirkit::mix("phx.server", &[], &pubsub);
+                    let mut cmd = elixirkit::mix("phx.server", &[]);
+                    cmd.env("ELIXIRKIT_PUBSUB", pubsub.url());
                     cmd.current_dir(mix_root);
                     cmd.env("MIX_TARGET", "app_next");
                     cmd
                 } else {
                     let release_dir = handle.path().resource_dir().unwrap().join("rel");
-                    elixirkit::release(&release_dir, "app", &pubsub)
+                    let mut cmd = elixirkit::release(&release_dir, "app");
+                    cmd.env("ELIXIRKIT_PUBSUB", pubsub.url());
+                    cmd
                 };
                 cmd.env("LOG_PATH", log_path.display().to_string());
                 cmd.stdin(Stdio::null());

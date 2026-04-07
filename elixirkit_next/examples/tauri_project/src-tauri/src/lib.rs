@@ -57,7 +57,8 @@ fn elixir_command(
     elixir_dir: &PathBuf,
     pubsub: &PubSub,
 ) -> std::process::Command {
-    let mut cmd = elixirkit::mix("phx.server", &[], pubsub);
+    let mut cmd = elixirkit::mix("phx.server", &[]);
+    cmd.env("ELIXIRKIT_PUBSUB", pubsub.url());
     cmd.current_dir(elixir_dir);
     cmd
 }
@@ -74,7 +75,8 @@ fn elixir_command(
         .expect("failed to resolve Tauri resources directory")
         .join("rel");
 
-    let mut cmd = elixirkit::release(&release_dir, EXAMPLE_RELEASE_NAME, pubsub);
+    let mut cmd = elixirkit::release(&release_dir, EXAMPLE_RELEASE_NAME);
+    cmd.env("ELIXIRKIT_PUBSUB", pubsub.url());
     cmd.env("PHX_SERVER", "true");
     cmd.env("PHX_HOST", "127.0.0.1");
     cmd.env("PORT", "4000");

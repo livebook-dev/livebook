@@ -34,7 +34,8 @@ fn main() {
         end
     "#;
 
-    let status = elixirkit::elixir(&["-e", code], &pubsub)
+    let status = elixirkit::elixir(&["-e", code])
+        .env("ELIXIRKIT_PUBSUB", pubsub.url())
         .status()
         .expect("failed to start Elixir");
 
