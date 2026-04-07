@@ -8,23 +8,23 @@ if Mix.target() in [:app, :app_next] do
 
     @impl true
     def init(_) do
-      {:ok, pid} = ElixirKit.start_link()
-      ref = Process.monitor(pid)
+      ref = Process.monitor(ElixirKit.PubSub)
 
-      ElixirKit.publish("ready", LivebookWeb.Endpoint.access_url())
+      ElixirKit.PubSub.subscribe("messages")
+      ElixirKit.PubSub.broadcast("messages", "ready:" <> LivebookWeb.Endpoint.access_url())
 
       {:ok, %{ref: ref, log_path: System.fetch_env!("LOG_PATH")}}
     end
 
     @impl true
-    def handle_info({:event, "open", "/logs"}, state) do
+    def handle_info("open:/logs", state) do
       Livebook.Utils.browser_open("file://" <> state.log_path)
 
       {:noreply, state}
     end
 
     @impl true
-    def handle_info({:event, "open", url}, state) do
+    def handle_info("open:" <> url, state) do
       url
       |> Livebook.Utils.expand_desktop_url()
       |> Livebook.Utils.browser_open()
@@ -33,7 +33,7 @@ if Mix.target() in [:app, :app_next] do
     end
 
     @impl true
-    def handle_info({:DOWN, ref, :process, _, :shutdown}, state) when ref == state.ref do
+    def handle_info({:DOWN, ref, :process, _, _reason}, state) when ref == state.ref do
       Livebook.Config.shutdown()
       {:noreply, state}
     end

@@ -72,7 +72,11 @@ main() {
     app)
       shift
       mix_release
-      cargo tauri build "$config" "$config_json" "$@"
+      bundles_flag=""
+      if [ "$os" = "darwin" ]; then
+        bundles_flag="--bundles app"
+      fi
+      cargo tauri build "$config" "$config_json" $bundles_flag "$@"
       open_app "$@"
       ;;
     build)

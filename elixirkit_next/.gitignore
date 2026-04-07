@@ -20,8 +20,5 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-elixirkitnext-*.tar
+elixirkit-*.tar
 
-/examples/cli_example/target
-/examples/tauri_example/target
-/elixirkit_rs/target
