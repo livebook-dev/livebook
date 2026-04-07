@@ -1,6 +1,6 @@
 # ElixirKit
 
-Run Elixir from Rust apps and exchange messages over [PubSub].
+Run Elixir from Rust/Tauri apps and exchange messages over [PubSub].
 
 ## Example
 
