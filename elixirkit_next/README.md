@@ -39,7 +39,7 @@ Mix.install([:elixirkit])
 children = [
   {ElixirKit.PubSub,
    connect: System.get_env("ELIXIRKIT_PUBSUB") || :ignore,
-   on_exit: fn -> System.stop() end}
+   on_exit: &System.stop/0}
 ]
 
 {:ok, _} = Supervisor.start_link(children, strategy: :one_for_one)
