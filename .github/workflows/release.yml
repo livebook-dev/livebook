@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+    # TODO: Remove me
     branches:
       - "wm-*"
   schedule:
