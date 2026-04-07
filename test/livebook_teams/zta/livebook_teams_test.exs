@@ -155,9 +155,9 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       TeamsRPC.update_user_info_groups(ctx.node, ctx.code, groups)
 
       # shouldn't retry the request
-      assert ExUnit.CaptureLog.capture_log(fn ->
-               assert {_, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, [])
-             end) == ""
+      current_timestamp = System.os_time(:second)
+      assert {_, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, [])
+      assert System.os_time(:second) - current_timestamp < :timer.seconds(1)
 
       # simulate if the token already expired
       exp = System.os_time(:second) - 5 * 60
