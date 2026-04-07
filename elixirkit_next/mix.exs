@@ -32,9 +32,8 @@ defmodule ElixirKit.MixProject do
 
   defp aliases do
     [
-      docs: &docs/1,
+      docs: [&docs/1, "docs.rs"],
       "docs.rs": &docs_rs/1,
-      "docs.all": ["docs", "docs.rs"],
       "test.all": [
         "test",
         "test.rs",
