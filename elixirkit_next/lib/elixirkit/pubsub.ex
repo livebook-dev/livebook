@@ -40,7 +40,7 @@ defmodule ElixirKit.PubSub do
 
       > #### Handling exit {: .warning}
       >
-      > It is recommended to set `on_exit: fn -> System.stop() end` to cleanly shutdown the VM
+      > It is recommended to set `on_exit: &System.stop/0` to cleanly shutdown the VM
       > when the native side exits abruptly.
       >
       > Alternatively, consider monitoring the `ElixirKit.PubSub` process and respond accordingly.
