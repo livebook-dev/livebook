@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*.*.*"
+    branches:
+      - "wm-*"
   schedule:
     # Daily at 00:00
     - cron: "0 0 * * *"
