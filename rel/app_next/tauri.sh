@@ -83,9 +83,6 @@ main() {
       shift
       mix_release
       cargo tauri build "$config" "$config_json" "$@"
-      if [ "$os" = "darwin" ]; then
-        macos_dmg
-      fi
       ;;
     *)
       cargo tauri "$@"
@@ -124,22 +121,6 @@ mix_release() {
   if [ "$os" = "darwin" ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
     macos_codesign "$release_root" "$APPLE_SIGNING_IDENTITY"
   fi
-}
-
-macos_dmg() {
-  # We create the DMG ourselves instead of relying on Tauri because
-  # hdiutil occasionally fails with a permission error on /Volumes/Livebook/Livebook.app.
-  # Using a different volname ("... Install") works around it.
-  local bundle_dir="$root_dir/src-tauri/target/$profile/bundle"
-  local app_path="$bundle_dir/macos/${app}.app"
-  local dmg_path="$bundle_dir/dmg/${app}.dmg"
-  mkdir -p "$(dirname "$dmg_path")"
-  rm -f "$dmg_path"
-  hdiutil create -srcfolder "$app_path" -volname "${app} Install" -fs HFS+ -format UDZO -imagekey zlib-level=9 "$dmg_path"
-  if [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
-    codesign --force --sign "$APPLE_SIGNING_IDENTITY" "$dmg_path"
-  fi
-  echo "Created $dmg_path"
 }
 
 macos_codesign() {
