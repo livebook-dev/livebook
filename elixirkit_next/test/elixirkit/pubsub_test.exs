@@ -1,6 +1,20 @@
 defmodule ElixirKit.PubSub.Test do
   use ExUnit.Case, async: true
 
+  setup_all do
+    # Pre-cache Mix.install so that Elixir spawned from Rust tests
+    # doesn't print install output, which we test against.
+    {_output, 0} =
+      System.cmd("elixir", [
+        "-e",
+        """
+        Mix.install([{:elixirkit, path: "#{__DIR__}/../.."}])
+        """
+      ])
+
+    :ok
+  end
+
   test "bidirectional messaging" do
     start_supervised!({ElixirKit.PubSub, name: :pubsub1, listen: "tcp://127.0.0.1:0"})
 

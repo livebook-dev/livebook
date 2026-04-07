@@ -35,10 +35,6 @@ defmodule ElixirKit.MixProject do
       docs: &docs/1,
       "docs.rs": &docs_rs/1,
       "docs.all": ["docs", "docs.rs"],
-      test: [
-        "cmd elixir -e 'Mix.install([{:elixirkit, path: \"#{__DIR__}\"}])'",
-        "test"
-      ],
       "test.all": [
         "test",
         "test.rs",
