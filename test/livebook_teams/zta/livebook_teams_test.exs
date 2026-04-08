@@ -134,6 +134,7 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
     alias Livebook.ZTA.LivebookTeams
 
+    @moduletag :capture_log
     @moduletag teams_for: :agent
     setup :teams
 
@@ -142,40 +143,37 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
     setup :livebook_teams_auth
 
-    test "uses cached version of the identity payload",
-         %{conn: conn, test: test, node: node, code: code} do
+    test "uses cached version of the identity payload", %{conn: conn, test: test} = ctx do
+      Application.put_env(:livebook, :teams_url, "http://localhost:1234")
+
       id = conn.assigns.current_user.id
       access_token = get_session(conn, :livebook_teams_access_token)
       groups = [%{"provider_id" => "1", "group_name" => "Foo"}]
-
-      # simulate the Teams API is down
-      url = Livebook.Config.teams_url()
-      Application.put_env(:livebook, :teams_url, "http://localhost:1234")
+      node = get_session(conn, :livebook_teams_metadata_node)
 
       # update the groups, but doesn't return because Livebook is using the cached one
-      TeamsRPC.update_user_info_groups(node, code, groups)
+      TeamsRPC.update_user_info_groups(ctx.node, ctx.code, groups)
+
+      # shouldn't retry the request
+      current_timestamp = System.os_time(:second)
       assert {_, %{id: ^id, groups: []}} = LivebookTeams.authenticate(test, conn, [])
+      assert System.os_time(:second) - current_timestamp < :timer.seconds(1)
 
       # simulate if the token already expired
       exp = System.os_time(:second) - 5 * 60
-      metadata_node = get_session(conn, :livebook_teams_metadata_node)
+      {_, metadata} = :erpc.call(node, :ets, :lookup_element, [test, access_token, 2, nil])
+      :erpc.call(node, :ets, :insert, [test, {access_token, {exp, metadata}}])
 
-      {_, metadata} =
-        :erpc.call(metadata_node, :ets, :lookup_element, [test, access_token, 2, nil])
+      # now it should retry to request to Teams and return status 503
+      assert ExUnit.CaptureLog.capture_log(fn ->
+               assert {%{status: 503, halted: true, resp_body: body}, nil} =
+                        LivebookTeams.authenticate(test, conn, [])
 
-      :erpc.call(metadata_node, :ets, :insert, [test, {access_token, {exp, metadata}}])
-
-      # now it should return status 503
-      assert {%{status: 503, halted: true, resp_body: body}, nil} =
-               LivebookTeams.authenticate(test, conn, [])
-
-      assert body =~ "The server is currently down or under maintenance"
-
-      # still show 503 error page because Teams isn't up yet
-      assert {%{status: 503, halted: true}, nil} = LivebookTeams.authenticate(test, conn, [])
+               assert body =~ "The server is currently down or under maintenance"
+             end) =~ "retry: got exception, will retry in"
 
       # now gets the updated userinfo from Teams
-      Application.put_env(:livebook, :teams_url, url)
+      Application.put_env(:livebook, :teams_url, TeamsServer.url())
       assert {_conn, %{id: ^id, groups: ^groups}} = LivebookTeams.authenticate(test, conn, [])
     end
   end

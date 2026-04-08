@@ -225,17 +225,21 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to get the user information from given access token.
   """
-  @spec get_user_info(Team.t(), String.t()) :: api_result() | :econnrefused
-  def get_user_info(team, access_token) do
+  @spec get_user_info(Team.t(), String.t(), boolean()) :: api_result() | :econnrefused
+  def get_user_info(team, access_token, valid_cache?) do
     req = build_req(team)
     params = %{access_token: access_token}
 
-    case Req.get(req, url: "/api/v1/org/identity", params: params) do
-      {:error, %Req.TransportError{reason: :econnrefused}} ->
-        :econnrefused
+    fun = fn
+      _, %Req.TransportError{reason: :econnrefused} -> not valid_cache?
+      _, %Req.Response{status: status} when status in [408, 429, 500, 502, 503, 504] -> true
+      _, %Req.TransportError{reason: reason} when reason in [:timeout, :closed] -> true
+      _, _ -> false
+    end
 
-      otherwise ->
-        handle_response(otherwise)
+    case Req.get(req, url: "/api/v1/org/identity", params: params, retry: fun) do
+      {:error, %Req.TransportError{reason: :econnrefused}} -> :econnrefused
+      otherwise -> handle_response(otherwise)
     end
   end
 
@@ -330,17 +334,6 @@ defmodule Livebook.Teams.Requests do
     |> Req.Request.put_new_header("x-lb-version", Livebook.Config.app_version())
     |> Livebook.Utils.req_attach_defaults()
     |> add_team_auth(team)
-    |> put_test_req_options()
-  end
-
-  if Mix.env() == :test do
-    defp put_test_req_options(req) do
-      Req.Request.merge_options(req, retry: false)
-    end
-  else
-    defp put_test_req_options(req) do
-      req
-    end
   end
 
   defp add_team_auth(req, nil), do: req

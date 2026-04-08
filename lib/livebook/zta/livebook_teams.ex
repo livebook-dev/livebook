@@ -69,7 +69,7 @@ defmodule Livebook.ZTA.LivebookTeams do
 
   defp handle_request(name, conn, team, %{"teams_identity" => _, "code" => code}) do
     with {:ok, access_token} <- retrieve_access_token(team, code),
-         {:ok, payload} <- Teams.Requests.get_user_info(team, access_token) do
+         {:ok, payload} <- Teams.Requests.get_user_info(team, access_token, false) do
       metadata = build_metadata(team.id, payload)
       exp = System.os_time(:second) + 3 * 3600
       :ets.insert(name, {access_token, {exp, metadata}})
@@ -183,30 +183,33 @@ defmodule Livebook.ZTA.LivebookTeams do
   defp validate_access_token(name, conn, team, access_token) do
     node = get_session(conn, :livebook_teams_metadata_node)
 
-    case Teams.Requests.get_user_info(team, access_token) do
+    entry =
+      try do
+        :erpc.call(node, :ets, :lookup_element, [name, access_token, 2, nil])
+      catch
+        _, _ -> nil
+      end
+
+    valid_cache? = valid_cache?(entry)
+
+    case Teams.Requests.get_user_info(team, access_token, valid_cache?) do
       {:ok, payload} ->
         {conn, build_metadata(team.id, payload)}
 
       :econnrefused ->
-        entry =
-          try do
-            :erpc.call(node, :ets, :lookup_element, [name, access_token, 2, nil])
-          catch
-            _, _ -> nil
-          end
+        # We double-checked because the response may contain latency, 
+        # so the timestamp must be revalidated to ensure it hasn't expired.
+        if valid_cache?(entry) do
+          {_, metadata} = entry
+          {conn, metadata}
+        else
+          entry && :erpc.call(node, :ets, :delete, [name, access_token])
 
-        case {System.os_time(:second), entry} do
-          {current_timestamp, {exp, metadata}} when current_timestamp <= exp ->
-            {conn, metadata}
-
-          {_, entry} ->
-            entry && :erpc.call(node, :ets, :delete, [name, access_token])
-
-            {conn
-             |> put_status(:service_unavailable)
-             |> put_view(LivebookWeb.ErrorHTML)
-             |> render("503.html")
-             |> halt(), nil}
+          {conn
+           |> put_status(:service_unavailable)
+           |> put_view(LivebookWeb.ErrorHTML)
+           |> render("503.html")
+           |> halt(), nil}
         end
 
       _otherwise ->
@@ -219,6 +222,9 @@ defmodule Livebook.ZTA.LivebookTeams do
         request_user_authentication(conn)
     end
   end
+
+  defp valid_cache?({exp, _}), do: System.os_time(:second) <= exp
+  defp valid_cache?(_entry), do: false
 
   @doc """
   Returns the user metadata from given payload.
