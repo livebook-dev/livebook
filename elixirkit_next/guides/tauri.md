@@ -157,66 +157,59 @@ Let's change `tauri.conf.json` to not create any windows initially. We'll create
 - ],
 ```
 
-Finally, let's start Elixir from the Tauri app:
+Finally, let's start Elixir from the Tauri app. Here's updated `src-tauri/src/lib.rs`:
 
-```diff
-+ use tauri::Manager;
+```rust
+use tauri::Manager;
 
-- // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-- #[tauri::command]
-- fn greet(name: &str) -> String {
--     format!("Hello, {}! You've been greeted from Rust!", name)
-- }
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    let pubsub = elixirkit::PubSub::listen("tcp://127.0.0.1:0").expect("failed to listen");
 
-  #[cfg_attr(mobile, tauri::mobile_entry_point)]
-  pub fn run() {
-+     let pubsub = elixirkit::PubSub::listen("tcp://127.0.0.1:0").expect("failed to listen");
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .setup(move |app| {
+            let app_handle = app.handle().clone();
 
-      tauri::Builder::default()
-          .plugin(tauri_plugin_opener::init())
--         .invoke_handler(tauri::generate_handler![greet])
-+         .setup(move |app| {
-+             let app_handle = app.handle().clone();
-+
-+             pubsub.subscribe("messages", move |msg| {
-+                 if msg == b"ready" {
-+                     create_window(&app_handle);
-+                 } else {
-+                     println!("[rust] {}", String::from_utf8_lossy(msg));
-+                 }
-+             });
-+
-+             let app_handle = app.handle().clone();
-+
-+             tauri::async_runtime::spawn_blocking(move || {
-+                 let mut command = elixir_command();
-+                 command.env("ELIXIRKIT_PUBSUB", pubsub.url());
-+                 let status = command.status().expect("failed to start Elixir");
-+
-+                 app_handle.exit(status.code().unwrap_or(1));
-+             });
-+
-+             Ok(())
-+         })
-          .run(tauri::generate_context!())
-          .expect("error while running tauri application");
-  }
-+
-+ fn create_window(app_handle: &tauri::AppHandle) {
-+     let n = app_handle.webview_windows().len() + 1;
-+     let url = tauri::WebviewUrl::External("http://127.0.0.1:4000".parse().unwrap());
-+     tauri::WebviewWindowBuilder::new(app_handle, format!("window-{}", n), url)
-+         .title("Example")
-+         .inner_size(800.0, 600.0)
-+         .build()
-+         .unwrap();
-+ }
-+
-+ fn elixir_command() -> std::process::Command {
-+     let mut command = elixirkit::mix("phx.server", &[]);
-+     command.current_dir("..");
-+     command
-+ }
+            pubsub.subscribe("messages", move |msg| {
+                if msg == b"ready" {
+                    create_window(&app_handle);
+                } else {
+                    println!("[rust] {}", String::from_utf8_lossy(msg));
+                }
+            });
+
+            let app_handle = app.handle().clone();
+
+            tauri::async_runtime::spawn_blocking(move || {
+                let mut command = elixir_command();
+                command.env("ELIXIRKIT_PUBSUB", pubsub.url());
+                let status = command.status().expect("failed to start Elixir");
+
+                app_handle.exit(status.code().unwrap_or(1));
+            });
+
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+
+fn create_window(app_handle: &tauri::AppHandle) {
+    let n = app_handle.webview_windows().len() + 1;
+    let url = tauri::WebviewUrl::External("http://127.0.0.1:4000".parse().unwrap());
+    tauri::WebviewWindowBuilder::new(app_handle, format!("window-{}", n), url)
+        .title("Example")
+        .inner_size(800.0, 600.0)
+        .build()
+        .unwrap();
+}
+
+fn elixir_command() -> std::process::Command {
+    let mut command = elixirkit::mix("phx.server", &[]);
+    command.current_dir("..");
+    command
+}
 ```
 
 We subscribe to the `messages` PubSub topic. Once Elixir sends the `ready` message, we create a window pointing to our LiveView. Run the following to verify:
