@@ -153,8 +153,7 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  defp target_deps(:app), do: [{:elixirkit, path: "elixirkit"}]
-  defp target_deps(:app_next), do: [{:elixirkit, path: "elixirkit_next"}]
+  defp target_deps(:app_next), do: [{:elixirkit, github: "livebook-dev/elixirkit"}]
   defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
