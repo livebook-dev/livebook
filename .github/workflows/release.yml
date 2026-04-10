@@ -133,8 +133,7 @@ jobs:
       - name: Install trusted-signing-cli (Windows)
         if: runner.os == 'Windows'
         run: |
-          # TODO: use git dependency until trusted-signing-cli next release (v0.8.1 or v0.9)
-          cargo install --git https://github.com/Levminer/trusted-signing-cli.git --rev 5415376 trusted-signing-cli
+          cargo install trusted-signing-cli@0.9.0
 
       - name: Install Apple certificate (macOS)
         if: runner.os == 'macOS'
