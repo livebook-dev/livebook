@@ -19,7 +19,7 @@ config :example, ExampleWeb.Endpoint,
     layout: false
   ],
   pubsub_server: Example.PubSub,
-  live_view: [signing_salt: "oXRpVA22"]
+  live_view: [signing_salt: "h+72aWPG"]
 
 # Configure the mailer
 #

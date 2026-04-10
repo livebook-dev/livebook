@@ -4,7 +4,7 @@ import Config
 # you can enable the server option below.
 config :example, ExampleWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "fAeNvpnkRZcRGZTKjDpfxi7BdHNadLZO0ylQKN3gfGpipW3OcTD3hKJjf4T+O3UV",
+  secret_key_base: "HfJYxZzxfb7+BKbFw1Q7RlZSlVBnS/lNIXtErXWzY7lncRSQHwOw8oPh1OQuom+V",
   server: false
 
 # In test we don't send emails

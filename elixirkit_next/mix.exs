@@ -26,7 +26,7 @@ defmodule ElixirKit.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md"]
+      extras: ["README.md", "guides/tauri.md"]
     ]
   end
 

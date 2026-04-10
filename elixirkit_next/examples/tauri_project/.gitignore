@@ -27,13 +27,13 @@ example-*.tar
 
 # Ignore assets that are produced by build tools.
 /priv/static/assets/
-
-# Ignore digested/compressed files produced by mix phx.digest.
-/priv/static/cache_manifest.json
 /priv/static/**/*.gz
 /priv/static/*.gz
 /priv/static/*-[0-9a-f]*.*
 /priv/static/**/*-[0-9a-f]*.*
+
+# Ignore digested assets cache.
+/priv/static/cache_manifest.json
 
 # In case you use Node.js/npm, you want to ignore these.
 npm-debug.log
