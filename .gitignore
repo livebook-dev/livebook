@@ -40,4 +40,4 @@ npm-debug.log
 # The built Escript
 /livebook
 
-/rel/app_next/resources
+/rel/app/resources

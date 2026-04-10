@@ -1,4 +1,4 @@
-if Mix.target() in [:app, :app_next] do
+if Mix.target() == :app do
   defmodule LivebookApp do
     use GenServer
 

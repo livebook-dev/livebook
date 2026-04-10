@@ -153,7 +153,7 @@ pub fn run() {
                     let mut cmd = elixirkit::mix("phx.server", &[]);
                     cmd.env("ELIXIRKIT_PUBSUB", pubsub.url());
                     cmd.current_dir(mix_root);
-                    cmd.env("MIX_TARGET", "app_next");
+                    cmd.env("MIX_TARGET", "app");
                     cmd
                 } else {
                     let release_dir = handle.path().resource_dir().unwrap().join("rel");

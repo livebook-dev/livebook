@@ -2,11 +2,11 @@
 
 ```shell
 # Run app in development mode
-rel/app_next/tauri.sh dev
+rel/app/tauri.sh dev
 
 # Build app in release mode
-rel/app_next/tauri.sh build
+rel/app/tauri.sh build
 
 # Build, install, and run app in release mode
-rel/app_next/tauri.sh app
+rel/app/tauri.sh app
 ```
