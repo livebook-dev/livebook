@@ -21,7 +21,6 @@ jobs:
           . versions
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
-          echo "openssl=$openssl" >> $GITHUB_ENV
 
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
@@ -91,7 +90,6 @@ jobs:
           . versions
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
-          echo "openssl=$openssl" >> $GITHUB_ENV
 
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
