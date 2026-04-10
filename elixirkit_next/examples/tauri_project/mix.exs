@@ -9,6 +9,7 @@ defmodule Example.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
+      releases: releases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
@@ -60,6 +61,7 @@ defmodule Example.MixProject do
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
+      {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:elixirkit, path: "../.."}
     ]
@@ -82,6 +84,15 @@ defmodule Example.MixProject do
         "phx.digest"
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+    ]
+  end
+
+  defp releases do
+    [
+      example: [
+        steps: [:assemble, &ElixirKit.Release.codesign/1],
+        entitlements: "#{__DIR__}/src-tauri/App.entitlements"
+      ]
     ]
   end
 end

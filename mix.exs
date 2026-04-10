@@ -199,8 +199,10 @@ defmodule Livebook.MixProject do
         steps: [
           :assemble,
           &remove_cookie/1,
-          &standalone_erlang_elixir/1
-        ]
+          &standalone_erlang_elixir/1,
+          &ElixirKit.Release.codesign/1
+        ],
+        entitlements: "#{__DIR__}/rel/app_next/src-tauri/App.entitlements"
       ]
     ]
   end

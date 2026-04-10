@@ -2,25 +2,21 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "example",
   "version": "0.1.0",
-  "identifier": "com.example",
+  "identifier": "com.example.Example",
+  "build": {
+    "beforeBuildCommand": "MIX_ENV=prod mix do compile + assets.deploy + release --overwrite --path src-tauri/target/rel"
+  },
   "app": {
-    "windows": [
-      {
-        "title": "ElixirKit Example",
-        "width": 800,
-        "height": 600,
-        "visible": false
-      }
-    ],
+    "withGlobalTauri": true,
     "security": {
       "csp": null
     }
   },
   "bundle": {
     "active": true,
-    "resources": {
-      "resources/rel": "rel"
-    },
+   "resources": {
+     "target/rel": "rel"
+   },
     "targets": "all",
     "icon": [
       "icons/32x32.png",
