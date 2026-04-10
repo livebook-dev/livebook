@@ -61,32 +61,43 @@ defmodule ElixirKit.Release do
   """
   def codesign(release) do
     if :os.type() == {:unix, :darwin} do
-      identity = System.fetch_env!("APPLE_SIGNING_IDENTITY")
-      entitlements = release.options[:entitlements]
-      macos_codesign(release.path, identity, entitlements)
+      codesign_macos(release)
+    else
+      release
     end
-
-    release
   end
 
-  defp macos_codesign(release_path, identity, entitlements) do
+  defp codesign_macos(release) do
+    identity = System.fetch_env!("APPLE_SIGNING_IDENTITY")
+
     entitlements_flag =
-      if entitlements, do: ~s[--entitlements "#{entitlements}"], else: ""
+      if entitlements = release.options[:entitlements] do
+        ~s[--entitlements "#{entitlements}"]
+      else
+        ""
+      end
 
     {_, 0} =
-      System.cmd("bash", [
-        "-c",
-        ~s"""
-        files=$(find "#{release_path}" -perm +111 -type f -exec sh -c \
-          'file "$1" | grep --silent Mach-O && echo "$1"' _ {} \\;)
-        count=$(echo "$files" | wc -l | tr -d ' ')
-        echo "Signing $count files with identity: #{identity}"
-        echo "$files" | xargs -n 1 -I {} \
-          codesign --force --options runtime \
-            #{entitlements_flag} \
-            --sign "#{identity}" \
-            --timestamp "{}"
-        """
-      ], into: IO.stream(), stderr_to_stdout: true)
+      System.cmd(
+        "bash",
+        [
+          "-c",
+          ~s"""
+          files=$(find "#{release.path}" -perm +111 -type f -exec sh -c \
+            'file "$1" | grep --silent Mach-O && echo "$1"' _ {} \\;)
+          count=$(echo "$files" | wc -l | tr -d ' ')
+          echo "Signing $count files with identity: #{identity}"
+          echo "$files" | xargs -n 1 -I {} \
+            codesign --force --options runtime \
+              #{entitlements_flag} \
+              --sign "#{identity}" \
+              --timestamp "{}"
+          """
+        ],
+        into: IO.stream(),
+        stderr_to_stdout: true
+      )
+
+    release
   end
 end
