@@ -21,7 +21,7 @@ tauri-plugin-clipboard-manager = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-updater = "2"
-elixirkit = { path = "../../../elixirkit_next/elixirkit_rs" }
+elixirkit = { git = "https://github.com/livebook-dev/elixirkit.git" }
 serde_json = "1"
 url = "2"
 tracing = "0.1"

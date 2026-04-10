@@ -908,7 +908,8 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
 name = "elixirkit"
-version = "0.1.0"
+version = "0.1.0-dev"
+source = "git+https://github.com/livebook-dev/elixirkit.git#9c59a6a5d615e91f3ee936bb8a98c1c646e45efb"
 
 [[package]]
 name = "embed-resource"
