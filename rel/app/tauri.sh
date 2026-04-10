@@ -9,7 +9,7 @@
 set -euo pipefail
 
 main() {
-  export MIX_TARGET="app_next"
+  export MIX_TARGET="app"
 
   root_dir="$(cd "$(dirname "$0")" && pwd)"
   mix_project_dir="${root_dir}/../.."

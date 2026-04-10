@@ -153,7 +153,7 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  defp target_deps(:app_next), do: [{:elixirkit, github: "livebook-dev/elixirkit"}]
+  defp target_deps(:app), do: [{:elixirkit, github: "livebook-dev/elixirkit"}]
   defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
@@ -201,13 +201,13 @@ defmodule Livebook.MixProject do
           &standalone_erlang_elixir/1,
           &ElixirKit.Release.codesign/1
         ],
-        entitlements: "#{__DIR__}/rel/app_next/src-tauri/App.entitlements"
+        entitlements: "#{__DIR__}/rel/app/src-tauri/App.entitlements"
       ]
     ]
   end
 
-  if Mix.target() == :app_next do
-    {cargo_output, 0} = System.cmd("cargo", ["pkgid"], cd: "#{__DIR__}/rel/app_next/src-tauri")
+  if Mix.target() == :app do
+    {cargo_output, 0} = System.cmd("cargo", ["pkgid"], cd: "#{__DIR__}/rel/app/src-tauri")
     [_, cargo_version] = Regex.run(~r/#.+@(.+)$/, String.trim(cargo_output))
 
     if @version != cargo_version do

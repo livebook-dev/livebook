@@ -4,7 +4,7 @@
    the new version.
 1. Switch to (or create) vx.y branch.
 2. If applicable cherry-pick the relevant commits from main onto the vx.y branch.
-3. Update version in `mix.exs`, `rel/app_next/src-tauri/Cargo.toml`, `rel/app_next/src-tauri/Cargo.lock` and finish changelog.
+3. Update version in `mix.exs`, `rel/app/src-tauri/Cargo.toml`, `rel/app/src-tauri/Cargo.lock` and finish changelog.
 4. Run `mix hex.build` as a sanity check.
 5. `git tag vx.y.z`, `git push --tags`
    1. Wait for CI to finish (Docker and Desktop)
