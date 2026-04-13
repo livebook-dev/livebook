@@ -25,6 +25,7 @@ defmodule Livebook.Hubs.TeamClient do
     app_deployments: [],
     agents: [],
     app_folders: [],
+    notifications: [],
     app_deployment_statuses: nil
   ]
 
@@ -190,6 +191,16 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_app_folders(String.t()) :: list(Teams.AppFolder.t())
   def get_app_folders(id) do
     GenServer.call(registry_name(id), :get_app_folders)
+  catch
+    :exit, _ -> []
+  end
+
+  @doc """
+  Returns a list of cached notifications related to this instance.
+  """
+  @spec get_notifications(String.t()) :: list(Teams.Notification.t())
+  def get_notifications(id) do
+    GenServer.call(registry_name(id), :get_notifications)
   catch
     :exit, _ -> []
   end
@@ -401,6 +412,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:get_app_folders, _caller, state) do
     {:reply, state.app_folders, state}
+  end
+
+  def handle_call(:get_notifications, _caller, state) do
+    {:reply, state.notifications, state}
   end
 
   @impl true
@@ -725,6 +740,16 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
+  defp build_notification(notification) do
+    %Teams.Notification{
+      id: notification.id,
+      kind: notification.kind,
+      type: atomize(notification.type),
+      message: nullify(notification.message),
+      min_version: nullify(notification.min_version)
+    }
+  end
+
   defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do
     Hubs.Broadcasts.secret_created(secret)
 
@@ -982,8 +1007,16 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
+  defp handle_event(:notification_sent, %Teams.Notification{} = notification, state) do
+    Teams.Broadcasts.notification_sent(notification)
+    notifications = filter_notifications([notification | state.notifications])
+
+    %{state | notifications: notifications}
+  end
+
   defp dispatch_common_connected_events(state, connected) do
-    state
+    # Clear all the notifications before handling the new ones from Teams
+    %{state | notifications: []}
     |> update_hub(connected)
     |> dispatch_secrets(connected)
     |> dispatch_file_systems(connected)
@@ -991,6 +1024,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_app_deployments(connected)
     |> dispatch_agents(connected)
     |> dispatch_app_folders(connected)
+    |> dispatch_notifications(connected)
     |> dispatch_connection()
   end
 
@@ -1068,6 +1102,15 @@ defmodule Livebook.Hubs.TeamClient do
       app_folder_created: created,
       app_folder_updated: updated
     )
+  end
+
+  defp dispatch_notifications(state, %{notifications: notifications}) do
+    notifications =
+      notifications
+      |> Enum.map(&build_notification/1)
+      |> filter_notifications()
+
+    dispatch_events(state, notification_sent: notifications)
   end
 
   defp dispatch_connection(%{hub: %{id: id}} = state) do
@@ -1236,6 +1279,15 @@ defmodule Livebook.Hubs.TeamClient do
   defp authorized_group?(authorization_groups, groups) do
     Enum.any?(authorization_groups, fn %{provider_id: id, group_name: name} ->
       %{"provider_id" => id, "group_name" => name} in groups
+    end)
+  end
+
+  defp filter_notifications(notifications) do
+    # To ensure Livebook doesn't show both version-related notifications,
+    # it must prioritize the unsupported version message.
+    Enum.filter(notifications, fn notification ->
+      not (notification.type == :deprecation) or
+        not Enum.any?(notifications, &(&1.type == :unsupported_version))
     end)
   end
 

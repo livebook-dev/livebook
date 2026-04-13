@@ -400,6 +400,47 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:app_folder_deleted, ^updated_app_folder}
       refute updated_app_folder in TeamClient.get_app_folders(team.id)
     end
+
+    test "dispatches the notifications list",
+         %{team: team, pid: pid, user_connected: user_connected} do
+      notification = build(:notification)
+
+      livebook_proto_notification =
+        %LivebookProto.Notification{
+          id: notification.id,
+          kind: notification.kind,
+          type: to_string(notification.type),
+          message: to_string(notification.message),
+          min_version: to_string(notification.min_version)
+        }
+
+      # appends the notification
+      user_connected = %{user_connected | notifications: [livebook_proto_notification]}
+      refute_received {:notification_sent, ^notification}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:notification_sent, ^notification}
+      assert notification in TeamClient.get_notifications(team.id)
+
+      # updates the notification
+      updated_notification = %{notification | min_version: "0.19.0"}
+
+      updated_livebook_proto_notification = %{
+        livebook_proto_notification
+        | min_version: updated_notification.min_version
+      }
+
+      user_connected = %{user_connected | notifications: [updated_livebook_proto_notification]}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:notification_sent, ^updated_notification}
+      refute notification in TeamClient.get_notifications(team.id)
+      assert updated_notification in TeamClient.get_notifications(team.id)
+
+      # deletes the notification
+      user_connected = %{user_connected | notifications: []}
+      send(pid, {:event, :user_connected, user_connected})
+      refute_receive {:notification_sent, ^updated_notification}
+      refute notification in TeamClient.get_notifications(team.id)
+    end
   end
 
   describe "handle agent_connected event" do
@@ -844,6 +885,47 @@ defmodule Livebook.Hubs.TeamClientTest do
       send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:app_folder_deleted, ^updated_app_folder}
       refute updated_app_folder in TeamClient.get_app_folders(team.id)
+    end
+
+    test "dispatches the notifications list",
+         %{team: team, pid: pid, agent_connected: agent_connected} do
+      notification = build(:notification)
+
+      livebook_proto_notification =
+        %LivebookProto.Notification{
+          id: notification.id,
+          kind: notification.kind,
+          type: to_string(notification.type),
+          message: to_string(notification.message),
+          min_version: to_string(notification.min_version)
+        }
+
+      # appends the notification
+      agent_connected = %{agent_connected | notifications: [livebook_proto_notification]}
+      refute_received {:notification_sent, ^notification}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:notification_sent, ^notification}
+      assert notification in TeamClient.get_notifications(team.id)
+
+      # updates the notification
+      updated_notification = %{notification | min_version: "0.19.0"}
+
+      updated_livebook_proto_notification = %{
+        livebook_proto_notification
+        | min_version: updated_notification.min_version
+      }
+
+      agent_connected = %{agent_connected | notifications: [updated_livebook_proto_notification]}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:notification_sent, ^updated_notification}
+      refute notification in TeamClient.get_notifications(team.id)
+      assert updated_notification in TeamClient.get_notifications(team.id)
+
+      # deletes the notification
+      agent_connected = %{agent_connected | notifications: []}
+      send(pid, {:event, :agent_connected, agent_connected})
+      refute_receive {:notification_sent, ^updated_notification}
+      refute notification in TeamClient.get_notifications(team.id)
     end
   end
 end
