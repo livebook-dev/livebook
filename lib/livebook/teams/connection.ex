@@ -103,7 +103,25 @@ defmodule Livebook.Teams.Connection do
   end
 
   def handle_event(:info, message, @no_state, data) when elem(message, 0) in @expected_messages do
-    handle_websocket_message(message, data)
+    case WebSocket.receive(data.http_conn, data.ref, data.websocket, message) do
+      {:ok, conn, websocket, binaries} ->
+        data = %{data | http_conn: conn, websocket: websocket}
+        handle_messages(data, binaries)
+        {:keep_state, data}
+
+      {:closed, conn, websocket, binaries} ->
+        handle_messages(data, binaries)
+        data = %{data | http_conn: conn, websocket: websocket}
+        Logger.warning("Teams WebSocket connection - closed")
+        {:keep_state, data, {:next_event, :internal, :connect}}
+
+      {:error, conn, websocket, reason} ->
+        send(data.listener, {:connection_error, reason})
+        data = %{data | http_conn: conn, websocket: websocket}
+        Logger.warning("Teams WebSocket connection - receive error: #{inspect(reason)}")
+        ensure_closed(data)
+        {:keep_state, data, {:next_event, :internal, :connect}}
+    end
   end
 
   def handle_event(:info, _message, @no_state, _data) do
@@ -127,32 +145,6 @@ defmodule Livebook.Teams.Connection do
   end
 
   # Private
-
-  defp handle_websocket_message(_message, %{http_conn: nil} = data) do
-    {:keep_state, data, {:next_event, :internal, :connect}}
-  end
-
-  defp handle_websocket_message(message, data) do
-    case WebSocket.receive(data.http_conn, data.ref, data.websocket, message) do
-      {:ok, conn, websocket, binaries} ->
-        data = %{data | http_conn: conn, websocket: websocket}
-        handle_messages(data, binaries)
-        {:keep_state, data}
-
-      {:closed, conn, websocket, binaries} ->
-        handle_messages(data, binaries)
-        data = %{data | http_conn: conn, websocket: websocket}
-        Logger.warning("Teams WebSocket connection - closed")
-        {:keep_state, data, {:next_event, :internal, :connect}}
-
-      {:error, conn, websocket, reason} ->
-        send(data.listener, {:connection_error, reason})
-        data = %{data | http_conn: conn, websocket: websocket}
-        Logger.warning("Teams WebSocket connection - receive error: #{inspect(reason)}")
-        ensure_closed(data)
-        {:keep_state, data, {:next_event, :internal, :connect}}
-    end
-  end
 
   defp handle_messages(data, binaries) do
     for binary <- binaries do

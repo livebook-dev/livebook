@@ -264,10 +264,6 @@ defmodule Livebook.Hubs.TeamClient do
     {:reply, state.connected?, state}
   end
 
-  def handle_call(:get_secrets, _caller, %{deployment_group_id: nil} = state) do
-    {:reply, state.secrets, state}
-  end
-
   def handle_call(:get_secrets, _caller, state) do
     case find_deployment_group(state.deployment_group_id, state.deployment_groups) do
       nil ->
