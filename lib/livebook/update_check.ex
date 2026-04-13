@@ -68,7 +68,13 @@ defmodule Livebook.UpdateCheck do
 
   @impl true
   def handle_call(:get_new_version, _from, state) do
-    new_version = if state.enabled, do: state.new_version
+    version_notification? =
+      Enum.any?(
+        Livebook.Teams.get_notifications(),
+        &(&1.type in ~w[deprecation unsupported_version]a)
+      )
+
+    new_version = if state.enabled and not version_notification?, do: state.new_version
     {:reply, new_version, state}
   end
 
