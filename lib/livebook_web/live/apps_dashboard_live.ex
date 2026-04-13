@@ -26,6 +26,7 @@ defmodule LivebookWeb.AppsDashboardLive do
       current_user={@current_user}
       teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
+      notifications={@notifications}
     >
       <div class="space-y-2 p-4 md:px-12 md:py-7 max-w-(--breakpoint-lg) mx-auto">
         <div class="flex items-center justify-between">

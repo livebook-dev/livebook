@@ -40,6 +40,7 @@ defmodule LivebookWeb.Hub.NewLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
       teams_auth={@teams_auth}
+      notifications={@notifications}
     >
       <LayoutComponents.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant="warning">
         <strong>Beware!</strong>

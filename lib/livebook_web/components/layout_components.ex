@@ -12,6 +12,7 @@ defmodule LivebookWeb.LayoutComponents do
   attr :current_user, Livebook.Users.User, required: true
   attr :teams_auth, :atom, values: [:online, :offline]
   attr :saved_hubs, :list, required: true
+  attr :notifications, :list, required: true
 
   slot :inner_block, required: true
   slot :topbar_action
@@ -30,6 +31,7 @@ defmodule LivebookWeb.LayoutComponents do
         <.topbar :if={@teams_auth == :offline} variant="warning">
           You are running an offline Workspace for deployment. You cannot modify its settings.
         </.topbar>
+        <.teams_notification :for={notification <- @notifications} notification={notification} />
 
         <div class="md:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-500 bg-white border-b border-gray-200">
           <div class="pt-1 text-xl text-gray-400 hover:text-gray-600 focus:text-gray-600">
@@ -338,6 +340,34 @@ defmodule LivebookWeb.LayoutComponents do
   defp topbar_class("warning"), do: "bg-yellow-200 text-gray-900"
   defp topbar_class("info"), do: "bg-blue-200 text-gray-900"
   defp topbar_class("error"), do: "bg-red-200 text-gray-900"
+
+  attr :notification, Livebook.Teams.Notification, required: true
+
+  defp teams_notification(%{notification: %{type: :deprecation}} = assigns) do
+    ~H"""
+    <.topbar variant={@notification.kind}>
+      This Livebook version will not be compatible with a future version of Livebook Teams. Please update to
+      <strong>v{@notification.min_version}</strong>
+      or later.
+    </.topbar>
+    """
+  end
+
+  defp teams_notification(%{notification: %{type: :unsupported_version}} = assigns) do
+    ~H"""
+    <.topbar variant={@notification.kind}>
+      This Livebook version is no longer compatible with Livebook Teams. Please update to
+      <strong>v{@notification.min_version}</strong>
+      or later to keep using Teams features.
+    </.topbar>
+    """
+  end
+
+  defp teams_notification(assigns) do
+    ~H"""
+    <.topbar variant={@notification.kind}>{@notification.message}</.topbar>
+    """
+  end
 
   @doc """
   Returns an inline script to inject in dev mode.
