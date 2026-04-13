@@ -47,6 +47,7 @@ defmodule LivebookWeb.OpenLive do
       current_user={@current_user}
       teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
+      notifications={@notifications}
     >
       <:topbar_action>
         <.button color="blue" navigate={~p"/new"}>

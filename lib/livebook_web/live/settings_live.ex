@@ -34,6 +34,7 @@ defmodule LivebookWeb.SettingsLive do
       current_user={@current_user}
       teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
+      notifications={@notifications}
     >
       <div id="settings-page" class="p-4 md:px-12 md:py-7 max-w-(--breakpoint-md) mx-auto space-y-16">
         <div class="flex flex-col space-y-10">

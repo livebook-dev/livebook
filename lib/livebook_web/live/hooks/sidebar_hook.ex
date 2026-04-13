@@ -12,9 +12,12 @@ defmodule LivebookWeb.SidebarHook do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sidebar")
     end
 
+    hubs = Livebook.Hubs.get_metadata()
+    notifications = Livebook.Teams.get_notifications()
+
     socket =
       socket
-      |> assign(saved_hubs: Livebook.Hubs.get_metadata())
+      |> assign(saved_hubs: hubs, notifications: notifications)
       |> attach_hook(:hubs, :handle_info, &handle_info/2)
       |> attach_hook(:shutdown, :handle_info, &handle_info/2)
       |> attach_hook(:shutdown, :handle_event, &handle_event/3)
