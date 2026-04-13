@@ -20,4 +20,5 @@ defmodule LivebookProto.AgentConnected do
   field :agents, 9, repeated: true, type: LivebookProto.Agent
   field :billing_status, 10, type: LivebookProto.BillingStatus, json_name: "billingStatus"
   field :app_folders, 11, repeated: true, type: LivebookProto.AppFolder, json_name: "appFolders"
+  field :notifications, 12, repeated: true, type: LivebookProto.Notification
 end
