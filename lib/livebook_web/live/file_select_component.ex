@@ -221,9 +221,7 @@ defmodule LivebookWeb.FileSelectComponent do
       <div
         :if={not @loading}
         class={[
-          "grow -m-1 p-1 h-full rounded-lg relative",
-          @loading && "overflow-y-hidden",
-          not @loading && "overflow-y-auto tiny-scrollbar"
+          "grow -m-1 p-1 h-full rounded-lg relative overflow-y-auto tiny-scrollbar"
         ]}
         tabindex="-1"
         phx-hook="Dropzone"

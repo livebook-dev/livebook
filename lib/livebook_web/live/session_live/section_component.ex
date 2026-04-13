@@ -225,7 +225,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <.remix_icon
             :if={@section_view.parent}
             icon="arrow-right-s-line"
-            class={[(@section_view.parent && @section_view.parent.id == parent.id) || "invisible"]}
+            class={[@section_view.parent.id == parent.id || "invisible"]}
           />
           <span>{parent.name}</span>
         </button>
