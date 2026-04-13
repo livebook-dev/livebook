@@ -6,6 +6,12 @@ we hide/show certain elements. This way we don't have to engage the
 server in solely client-side operations.
 */
 
+/* Prevent scroll jump when cell body is focused (e.g., clicking on output) */
+[data-el-cell-body] {
+  scroll-margin-top: 50px;
+  scroll-margin-bottom: 50px;
+}
+
 /* Hooks */
 
 [phx-hook="Dropzone"][data-js-dragging] {
