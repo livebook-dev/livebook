@@ -8,4 +8,7 @@ defmodule Livebook.Teams.Notification do
         }
 
   defstruct [:id, :message, :kind, :type, :min_version]
+
+  def version_notification?(%__MODULE__{type: type}),
+    do: type in ~w[deprecation unsupported_version]a
 end
