@@ -321,4 +321,20 @@ defmodule Livebook.Teams do
   def get_app_folders(team) do
     Hubs.Provider.get_app_folders(team)
   end
+
+  @doc """
+  Gets a list of notifications from Livebook Teams.
+  """
+  @spec get_notifications() :: list(Teams.Notification.t())
+  def get_notifications do
+    hubs = Hubs.get_hubs()
+
+    if team = Enum.find(hubs, &match?(%Team{}, &1)) do
+      team.id
+      |> TeamClient.get_notifications()
+      |> Enum.sort_by(& &1.id)
+    else
+      []
+    end
+  end
 end
