@@ -29,6 +29,7 @@ defmodule Livebook.Teams.Broadcasts do
   Topic `#{@clients_topic}`:
 
     * `{:client_connected, id}`
+    * `{:client_notified, Notification.t()}`
 
   Topic `#{@deployment_groups_topic}`:
 
@@ -65,6 +66,14 @@ defmodule Livebook.Teams.Broadcasts do
   @spec client_connected(String.t()) :: broadcast()
   def client_connected(id) do
     broadcast(@clients_topic, {:client_connected, id})
+  end
+
+  @doc """
+  Broadcasts under `#{@clients_topic}` topic when hub receives a notification.
+  """
+  @spec notification_sent(Teams.Notification.t()) :: broadcast()
+  def notification_sent(%Teams.Notification{} = notification) do
+    broadcast(@clients_topic, {:notification_sent, notification})
   end
 
   @doc """
