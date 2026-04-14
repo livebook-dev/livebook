@@ -31,6 +31,7 @@ export default defineConfig({
       },
     },
   },
+  base: "./",
   server: {
     port: 4432,
     origin: "http://localhost:4432",
