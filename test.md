@@ -1,3 +1,0 @@
-```mermaid
-info
-```
