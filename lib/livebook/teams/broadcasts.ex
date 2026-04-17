@@ -61,7 +61,7 @@ defmodule Livebook.Teams.Broadcasts do
   end
 
   @doc """
-  Broadcasts under `#{@clients_topic}` topic when hub received a new client connection.
+  Broadcasts under `#{@clients_topic}` topic when hub dispatches events from connection event.
   """
   @spec client_connected(String.t()) :: broadcast()
   def client_connected(id) do
