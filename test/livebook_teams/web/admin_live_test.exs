@@ -167,19 +167,47 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
     for page <- ["/", "/open", "/settings", "/learn", "/hub", "/apps-dashboard"] do
       @tag page: page, teams_auth: :online
       test "GET #{page} shows the app server instance topbar warning", %{conn: conn, page: page} do
-        {:ok, view, _} = live(conn, page)
+        {:ok, _view, html} = live(conn, page)
 
-        assert render(view) =~
+        assert html =~
                  "This Livebook instance has been configured for notebook deployment and is in read-only mode."
       end
 
       @tag page: page, teams_auth: :offline
       test "GET #{page} shows the offline hub topbar warning", %{conn: conn, page: page} do
-        {:ok, view, _} = live(conn, page)
+        {:ok, _view, html} = live(conn, page)
 
-        assert render(view) =~
+        assert html =~
                  "You are running an offline Workspace for deployment. You cannot modify its settings."
       end
+    end
+  end
+
+  describe "notifications" do
+    setup %{notification_type: type, test: test, team: team} do
+      pid = Livebook.Hubs.TeamClient.get_pid(team.id)
+      notification = build(:notification, id: to_string(test), type: type)
+
+      send(pid, {:event, :notification_sent, notification})
+      assert_receive {:notification_sent, ^notification}
+
+      :ok
+    end
+
+    @tag notification_type: :deprecation
+    test "shows the deprecated version notification", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/")
+
+      assert render(view) =~
+               "This Livebook version will not be compatible with a future version of Livebook Teams."
+    end
+
+    @tag notification_type: :unsupported_version
+    test "shows the unsupported version notification", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/")
+
+      assert render(view) =~
+               "This Livebook version is no longer compatible with Livebook Teams."
     end
   end
 end
