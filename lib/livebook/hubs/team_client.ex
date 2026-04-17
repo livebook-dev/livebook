@@ -841,27 +841,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp handle_event(:user_connected, user_connected, state) do
-    state
-    |> update_hub(user_connected)
-    |> dispatch_secrets(user_connected)
-    |> dispatch_file_systems(user_connected)
-    |> dispatch_deployment_groups(user_connected)
-    |> dispatch_app_deployments(user_connected)
-    |> dispatch_agents(user_connected)
-    |> dispatch_app_folders(user_connected)
-    |> dispatch_connection()
+    dispatch_common_connected_events(state, user_connected)
   end
 
   defp handle_event(:agent_connected, agent_connected, state) do
-    %{state | deployment_group_id: to_string(agent_connected.deployment_group_id)}
-    |> update_hub(agent_connected)
-    |> dispatch_secrets(agent_connected)
-    |> dispatch_file_systems(agent_connected)
-    |> dispatch_deployment_groups(agent_connected)
-    |> dispatch_app_deployments(agent_connected)
-    |> dispatch_agents(agent_connected)
-    |> dispatch_app_folders(agent_connected)
-    |> dispatch_connection()
+    dispatch_common_connected_events(
+      %{state | deployment_group_id: to_string(agent_connected.deployment_group_id)},
+      agent_connected
+    )
   end
 
   defp handle_event(:app_deployment_started, %Teams.AppDeployment{} = app_deployment, state) do
@@ -993,6 +980,18 @@ defmodule Livebook.Hubs.TeamClient do
       Teams.Broadcasts.deployment_group_updated(deployment_group)
       put_deployment_group(state, deployment_group)
     end
+  end
+
+  defp dispatch_common_connected_events(state, connected) do
+    state
+    |> update_hub(connected)
+    |> dispatch_secrets(connected)
+    |> dispatch_file_systems(connected)
+    |> dispatch_deployment_groups(connected)
+    |> dispatch_app_deployments(connected)
+    |> dispatch_agents(connected)
+    |> dispatch_app_folders(connected)
+    |> dispatch_connection()
   end
 
   defp dispatch_secrets(state, %{secrets: secrets}) do
