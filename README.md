@@ -359,26 +359,10 @@ mix phx.server
 mix test
 ```
 
-### Desktop app builds
-
-For macOS, run:
+### Desktop app
 
 ```shell
-# Test macOS app locally
-(cd rel/app/macos && ./run.sh)
-
-# Build macOS installer
-.github/scripts/app/build_macos.sh
-```
-
-For Windows, run:
-
-```shell
-# Test Windows app locally
-(cd rel/app/windows && ./run.sh)
-
-# Build Windows installer
-.github/scripts/app/build_windows.sh
+./rel/app/tauri.sh dev
 ```
 
 ## Platinum sponsors
