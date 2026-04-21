@@ -523,7 +523,7 @@ defmodule LivebookWeb.FileSelectComponent do
     send_event(socket.assigns.target, {:mount_file_system, file_system})
     send_event(socket.assigns.target, {:set_file, file, %{exists: true}})
 
-    {:noreply, assign(socket, loading: true)}
+    {:noreply, socket}
   end
 
   def handle_event("set_path", %{"path" => path}, socket) do
@@ -544,7 +544,7 @@ defmodule LivebookWeb.FileSelectComponent do
       end
 
     send_event(socket.assigns.target, {:set_file, file, info})
-    {:noreply, assign(socket, loading: socket.assigns.file.path != path)}
+    {:noreply, socket}
   end
 
   def handle_event("clear_error", %{}, socket) do
@@ -640,19 +640,32 @@ defmodule LivebookWeb.FileSelectComponent do
     current_file_infos = assigns[:file_infos] || []
     {dir, prefix} = dir_and_prefix(assigns.file)
 
-    {file_infos, socket} =
-      if dir != assigns.current_dir or force_reload? do
-        case get_file_infos(dir, assigns.extnames, assigns.running_files) do
-          {:ok, file_infos} ->
-            {file_infos, assign(socket, :current_dir, dir)}
+    dir_changed? = dir != assigns.current_dir
 
-          {:error, error} ->
-            {current_file_infos, put_error(socket, error)}
-        end
-      else
-        {current_file_infos, socket}
+    if dir_changed? or force_reload? do
+      # Start async file listing operation
+      start_async_file_listing(socket, dir, prefix, current_file_infos)
+    else
+      # Just re-annotate with the current prefix (search filter changed)
+      update_file_display(socket, current_file_infos, prefix)
+    end
+  end
+
+  defp start_async_file_listing(socket, dir, prefix, current_file_infos) do
+    extnames = socket.assigns.extnames
+    running_files = socket.assigns.running_files
+
+    socket
+    |> start_async(:list_files, fn ->
+      case get_file_infos(dir, extnames, running_files) do
+        {:ok, file_infos} -> {:ok, file_infos, dir, prefix}
+        {:error, error} -> {:error, error, current_file_infos, prefix}
       end
+    end)
+    |> assign(loading: true)
+  end
 
+  defp update_file_display(socket, file_infos, prefix) do
     file_infos = annotate_matching(file_infos, prefix)
 
     {unhighlighted_file_infos, highlighted_file_infos} =
@@ -665,9 +678,38 @@ defmodule LivebookWeb.FileSelectComponent do
     assign(socket,
       file_infos: file_infos,
       unhighlighted_file_infos: unhighlighted_file_infos,
-      highlighted_file_infos: highlighted_file_infos,
-      loading: false
+      highlighted_file_infos: highlighted_file_infos
     )
+  end
+
+  @impl true
+  def handle_async(:list_files, {:ok, {:ok, file_infos, dir, prefix}}, socket) do
+    socket =
+      socket
+      |> assign(current_dir: dir)
+      |> update_file_display(file_infos, prefix)
+      |> assign(loading: false)
+
+    {:noreply, socket}
+  end
+
+  def handle_async(:list_files, {:ok, {:error, error, current_file_infos, prefix}}, socket) do
+    socket =
+      socket
+      |> update_file_display(current_file_infos, prefix)
+      |> put_error(error)
+      |> assign(loading: false)
+
+    {:noreply, socket}
+  end
+
+  def handle_async(:list_files, {:exit, _reason}, socket) do
+    socket =
+      socket
+      |> put_error("Listing files failed")
+      |> assign(loading: false)
+
+    {:noreply, socket}
   end
 
   defp annotate_matching(file_infos, prefix) do
