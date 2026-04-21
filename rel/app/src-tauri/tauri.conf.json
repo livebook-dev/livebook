@@ -36,7 +36,10 @@
       "signingIdentity": null
     },
     "windows": {
-      "signCommand": "trusted-signing-cli -e https://eus.codesigning.azure.net %1"
+      "signCommand": "trusted-signing-cli -e https://eus.codesigning.azure.net %1",
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
     }
   },
   "plugins": {
