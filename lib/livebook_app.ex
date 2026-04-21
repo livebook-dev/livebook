@@ -23,13 +23,13 @@ if Mix.target() == :app do
 
     @impl true
     def handle_info("open:/logs", state) do
-      Livebook.Utils.browser_open("file://" <> state.log_path)
+      Livebook.Utils.open_file(state.log_path)
       {:noreply, state}
     end
 
     @impl true
     def handle_info("open:/boot-script", state) do
-      Livebook.Utils.browser_open("file://" <> state.boot_script_path)
+      Livebook.Utils.open_file(state.boot_script_path)
       {:noreply, state}
     end
 
