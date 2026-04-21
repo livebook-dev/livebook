@@ -554,10 +554,12 @@ defmodule Livebook.Utils do
   Opens the given `path` for editing.
   """
   def open_file(path) do
+    win_cmd_args = {"cmd.exe", ["/c", "start", "", "notepad.exe", path], []}
+
     cmd_args =
       case :os.type() do
         {:win32, _} ->
-          {"notepad.exe", [path], []}
+          win_cmd_args
 
         {:unix, :darwin} ->
           {"open", [path], []}
@@ -568,7 +570,7 @@ defmodule Livebook.Utils do
           cond do
             # When inside WSL
             System.find_executable("cmd.exe") ->
-              {"notepad.exe", [path], []}
+              win_cmd_args
 
             exe = find_xdg_open(env) ->
               {exe, [path], env}
