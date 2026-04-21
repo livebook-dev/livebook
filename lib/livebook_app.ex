@@ -13,13 +13,23 @@ if Mix.target() in [:app, :app_next] do
 
       ElixirKit.publish("ready", LivebookWeb.Endpoint.access_url())
 
-      {:ok, %{ref: ref, log_path: System.fetch_env!("LOG_PATH")}}
+      {:ok,
+       %{
+         ref: ref,
+         log_path: System.fetch_env!("LOG_PATH"),
+         boot_script_path: System.fetch_env!("BOOT_SCRIPT_PATH")
+       }}
     end
 
     @impl true
     def handle_info({:event, "open", "/logs"}, state) do
-      Livebook.Utils.browser_open("file://" <> state.log_path)
+      Livebook.Utils.open_file(state.log_path)
+      {:noreply, state}
+    end
 
+    @impl true
+    def handle_info({:event, "open", "/boot-script"}, state) do
+      Livebook.Utils.open_file(state.boot_script_path)
       {:noreply, state}
     end
 

@@ -18,7 +18,6 @@ const TRAY_ID: &str = "livebook-tray";
 
 pub fn run() {
     let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             let urls = extract_open_urls(argv);
             if let Some(state) = app.try_state::<AppState>() {
@@ -27,6 +26,7 @@ pub fn run() {
                 }
             }
         }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -82,8 +82,10 @@ pub fn run() {
                         }
                     }
                     "boot-script" => {
-                        if let Ok(path) = ensure_boot_script() {
-                            app.state::<AppState>().publish_open(&format!("file://{}", path.display()));
+                        if let Some(state) = app.try_state::<AppState>() {
+                            if let Ok(_) = ensure_boot_script() {
+                                state.publish_open("/boot-script");
+                            }
                         }
                     }
                     "check-updates" => {
@@ -139,7 +141,9 @@ pub fn run() {
                     elixirkit::release(release_dir, "app")
                 };
 
-                let command = command.env_set("LOG_PATH", log_path.display().to_string());
+                let command = command
+                    .env_set("LOG_PATH", log_path.display().to_string())
+                    .env_set("BOOT_SCRIPT_PATH", boot_script_path().unwrap().display().to_string());
 
                 let status = command.start(|(name, data)| {
                     if name == "ready" {

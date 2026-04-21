@@ -2,6 +2,15 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## HEAD
+
+### Fixed
+
+* Fix missing macOS .livemd icons
+* Fix opening .livebookdesktop.sh,.bat
+* Fix missing Windows code signing
+* Fix missing Windows installer icon
+
 ## [v0.19.6](https://github.com/livebook-dev/livebook/tree/v0.19.6) (2026-03-27)
 
 ### Fixed

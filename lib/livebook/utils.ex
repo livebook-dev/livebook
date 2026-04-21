@@ -550,6 +550,47 @@ defmodule Livebook.Utils do
     :ok
   end
 
+  @doc """
+  Opens the given `path` for editing.
+  """
+  def open_file(path) do
+    win_cmd_args = {"cmd.exe", ["/c", "start", "", "notepad.exe", path], []}
+
+    cmd_args =
+      case :os.type() do
+        {:win32, _} ->
+          win_cmd_args
+
+        {:unix, :darwin} ->
+          {"open", [path], []}
+
+        {:unix, _} ->
+          env = appimage_env_overrides()
+
+          cond do
+            # When inside WSL
+            System.find_executable("cmd.exe") ->
+              win_cmd_args
+
+            exe = find_xdg_open(env) ->
+              {exe, [path], env}
+
+            true ->
+              nil
+          end
+      end
+
+    case cmd_args do
+      {cmd, args, env} ->
+        System.cmd(cmd, args, env: env)
+
+      nil ->
+        Logger.warning("could not open #{path}, no open command found in the system")
+    end
+
+    :ok
+  end
+
   # When running inside an AppImage, the runtime injects paths pointing into
   # the mounted AppImage that break external programs (e.g. xdg-open links
   # against the bundled libssl but the system libssl requires a newer OpenSSL).
