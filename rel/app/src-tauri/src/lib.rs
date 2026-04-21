@@ -21,7 +21,6 @@ const TRAY_ID: &str = "livebook-tray";
 
 pub fn run() {
     let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             let urls = extract_open_urls(argv);
             if let Some(state) = app.try_state::<AppState>() {
@@ -30,6 +29,7 @@ pub fn run() {
                 }
             }
         }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
