@@ -4,19 +4,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## HEAD
 
+### Added
+
+- Added configurable output size for cells, also applicable to apps (#3160)
+- Exposed query params from a multi-session permalink via `Kino.Workspace.app_info/0` (#3169)
+
 ### Fixed
 
-* Fix missing macOS .livemd icons
-* Fix opening .livebookdesktop.sh,.bat
-* Fix missing Windows code signing
-* Fix missing Windows installer icon
+- App server to be locked while Livebook Teams connection is pending (#3168)
+- Icons not loading when using `LIVEBOOK_BASE_URL_PATH`
+- (Desktop) Missing macOS .livemd icons
+- (Desktop) Opening .livebookdesktop.sh,.bat
+- (Desktop) Missing Windows code signing
+- (Desktop) Missing Windows installer icon
 
 ## [v0.19.6](https://github.com/livebook-dev/livebook/tree/v0.19.6) (2026-03-27)
 
 ### Fixed
 
-* Some smart cells getting cleared on notebook `/dev/sync` ([#3161](https://github.com/livebook-dev/livebook/pull/3161))
-* Reauthentication failures when accessing Livebook Teams apps ([#3164](https://github.com/livebook-dev/livebook/pull/3164))
+- Some smart cells getting cleared on notebook `/dev/sync` ([#3161](https://github.com/livebook-dev/livebook/pull/3161))
+- Reauthentication failures when accessing Livebook Teams apps ([#3164](https://github.com/livebook-dev/livebook/pull/3164))
 
 ## [v0.19.5](https://github.com/livebook-dev/livebook/tree/v0.19.5) (2026-03-23)
 
