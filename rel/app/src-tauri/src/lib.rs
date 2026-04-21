@@ -85,8 +85,10 @@ pub fn run() {
                         }
                     }
                     "boot-script" => {
-                        if let Ok(path) = ensure_boot_script() {
-                            app.state::<AppState>().publish_open(&format!("file://{}", path.display()));
+                        if let Some(state) = app.try_state::<AppState>() {
+                            if let Ok(_) = ensure_boot_script() {
+                                state.publish_open("/boot-script");
+                            }
                         }
                     }
                     "check-updates" => {
@@ -162,6 +164,7 @@ pub fn run() {
                     cmd
                 };
                 cmd.env("LOG_PATH", log_path.display().to_string());
+                cmd.env("BOOT_SCRIPT_PATH", boot_script_path().unwrap().display().to_string());
                 cmd.stdin(Stdio::null());
                 cmd.stdout(Stdio::piped());
                 cmd.stderr(Stdio::piped());

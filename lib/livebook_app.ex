@@ -13,13 +13,23 @@ if Mix.target() == :app do
       ElixirKit.PubSub.subscribe("messages")
       ElixirKit.PubSub.broadcast("messages", "ready:" <> LivebookWeb.Endpoint.access_url())
 
-      {:ok, %{ref: ref, log_path: System.fetch_env!("LOG_PATH")}}
+      {:ok,
+       %{
+         ref: ref,
+         log_path: System.fetch_env!("LOG_PATH"),
+         boot_script_path: System.fetch_env!("BOOT_SCRIPT_PATH")
+       }}
     end
 
     @impl true
     def handle_info("open:/logs", state) do
       Livebook.Utils.browser_open("file://" <> state.log_path)
+      {:noreply, state}
+    end
 
+    @impl true
+    def handle_info("open:/boot-script", state) do
+      Livebook.Utils.browser_open("file://" <> state.boot_script_path)
       {:noreply, state}
     end
 
