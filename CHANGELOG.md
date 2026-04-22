@@ -2,16 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## HEAD
+## [v0.19.7](https://github.com/livebook-dev/livebook/tree/v0.19.7) (2026-04-22)
 
 ### Added
 
-- Added configurable output size for cells, also applicable to apps (#3160)
-- Exposed query params from a multi-session permalink via `Kino.Workspace.app_info/0` (#3169)
+- Added configurable output size for cells, also applicable to apps ([#3160](https://github.com/livebook-dev/livebook/pull/3160))
+- Exposed query params from a multi-session permalink via `Kino.Workspace.app_info/0` ([#3169](https://github.com/livebook-dev/livebook/pull/3169))
 
 ### Fixed
 
-- App server to be locked while Livebook Teams connection is pending (#3168)
+- App server to be locked while Livebook Teams connection is pending ([#3168](https://github.com/livebook-dev/livebook/pull/3168))
 - Icons not loading when using `LIVEBOOK_BASE_URL_PATH`
 - (Desktop) Missing macOS .livemd icons
 - (Desktop) Opening .livebookdesktop.sh,.bat
