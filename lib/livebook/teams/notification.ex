@@ -3,7 +3,7 @@ defmodule Livebook.Teams.Notification do
           id: String.t(),
           message: String.t() | nil,
           kind: String.t(),
-          type: :deprecation | :unsupported_version | :notice,
+          type: :deprecation | :unsupported_version | atom(),
           min_version: String.t() | nil
         }
 
