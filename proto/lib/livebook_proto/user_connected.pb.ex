@@ -1,5 +1,5 @@
 defmodule LivebookProto.UserConnected do
-  use Protobuf, protoc_gen_elixir_version: "0.14.1", syntax: :proto3
+  use Protobuf, full_name: "UserConnected", protoc_gen_elixir_version: "0.16.0", syntax: :proto3
 
   field :name, 1, type: :string
   field :secrets, 2, repeated: true, type: LivebookProto.Secret
@@ -18,4 +18,5 @@ defmodule LivebookProto.UserConnected do
   field :agents, 6, repeated: true, type: LivebookProto.Agent
   field :billing_status, 7, type: LivebookProto.BillingStatus, json_name: "billingStatus"
   field :app_folders, 8, repeated: true, type: LivebookProto.AppFolder, json_name: "appFolders"
+  field :notifications, 9, repeated: true, type: LivebookProto.Notification
 end
