@@ -169,6 +169,16 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:notification) do
+    %Livebook.Teams.Notification{
+      id: "1",
+      kind: "warning",
+      message: nil,
+      min_version: "0.18.0",
+      type: :deprecation
+    }
+  end
+
   def build(factory_name, attrs) do
     factory_name |> build() |> struct!(attrs)
   end

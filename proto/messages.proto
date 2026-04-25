@@ -126,6 +126,7 @@ message UserConnected {
   repeated Agent agents = 6;
   BillingStatus billing_status = 7;
   repeated AppFolder app_folders = 8;
+  repeated Notification notifications = 9;
 }
 
 message AgentConnected {
@@ -139,6 +140,7 @@ message AgentConnected {
   repeated Agent agents = 9;
   BillingStatus billing_status = 10;
   repeated AppFolder app_folders = 11;
+  repeated Notification notifications = 12;
 }
 
 message AppDeployment {
@@ -247,6 +249,14 @@ message AppFolderDeleted {
 message AppFolder {
   string id = 1;
   string name = 2;
+}
+
+message Notification {
+  string id = 1;
+  string message = 2;
+  string kind = 3;
+  string type = 4;
+  string min_version = 5;
 }
 
 message Event {

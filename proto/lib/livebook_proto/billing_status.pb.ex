@@ -1,5 +1,5 @@
 defmodule LivebookProto.BillingStatus do
-  use Protobuf, protoc_gen_elixir_version: "0.14.1", syntax: :proto3
+  use Protobuf, full_name: "BillingStatus", protoc_gen_elixir_version: "0.16.0", syntax: :proto3
 
   oneof :type, 0
 
