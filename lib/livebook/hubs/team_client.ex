@@ -25,6 +25,7 @@ defmodule Livebook.Hubs.TeamClient do
     app_deployments: [],
     agents: [],
     app_folders: [],
+    notifications: [],
     app_deployment_statuses: nil
   ]
 
@@ -190,6 +191,16 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_app_folders(String.t()) :: list(Teams.AppFolder.t())
   def get_app_folders(id) do
     GenServer.call(registry_name(id), :get_app_folders)
+  catch
+    :exit, _ -> []
+  end
+
+  @doc """
+  Returns a list of cached notifications related to this instance.
+  """
+  @spec get_notifications(String.t()) :: list(Teams.Notification.t())
+  def get_notifications(id) do
+    GenServer.call(registry_name(id), :get_notifications)
   catch
     :exit, _ -> []
   end
@@ -405,6 +416,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:get_app_folders, _caller, state) do
     {:reply, state.app_folders, state}
+  end
+
+  def handle_call(:get_notifications, _caller, state) do
+    {:reply, state.notifications, state}
   end
 
   @impl true
@@ -729,6 +744,29 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
+  defp build_notification(notification) do
+    kind =
+      if notification.kind in ~w[warning error info],
+        do: notification.kind,
+        else: "info"
+
+    %Teams.Notification{
+      id: notification.id,
+      kind: kind,
+      message: nullify(notification.message)
+    }
+  end
+
+  defp put_notification(state, notification) do
+    state = remove_notification(state, notification)
+
+    %{state | notifications: [notification | state.notifications]}
+  end
+
+  defp remove_notification(state, notification) do
+    %{state | notifications: Enum.reject(state.notifications, &(&1.id == notification.id))}
+  end
+
   defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do
     Hubs.Broadcasts.secret_created(secret)
 
@@ -986,6 +1024,21 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
+  defp handle_event(:notification_sent, %Teams.Notification{} = notification, state) do
+    Teams.Broadcasts.notification_sent(notification)
+    put_notification(state, notification)
+  end
+
+  defp handle_event(:notification_updated, %Teams.Notification{} = notification, state) do
+    Teams.Broadcasts.notification_updated(notification)
+    put_notification(state, notification)
+  end
+
+  defp handle_event(:notification_deleted, %Teams.Notification{} = notification, state) do
+    Teams.Broadcasts.notification_deleted(notification)
+    remove_notification(state, notification)
+  end
+
   defp dispatch_common_connected_events(state, connected) do
     state
     |> update_hub(connected)
@@ -995,6 +1048,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_app_deployments(connected)
     |> dispatch_agents(connected)
     |> dispatch_app_folders(connected)
+    |> dispatch_notifications(connected)
     |> dispatch_connection()
   end
 
@@ -1071,6 +1125,19 @@ defmodule Livebook.Hubs.TeamClient do
       app_folder_deleted: deleted,
       app_folder_created: created,
       app_folder_updated: updated
+    )
+  end
+
+  defp dispatch_notifications(state, %{notifications: notifications}) do
+    notifications = Enum.map(notifications, &build_notification/1)
+
+    {created, deleted, updated} =
+      diff(state.notifications, notifications, &(&1.id == &2.id))
+
+    dispatch_events(state,
+      notification_deleted: deleted,
+      notification_sent: created,
+      notification_updated: updated
     )
   end
 

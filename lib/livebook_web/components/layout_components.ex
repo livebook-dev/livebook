@@ -12,6 +12,7 @@ defmodule LivebookWeb.LayoutComponents do
   attr :current_user, Livebook.Users.User, required: true
   attr :teams_auth, :atom, values: [:online, :offline]
   attr :saved_hubs, :list, required: true
+  attr :notifications, :list, required: true
 
   slot :inner_block, required: true
   slot :topbar_action
@@ -29,6 +30,9 @@ defmodule LivebookWeb.LayoutComponents do
         </.topbar>
         <.topbar :if={@teams_auth == :offline} variant="warning">
           You are running an offline Workspace for deployment. You cannot modify its settings.
+        </.topbar>
+        <.topbar :for={notification <- @notifications} variant={notification.kind}>
+          {notification.message}
         </.topbar>
 
         <div class="md:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-500 bg-white border-b border-gray-200">

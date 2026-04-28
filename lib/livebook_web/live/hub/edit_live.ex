@@ -42,6 +42,7 @@ defmodule LivebookWeb.Hub.EditLive do
       current_user={@current_user}
       teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
+      notifications={@notifications}
     >
       <.hub_component
         type={@type}

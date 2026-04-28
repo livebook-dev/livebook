@@ -42,6 +42,7 @@ defmodule LivebookWeb.HomeLive do
       current_user={@current_user}
       teams_auth={@teams_auth}
       saved_hubs={@saved_hubs}
+      notifications={@notifications}
     >
       <:topbar_action>
         <div class="flex space-x-2">

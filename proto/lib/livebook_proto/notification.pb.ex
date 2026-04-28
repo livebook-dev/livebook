@@ -4,6 +4,4 @@ defmodule LivebookProto.Notification do
   field :id, 1, type: :string
   field :message, 2, type: :string
   field :kind, 3, type: :string
-  field :type, 4, type: :string
-  field :min_version, 5, type: :string, json_name: "minVersion"
 end

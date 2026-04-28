@@ -29,6 +29,9 @@ defmodule Livebook.Teams.Broadcasts do
   Topic `#{@clients_topic}`:
 
     * `{:client_connected, id}`
+    * `{:notification_sent, Notification.t()}`
+    * `{:notification_updated, Notification.t()}`
+    * `{:notification_deleted, Notification.t()}`
 
   Topic `#{@deployment_groups_topic}`:
 
@@ -65,6 +68,30 @@ defmodule Livebook.Teams.Broadcasts do
   @spec client_connected(String.t()) :: broadcast()
   def client_connected(id) do
     broadcast(@clients_topic, {:client_connected, id})
+  end
+
+  @doc """
+  Broadcasts under `#{@clients_topic}` topic when hub receives a notification.
+  """
+  @spec notification_sent(Teams.Notification.t()) :: broadcast()
+  def notification_sent(%Teams.Notification{} = notification) do
+    broadcast(@clients_topic, {:notification_sent, notification})
+  end
+
+  @doc """
+  Broadcasts under `#{@clients_topic}` topic when hub receives an updated notification.
+  """
+  @spec notification_updated(Teams.Notification.t()) :: broadcast()
+  def notification_updated(%Teams.Notification{} = notification) do
+    broadcast(@clients_topic, {:notification_updated, notification})
+  end
+
+  @doc """
+  Broadcasts under `#{@clients_topic}` topic when hub receives a deleted notification.
+  """
+  @spec notification_deleted(Teams.Notification.t()) :: broadcast()
+  def notification_deleted(%Teams.Notification{} = notification) do
+    broadcast(@clients_topic, {:notification_deleted, notification})
   end
 
   @doc """
