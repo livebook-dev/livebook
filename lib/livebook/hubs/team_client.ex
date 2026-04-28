@@ -741,13 +741,27 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp build_notification(notification) do
+    kind =
+      if notification.kind in ~w[warning error info],
+        do: notification.kind,
+        else: "info"
+
     %Teams.Notification{
       id: notification.id,
-      kind: notification.kind,
-      type: atomize(notification.type),
+      kind: kind,
       message: nullify(notification.message),
       min_version: nullify(notification.min_version)
     }
+  end
+
+  defp put_notification(state, notification) do
+    state = remove_notification(state, notification)
+
+    %{state | notifications: [notification | state.notifications]}
+  end
+
+  defp remove_notification(state, notification) do
+    %{state | notifications: Enum.reject(state.notifications, &(&1.id == notification.id))}
   end
 
   defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do
@@ -1009,14 +1023,21 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:notification_sent, %Teams.Notification{} = notification, state) do
     Teams.Broadcasts.notification_sent(notification)
-    notifications = filter_notifications([notification | state.notifications])
+    put_notification(state, notification)
+  end
 
-    %{state | notifications: notifications}
+  defp handle_event(:notification_updated, %Teams.Notification{} = notification, state) do
+    Teams.Broadcasts.notification_updated(notification)
+    put_notification(state, notification)
+  end
+
+  defp handle_event(:notification_deleted, %Teams.Notification{} = notification, state) do
+    Teams.Broadcasts.notification_deleted(notification)
+    remove_notification(state, notification)
   end
 
   defp dispatch_common_connected_events(state, connected) do
-    # Clear all the notifications before handling the new ones from Teams
-    %{state | notifications: []}
+    state
     |> update_hub(connected)
     |> dispatch_secrets(connected)
     |> dispatch_file_systems(connected)
@@ -1105,12 +1126,16 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp dispatch_notifications(state, %{notifications: notifications}) do
-    notifications =
-      notifications
-      |> Enum.map(&build_notification/1)
-      |> filter_notifications()
+    notifications = Enum.map(notifications, &build_notification/1)
 
-    dispatch_events(state, notification_sent: notifications)
+    {created, deleted, updated} =
+      diff(state.notifications, notifications, &(&1.id == &2.id))
+
+    dispatch_events(state,
+      notification_deleted: deleted,
+      notification_sent: created,
+      notification_updated: updated
+    )
   end
 
   defp dispatch_connection(%{hub: %{id: id}} = state) do
@@ -1279,15 +1304,6 @@ defmodule Livebook.Hubs.TeamClient do
   defp authorized_group?(authorization_groups, groups) do
     Enum.any?(authorization_groups, fn %{provider_id: id, group_name: name} ->
       %{"provider_id" => id, "group_name" => name} in groups
-    end)
-  end
-
-  defp filter_notifications(notifications) do
-    # To ensure Livebook doesn't show both version-related notifications,
-    # it must prioritize the unsupported version message.
-    Enum.filter(notifications, fn notification ->
-      not (notification.type == :deprecation) or
-        not Enum.any?(notifications, &(&1.type == :unsupported_version))
     end)
   end
 

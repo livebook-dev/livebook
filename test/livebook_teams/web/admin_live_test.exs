@@ -183,31 +183,16 @@ defmodule LivebookWeb.Integration.AdminLiveTest do
     end
   end
 
-  describe "notifications" do
-    setup %{notification_type: type, test: test, team: team} do
-      pid = Livebook.Hubs.TeamClient.get_pid(team.id)
-      notification = build(:notification, id: to_string(test), type: type)
+  test "shows the deprecated version notification", %{conn: conn, team: team} do
+    pid = Livebook.Hubs.TeamClient.get_pid(team.id)
+    notification = build(:notification)
 
-      send(pid, {:event, :notification_sent, notification})
-      assert_receive {:notification_sent, ^notification}
+    send(pid, {:event, :notification_sent, notification})
+    assert_receive {:notification_sent, ^notification}
 
-      :ok
-    end
+    {:ok, view, _} = live(conn, ~p"/")
 
-    @tag notification_type: :deprecation
-    test "shows the deprecated version notification", %{conn: conn} do
-      {:ok, view, _} = live(conn, ~p"/")
-
-      assert render(view) =~
-               "This Livebook version will not be compatible with a future version of Livebook Teams."
-    end
-
-    @tag notification_type: :unsupported_version
-    test "shows the unsupported version notification", %{conn: conn} do
-      {:ok, view, _} = live(conn, ~p"/")
-
-      assert render(view) =~
-               "This Livebook version is no longer compatible with Livebook Teams."
-    end
+    assert render(view) =~
+             "This Livebook version will not be compatible with a future version of Livebook Teams."
   end
 end

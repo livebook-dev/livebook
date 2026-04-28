@@ -409,7 +409,6 @@ defmodule Livebook.Hubs.TeamClientTest do
         %LivebookProto.Notification{
           id: notification.id,
           kind: notification.kind,
-          type: to_string(notification.type),
           message: to_string(notification.message),
           min_version: to_string(notification.min_version)
         }
@@ -431,14 +430,14 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       user_connected = %{user_connected | notifications: [updated_livebook_proto_notification]}
       send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:notification_sent, ^updated_notification}
+      assert_receive {:notification_updated, ^updated_notification}
       refute notification in TeamClient.get_notifications(team.id)
       assert updated_notification in TeamClient.get_notifications(team.id)
 
       # deletes the notification
       user_connected = %{user_connected | notifications: []}
       send(pid, {:event, :user_connected, user_connected})
-      refute_receive {:notification_sent, ^updated_notification}
+      assert_receive {:notification_deleted, ^updated_notification}
       refute notification in TeamClient.get_notifications(team.id)
     end
   end
@@ -895,7 +894,6 @@ defmodule Livebook.Hubs.TeamClientTest do
         %LivebookProto.Notification{
           id: notification.id,
           kind: notification.kind,
-          type: to_string(notification.type),
           message: to_string(notification.message),
           min_version: to_string(notification.min_version)
         }
@@ -917,14 +915,14 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       agent_connected = %{agent_connected | notifications: [updated_livebook_proto_notification]}
       send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:notification_sent, ^updated_notification}
+      assert_receive {:notification_updated, ^updated_notification}
       refute notification in TeamClient.get_notifications(team.id)
       assert updated_notification in TeamClient.get_notifications(team.id)
 
       # deletes the notification
       agent_connected = %{agent_connected | notifications: []}
       send(pid, {:event, :agent_connected, agent_connected})
-      refute_receive {:notification_sent, ^updated_notification}
+      assert_receive {:notification_deleted, ^updated_notification}
       refute notification in TeamClient.get_notifications(team.id)
     end
   end

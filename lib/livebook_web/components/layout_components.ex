@@ -343,21 +343,11 @@ defmodule LivebookWeb.LayoutComponents do
 
   attr :notification, Livebook.Teams.Notification, required: true
 
-  defp teams_notification(%{notification: %{type: :deprecation}} = assigns) do
+  defp teams_notification(%{notification: notification} = assigns)
+       when is_binary(notification.min_version) do
     ~H"""
     <.topbar variant={@notification.kind}>
-      This Livebook version will not be compatible with a future version of Livebook Teams. Please update to
-      <strong>v{@notification.min_version}</strong>
-      or later.
-    </.topbar>
-    """
-  end
-
-  defp teams_notification(%{notification: %{type: :unsupported_version}} = assigns) do
-    ~H"""
-    <.topbar variant={@notification.kind}>
-      This Livebook version is no longer compatible with Livebook Teams. Please update to
-      <strong>v{@notification.min_version}</strong>
+      {@notification.message} Please update to <strong>v{@notification.min_version}</strong>
       or later to keep using Teams features.
     </.topbar>
     """

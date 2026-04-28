@@ -173,9 +173,9 @@ defmodule Livebook.Factory do
     %Livebook.Teams.Notification{
       id: "1",
       kind: "warning",
-      message: nil,
-      min_version: "0.18.0",
-      type: :deprecation
+      message:
+        "This Livebook version will not be compatible with a future version of Livebook Teams.",
+      min_version: "0.18.0"
     }
   end
 
