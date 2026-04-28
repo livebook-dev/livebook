@@ -749,8 +749,7 @@ defmodule Livebook.Hubs.TeamClient do
     %Teams.Notification{
       id: notification.id,
       kind: kind,
-      message: nullify(notification.message),
-      min_version: nullify(notification.min_version)
+      message: nullify(notification.message)
     }
   end
 

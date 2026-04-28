@@ -255,7 +255,6 @@ message Notification {
   string id = 1;
   string message = 2;
   string kind = 3;
-  string min_version = 4;
 }
 
 message Event {

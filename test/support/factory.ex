@@ -174,8 +174,7 @@ defmodule Livebook.Factory do
       id: "1",
       kind: "warning",
       message:
-        "This Livebook version will not be compatible with a future version of Livebook Teams.",
-      min_version: "0.18.0"
+        "This Livebook version will not be compatible with a future version of Livebook Teams."
     }
   end
 

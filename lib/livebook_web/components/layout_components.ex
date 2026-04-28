@@ -31,7 +31,9 @@ defmodule LivebookWeb.LayoutComponents do
         <.topbar :if={@teams_auth == :offline} variant="warning">
           You are running an offline Workspace for deployment. You cannot modify its settings.
         </.topbar>
-        <.teams_notification :for={notification <- @notifications} notification={notification} />
+        <.topbar :for={notification <- @notifications} variant={notification.kind}>
+          {notification.message}
+        </.topbar>
 
         <div class="md:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-500 bg-white border-b border-gray-200">
           <div class="pt-1 text-xl text-gray-400 hover:text-gray-600 focus:text-gray-600">
@@ -340,24 +342,6 @@ defmodule LivebookWeb.LayoutComponents do
   defp topbar_class("warning"), do: "bg-yellow-200 text-gray-900"
   defp topbar_class("info"), do: "bg-blue-200 text-gray-900"
   defp topbar_class("error"), do: "bg-red-200 text-gray-900"
-
-  attr :notification, Livebook.Teams.Notification, required: true
-
-  defp teams_notification(%{notification: notification} = assigns)
-       when is_binary(notification.min_version) do
-    ~H"""
-    <.topbar variant={@notification.kind}>
-      {@notification.message} Please update to <strong>v{@notification.min_version}</strong>
-      or later to keep using Teams features.
-    </.topbar>
-    """
-  end
-
-  defp teams_notification(assigns) do
-    ~H"""
-    <.topbar variant={@notification.kind}>{@notification.message}</.topbar>
-    """
-  end
 
   @doc """
   Returns an inline script to inject in dev mode.

@@ -409,8 +409,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         %LivebookProto.Notification{
           id: notification.id,
           kind: notification.kind,
-          message: to_string(notification.message),
-          min_version: to_string(notification.min_version)
+          message: to_string(notification.message)
         }
 
       # appends the notification
@@ -421,11 +420,11 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert notification in TeamClient.get_notifications(team.id)
 
       # updates the notification
-      updated_notification = %{notification | min_version: "0.19.0"}
+      updated_notification = %{notification | message: "Update to 0.19.0"}
 
       updated_livebook_proto_notification = %{
         livebook_proto_notification
-        | min_version: updated_notification.min_version
+        | message: updated_notification.message
       }
 
       user_connected = %{user_connected | notifications: [updated_livebook_proto_notification]}
@@ -894,8 +893,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         %LivebookProto.Notification{
           id: notification.id,
           kind: notification.kind,
-          message: to_string(notification.message),
-          min_version: to_string(notification.min_version)
+          message: to_string(notification.message)
         }
 
       # appends the notification
@@ -906,11 +904,11 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert notification in TeamClient.get_notifications(team.id)
 
       # updates the notification
-      updated_notification = %{notification | min_version: "0.19.0"}
+      updated_notification = %{notification | message: "Update to 0.19.0"}
 
       updated_livebook_proto_notification = %{
         livebook_proto_notification
-        | min_version: updated_notification.min_version
+        | message: updated_notification.message
       }
 
       agent_connected = %{agent_connected | notifications: [updated_livebook_proto_notification]}
