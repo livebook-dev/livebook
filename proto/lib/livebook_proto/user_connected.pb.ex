@@ -19,4 +19,5 @@ defmodule LivebookProto.UserConnected do
   field :billing_status, 7, type: LivebookProto.BillingStatus, json_name: "billingStatus"
   field :app_folders, 8, repeated: true, type: LivebookProto.AppFolder, json_name: "appFolders"
   field :notifications, 9, repeated: true, type: LivebookProto.Notification
+  field :min_version_enforcement, 10, type: :string, json_name: "minVersionEnforcement"
 end
