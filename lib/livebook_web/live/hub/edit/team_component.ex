@@ -48,7 +48,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secret_name: secret_name,
        secret_value: secret_value,
        hub_metadata: Provider.to_metadata(assigns.hub),
-       default?: default?
+       default?: default?,
+       disabled?: Hubs.TeamClient.version_enforcement(assigns.hub.id) != nil
      )
      |> assign_form(changeset)}
   end
@@ -179,7 +180,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </.form>
             </div>
 
-            <div class="flex flex-col space-y-4">
+            <div :if={not @disabled?} class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
                 Secrets
               </h2>
@@ -210,7 +211,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </div>
             </div>
 
-            <div class="flex flex-col space-y-4">
+            <div :if={not @disabled?} class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
                 File storages
               </h2>
@@ -229,7 +230,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               />
             </div>
 
-            <div class="flex flex-col space-y-4">
+            <div :if={not @disabled?} class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
                 Deployment groups
               </h2>
