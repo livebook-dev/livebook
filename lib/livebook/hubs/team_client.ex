@@ -18,6 +18,7 @@ defmodule Livebook.Hubs.TeamClient do
     :connection_status,
     :derived_key,
     :deployment_group_id,
+    version_enforcement: nil,
     connected?: false,
     secrets: [],
     file_systems: [],
@@ -203,6 +204,16 @@ defmodule Livebook.Hubs.TeamClient do
     GenServer.call(registry_name(id), :get_notifications)
   catch
     :exit, _ -> []
+  end
+
+  @doc """
+  Returns the Team client version enforcement.
+  """
+  @spec version_enforcement(String.t()) :: String.t() | nil
+  def version_enforcement(id) do
+    GenServer.call(registry_name(id), :version_enforcement)
+  catch
+    :exit, _ -> nil
   end
 
   @doc """
@@ -416,6 +427,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:get_notifications, _caller, state) do
     {:reply, state.notifications, state}
+  end
+
+  def handle_call(:version_enforcement, _, state) do
+    {:reply, state.version_enforcement, state}
   end
 
   @impl true
@@ -1036,7 +1051,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp dispatch_common_connected_events(state, connected) do
-    state
+    %{state | version_enforcement: nullify(connected.min_version_enforcement)}
     |> update_hub(connected)
     |> dispatch_secrets(connected)
     |> dispatch_file_systems(connected)
