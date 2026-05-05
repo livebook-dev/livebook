@@ -35,6 +35,16 @@ defmodule LivebookWeb.ErrorHTML do
     """
   end
 
+  def render("unsupported_version.html", assigns) do
+    ~H"""
+    <.error_page
+      status={503}
+      title="Livebook version not compatible"
+      details={"This Livebook version is no longer compatible with Livebook Teams. Please update this app server to #{@min_version} or later to restore access."}
+    />
+    """
+  end
+
   def render(_template, assigns) do
     ~H"""
     <.error_page

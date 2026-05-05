@@ -1,6 +1,7 @@
 defmodule Livebook.ZTA.LivebookTeams do
   use LivebookWeb, :verified_routes
 
+  alias Livebook.Hubs
   alias Livebook.Teams
 
   import Plug.Conn
@@ -28,24 +29,32 @@ defmodule Livebook.ZTA.LivebookTeams do
   def authenticate(name, conn, _opts) do
     team = NimbleZTA.get(name)
 
-    case Livebook.Hubs.TeamClient.identity_status(team.id) do
-      :enabled ->
-        handle_request(name, conn, team, conn.params)
+    if version = Hubs.TeamClient.version_enforcement(team.id) do
+      {conn
+       |> put_status(:service_unavailable)
+       |> put_view(LivebookWeb.ErrorHTML)
+       |> render("unsupported_version.html", %{min_version: version})
+       |> halt(), nil}
+    else
+      case Hubs.TeamClient.identity_status(team.id) do
+        :enabled ->
+          handle_request(name, conn, team, conn.params)
 
-      :disabled ->
-        {conn, %{}}
+        :disabled ->
+          {conn, %{}}
 
-      :pending ->
-        {conn
-         |> put_status(:service_unavailable)
-         |> put_view(LivebookWeb.ErrorHTML)
-         |> render("error.html", %{
-           status: 503,
-           details:
-             "This Livebook instance cannot be accessed because it has not yet" <>
-               " established a connection to Livebook Teams."
-         })
-         |> halt(), nil}
+        :pending ->
+          {conn
+           |> put_status(:service_unavailable)
+           |> put_view(LivebookWeb.ErrorHTML)
+           |> render("error.html", %{
+             status: 503,
+             details:
+               "This Livebook instance cannot be accessed because it has not yet" <>
+                 " established a connection to Livebook Teams."
+           })
+           |> halt(), nil}
+      end
     end
   end
 
@@ -240,7 +249,7 @@ defmodule Livebook.ZTA.LivebookTeams do
     } = payload
 
     access_type =
-      if Livebook.Hubs.TeamClient.user_full_access?(hub_id, groups),
+      if Hubs.TeamClient.user_full_access?(hub_id, groups),
         do: :full,
         else: :apps
 

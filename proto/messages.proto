@@ -127,6 +127,7 @@ message UserConnected {
   BillingStatus billing_status = 7;
   repeated AppFolder app_folders = 8;
   repeated Notification notifications = 9;
+  string min_version_enforcement = 10;
 }
 
 message AgentConnected {
@@ -141,6 +142,7 @@ message AgentConnected {
   BillingStatus billing_status = 10;
   repeated AppFolder app_folders = 11;
   repeated Notification notifications = 12;
+  string min_version_enforcement = 13;
 }
 
 message AppDeployment {

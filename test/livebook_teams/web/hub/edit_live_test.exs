@@ -437,6 +437,23 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       # guarantee the folder were deleted
       refute File.exists?(repo_dir)
     end
+
+    test "hides data if has version enforcement", %{conn: conn, team: team} do
+      # forces the min version enforcement
+      pid = Livebook.Hubs.TeamClient.get_pid(team.id)
+      :sys.replace_state(pid, &Map.replace(&1, :version_enforcement, "0.15.6"))
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{team.id}")
+
+      # hides the workspace data
+      refute has_element?(view, "#hub-secrets-list")
+      refute has_element?(view, "#hub-file-systems-list")
+      refute has_element?(view, "#add-deployment-group")
+
+      # but keep the general form and danger zone
+      assert has_element?(view, "#team-form")
+      assert has_element?(view, "#delete-hub")
+    end
   end
 
   describe "agent" do

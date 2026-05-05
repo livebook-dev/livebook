@@ -106,6 +106,20 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert html_response(conn, 200) =~ "window.location.href = "
       refute :erpc.call(metadata_node, :ets, :lookup_element, [test, access_token, 2, nil])
     end
+
+    test "shows unsupported version error page with older livebook version",
+         %{test: test, node: node, team: team} do
+      {conn, _code} = authenticate_user_on_teams(test, node, team)
+
+      # forces the min version enforcement
+      pid = Livebook.Hubs.TeamClient.get_pid(team.id)
+      :sys.replace_state(pid, &Map.replace(&1, :version_enforcement, "0.15.6"))
+
+      assert {%{halted: true} = conn, nil} = LivebookTeams.authenticate(test, conn, [])
+
+      assert html_response(conn, 503) =~
+               "This Livebook version is no longer compatible with Livebook Teams. Please update this app server to 0.15.6 or later to restore access."
+    end
   end
 
   describe "logout/2" do
