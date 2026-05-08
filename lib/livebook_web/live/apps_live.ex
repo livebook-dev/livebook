@@ -34,6 +34,21 @@ defmodule LivebookWeb.AppsLive do
   end
 
   @impl true
+  def handle_params(%{"folder" => id}, _url, socket) do
+    {:noreply,
+     socket
+     |> assign(selected_app_folder: id)
+     |> apply_filters()}
+  end
+
+  def handle_params(_params, _url, socket) do
+    {:noreply,
+     socket
+     |> assign(selected_app_folder: "")
+     |> apply_filters()}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="h-full flex flex-col overflow-y-auto bg-white">
@@ -119,13 +134,41 @@ defmodule LivebookWeb.AppsLive do
             </div>
 
             <div :if={@filtered_apps != []} class="flex flex-col gap-12">
-              <div :for={{app_folder, id, icon, apps} <- @grouped_apps} id={id}>
+              <div :for={{attrs, app_folder, id, icon, apps} <- @grouped_apps} id={id}>
                 <%= if @show_app_folders? do %>
                   <div class="flex items-center gap-2.5 mb-5 pb-2.5 border-b border-gray-200/70">
-                    <.remix_icon icon={icon} class="text-gray-500/80 text-xs leading-none" />
-                    <span class="text-sm text-gray-500 flex-1 tracking-widest leading-none">
-                      {app_folder}
-                    </span>
+                    <%= if attrs do %>
+                      <.link id={id <> "-permalink"} patch={~p"/apps?#{attrs}"}>
+                        <div class="flex items-center gap-2.5">
+                          <.remix_icon icon={icon} class="text-gray-500/80 text-xs leading-none" />
+                          <span class="text-sm text-gray-500 flex-1 tracking-widest leading-none">
+                            {app_folder}
+                          </span>
+                        </div>
+                      </.link>
+                      <span
+                        data-tooltip="Copied to clipboard"
+                        aria-label="copy to clipboard"
+                        phx-click={
+                          JS.dispatch("lb:clipcopy", to: "#" <> id <> "-permalink")
+                          |> JS.transition("tooltip right", time: 2000)
+                        }
+                      >
+                        <button>
+                          <.remix_icon
+                            icon="links-line"
+                            class="text-sm text-gray-500/80 leading-none py-1"
+                          />
+                        </button>
+                      </span>
+                    <% else %>
+                      <div class="flex items-center gap-2.5">
+                        <.remix_icon icon={icon} class="text-gray-500/80 text-xs leading-none" />
+                        <span class="text-sm text-gray-500 flex-1 tracking-widest leading-none">
+                          {app_folder}
+                        </span>
+                      </div>
+                    <% end %>
                   </div>
                 <% end %>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -285,14 +328,14 @@ defmodule LivebookWeb.AppsLive do
       end)
       |> Enum.map(fn
         {nil, apps} ->
-          {"No folder", "ungrouped-apps", "function-line", apps}
+          {nil, "No folder", "ungrouped-apps", "function-line", apps}
 
         {id, apps} ->
           app_folder_name = Enum.find_value(app_folders, &(&1.id == id && &1.name))
-          {app_folder_name, "app-folder-#{id}", "folder-line", apps}
+          {%{folder: id}, app_folder_name, "app-folder-#{id}", "folder-line", apps}
       end)
-      |> Enum.sort_by(fn {name, _, _, _} ->
-        if name == "No folder", do: {1, name}, else: {0, name}
+      |> Enum.sort_by(fn {attrs, name, _, _, _} ->
+        if attrs, do: {0, name}, else: {1, name}
       end)
 
     show_app_folders? = Enum.any?(apps, &is_struct(&1.app_spec, Livebook.Apps.TeamsAppSpec))
