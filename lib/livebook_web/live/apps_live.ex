@@ -275,11 +275,12 @@ defmodule LivebookWeb.AppsLive do
      |> apply_filters()}
   end
 
-  def handle_event("select_app_folder", %{"app_folder" => app_folder_id}, socket) do
-    {:noreply,
-     socket
-     |> assign(selected_app_folder: app_folder_id)
-     |> apply_filters()}
+  def handle_event("select_app_folder", %{"app_folder" => id}, socket) do
+    if id == "" do
+      {:noreply, push_patch(socket, to: ~p"/apps")}
+    else
+      {:noreply, push_patch(socket, to: ~p"/apps?folder=#{id}")}
+    end
   end
 
   @impl true
