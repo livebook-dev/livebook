@@ -125,6 +125,19 @@ defmodule LivebookWeb.AppsLive do
               </div>
             </div>
 
+            <div :if={@show_app_folders? and @selected_app_folder != ""}>
+              <div class="flex mb-8 pb-2.5">
+                <.link id="all-app-folders" patch={~p"/apps"}>
+                  <div class="flex items-center gap-2.5 text-gray-500 hover:text-gray-900">
+                    <.remix_icon icon="arrow-left-line" class="text-sm leading-none" />
+                    <span class="text-sm flex-1 tracking-widest leading-none">
+                      Back to all folders
+                    </span>
+                  </div>
+                </.link>
+              </div>
+            </div>
+
             <div :if={@filtered_apps == []} class="text-center py-20 px-5">
               <div class="text-5xl text-gray-300 mb-4">
                 <.remix_icon icon="windy-line" />
