@@ -50,6 +50,8 @@ export function registerGlobalEventHandlers() {
         navigator.clipboard.writeText(event.detail.content);
       } else if (event.target.tagName === "INPUT") {
         navigator.clipboard.writeText(event.target.value);
+      } else if (event.target.tagName === "A") {
+        navigator.clipboard.writeText(event.target.href);
       } else {
         navigator.clipboard.writeText(event.target.textContent);
       }

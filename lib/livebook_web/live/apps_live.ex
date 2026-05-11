@@ -34,6 +34,21 @@ defmodule LivebookWeb.AppsLive do
   end
 
   @impl true
+  def handle_params(%{"folder" => id}, _url, socket) do
+    {:noreply,
+     socket
+     |> assign(selected_app_folder: id)
+     |> apply_filters()}
+  end
+
+  def handle_params(_params, _url, socket) do
+    {:noreply,
+     socket
+     |> assign(selected_app_folder: "")
+     |> apply_filters()}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="h-full flex flex-col overflow-y-auto bg-white">
@@ -110,6 +125,19 @@ defmodule LivebookWeb.AppsLive do
               </div>
             </div>
 
+            <div :if={@show_app_folders? and @selected_app_folder != ""}>
+              <div class="flex mb-8 pb-2.5">
+                <.link id="all-app-folders" patch={~p"/apps"}>
+                  <div class="flex items-center gap-2.5 text-gray-500 hover:text-gray-900">
+                    <.remix_icon icon="arrow-left-line" class="text-sm leading-none" />
+                    <span class="text-sm flex-1 tracking-widest leading-none">
+                      Back to all folders
+                    </span>
+                  </div>
+                </.link>
+              </div>
+            </div>
+
             <div :if={@filtered_apps == []} class="text-center py-20 px-5">
               <div class="text-5xl text-gray-300 mb-4">
                 <.remix_icon icon="windy-line" />
@@ -119,12 +147,29 @@ defmodule LivebookWeb.AppsLive do
             </div>
 
             <div :if={@filtered_apps != []} class="flex flex-col gap-12">
-              <div :for={{app_folder, id, icon, apps} <- @grouped_apps} id={id}>
+              <div :for={{id, app_folder, icon, apps} <- @grouped_apps} id={"app-folder-#{id}"}>
                 <%= if @show_app_folders? do %>
-                  <div class="flex items-center gap-2.5 mb-5 pb-2.5 border-b border-gray-200/70">
-                    <.remix_icon icon={icon} class="text-gray-500/80 text-xs leading-none" />
-                    <span class="text-sm text-gray-500 flex-1 tracking-widest leading-none">
-                      {app_folder}
+                  <div class="flex items-center gap-2.5 mb-5 pb-2.5 border-b border-gray-200/70 group text-gray-500/80 hover:text-gray-700">
+                    <.link id={"app-folder-#{id}-permalink"} patch={~p"/apps?folder=#{id}"}>
+                      <div class="flex items-center gap-2.5">
+                        <.remix_icon icon={icon} class="text-xs leading-none" />
+                        <span class="text-sm flex-1 tracking-widest leading-none">
+                          {app_folder}
+                        </span>
+                      </div>
+                    </.link>
+                    <span
+                      class="invisible group-hover:visible"
+                      data-tooltip="Copied to clipboard"
+                      aria-label="copy to clipboard"
+                      phx-click={
+                        JS.dispatch("lb:clipcopy", to: "#app-folder-#{id}-permalink")
+                        |> JS.transition("tooltip right", time: 2000)
+                      }
+                    >
+                      <button>
+                        <.remix_icon icon="links-line" class="text-smleading-none py-1" />
+                      </button>
                     </span>
                   </div>
                 <% end %>
@@ -219,11 +264,12 @@ defmodule LivebookWeb.AppsLive do
      |> apply_filters()}
   end
 
-  def handle_event("select_app_folder", %{"app_folder" => app_folder_id}, socket) do
-    {:noreply,
-     socket
-     |> assign(selected_app_folder: app_folder_id)
-     |> apply_filters()}
+  def handle_event("select_app_folder", %{"app_folder" => id}, socket) do
+    if id == "" do
+      {:noreply, push_patch(socket, to: ~p"/apps")}
+    else
+      {:noreply, push_patch(socket, to: ~p"/apps?folder=#{id}")}
+    end
   end
 
   @impl true
@@ -285,14 +331,14 @@ defmodule LivebookWeb.AppsLive do
       end)
       |> Enum.map(fn
         {nil, apps} ->
-          {"No folder", "ungrouped-apps", "function-line", apps}
+          {"ungrouped", "No folder", "function-line", apps}
 
         {id, apps} ->
           app_folder_name = Enum.find_value(app_folders, &(&1.id == id && &1.name))
-          {app_folder_name, "app-folder-#{id}", "folder-line", apps}
+          {id, app_folder_name, "folder-line", apps}
       end)
-      |> Enum.sort_by(fn {name, _, _, _} ->
-        if name == "No folder", do: {1, name}, else: {0, name}
+      |> Enum.sort_by(fn {id, name, _, _} ->
+        if id != "ungrouped", do: {0, name}, else: {1, name}
       end)
 
     show_app_folders? = Enum.any?(apps, &is_struct(&1.app_spec, Livebook.Apps.TeamsAppSpec))
@@ -322,6 +368,13 @@ defmodule LivebookWeb.AppsLive do
   end
 
   defp filter_by_app_folder(apps, ""), do: apps
+
+  defp filter_by_app_folder(apps, "ungrouped") do
+    Enum.filter(apps, fn
+      %{app_spec: %{app_folder_id: nil}} -> true
+      _otherwise -> false
+    end)
+  end
 
   defp filter_by_app_folder(apps, app_folder_id) do
     Enum.filter(apps, fn
