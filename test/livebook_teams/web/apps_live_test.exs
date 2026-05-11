@@ -434,7 +434,7 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
           slug: "app-from-ungrouped-folder",
           title: "List of the chonkiest cats",
           app_folder: nil,
-          folder_id: "ungrouped-apps",
+          folder_id: "app-folder-ungrouped",
           folder_name: "No folder"
         }
       ]
@@ -504,22 +504,22 @@ defmodule LivebookWeb.Integration.AppsLiveTest do
 
       # uses the app folder permalink
       view
-      |> element("##{app_to_deploy1.folder_id}-permalink")
+      |> element("##{app_to_deploy3.folder_id}-permalink")
       |> render_click()
 
-      assert_patch view, ~p"/apps?folder=#{app_to_deploy1.app_folder.id}"
-      assert_app(view, app_to_deploy1)
+      assert_patch view, ~p"/apps?folder=ungrouped"
+      assert_app(view, app_to_deploy3)
 
       apps_to_deploy
-      |> Enum.reject(&(&1 == app_to_deploy1))
+      |> Enum.reject(&(&1 == app_to_deploy3))
       |> Enum.each(&refute_app(view, &1))
 
       # filter by slug
-      render_keyup(view, "search", %{value: app_to_deploy1.slug})
-      assert_app(view, app_to_deploy1)
+      render_keyup(view, "search", %{value: app_to_deploy3.slug})
+      assert_app(view, app_to_deploy3)
 
       apps_to_deploy
-      |> Enum.reject(&(&1 == app_to_deploy1))
+      |> Enum.reject(&(&1 == app_to_deploy3))
       |> Enum.each(&refute_app(view, &1))
 
       # shouldn't filter and show apps from other app folders
