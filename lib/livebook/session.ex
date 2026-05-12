@@ -1893,9 +1893,11 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_user_info_request, reply_to, client_id}, state) do
+    personal? = state.data.notebook.hub_id == Livebook.Hubs.Personal.id()
+
     reply =
       cond do
-        not state.data.notebook.teams_enabled ->
+        not personal? and not state.data.notebook.teams_enabled ->
           {:error, :not_available}
 
         user_id = state.data.clients_map[client_id] ->
