@@ -2069,9 +2069,8 @@ defmodule Livebook.SessionTest do
       assert_receive {:runtime_user_info_reply, {:error, :not_found}}
     end
 
-    test "replies with user info when the client exists for personal workspace" do
-      notebook = %{Notebook.new() | hub_id: Livebook.Hubs.Personal.id(), teams_enabled: false}
-      session = start_session(notebook: notebook)
+    test "replies with user info when the client exists" do
+      session = start_session()
 
       user = %{
         Livebook.Users.User.new()
@@ -2094,81 +2093,6 @@ defmodule Livebook.SessionTest do
                email: "jperalta@example.com",
                payload: nil
              }
-    end
-
-    test "replies with user info when the client exists for teams workspace with verified stamp" do
-      {notebook, %{warnings: [], has_stamp?: true, stamp_verified?: true}} =
-        Livebook.LiveMarkdown.Import.notebook_from_livemd("""
-        <!-- livebook:{"app_settings":{"access_type":"public","slug":"6kgwrh2d"},"hub_id":"team-org-number-3079"} -->
-
-        # App
-
-        ## Section 1
-
-        ```elixir
-        IO.puts("hey")
-        ```
-
-        <!-- livebook:{"offset":161,"stamp":{"token":"XCP.SHa_YbuqbAQXVSwGyrgskid5maz8KEdX1XCTGzGcaBGsieVkK50uw4QKfVLi1Wb9wwKM9yLxHxdxlsNOiKtn-kaqmBlTJWPUuYJWICFmIIVSsOi3r-g","token_signature":"UzYy7I-CIbxaZoKsV30ipdjhotJPOR4tCP6ZH5v6cnCe2F7kednP4aNUouTnoxUYwd4AZ59wGz1cCM7PYd8rE3IbECIbT4ixUpftI-hkW2OoymLRv5sjsfGeTPS8PvV9SXiZIG2320G3Kc1Spf4dToZfpNxAimD9xOpZLpRkI9MUH3nKG99yz1mZHuTgLNVS5yvHgAV_xRYtKwPnfwMLvQkD5Z9NacBPnqURVia90j1ueo7tEw8H1qH4VQU2Uh1XWIODIuTuLh55oe4MydGK5NgUhDMg2Zs9QaAN3ejoXHqWSub6k_VrHxIuke8T_xMIem6P25wdHGUZInSJX5x4Xw","version":1}} -->
-        """)
-
-      session = start_session(notebook: notebook)
-
-      user = %{
-        Livebook.Users.User.new()
-        | id: "1234",
-          name: "Jake Peralta",
-          email: "jperalta@example.com"
-      }
-
-      {_, client_id} = Session.register_client(session.pid, self(), user)
-
-      set_noop_runtime(session.pid, self())
-      send(session.pid, {:runtime_user_info_request, self(), client_id})
-
-      assert_receive {:runtime_user_info_reply, {:ok, user_info}}
-
-      assert user_info == %{
-               source: :session,
-               id: "1234",
-               name: "Jake Peralta",
-               email: "jperalta@example.com",
-               payload: nil
-             }
-    end
-
-    test "replies with error when the client exists but stamp is invalid" do
-      {notebook,
-       %{warnings: ["invalid notebook stamp" <> _], has_stamp?: true, stamp_verified?: false}} =
-        Livebook.LiveMarkdown.Import.notebook_from_livemd("""
-        <!-- livebook:{"app_settings":{"access_type":"public","slug":"abc"},"hub_id":"team-org-number-3079"} -->
-
-        # App
-
-        ## Section 1
-
-        ```elixir
-        IO.puts("hey")
-        ```
-
-        <!-- livebook:{"offset":161,"stamp":{"token":"1CP.SHa_YbuqbAQXVSwGyrgskid5maz8KEdX1XCTGzGcaBGsieVkK50uw4QKfVLi1Wb9wwKM9yLxHxdxlsNOiKtn-kaqmBlTJWPUuYJWICFmIIVSsOi3r-g","token_signature":"UzYy7I-CIbxaZoKsV30ipdjhotJPOR4tCP6ZH5v6cnCe2F7kednP4aNUouTnoxUYwd4AZ59wGz1cCM7PYd8rE3IbECIbT4ixUpftI-hkW2OoymLRv5sjsfGeTPS8PvV9SXiZIG2320G3Kc1Spf4dToZfpNxAimD9xOpZLpRkI9MUH3nKG99yz1mZHuTgLNVS5yvHgAV_xRYtKwPnfwMLvQkD5Z9NacBPnqURVia90j1ueo7tEw8H1qH4VQU2Uh1XWIODIuTuLh55oe4MydGK5NgUhDMg2Zs9QaAN3ejoXHqWSub6k_VrHxIuke8T_xMIem6P25wdHGUZInSJX5x4Xw","version":1}} -->
-        """)
-
-      session = start_session(notebook: notebook)
-
-      user = %{
-        Livebook.Users.User.new()
-        | id: "1234",
-          name: "Jake Peralta",
-          email: "jperalta@example.com"
-      }
-
-      {_, client_id} = Session.register_client(session.pid, self(), user)
-
-      set_noop_runtime(session.pid, self())
-      send(session.pid, {:runtime_user_info_request, self(), client_id})
-
-      assert_receive {:runtime_user_info_reply, {:error, :not_available}}
     end
   end
 

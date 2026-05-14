@@ -1893,19 +1893,12 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_user_info_request, reply_to, client_id}, state) do
-    personal? = state.data.notebook.hub_id == Livebook.Hubs.Personal.id()
-
     reply =
-      cond do
-        not personal? and not state.data.notebook.teams_enabled ->
-          {:error, :not_available}
-
-        user_id = state.data.clients_map[client_id] ->
-          user = Map.fetch!(state.data.users_map, user_id)
-          {:ok, user_info(user)}
-
-        true ->
-          {:error, :not_found}
+      if user_id = state.data.clients_map[client_id] do
+        user = Map.fetch!(state.data.users_map, user_id)
+        {:ok, user_info(user)}
+      else
+        {:error, :not_found}
       end
 
     send(reply_to, {:runtime_user_info_reply, reply})
