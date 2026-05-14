@@ -2060,18 +2060,8 @@ defmodule Livebook.SessionTest do
   end
 
   describe "accessing client's user info" do
-    test "replies with error when the session does not use teams hub" do
-      session = start_session()
-
-      set_noop_runtime(session.pid, self())
-      send(session.pid, {:runtime_user_info_request, self(), "c1"})
-
-      assert_receive {:runtime_user_info_reply, {:error, :not_available}}
-    end
-
     test "replies with error when the client does not exist" do
-      notebook = %{Notebook.new() | teams_enabled: true}
-      session = start_session(notebook: notebook)
+      session = start_session()
 
       set_noop_runtime(session.pid, self())
       send(session.pid, {:runtime_user_info_request, self(), "c1"})
@@ -2080,8 +2070,7 @@ defmodule Livebook.SessionTest do
     end
 
     test "replies with user info when the client exists" do
-      notebook = %{Notebook.new() | teams_enabled: true}
-      session = start_session(notebook: notebook)
+      session = start_session()
 
       user = %{
         Livebook.Users.User.new()
