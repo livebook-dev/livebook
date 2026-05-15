@@ -23,7 +23,7 @@ defmodule LivebookWeb.FileSelectComponentTest do
     refute render_component(FileSelectComponent, attrs(file: file)) =~ ".."
   end
 
-defp attrs(attrs) do
+  defp attrs(attrs) do
     Keyword.merge(
       [
         id: "1",
