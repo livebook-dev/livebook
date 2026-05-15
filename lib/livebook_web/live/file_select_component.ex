@@ -643,7 +643,6 @@ defmodule LivebookWeb.FileSelectComponent do
     dir_changed? = dir != assigns.current_dir
 
     if dir_changed? or force_reload? do
-      # Start async file listing operation
       start_async_file_listing(socket, dir, prefix, current_file_infos)
     else
       # Just re-annotate with the current prefix (search filter changed)
