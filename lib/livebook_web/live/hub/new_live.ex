@@ -64,17 +64,15 @@ defmodule LivebookWeb.Hub.NewLive do
           <div class="flex flex-col justify-center sm:items-center sm:m-auto">
             <div class="flex rounded-xl bg-gray-100 p-1">
               <ul class="flex flex-col sm:flex-row md:flex-col lg:flex-row w-full list-none gap-1">
-                <button>
-                  <div class="group button flex w-full sm:w-72 items-center justify-center gap-1 md:gap-2 rounded-lg border py-3 md:py-2.5 px-5 transition-opacity duration-100 border-black/10 bg-white drop-shadow-sm hover:opacity-100!">
-                    <.remix_icon
-                      icon="organization-chart"
-                      class="group-hover:text-blue-600 text-lg text-blue-600"
-                    />
-                    <span class="truncate text-sm font-medium">
-                      Join an existing organization
-                    </span>
-                  </div>
-                </button>
+                <li class="group button flex w-full sm:w-72 items-center justify-center gap-1 md:gap-2 rounded-lg border py-3 md:py-2.5 px-5 transition-opacity duration-100 border-black/10 bg-white drop-shadow-sm hover:opacity-100!">
+                  <.remix_icon
+                    icon="organization-chart"
+                    class="group-hover:text-blue-600 text-lg text-blue-600"
+                  />
+                  <span class="truncate text-sm font-medium">
+                    Join an existing organization
+                  </span>
+                </li>
               </ul>
             </div>
           </div>
