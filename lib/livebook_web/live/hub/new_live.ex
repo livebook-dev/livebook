@@ -48,13 +48,7 @@ defmodule LivebookWeb.Hub.NewLive do
         <div>
           <LayoutComponents.title text="Add organization" />
           <p class="mt-4 text-gray-700">
-            <a
-              class="font-medium underline text-gray-900 hover:no-underline"
-              href="https://livebook.dev/teams?ref=LivebookApp"
-              target="_blank"
-              phx-no-format
-            >
-              Livebook Teams</a> enables you to deploy notebooks as internal apps or turn Livebook into a controlled environment for runbooks and production operations.
+            Livebook Teams enables you to deploy notebooks as internal apps or turn Livebook into a controlled environment for runbooks and production operations.
           </p>
           <p class="mt-4 text-gray-700">
             To use it, you need to join a Teams organization.
