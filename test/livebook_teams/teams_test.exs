@@ -11,28 +11,6 @@ defmodule Livebook.TeamsTest do
   @moduletag subscribe_to_hubs_topics: [:connection, :file_systems, :secrets]
   @moduletag subscribe_to_teams_topics: [:clients, :deployment_groups, :app_deployments, :agents]
 
-  describe "create_org/1" do
-    test "returns the device flow data to confirm the org creation" do
-      org = build(:org)
-
-      assert {:ok,
-              %{
-                "device_code" => _device_code,
-                "expires_in" => 300,
-                "id" => _org_id,
-                "user_code" => _user_code,
-                "verification_uri" => _verification_uri
-              }} = Teams.create_org(org, %{})
-    end
-
-    test "returns changeset errors when data is invalid" do
-      org = build(:org)
-
-      assert {:error, changeset} = Teams.create_org(org, %{name: nil})
-      assert "can't be blank" in errors_on(changeset).name
-    end
-  end
-
   describe "join_org/1" do
     test "returns the device flow data to confirm the org creation", %{node: node} do
       org = build(:org)

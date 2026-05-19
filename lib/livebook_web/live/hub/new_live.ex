@@ -15,21 +15,18 @@ defmodule LivebookWeb.Hub.NewLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    socket =
-      assign(socket,
-        selected_option: "new-org",
-        page_title: "Workspace - Livebook",
-        requested_code: false,
-        org: nil,
-        verification_uri: nil,
-        form: nil,
-        button_label: nil,
-        request_code_info: nil
-      )
-
-    socket = assign_form(socket, "new-org")
-
-    {:ok, socket}
+    {:ok,
+     socket
+     |> assign(
+       page_title: "Workspace - Livebook",
+       requested_code: false,
+       org: nil,
+       verification_uri: nil,
+       form: nil,
+       button_label: nil,
+       request_code_info: nil
+     )
+     |> assign_form()}
   end
 
   @impl true
@@ -60,38 +57,31 @@ defmodule LivebookWeb.Hub.NewLive do
               Livebook Teams</a> enables you to deploy notebooks as internal apps or turn Livebook into a controlled environment for runbooks and production operations.
           </p>
           <p class="mt-4 text-gray-700">
-            To use it, you need to create or join a Teams organization.
+            To use it, you need to join a Teams organization.
           </p>
         </div>
-        <!-- TABS -->
         <div class="flex flex-col space-y-4">
           <div class="flex flex-col justify-center sm:items-center sm:m-auto">
             <div class="flex rounded-xl bg-gray-100 p-1">
               <ul class="flex flex-col sm:flex-row md:flex-col lg:flex-row w-full list-none gap-1">
-                <!-- New Org -->
-                <.tab_button
-                  id="new-org"
-                  selected={@selected_option}
-                  title="Create a new organization"
-                  icon="lightbulb-flash-line"
-                />
-                <!-- Join Org -->
-                <.tab_button
-                  id="join-org"
-                  selected={@selected_option}
-                  title="Join an existing organization"
-                  icon="organization-chart"
-                />
+                <li class="group button flex w-full sm:w-72 items-center justify-center gap-1 md:gap-2 rounded-lg border py-3 md:py-2.5 px-5 transition-opacity duration-100 border-black/10 bg-white drop-shadow-sm hover:opacity-100!">
+                  <.remix_icon
+                    icon="organization-chart"
+                    class="group-hover:text-blue-600 text-lg text-blue-600"
+                  />
+                  <span class="truncate text-sm font-medium">
+                    Join an existing organization
+                  </span>
+                </li>
               </ul>
             </div>
           </div>
         </div>
-        <!-- FORMS -->
-        <div :if={@selected_option} class="flex flex-col space-y-4">
+        <div class="flex flex-col space-y-4">
           <.form
             :let={f}
             for={@form}
-            id={"#{@selected_option}-form"}
+            id="join-org-form"
             class="flex flex-col space-y-4"
             phx-submit="save"
             phx-change="validate"
@@ -102,7 +92,6 @@ defmodule LivebookWeb.Hub.NewLive do
             </div>
 
             <.password_field
-              :if={@selected_option == "join-org"}
               field={f[:teams_key]}
               label="Livebook Teams key"
             />
@@ -168,56 +157,7 @@ defmodule LivebookWeb.Hub.NewLive do
     """
   end
 
-  defp tab_button(assigns) do
-    ~H"""
-    <li class="group/toggle w-full">
-      <button
-        type="button"
-        id={@id}
-        aria-haspopup="menu"
-        aria-expanded="false"
-        data-state="closed"
-        class="w-full"
-        phx-click="select_option"
-        phx-value-option={@id}
-      >
-        <div class={[
-          "group button flex w-full sm:w-72 items-center justify-center gap-1 md:gap-2 rounded-lg border py-3 md:py-2.5 px-5 transition-opacity duration-100",
-          selected_tab_button(@id, @selected)
-        ]}>
-          <.remix_icon
-            icon={@icon}
-            class={[
-              "group-hover:text-blue-600 text-lg",
-              if @selected == @id do
-                "text-blue-600"
-              else
-                "text-gray-500"
-              end
-            ]}
-          />
-          <span class="truncate text-sm font-medium">
-            {@title}
-          </span>
-        </div>
-      </button>
-    </li>
-    """
-  end
-
-  defp selected_tab_button(id, id),
-    do: "border-black/10 bg-white drop-shadow-sm hover:opacity-100!"
-
-  defp selected_tab_button(_, _), do: "border-transparent text-gray-500 hover:text-gray-800"
-
   @impl true
-  def handle_event("select_option", %{"option" => option}, socket) do
-    {:noreply,
-     socket
-     |> assign(selected_option: option, requested_code: false, verification_uri: nil)
-     |> assign_form(option)}
-  end
-
   def handle_event("validate", %{"org" => attrs}, socket) do
     changeset =
       socket.assigns.org
@@ -228,13 +168,7 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   def handle_event("save", %{"org" => attrs}, socket) do
-    result =
-      case socket.assigns.selected_option do
-        "new-org" -> Teams.create_org(socket.assigns.org, attrs)
-        "join-org" -> Teams.join_org(socket.assigns.org, attrs)
-      end
-
-    case result do
+    case Teams.join_org(socket.assigns.org, attrs) do
       {:ok, %{"device_code" => device_code} = response} ->
         attrs = Map.merge(attrs, response)
         changeset = Teams.change_org(socket.assigns.org, attrs)
@@ -314,7 +248,7 @@ defmodule LivebookWeb.Hub.NewLive do
 
   def handle_info(_any, socket), do: {:noreply, socket}
 
-  defp assign_form(socket, "join-org") do
+  defp assign_form(socket) do
     org = %Org{emoji: random_emoji()}
     changeset = Teams.change_org(org)
 
@@ -323,19 +257,6 @@ defmodule LivebookWeb.Hub.NewLive do
       org: org,
       button_label: "Join",
       request_code_info: "Authenticate with your organization"
-    )
-    |> assign_form(changeset)
-  end
-
-  defp assign_form(socket, "new-org") do
-    org = %Org{emoji: random_emoji(), teams_key: Org.teams_key()}
-    changeset = Teams.change_org(org)
-
-    socket
-    |> assign(
-      org: org,
-      button_label: "Create",
-      request_code_info: "Verify your new organization"
     )
     |> assign_form(changeset)
   end
