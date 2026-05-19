@@ -17,14 +17,6 @@ defmodule Livebook.Teams.Requests do
   def error_message(), do: @error_message
 
   @doc """
-  Send a request to Livebook Team API to create a new org.
-  """
-  @spec create_org(Teams.Org.t()) :: api_result()
-  def create_org(org) do
-    post("/api/v1/org-request", %{name: org.name, key_hash: Teams.Org.key_hash(org)})
-  end
-
-  @doc """
   Send a request to Livebook Team API to join an org.
   """
   @spec join_org(Teams.Org.t()) :: api_result()

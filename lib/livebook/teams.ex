@@ -14,20 +14,6 @@ defmodule Livebook.Teams do
   @teams_key_prefix Teams.Constants.teams_key_prefix()
 
   @doc """
-  Creates an Org.
-
-  With success, returns the response from Livebook Teams API to continue the org creation flow.
-  Otherwise, it will return an error tuple with changeset.
-  """
-  @spec create_org(Org.t(), map()) ::
-          {:ok, map()}
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
-  def create_org(%Org{} = org, attrs) do
-    create_org_request(org, attrs, &Requests.create_org/1)
-  end
-
-  @doc """
   Joins an Org.
 
   With success, returns the response from Livebook Teams API to continue the org joining flow.
@@ -38,14 +24,10 @@ defmodule Livebook.Teams do
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def join_org(%Org{} = org, attrs) do
-    create_org_request(org, attrs, &Requests.join_org/1)
-  end
-
-  defp create_org_request(%Org{} = org, attrs, callback) when is_function(callback, 1) do
     changeset = Org.changeset(org, attrs)
 
     with {:ok, %Org{} = org} <- apply_action(changeset, :insert) do
-      case callback.(org) do
+      case Requests.join_org(org) do
         {:ok, response} ->
           {:ok, response}
 
