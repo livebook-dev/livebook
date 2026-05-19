@@ -139,12 +139,10 @@ data:
 
 The setup above does not set up a data directory, which means once you restart the instance, any configuration will be lost. If you have a persistent volume, you can point the `LIVEBOOK_DATA_PATH` environment variable to it.
 
+You may also want to configure [both instance and admin authentication](authentication.md).
+
 ## Deploy notebooks as applications
 
 It is possible to deploy any notebook as an application in Livebook. To do so, choose a notebook, open up the Application pane on the sidebar (with a rocket icon), click "Manual Docker deployment", and follow the required steps for your desired platform.
 
-If you are using [Livebook Teams](https://livebook.dev/teams/), you can also deploy with the click of a button by running Livebook servers inside your infrastructure. To get started, open up Livebook and click "Add Organization" on the sidebar. Once completed, open up the Application pane on the sidebar (with a rocket icon), click "Deploy with Livebook Teams", and follow the deployment steps.
-
-The deployment steps will show you to deploy your notebooks within Docker, Fly.io, and Kubernetes. This is effectively done by setting the `LIVEBOOK_TEAMS_AUTH`, which configures Livebook to run as a read-only instance connected to Livebook Teams.
-
-Livebook Teams also support airgapped deployments, pre-configured environment variables, shared team secrets, file storages, and more.
+When deploying notebooks as applications, you may also want to configure [both instance and admin authentication](authentication.md).

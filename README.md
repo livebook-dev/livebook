@@ -244,7 +244,7 @@ The following environment variables can be used to configure Livebook on boot:
 
   * `LIVEBOOK_IDENTITY_PROVIDER` - controls whether Zero Trust Authentication
     must be used for this Livebook instance. This is useful when deploying
-    Livebook airgapped inside a cloud platform, such as Cloudflare and Google.
+    Livebook inside a cloud platform, such as Cloudflare and Google.
     Supported values are:
 
       * `basic_auth:<username>:<password>`

@@ -2,7 +2,7 @@
 
 Livebook has three levels of authentication:
 
-  * **Instance authentication**: this authenticates the user on all routes of your Livebook instance, including deployed notebooks and the admin section. We provide a variety of authentication options here, including Single Sign On (SSO) and domain-based authentication via [Livebook Teams](https://livebook.dev/teams), as well as Zero Trust Authentication for airgapped environments. See the "Instance authentication" section for more information.
+  * **Instance authentication**: this authenticates the user on all routes of your Livebook instance, including deployed notebooks and the admin section. See the "Instance authentication" section for more information.
 
   * **Admin authentication**: this authenticates access to Livebook admin interface within an instance, where users can create, write, and manage notebooks. Both password and token authentication are available. See the ["Admin authentication"](#admin-authentication) section for more information.
 
@@ -10,15 +10,15 @@ Livebook has three levels of authentication:
 
 ## Instance authentication
 
-When using [Livebook Teams](https://livebook.dev/teams), you can easily deploy instances of Livebook to run as application servers or as development servers. Those instances will, by default, use Livebook Teams to authenticate. The following authentication methods are supported by Livebook Teams:
+You can configure Livebook with different instance authentication mechanisms by setting the `LIVEBOOK_IDENTITY_PROVIDER` provider environment variable. The supported values are:
 
-* **Livebook Teams account**: allow members of your Livebook Teams organization to authenticate using their Livebook Teams accounts.
+  * `basic_auth:<username>:<password>`
+  * `cloudflare:<your-team-name (domain)>`
+  * `google_iap:<your-audience (aud)>`
+  * `tailscale:<tailscale-cli-socket-path>`
+  * `custom:YourElixirModule`
 
-* **Email domain**: allow users to authenticate using email accounts from specific domains, such as your company’s Google Workspace domain.
-
-* **[OpenID Connect Single Sign-On (SSO)](/oidc_sso.html)**: Allow users to authenticate via an OpenID Connect Single Sign-On provider, such as Okta, Microsoft Entra or Keycloak.
-
-If your application servers must run in an airgapped environments and cannot reach out to Livebook Teams servers, we also provide a variety of options that can be configured directly in your Dockerfiles. See the "Airgapped Authentication" section in the sidebar.
+See the "Zero Trust Authentication" section in the sidebar.
 
 ## Admin authentication
 

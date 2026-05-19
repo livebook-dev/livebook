@@ -274,7 +274,7 @@ defmodule Livebook.MixProject do
       groups_for_extras: [
         "Livebook Teams": Path.wildcard("docs/teams/*"),
         Deployment: Path.wildcard("docs/deployment/*"),
-        "Airgapped Authentication": Path.wildcard("docs/authentication/*")
+        "Zero Trust Authentication": Path.wildcard("docs/authentication/*")
       ]
     ]
   end
