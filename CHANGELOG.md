@@ -2,6 +2,24 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.19.8](https://github.com/livebook-dev/livebook/tree/v0.19.8) (2026-05-20)
+
+### Added
+
+- App folder permalinks ([#3190](https://github.com/livebook-dev/livebook/pull/3190))
+
+### Changed
+
+- Made user info available for personal workspaces through `Kino.Workspace` ([#3191](https://github.com/livebook-dev/livebook/pull/3191))
+
+### Removed
+
+- Disabled Teams org creation ([#3193](https://github.com/livebook-dev/livebook/pull/3193))
+
+### Fixed
+
+- Upgraded deps with known vulnerabilities ([#3192](https://github.com/livebook-dev/livebook/pull/3192))
+
 ## [v0.19.7](https://github.com/livebook-dev/livebook/tree/v0.19.7) (2026-04-22)
 
 ### Added
