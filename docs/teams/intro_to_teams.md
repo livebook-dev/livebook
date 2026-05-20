@@ -4,7 +4,7 @@
 
 <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/lwLx5beXxsg?si=husANqYhTc3rXAZS" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-Livebook Teams integrates with Livebook, offering the following feautures on top of it:
+Livebook Teams integrates with Livebook, offering the following features on top of it:
 
 - Deploy notebooks as internal apps to your infrastructure
   - [Deploy Livebook apps from Livebook](deploy_app.md)
