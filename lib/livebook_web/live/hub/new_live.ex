@@ -3,7 +3,6 @@ defmodule LivebookWeb.Hub.NewLive do
 
   alias Livebook.Teams
   alias Livebook.Teams.Org
-  alias LivebookWeb.LayoutComponents
 
   on_mount LivebookWeb.SidebarHook
 
@@ -32,21 +31,23 @@ defmodule LivebookWeb.Hub.NewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutComponents.layout
+    <Layouts.layout
+      flash={@flash}
+      confirm_state={@confirm_state}
       current_page="/hub"
       current_user={@current_user}
       saved_hubs={@saved_hubs}
       teams_auth={@teams_auth}
       notifications={@notifications}
     >
-      <LayoutComponents.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant="warning">
+      <Layouts.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant="warning">
         <strong>Beware!</strong>
         You are running Livebook in development but this page communicates with production servers.
-      </LayoutComponents.topbar>
+      </Layouts.topbar>
 
       <div class="flex flex-col p-4 md:px-12 md:py-7 max-w-(--breakpoint-md) mx-auto space-y-8">
         <div>
-          <LayoutComponents.title text="Add organization" />
+          <.title text="Add organization" />
           <p class="mt-4 text-gray-700">
             Livebook Teams enables you to deploy notebooks as internal apps or turn Livebook into a controlled environment for runbooks and production operations.
           </p>
@@ -124,7 +125,7 @@ defmodule LivebookWeb.Hub.NewLive do
           </.form>
         </div>
       </div>
-    </LayoutComponents.layout>
+    </Layouts.layout>
     """
   end
 

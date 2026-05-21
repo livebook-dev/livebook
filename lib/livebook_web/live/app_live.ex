@@ -42,22 +42,24 @@ defmodule LivebookWeb.AppLive do
   @impl true
   def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
-    <.apps_banner value={@apps_banner} />
-    <div class="h-full relative overflow-y-auto px-4 md:px-20">
-      <div class="absolute right-8 md:left-4 top-3.5 w-10 h-10">
-        <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
-      </div>
-      <div class="w-full max-w-(--breakpoint-lg) py-4 mx-auto">
-        <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
-          <h1 class="text-3xl font-semibold text-gray-800">
-            {@app.notebook_name}
-          </h1>
+    <Layouts.app confirm_state={@confirm_state} flash={@flash}>
+      <.apps_banner value={@apps_banner} />
+      <div class="h-full relative overflow-y-auto px-4 md:px-20">
+        <div class="absolute right-8 md:left-4 top-3.5 w-10 h-10">
+          <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
         </div>
-        <div class="pt-4 flex flex-col space-y-16">
-          <.content_skeleton :for={_idx <- 1..5} empty={false} />
+        <div class="w-full max-w-(--breakpoint-lg) py-4 mx-auto">
+          <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
+            <h1 class="text-3xl font-semibold text-gray-800">
+              {@app.notebook_name}
+            </h1>
+          </div>
+          <div class="pt-4 flex flex-col space-y-16">
+            <.content_skeleton :for={_idx <- 1..5} empty={false} />
+          </div>
         </div>
       </div>
-    </div>
+    </Layouts.app>
 
     <.modal id="sessions-modal" show width="big" patch={~p"/apps"}>
       <div class="flex flex-col space-y-3">

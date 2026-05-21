@@ -3,7 +3,6 @@ defmodule LivebookWeb.OpenLive do
 
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.LayoutComponents
   alias Livebook.FileSystem
 
   on_mount LivebookWeb.SidebarHook
@@ -42,7 +41,9 @@ defmodule LivebookWeb.OpenLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutComponents.layout
+    <Layouts.layout
+      flash={@flash}
+      confirm_state={@confirm_state}
       current_page={~p"/"}
       current_user={@current_user}
       teams_auth={@teams_auth}
@@ -55,9 +56,10 @@ defmodule LivebookWeb.OpenLive do
           <span>New notebook</span>
         </.button>
       </:topbar_action>
+
       <div class="p-4 md:px-12 md:py-6 max-w-(--breakpoint-lg) mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
-          <LayoutComponents.title text="Open notebook" back_navigate={~p"/"} />
+          <.title text="Open notebook" back_navigate={~p"/"} />
           <div class="hidden md:flex" role="navigation" aria-label="new notebook">
             <.button color="blue" navigate={~p"/new"}>
               <.remix_icon icon="add-line" />
@@ -153,7 +155,7 @@ defmodule LivebookWeb.OpenLive do
           </div>
         </div>
       </div>
-    </LayoutComponents.layout>
+    </Layouts.layout>
     """
   end
 

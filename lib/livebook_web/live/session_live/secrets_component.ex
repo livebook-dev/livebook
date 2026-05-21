@@ -19,7 +19,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
     socket =
       socket
-      |> assign(title: title(socket))
+      |> assign(title: page_title(socket))
       |> assign_new(:changeset, fn ->
         attrs = %{name: secret_name, value: nil, hub_id: nil}
         Secrets.change_secret(%Secret{}, attrs)
@@ -274,9 +274,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_name: secret_name})
   end
 
-  defp title(%{assigns: %{select_secret_metadata: nil}}), do: "Add secret"
-  defp title(%{assigns: %{select_secret_metadata: %{options: %{"title" => title}}}}), do: title
-  defp title(_), do: "Select secret"
+  defp page_title(%{assigns: %{select_secret_metadata: nil}}), do: "Add secret"
+
+  defp page_title(%{assigns: %{select_secret_metadata: %{options: %{"title" => title}}}}),
+    do: title
+
+  defp page_title(_), do: "Select secret"
 
   defp save_secret(socket, secret, changeset) do
     if secret.hub_id do

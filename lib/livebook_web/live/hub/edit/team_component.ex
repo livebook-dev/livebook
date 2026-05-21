@@ -4,7 +4,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias Livebook.Hubs
   alias Livebook.Hubs.Provider
   alias Livebook.Teams
-  alias LivebookWeb.LayoutComponents
   alias LivebookWeb.NotFoundError
 
   @impl true
@@ -58,11 +57,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <LayoutComponents.topbar :if={Provider.connection_status(@hub)} variant="warning">
+      <Layouts.topbar :if={Provider.connection_status(@hub)} variant="warning">
         {Provider.connection_status(@hub)}
-      </LayoutComponents.topbar>
+      </Layouts.topbar>
 
-      <LayoutComponents.topbar :if={@hub.billing_status.type == :trialing} variant="warning">
+      <Layouts.topbar :if={@hub.billing_status.type == :trialing} variant="warning">
         <h2>
           Your organization has
           <strong>
@@ -73,21 +72,21 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
             href="mailto:suport@livebook.dev?subject=Help%20with%20Livebook%20Teams"
           >Contact us</a>.
         </h2>
-      </LayoutComponents.topbar>
+      </Layouts.topbar>
 
-      <LayoutComponents.topbar :if={@hub.billing_status.disabled} variant="warning">
+      <Layouts.topbar :if={@hub.billing_status.disabled} variant="warning">
         <h2>
           Workspace disabled: your organization doesn't have an active subscription. Please contact your <.link
             href={org_url(@hub, "/users")}
             class="underline"
           >org's admin</.link>.
         </h2>
-      </LayoutComponents.topbar>
+      </Layouts.topbar>
 
       <div class="p-4 md:px-12 md:py-7 max-w-(--breakpoint-md) mx-auto">
         <div id={"#{@id}-component"}>
           <div class="mb-8 flex flex-col space-y-2">
-            <LayoutComponents.title>
+            <.title>
               <div class="flex gap-2 items-center">
                 <div class="flex justify-center">
                   <span class="relative">
@@ -108,7 +107,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   </span>
                 <% end %>
               </div>
-            </LayoutComponents.title>
+            </.title>
 
             <p class="text-sm flex flex-row space-x-6 text-gray-700">
               <a href={org_url(@hub, "/")} class="hover:text-blue-600">

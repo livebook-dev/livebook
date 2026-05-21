@@ -1,7 +1,6 @@
 defmodule LivebookWeb.Hub.EditLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.LayoutComponents
   alias Livebook.Hubs
   alias Livebook.Hubs.Provider
 
@@ -37,7 +36,9 @@ defmodule LivebookWeb.Hub.EditLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutComponents.layout
+    <Layouts.layout
+      flash={@flash}
+      confirm_state={@confirm_state}
       current_page={~p"/hub/#{@hub.id}"}
       current_user={@current_user}
       teams_auth={@teams_auth}
@@ -51,7 +52,7 @@ defmodule LivebookWeb.Hub.EditLive do
         live_action={@live_action}
         params={@params}
       />
-    </LayoutComponents.layout>
+    </Layouts.layout>
     """
   end
 

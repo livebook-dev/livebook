@@ -89,6 +89,45 @@ defmodule LivebookWeb.CoreComponents do
   end
 
   @doc """
+  Renders page title.
+
+  ## Examples
+
+      <.title text="Learn" />
+
+  """
+  attr :text, :string, default: nil
+  attr :back_navigate, :string, default: nil
+
+  slot :inner_block
+
+  def title(assigns) do
+    if assigns.text == nil and assigns.inner_block == [] do
+      raise ArgumentError, "should pass at least text attribute or an inner block"
+    end
+
+    ~H"""
+    <div class="relative">
+      <div
+        :if={@back_navigate}
+        class="hidden md:flex absolute top-0 bottom-0 left-0 transform -translate-x-full"
+      >
+        <.link navigate={@back_navigate}>
+          <.remix_icon icon="arrow-left-line" class="align-middle mr-2 text-2xl text-gray-800" />
+        </.link>
+      </div>
+      <h1 class="text-2xl text-gray-800 font-medium">
+        <%= if @inner_block != [] do %>
+          {render_slot(@inner_block)}
+        <% else %>
+          {@text}
+        <% end %>
+      </h1>
+    </div>
+    """
+  end
+
+  @doc """
   Renders a message notice.
 
   Similar to `flash/1`, but for permanent messages on the page.

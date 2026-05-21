@@ -1,8 +1,6 @@
 defmodule LivebookWeb.SettingsLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.LayoutComponents
-
   on_mount LivebookWeb.SidebarHook
 
   @impl true
@@ -29,7 +27,9 @@ defmodule LivebookWeb.SettingsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutComponents.layout
+    <Layouts.layout
+      flash={@flash}
+      confirm_state={@confirm_state}
       current_page={~p"/settings"}
       current_user={@current_user}
       teams_auth={@teams_auth}
@@ -39,7 +39,7 @@ defmodule LivebookWeb.SettingsLive do
       <div id="settings-page" class="p-4 md:px-12 md:py-7 max-w-(--breakpoint-md) mx-auto space-y-16">
         <div class="flex flex-col space-y-10">
           <div>
-            <LayoutComponents.title text="System settings" />
+            <.title text="System settings" />
             <p class="mt-4 text-gray-700">
               Here you can change global Livebook configuration. Keep in mind
               that this configuration gets persisted and will be restored on application
@@ -154,7 +154,7 @@ defmodule LivebookWeb.SettingsLive do
         </div>
         <div class="flex flex-col space-y-10 pb-8">
           <div>
-            <LayoutComponents.title text="User settings" />
+            <.title text="User settings" />
             <p class="mt-4 text-gray-700">
               The configuration in this section changes only your Livebook
               experience and is saved in your browser.
@@ -213,7 +213,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
         </div>
       </div>
-    </LayoutComponents.layout>
+    </Layouts.layout>
 
     <.modal
       :if={@live_action in [:add_env_var, :edit_env_var]}

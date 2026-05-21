@@ -22,7 +22,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
        })
      end)
      |> assign(
-       title: title(socket),
+       title: page_title(socket),
        button: button_attrs(socket),
        deployment_group_id: assigns[:deployment_group_id]
      )}
@@ -124,8 +124,8 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
     {:noreply, assign(socket, changeset: changeset)}
   end
 
-  defp title(%{assigns: %{secret_name: nil}}), do: "Add secret"
-  defp title(_), do: "Edit secret"
+  defp page_title(%{assigns: %{secret_name: nil}}), do: "Add secret"
+  defp page_title(_), do: "Edit secret"
 
   defp button_attrs(%{assigns: %{secret_name: nil}}), do: %{icon: "add-line", label: "Add"}
   defp button_attrs(_), do: %{icon: "save-line", label: "Save"}
