@@ -4,7 +4,6 @@ defmodule LivebookWeb.LearnLive do
   import LivebookWeb.SessionHelpers
   import LivebookWeb.NotebookComponents
 
-  alias LivebookWeb.LayoutComponents
   alias Livebook.Notebook.Learn
 
   on_mount LivebookWeb.SidebarHook
@@ -24,7 +23,9 @@ defmodule LivebookWeb.LearnLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutComponents.layout
+    <Layouts.layout
+      flash={@flash}
+      confirm_state={@confirm_state}
       current_page={~p"/learn"}
       current_user={@current_user}
       teams_auth={@teams_auth}
@@ -33,7 +34,7 @@ defmodule LivebookWeb.LearnLive do
     >
       <div class="p-4 md:px-12 md:py-7 max-w-(--breakpoint-lg) mx-auto space-y-4">
         <div>
-          <LayoutComponents.title text="Learn" />
+          <.title text="Learn" />
           <p class="mt-4 mb-8 text-gray-700">
             Check out a number of examples showcasing various parts of the Elixir ecosystem.<br />
             Click on any notebook you like and start playing around with it!
@@ -67,7 +68,7 @@ defmodule LivebookWeb.LearnLive do
         </div>
         <.notebook_group :for={group_info <- Learn.group_infos()} group_info={group_info} />
       </div>
-    </LayoutComponents.layout>
+    </Layouts.layout>
     """
   end
 

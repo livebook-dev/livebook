@@ -9,310 +9,320 @@ defmodule LivebookWeb.SessionLive.Render do
 
   def render(assigns) do
     ~H"""
-    <div
-      class="flex grow h-full"
-      id={"session-#{@session.id}"}
-      data-el-session
-      phx-hook="Session"
-      data-p-global-status={hook_prop(elem(@data_view.global_status, 0))}
-      data-p-autofocus-cell-id={hook_prop(@autofocus_cell_id)}
-    >
-      <.sidebar
-        session={@session}
-        live_action={@live_action}
-        current_user={@current_user}
-        runtime_connected_nodes={@data_view.runtime_connected_nodes}
-      />
-      <.side_panel app={@app} session={@session} data_view={@data_view} client_id={@client_id} />
-      <div class="grow overflow-y-auto relative" data-el-notebook>
-        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
-        <.indicators
-          session_id={@session.id}
-          mode={@session.mode}
-          file={@data_view.file}
-          dirty={@data_view.dirty}
-          persistence_warnings={@data_view.persistence_warnings}
-          autosave_interval_s={@data_view.autosave_interval_s}
-          runtime_status={@data_view.runtime_status}
-          global_status={@data_view.global_status}
-        />
-        <.notebook_content
-          data_view={@data_view}
+    <Layouts.app confirm_state={@confirm_state} flash={@flash}>
+      <div
+        class="flex grow h-full"
+        id={"session-#{@session.id}"}
+        data-el-session
+        phx-hook="Session"
+        data-p-global-status={hook_prop(elem(@data_view.global_status, 0))}
+        data-p-autofocus-cell-id={hook_prop(@autofocus_cell_id)}
+      >
+        <.sidebar
           session={@session}
-          client_id={@client_id}
-          allowed_uri_schemes={@allowed_uri_schemes}
-          saved_hubs={@saved_hubs}
-          starred_files={@starred_files}
+          live_action={@live_action}
+          current_user={@current_user}
+          runtime_connected_nodes={@data_view.runtime_connected_nodes}
         />
+        <.side_panel app={@app} session={@session} data_view={@data_view} client_id={@client_id} />
+        <div class="grow overflow-y-auto relative" data-el-notebook>
+          <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+          <.indicators
+            session_id={@session.id}
+            mode={@session.mode}
+            file={@data_view.file}
+            dirty={@data_view.dirty}
+            persistence_warnings={@data_view.persistence_warnings}
+            autosave_interval_s={@data_view.autosave_interval_s}
+            runtime_status={@data_view.runtime_status}
+            global_status={@data_view.global_status}
+          />
+          <.notebook_content
+            data_view={@data_view}
+            session={@session}
+            client_id={@client_id}
+            allowed_uri_schemes={@allowed_uri_schemes}
+            saved_hubs={@saved_hubs}
+            starred_files={@starred_files}
+          />
+        </div>
       </div>
-    </div>
 
-    <.current_user_modal current_user={@current_user} />
+      <.current_user_modal current_user={@current_user} />
 
-    <.modal
-      :if={@live_action == :runtime_settings}
-      id="runtime-settings-modal"
-      show
-      width="big"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.RuntimeComponent}
-        id="runtime-settings"
-        session={@session}
-        return_to={@self_path}
-        runtime={@data_view.runtime}
-        runtime_status={@data_view.runtime_status}
-        runtime_connect_info={@data_view.runtime_connect_info}
-        hub={@data_view.hub}
-        hub_secrets={@data_view.hub_secrets}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :runtime_settings}
+        id="runtime-settings-modal"
+        show
+        width="big"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.RuntimeComponent}
+          id="runtime-settings"
+          session={@session}
+          return_to={@self_path}
+          runtime={@data_view.runtime}
+          runtime_status={@data_view.runtime_status}
+          runtime_connect_info={@data_view.runtime_connect_info}
+          hub={@data_view.hub}
+          hub_secrets={@data_view.hub_secrets}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :file_settings}
-      id="persistence-modal"
-      show
-      width="big"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.PersistenceComponent}
-        id="persistence"
-        session={@session}
-        file={@data_view.file}
-        hub={@data_view.hub}
-        context={@action_assigns.context}
-        persist_outputs={@data_view.persist_outputs}
-        autosave_interval_s={@data_view.autosave_interval_s}
-        file_systems={@data_view.hub_file_systems}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :file_settings}
+        id="persistence-modal"
+        show
+        width="big"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.PersistenceComponent}
+          id="persistence"
+          session={@session}
+          file={@data_view.file}
+          hub={@data_view.hub}
+          context={@action_assigns.context}
+          persist_outputs={@data_view.persist_outputs}
+          autosave_interval_s={@data_view.autosave_interval_s}
+          file_systems={@data_view.hub_file_systems}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :app_settings}
-      id="app-settings-modal"
-      show
-      width="medium"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.AppSettingsComponent}
-        id="app-settings"
-        session={@session}
-        settings={@data_view.app_settings}
-        context={@action_assigns.context}
-        deployed_app_slug={@data_view.deployed_app_slug}
-        app_folders={@data_view.hub_app_folders}
-        hub_id={@data_view.hub.id}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :app_settings}
+        id="app-settings-modal"
+        show
+        width="medium"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.AppSettingsComponent}
+          id="app-settings"
+          session={@session}
+          settings={@data_view.app_settings}
+          context={@action_assigns.context}
+          deployed_app_slug={@data_view.deployed_app_slug}
+          app_folders={@data_view.hub_app_folders}
+          hub_id={@data_view.hub.id}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :app_docker}
-      id="app-docker-modal"
-      show
-      width="large"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.AppDockerComponent}
-        id="app-docker"
-        session={@session}
-        hub={@data_view.hub}
-        file={@data_view.file}
-        app_settings={@data_view.app_settings}
-        secrets={@data_view.secrets}
-        file_entries={@data_view.file_entries}
-        settings={@data_view.app_settings}
-        deployment_group_id={@data_view.deployment_group_id}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :app_docker}
+        id="app-docker-modal"
+        show
+        width="large"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.AppDockerComponent}
+          id="app-docker"
+          session={@session}
+          hub={@data_view.hub}
+          file={@data_view.file}
+          app_settings={@data_view.app_settings}
+          secrets={@data_view.secrets}
+          file_entries={@data_view.file_entries}
+          settings={@data_view.app_settings}
+          deployment_group_id={@data_view.deployment_group_id}
+        />
+      </.modal>
 
-    <.modal :if={@live_action == :app_teams} id="app-teams-modal" show width="big" patch={@self_path}>
-      {live_render(@socket, LivebookWeb.SessionLive.AppTeamsLive,
-        id: "app-teams",
-        session: %{
-          "session_pid" => @session.pid
-        }
-      )}
-    </.modal>
+      <.modal
+        :if={@live_action == :app_teams}
+        id="app-teams-modal"
+        show
+        width="big"
+        patch={@self_path}
+      >
+        {live_render(@socket, LivebookWeb.SessionLive.AppTeamsLive,
+          id: "app-teams",
+          session: %{
+            "session_pid" => @session.pid
+          }
+        )}
+      </.modal>
 
-    <.modal
-      :if={@live_action == :app_teams_hub_info}
-      id="app-teams-hub-info-modal"
-      show
-      width="big"
-      patch={@self_path}
-    >
-      <.app_teams_hub_info_content
-        any_team_hub?={Enum.any?(@saved_hubs, &(Livebook.Hubs.Provider.type(&1.provider) == "team"))}
-        session={@session}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :app_teams_hub_info}
+        id="app-teams-hub-info-modal"
+        show
+        width="big"
+        patch={@self_path}
+      >
+        <.app_teams_hub_info_content
+          any_team_hub?={
+            Enum.any?(@saved_hubs, &(Livebook.Hubs.Provider.type(&1.provider) == "team"))
+          }
+          session={@session}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :add_file_entry}
-      id="add-file-entry-modal"
-      show
-      width="big"
-      patch={@self_path}
-    >
-      <.add_file_entry_content
-        session={@session}
-        hub={@data_view.hub}
-        file_entries={@data_view.file_entries}
-        tab={@action_assigns.tab}
-        hub_file_systems={@data_view.hub_file_systems}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :add_file_entry}
+        id="add-file-entry-modal"
+        show
+        width="big"
+        patch={@self_path}
+      >
+        <.add_file_entry_content
+          session={@session}
+          hub={@data_view.hub}
+          file_entries={@data_view.file_entries}
+          tab={@action_assigns.tab}
+          hub_file_systems={@data_view.hub_file_systems}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :rename_file_entry}
-      id="rename-file-entry-modal"
-      show
-      width="big"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.RenameFileEntryComponent}
-        id="rename-file-entry"
-        session={@session}
-        file_entry={@action_assigns.renaming_file_entry}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :rename_file_entry}
+        id="rename-file-entry-modal"
+        show
+        width="big"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.RenameFileEntryComponent}
+          id="rename-file-entry"
+          session={@session}
+          file_entry={@action_assigns.renaming_file_entry}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :shortcuts}
-      id="shortcuts-modal"
-      show
-      width="large"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.ShortcutsComponent}
-        id="shortcuts"
-        platform={@platform}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :shortcuts}
+        id="shortcuts-modal"
+        show
+        width="large"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.ShortcutsComponent}
+          id="shortcuts"
+          platform={@platform}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :cell_settings}
-      id="cell-settings-modal"
-      show
-      width="medium"
-      patch={@self_path}
-    >
-      <.live_component
-        module={settings_component_for(@action_assigns.cell)}
-        id="cell-settings"
-        session={@session}
-        return_to={@self_path}
-        cell={@action_assigns.cell}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :cell_settings}
+        id="cell-settings-modal"
+        show
+        width="medium"
+        patch={@self_path}
+      >
+        <.live_component
+          module={settings_component_for(@action_assigns.cell)}
+          id="cell-settings"
+          session={@session}
+          return_to={@self_path}
+          cell={@action_assigns.cell}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :insert_image}
-      id="insert-image-modal"
-      show
-      width="medium"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.InsertImageComponent}
-        id="insert-image"
-        session={@session}
-        return_to={@self_path}
-        insert_image_metadata={@action_assigns.insert_image_metadata}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :insert_image}
+        id="insert-image-modal"
+        show
+        width="medium"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.InsertImageComponent}
+          id="insert-image"
+          session={@session}
+          return_to={@self_path}
+          insert_image_metadata={@action_assigns.insert_image_metadata}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :insert_file}
-      id="insert-file-modal"
-      show
-      width="medium"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.InsertFileComponent}
-        id="insert-file"
-        session={@session}
-        return_to={@self_path}
-        insert_file_metadata={@action_assigns.insert_file_metadata}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :insert_file}
+        id="insert-file-modal"
+        show
+        width="medium"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.InsertFileComponent}
+          id="insert-file"
+          session={@session}
+          return_to={@self_path}
+          insert_file_metadata={@action_assigns.insert_file_metadata}
+        />
+      </.modal>
 
-    <.modal :if={@live_action == :bin} id="bin-modal" show width="big" patch={@self_path}>
-      <.live_component
-        module={LivebookWeb.SessionLive.BinComponent}
-        id="bin"
-        session={@session}
-        return_to={@self_path}
-        bin_entries={@data_view.bin_entries}
-      />
-    </.modal>
+      <.modal :if={@live_action == :bin} id="bin-modal" show width="big" patch={@self_path}>
+        <.live_component
+          module={LivebookWeb.SessionLive.BinComponent}
+          id="bin"
+          session={@session}
+          return_to={@self_path}
+          bin_entries={@data_view.bin_entries}
+        />
+      </.modal>
 
-    <.modal :if={@live_action == :export} id="export-modal" show width="big" patch={@self_path}>
-      <.live_component
-        module={LivebookWeb.SessionLive.ExportComponent}
-        id="export"
-        session={@session}
-        tab={@action_assigns.tab}
-        any_stale_cell?={@action_assigns.any_stale_cell?}
-      />
-    </.modal>
+      <.modal :if={@live_action == :export} id="export-modal" show width="big" patch={@self_path}>
+        <.live_component
+          module={LivebookWeb.SessionLive.ExportComponent}
+          id="export"
+          session={@session}
+          tab={@action_assigns.tab}
+          any_stale_cell?={@action_assigns.any_stale_cell?}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :package_search}
-      id="package-search-modal"
-      show
-      width="medium"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.PackageSearchComponent}
-        id="package-search"
-        session_pid={@session.pid}
-        runtime={@data_view.runtime}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :package_search}
+        id="package-search-modal"
+        show
+        width="medium"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.PackageSearchComponent}
+          id="package-search"
+          session_pid={@session.pid}
+          runtime={@data_view.runtime}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :secrets}
-      id="secrets-modal"
-      show
-      width={if(@action_assigns.select_secret_metadata, do: "large", else: "medium")}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.SecretsComponent}
-        id="secrets"
-        session={@session}
-        secrets={@data_view.secrets}
-        hub_secrets={@data_view.hub_secrets}
-        hub={@data_view.hub}
-        select_secret_metadata={@action_assigns.select_secret_metadata}
-        prefill_secret_name={@action_assigns.prefill_secret_name}
-        return_to={@self_path}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :secrets}
+        id="secrets-modal"
+        show
+        width={if(@action_assigns.select_secret_metadata, do: "large", else: "medium")}
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.SecretsComponent}
+          id="secrets"
+          session={@session}
+          secrets={@data_view.secrets}
+          hub_secrets={@data_view.hub_secrets}
+          hub={@data_view.hub}
+          select_secret_metadata={@action_assigns.select_secret_metadata}
+          prefill_secret_name={@action_assigns.prefill_secret_name}
+          return_to={@self_path}
+        />
+      </.modal>
 
-    <.modal
-      :if={@live_action == :custom_view_settings}
-      id="custom-view-modal"
-      show
-      width="medium"
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.CustomViewComponent}
-        id="custom"
-        return_to={@self_path}
-        session={@session}
-      />
-    </.modal>
+      <.modal
+        :if={@live_action == :custom_view_settings}
+        id="custom-view-modal"
+        show
+        width="medium"
+        patch={@self_path}
+      >
+        <.live_component
+          module={LivebookWeb.SessionLive.CustomViewComponent}
+          id="custom"
+          return_to={@self_path}
+          session={@session}
+        />
+      </.modal>
+    </Layouts.app>
     """
   end
 

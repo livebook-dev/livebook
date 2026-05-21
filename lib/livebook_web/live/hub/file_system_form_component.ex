@@ -14,7 +14,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     {file_system, assigns} = Map.pop!(assigns, :file_system)
 
     mode = mode(file_system)
-    title = title(file_system)
+    title = page_title(file_system)
     button = button_attrs(file_system)
     file_system = file_system || %FileSystem.S3{hub_id: assigns.hub.id}
 
@@ -257,8 +257,8 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
   defp mode(nil), do: :new
   defp mode(_), do: :edit
 
-  defp title(nil), do: "Add file storage"
-  defp title(_), do: "Edit file storage"
+  defp page_title(nil), do: "Add file storage"
+  defp page_title(_), do: "Edit file storage"
 
   defp button_attrs(nil), do: %{icon: "add-line", label: "Add"}
   defp button_attrs(_), do: %{icon: "save-line", label: "Save"}

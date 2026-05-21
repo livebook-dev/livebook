@@ -3,8 +3,6 @@ defmodule LivebookWeb.AppsDashboardLive do
 
   import LivebookWeb.AppComponents
 
-  alias LivebookWeb.LayoutComponents
-
   on_mount LivebookWeb.SidebarHook
 
   @impl true
@@ -21,7 +19,9 @@ defmodule LivebookWeb.AppsDashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutComponents.layout
+    <Layouts.layout
+      flash={@flash}
+      confirm_state={@confirm_state}
       current_page={~p"/apps-dashboard"}
       current_user={@current_user}
       teams_auth={@teams_auth}
@@ -30,7 +30,7 @@ defmodule LivebookWeb.AppsDashboardLive do
     >
       <div class="space-y-2 p-4 md:px-12 md:py-7 max-w-(--breakpoint-lg) mx-auto">
         <div class="flex items-center justify-between">
-          <LayoutComponents.title text="Local apps" />
+          <.title text="Local apps" />
           <.link navigate={~p"/apps"} class="flex items-center text-blue-600">
             <span class="font-semibold">Listing</span>
             <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
@@ -43,7 +43,7 @@ defmodule LivebookWeb.AppsDashboardLive do
           <.app_list apps={@apps} />
         </div>
       </div>
-    </LayoutComponents.layout>
+    </Layouts.layout>
     """
   end
 

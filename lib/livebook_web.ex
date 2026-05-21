@@ -3,9 +3,7 @@ defmodule LivebookWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller,
-        formats: [:html, :json],
-        layouts: [html: LivebookWeb.Layouts]
+      use Phoenix.Controller, formats: [:html, :json]
 
       import Plug.Conn
 
@@ -15,7 +13,7 @@ defmodule LivebookWeb do
 
   def live_view do
     quote do
-      use Phoenix.LiveView, layout: {LivebookWeb.Layouts, :live}
+      use Phoenix.LiveView
 
       unquote(html_helpers())
     end
@@ -64,6 +62,8 @@ defmodule LivebookWeb do
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
+      # Shortcut for layout components
+      alias LivebookWeb.Layouts
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

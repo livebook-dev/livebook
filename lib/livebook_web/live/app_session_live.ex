@@ -89,143 +89,147 @@ defmodule LivebookWeb.AppSessionLive do
   def render(%{nonexistent?: true} = assigns)
       when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
-    <div class="h-screen flex items-center justify-center">
-      <div class="flex flex-col space-y-4 items-center">
-        <a href={~p"/"}>
-          <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
-        </a>
-        <div class="text-2xl text-gray-800">
-          This app session does not exist
-        </div>
-        <div class="max-w-2xl text-center text-gray-700">
-          <span>Visit the</span>
-          <.link class="border-b border-gray-700 hover:border-none" navigate={~p"/apps/#{@slug}"}>app page</.link>.
+    <Layouts.static>
+      <div class="h-screen flex items-center justify-center">
+        <div class="flex flex-col space-y-4 items-center">
+          <a href={~p"/"}>
+            <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
+          </a>
+          <div class="text-2xl text-gray-800">
+            This app session does not exist
+          </div>
+          <div class="max-w-2xl text-center text-gray-700">
+            <span>Visit the</span>
+            <.link class="border-b border-gray-700 hover:border-none" navigate={~p"/apps/#{@slug}"}>app page</.link>.
+          </div>
         </div>
       </div>
-    </div>
+    </Layouts.static>
     """
   end
 
   def render(assigns) when assigns.app_authenticated? and assigns.app_authorized? do
     ~H"""
-    <.apps_banner value={@apps_banner} />
-    <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
-      <div class="absolute right-4 md:left-4 md:right-auto top-3.5">
-        <.menu id="app-menu" position="bottom-right" md_position="bottom-left">
-          <:toggle>
-            <button class="flex items-center text-gray-900">
-              <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
-              <.remix_icon icon="arrow-down-s-line" />
-            </button>
-          </:toggle>
-          <.menu_item :if={@livebook_authorized?}>
-            <.link navigate={~p"/"} role="menuitem">
-              <.remix_icon icon="home-6-line" />
-              <span>Home</span>
-            </.link>
-          </.menu_item>
-          <.menu_item>
-            <.link navigate={~p"/apps"} role="menuitem">
-              <.remix_icon icon="layout-grid-fill" />
-              <span>Apps</span>
-            </.link>
-          </.menu_item>
-          <.menu_item :if={@data_view.multi_session}>
-            <.link navigate={~p"/apps/#{@data_view.slug}"} role="menuitem">
-              <.remix_icon icon="play-list-add-line" />
-              <span>Sessions</span>
-            </.link>
-          </.menu_item>
-          <.menu_item :if={@data_view.show_source}>
-            <.link
-              patch={~p"/apps/#{@data_view.slug}/sessions/#{@session.id}/source"}
-              role="menuitem"
-            >
-              <.remix_icon icon="code-line" />
-              <span>View source</span>
-            </.link>
-          </.menu_item>
-          <.menu_item :if={@livebook_authorized?}>
-            <.link patch={~p"/sessions/#{@session.id}"} role="menuitem">
-              <.remix_icon icon="terminal-line" />
-              <span>Debug</span>
-            </.link>
-          </.menu_item>
-          <.menu_item :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}>
-            <button phx-click="logout" role="menuitem">
-              <.remix_icon icon="logout-box-line" />
-              <span>Logout</span>
-            </button>
-          </.menu_item>
-        </.menu>
-      </div>
-      <div class="w-full py-4 mx-auto" data-el-notebook-content>
-        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
-        <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
-          <h1 class="text-3xl font-semibold text-gray-800">
-            {@data_view.notebook_name}
-          </h1>
+    <Layouts.app confirm_state={@confirm_state} flash={@flash}>
+      <.apps_banner value={@apps_banner} />
+      <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
+        <div class="absolute right-4 md:left-4 md:right-auto top-3.5">
+          <.menu id="app-menu" position="bottom-right" md_position="bottom-left">
+            <:toggle>
+              <button class="flex items-center text-gray-900">
+                <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
+                <.remix_icon icon="arrow-down-s-line" />
+              </button>
+            </:toggle>
+            <.menu_item :if={@livebook_authorized?}>
+              <.link navigate={~p"/"} role="menuitem">
+                <.remix_icon icon="home-6-line" />
+                <span>Home</span>
+              </.link>
+            </.menu_item>
+            <.menu_item>
+              <.link navigate={~p"/apps"} role="menuitem">
+                <.remix_icon icon="layout-grid-fill" />
+                <span>Apps</span>
+              </.link>
+            </.menu_item>
+            <.menu_item :if={@data_view.multi_session}>
+              <.link navigate={~p"/apps/#{@data_view.slug}"} role="menuitem">
+                <.remix_icon icon="play-list-add-line" />
+                <span>Sessions</span>
+              </.link>
+            </.menu_item>
+            <.menu_item :if={@data_view.show_source}>
+              <.link
+                patch={~p"/apps/#{@data_view.slug}/sessions/#{@session.id}/source"}
+                role="menuitem"
+              >
+                <.remix_icon icon="code-line" />
+                <span>View source</span>
+              </.link>
+            </.menu_item>
+            <.menu_item :if={@livebook_authorized?}>
+              <.link patch={~p"/sessions/#{@session.id}"} role="menuitem">
+                <.remix_icon icon="terminal-line" />
+                <span>Debug</span>
+              </.link>
+            </.menu_item>
+            <.menu_item :if={Livebook.Config.logout_enabled?() and @current_user.email != nil}>
+              <button phx-click="logout" role="menuitem">
+                <.remix_icon icon="logout-box-line" />
+                <span>Logout</span>
+              </button>
+            </.menu_item>
+          </.menu>
         </div>
-        <div class="pt-4 flex flex-col gap-6">
-          <.live_component
-            :for={cell_view <- @data_view.cell_views}
-            module={LivebookWeb.AppSessionLive.CellOutputsComponent}
-            id={"outputs-#{cell_view.id}"}
-            cell_view={cell_view}
-            session={@session}
-            client_id={@client_id}
-          />
-          <%= if @data_view.app_status.execution == :error do %>
-            <div class={[
-              "flex justify-between items-center px-4 py-2 border-l-4 shadow-custom-1",
-              "text-red-400 border-red-400 w-full mx-auto max-w-(--breakpoint-lg)"
-            ]}>
-              <div>
-                Something went wrong
-              </div>
-              <div class="flex items-center gap-6">
-                <span class="tooltip top" data-tooltip="Debug">
-                  <.link
-                    :if={@livebook_authorized?}
-                    navigate={~p"/sessions/#{@session.id}" <> "#cell-#{@data_view.errored_cell_id}"}
+        <div class="w-full py-4 mx-auto" data-el-notebook-content>
+          <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+          <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
+            <h1 class="text-3xl font-semibold text-gray-800">
+              {@data_view.notebook_name}
+            </h1>
+          </div>
+          <div class="pt-4 flex flex-col gap-6">
+            <.live_component
+              :for={cell_view <- @data_view.cell_views}
+              module={LivebookWeb.AppSessionLive.CellOutputsComponent}
+              id={"outputs-#{cell_view.id}"}
+              cell_view={cell_view}
+              session={@session}
+              client_id={@client_id}
+            />
+            <%= if @data_view.app_status.execution == :error do %>
+              <div class={[
+                "flex justify-between items-center px-4 py-2 border-l-4 shadow-custom-1",
+                "text-red-400 border-red-400 w-full mx-auto max-w-(--breakpoint-lg)"
+              ]}>
+                <div>
+                  Something went wrong
+                </div>
+                <div class="flex items-center gap-6">
+                  <span class="tooltip top" data-tooltip="Debug">
+                    <.link
+                      :if={@livebook_authorized?}
+                      navigate={~p"/sessions/#{@session.id}" <> "#cell-#{@data_view.errored_cell_id}"}
+                    >
+                      <.remix_icon icon="terminal-line" />
+                    </.link>
+                  </span>
+                  <button
+                    class="px-5 py-2 font-medium text-sm inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1 border-red-400 text-red-400 hover:bg-red-50 focus:bg-red-50"
+                    phx-click="queue_errored_cells_evaluation"
                   >
-                    <.remix_icon icon="terminal-line" />
-                  </.link>
-                </span>
-                <button
-                  class="px-5 py-2 font-medium text-sm inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1 border-red-400 text-red-400 hover:bg-red-50 focus:bg-red-50"
-                  phx-click="queue_errored_cells_evaluation"
-                >
-                  <.remix_icon icon="play-circle-fill" />
-                  <span>Retry</span>
-                </button>
+                    <.remix_icon icon="play-circle-fill" />
+                    <span>Retry</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          <% end %>
+            <% end %>
+          </div>
+          <div style="height: 80vh"></div>
         </div>
-        <div style="height: 80vh"></div>
+        <div class="fixed right-3 bottom-4 flex flex-col gap-2 items-center text-gray-600 w-10">
+          <span
+            :if={
+              @data_view.app_status.execution == :executed and
+                @data_view.any_stale?
+            }
+            class="tooltip left"
+            data-tooltip={
+              ~S'''
+              Some inputs have changed.
+              Click this button to process with latest values.
+              '''
+            }
+          >
+            <.icon_button phx-click="queue_full_evaluation">
+              <.remix_icon icon="play-circle-fill" class="text-3xl leading-none" />
+            </.icon_button>
+          </span>
+          <.app_status_circle status={@data_view.app_status} />
+        </div>
       </div>
-      <div class="fixed right-3 bottom-4 flex flex-col gap-2 items-center text-gray-600 w-10">
-        <span
-          :if={
-            @data_view.app_status.execution == :executed and
-              @data_view.any_stale?
-          }
-          class="tooltip left"
-          data-tooltip={
-            ~S'''
-            Some inputs have changed.
-            Click this button to process with latest values.
-            '''
-          }
-        >
-          <.icon_button phx-click="queue_full_evaluation">
-            <.remix_icon icon="play-circle-fill" class="text-3xl leading-none" />
-          </.icon_button>
-        </span>
-        <.app_status_circle status={@data_view.app_status} />
-      </div>
-    </div>
+    </Layouts.app>
 
     <.modal
       :if={@live_action == :source and @data_view.show_source}

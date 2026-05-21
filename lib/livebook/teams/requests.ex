@@ -223,14 +223,14 @@ defmodule Livebook.Teams.Requests do
     params = %{access_token: access_token}
 
     fun = fn
-      _, %Req.TransportError{reason: :econnrefused} -> not valid_cache?
-      _, %Req.Response{status: status} when status in [408, 429, 500, 502, 503, 504] -> true
-      _, %Req.TransportError{reason: reason} when reason in [:timeout, :closed] -> true
+      _, %{reason: :econnrefused} -> not valid_cache?
+      _, %{status: status} when status in [408, 429, 500, 502, 503, 504] -> true
+      _, %{reason: reason} when reason in [:timeout, :closed] -> true
       _, _ -> false
     end
 
     case Req.get(req, url: "/api/v1/org/identity", params: params, retry: fun) do
-      {:error, %Req.TransportError{reason: :econnrefused}} -> :econnrefused
+      {:error, %{reason: :econnrefused}} -> :econnrefused
       otherwise -> handle_response(otherwise)
     end
   end

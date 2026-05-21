@@ -20,9 +20,10 @@ defmodule LivebookWeb.AuthController do
   end
 
   def index(conn, _params) do
-    render(conn, "index.html",
+    render(conn, :index,
       errors: [],
-      authentication_mode: LivebookWeb.AuthPlug.authentication(conn).mode
+      authentication_mode: LivebookWeb.AuthPlug.authentication(conn).mode,
+      layout: false
     )
   end
 
@@ -63,9 +64,10 @@ defmodule LivebookWeb.AuthController do
   defp render_form_error(conn, authentication_mode) do
     errors = [{"%{authentication_mode} is invalid", [authentication_mode: authentication_mode]}]
 
-    render(conn, "index.html",
+    render(conn, :index,
       errors: errors,
-      authentication_mode: authentication_mode
+      authentication_mode: authentication_mode,
+      layout: false
     )
   end
 end
