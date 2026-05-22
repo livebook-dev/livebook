@@ -7,7 +7,7 @@ defmodule LivebookWeb.Layouts do
 
   embed_templates "layouts/*"
 
-  def dev?(), do: unquote(Mix.env() == :dev)
+  def dev?(), do: !!unquote(Mix.env() == :dev)
 
   @doc """
   The layout used in static pages.

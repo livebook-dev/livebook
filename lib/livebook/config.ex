@@ -414,7 +414,7 @@ defmodule Livebook.Config do
   Returns whether running at the desktop app.
   """
   @spec app?() :: boolean()
-  def app?(), do: @app?
+  def app?(), do: !!@app?
 
   @doc """
   Returns the GitHub org/repo where the releases are created.
