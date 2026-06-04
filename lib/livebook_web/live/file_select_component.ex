@@ -655,13 +655,13 @@ defmodule LivebookWeb.FileSelectComponent do
     running_files = socket.assigns.running_files
 
     socket
+    |> assign(loading: true)
     |> start_async(:list_files, fn ->
       case get_file_infos(dir, extnames, running_files) do
         {:ok, file_infos} -> {:ok, file_infos, dir, prefix}
         {:error, error} -> {:error, error, current_file_infos, prefix}
       end
     end)
-    |> assign(loading: true)
   end
 
   defp update_file_display(socket, file_infos, prefix) do
