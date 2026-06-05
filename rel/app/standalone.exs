@@ -114,17 +114,7 @@ defmodule Standalone do
     hex_version = Keyword.fetch!(Application.spec(:hex), :vsn)
 
     source_hex_path =
-      Path.join(Mix.path_for(:archives), "hex-#{hex_version}-otp-#{System.otp_release()}")
-
-    # TODO: Handling both paths for now, need to investigate why this broke.
-    source_hex_path =
-      if File.exists?(source_hex_path) do
-        source_hex_path
-      else
-        path = Path.join(Mix.path_for(:archives), "hex-#{hex_version}")
-        Mix.shell().info("warning: #{source_hex_path} not found")
-        path
-      end
+      Path.join(Mix.path_for(:archives), "hex-#{hex_version}")
 
     release_hex_path =
       Path.join(release_archives_dir, "hex-#{hex_version}-otp-#{System.otp_release()}")
