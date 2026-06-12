@@ -1685,6 +1685,42 @@ defmodule Livebook.Intellisense.ElixirTest do
 
       refute Enum.any?(items, &(&1.kind == :function))
     end
+
+    test "completion for block keywords and binary operators" do
+      context = intellisense_context_from_eval(do: nil)
+
+      assert %{
+               items: [
+                 %{documentation: "(keyword)", insert_text: "do", kind: :keyword, label: "do"}
+               ]
+             } = Intellisense.Elixir.handle_request({:completion, "if true d"}, context, node())
+
+      assert %{items: items} =
+               Intellisense.Elixir.handle_request({:completion, "if 1 "}, context, node())
+
+      assert %{
+               documentation: "(binary operator)",
+               insert_text: "\\\\",
+               kind: :binary_operator,
+               label: "\\\\/2"
+             } in items
+
+      assert %{items: items} =
+               Intellisense.Elixir.handle_request({:completion, "if 1 +"}, context, node())
+
+      assert %{
+               documentation: """
+               Arithmetic addition operator.
+
+               ```
+               left + right
+               ```\
+               """,
+               insert_text: "+",
+               kind: :function,
+               label: "+/2"
+             } in items
+    end
   end
 
   describe "details" do

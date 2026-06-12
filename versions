@@ -3,7 +3,7 @@
 # across three versions. So, for example, if Rebar3 is compiled for 26,
 # then the executable will be good for 26..28. You can find the executable
 # version in Rebar3 CI files.
-elixir="1.19.3"
+elixir="1.20.1"
 otp="28.1.1"
 rebar3="3.24.0"
 ubuntu="noble-20251013"

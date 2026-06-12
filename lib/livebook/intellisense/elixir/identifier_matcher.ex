@@ -72,6 +72,8 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
               name: name(),
               arity: integer()
             }
+          | %{kind: :keyword, name: name()}
+          | %{kind: :binary_operator, name: name(), arity: arity()}
 
   @type name :: atom()
   @type display_name :: String.t()
@@ -98,6 +100,26 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
 
   @alias_only_atoms ~w(alias import require)a
   @alias_only_charlists ~w(alias import require)c
+
+  @block_keywords ~w(do end after catch else rescue)
+
+  @kernel_operators ["**", "*", "/", "+", "-", "++", "--", "..", "<>"] ++
+                      ["in", "|>", "<", ">", "<=", ">=", "==", "!=", "=~", "===", "!=="] ++
+                      ["&&", "and", "||", "or", "="]
+
+  @bitwise_operators ["<<<", ">>>", "&&&", "|||"]
+
+  @special_forms_operators ["::", "="]
+
+  @binary_operators ["+++", "---", "not in", "<<~", "~>>", "<~", "~>", "<~>"] ++
+                      ["=>", "|", "when", "<-", "\\\\"]
+
+  @binary_operators_docs [
+    {Kernel, @kernel_operators},
+    {Kernel.SpecialForms, @special_forms_operators},
+    {Bitwise, @bitwise_operators},
+    {nil, @binary_operators}
+  ]
 
   @doc """
   Clears all loaded entries stored for node.
@@ -247,6 +269,9 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
       {:struct, struct} ->
         match_struct(List.to_string(struct), ctx)
 
+      {:block_keyword_or_binary_operator, hint} ->
+        match_block_keyword_or_binary_operator(List.to_string(hint), ctx)
+
       # :none
       _ ->
         []
@@ -349,6 +374,35 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
         has_struct?(module),
         not is_exception?(module),
         do: item
+  end
+
+  defp match_block_keyword_or_binary_operator(hint, ctx) do
+    block_keywords =
+      for value <- match_values_from_hint(hint, @block_keywords, ctx) do
+        %{kind: :keyword, name: value}
+      end
+
+    binary_operators =
+      for {mod, values} <- @binary_operators_docs,
+          name <- match_values_from_hint(hint, values, ctx) do
+        if mod do
+          match_module_function(mod, hint, ctx)
+        else
+          %{kind: :binary_operator, name: name, arity: 2}
+        end
+      end
+
+    result = List.flatten(block_keywords ++ binary_operators)
+
+    if result != [] do
+      result
+    end
+  end
+
+  defp match_values_from_hint(hint, values, ctx) do
+    for value <- values, ctx.matcher.(value, hint) do
+      String.to_existing_atom(value)
+    end
   end
 
   defp has_struct?(mod) do
@@ -690,32 +744,31 @@ defmodule Livebook.Intellisense.Elixir.IdentifierMatcher do
         )
 
       Enum.map(matching_funs, fn {name, arity, type} ->
-        doc_item =
-          Enum.find(
-            doc_items,
-            %{from_default: false, documentation: nil, signatures: [], specs: [], meta: %{}},
-            fn doc_item ->
-              doc_item.name == name && doc_item.arity == arity
-            end
-          )
-
-        %{
-          kind: :function,
-          module: mod,
-          name: name,
-          arity: arity,
-          type: type,
-          display_name: Atom.to_string(name),
-          from_default: doc_item.from_default,
-          documentation: doc_item.documentation,
-          signatures: doc_item.signatures,
-          specs: doc_item.specs,
-          meta: doc_item.meta
-        }
+        function_with_docs(mod, doc_items, name, arity, type)
       end)
     else
       []
     end
+  end
+
+  defp function_with_docs(mod, doc_items, name, arity, type) do
+    item = %{
+      kind: :function,
+      module: mod,
+      name: name,
+      arity: arity,
+      type: type,
+      display_name: Atom.to_string(name)
+    }
+
+    doc_item =
+      if doc_item = Enum.find(doc_items, &(&1.name == name and &1.arity == arity)) do
+        Map.take(doc_item, [:documentation, :from_default, :meta, :signatures, :specs])
+      else
+        %{from_default: false, documentation: nil, signatures: [], specs: [], meta: %{}}
+      end
+
+    Map.merge(item, doc_item)
   end
 
   defp exports(mod, node) do
