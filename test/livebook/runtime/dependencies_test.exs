@@ -44,11 +44,10 @@ defmodule Livebook.Runtime.DependenciesTest do
       assert Dependencies.insert_mix_dependencies("# Comment", [@req]) ==
                {:ok,
                 """
+                # Comment
                 Mix.install([
                   {:req, "~> 0.5.0"}
-                ])
-
-                # Comment\
+                ])\
                 """}
 
       assert Dependencies.insert_mix_dependencies(
