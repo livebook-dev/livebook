@@ -321,7 +321,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()},
                      2_000
 
-      assert clean_message(message) ==
+      assert clean_message(message) =~
                """
                ** (ArithmeticError) bad argument in arithmetic expression
                    nofile:3: Livebook.Runtime.EvaluatorTest.Stacktrace.Math.bad_math/0

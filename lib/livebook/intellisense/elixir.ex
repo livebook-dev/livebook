@@ -228,6 +228,22 @@ defmodule Livebook.Intellisense.Elixir do
     }
   end
 
+  defp format_completion_item(%{kind: :keyword, name: name}),
+    do: %{
+      label: Atom.to_string(name),
+      kind: :keyword,
+      documentation: "(keyword)",
+      insert_text: Atom.to_string(name)
+    }
+
+  defp format_completion_item(%{kind: :binary_operator, name: name, arity: arity}),
+    do: %{
+      label: "#{name}/#{arity}",
+      kind: :binary_operator,
+      documentation: "(binary operator)",
+      insert_text: Atom.to_string(name)
+    }
+
   defp keyword_macro?(name) do
     def? = name |> Atom.to_string() |> String.starts_with?("def")
 
@@ -306,7 +322,8 @@ defmodule Livebook.Intellisense.Elixir do
     :interface,
     :function,
     :type,
-    :bitstring_option
+    :bitstring_option,
+    :binary_operator
   ]
 
   defp completion_item_priority(%{kind: :struct} = completion_item) do
@@ -418,6 +435,8 @@ defmodule Livebook.Intellisense.Elixir do
       Intellisense.Elixir.Docs.format_documentation(documentation, :all)
     ])
   end
+
+  defp format_details_item(%{kind: :keyword, name: name}), do: code(name)
 
   defp get_definition_location(%{kind: :module, module: module}, context) do
     get_definition_location(module, context, {:module, module})
