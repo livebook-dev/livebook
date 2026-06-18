@@ -6,4 +6,4 @@
 elixir="1.20.1"
 otp="28.1.1"
 rebar3="3.24.0"
-ubuntu="noble-20251013"
+ubuntu="noble-20260509.1"
