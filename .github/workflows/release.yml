@@ -88,10 +88,27 @@ jobs:
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
 
+      # TODO: remove ImageOS rewrite once correctly handled upstream,
+      # see https://github.com/erlef/setup-beam/pull/462
+      - name: Normalize ImageOS
+        shell: bash
+        run: |
+          echo "ORIGINAL_IMAGE_OS=$ImageOS" >> $GITHUB_ENV
+          # Strip '-arm64' from the end and overwrite ImageOS.
+          CLEANED_OS="${ImageOS%-arm64}"
+          echo "ImageOS=$CLEANED_OS" >> $GITHUB_ENV
+
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
+
+      - name: Restore ImageOS
+        if: always()
+        shell: bash
+        run: |
+          # Restore ImageOS back to its original value.
+          echo "ImageOS=${{ env.ORIGINAL_IMAGE_OS }}" >> $GITHUB_ENV
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
