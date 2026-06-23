@@ -94,17 +94,6 @@ defmodule Livebook.Runtime.Definitions do
       name: "Database connection",
       requirement_presets: [
         %{
-          name: "Amazon Athena",
-          packages: [
-            kino_db,
-            %{
-              name: "req_athena",
-              dependency: %{dep: {:req_athena, ">= 0.0.0"}, config: []}
-            },
-            explorer
-          ]
-        },
-        %{
           name: "Clickhouse",
           packages: [
             kino_db,
