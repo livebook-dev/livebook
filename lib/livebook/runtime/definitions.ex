@@ -60,11 +60,6 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:flame_k8s_backend, "~> 0.5"}, config: []}
   }
 
-  explorer = %{
-    name: "explorer",
-    dependency: %{dep: {:explorer, "~> 0.10.0"}, config: []}
-  }
-
   stb_image = %{
     name: "stb_image",
     dependency: %{dep: {:stb_image, "~> 0.6.9"}, config: []}
