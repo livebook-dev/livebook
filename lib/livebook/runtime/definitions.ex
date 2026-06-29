@@ -17,7 +17,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.4.0"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.5.0"}, config: []}
   }
 
   exqlite = %{
@@ -82,7 +82,7 @@ defmodule Livebook.Runtime.Definitions do
 
   adbc = %{
     name: "adbc",
-    dependency: %{dep: {:adbc, "~> 0.8"}, config: []}
+    dependency: %{dep: {:adbc, "~> 0.12"}, config: []}
   }
 
   windows? = match?({:win32, _}, :os.type())
@@ -101,7 +101,7 @@ defmodule Livebook.Runtime.Definitions do
               name: "req_ch",
               dependency: %{dep: {:req_ch, ">= 0.0.0"}, config: []}
             },
-            explorer
+            adbc
           ]
         },
         %{
