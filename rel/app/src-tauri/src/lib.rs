@@ -336,14 +336,17 @@ impl AppState {
 fn spawn_output_thread(reader: impl Read + Send + 'static, is_stderr: bool) {
     std::thread::spawn(move || {
         let mut reader = BufReader::new(reader);
-        let mut line = String::new();
+        let mut buf = Vec::new();
         loop {
-            line.clear();
-            let bytes = reader.read_line(&mut line).unwrap_or(0);
+            buf.clear();
+            // Note that we should not assume the output is valid UTF-8,
+            // so we read raw bytes and interpret as lossy UTF-8.
+            let bytes = reader.read_until(b'\n', &mut buf).unwrap_or(0);
             if bytes == 0 {
                 break;
             }
 
+            let line = String::from_utf8_lossy(&buf);
             let line = line.trim_end_matches(&['\r', '\n'][..]);
             if is_stderr {
                 if tracing::enabled!(Level::ERROR) {
