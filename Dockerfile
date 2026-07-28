@@ -11,7 +11,7 @@ ARG CUDA_VERSION_MAJOR
 ARG CUDA_VERSION_MINOR
 
 RUN distro="ubuntu$(. /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d '.')" && \
-  # Official Docker images use the sbsa packages when targetting arm64.
+  # Official Docker images use the sbsa packages when targeting arm64.
   # See https://gitlab.com/nvidia/container-images/cuda/-/blob/85f465ea3343a2d7f7753a0a838701999ed58a01/dist/12.5.1/ubuntu2204/base/Dockerfile#L12
   arch="$(if [ "$(uname -m)" = "aarch64" ]; then echo "sbsa"; else echo "x86_64"; fi)" && \
   apt-get update && apt-get install -y ca-certificates wget && \
@@ -106,7 +106,7 @@ RUN mix local.hex --force && \
 
 # By default Livebook binds to loopback, but in order to make the app
 # accessible outside of the container (by binding ports), we need to
-# bind to any address. Also note that we specify IPv6 address, becuase
+# bind to any address. Also note that we specify IPv6 address, because
 # we want to accept IPv6 connections. This is actually the default in
 # usual Phoenix deployments.
 ENV LIVEBOOK_IP="::"
