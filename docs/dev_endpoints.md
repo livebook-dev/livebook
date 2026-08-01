@@ -8,7 +8,9 @@ Dev endpoints are disabled by default. To enable them, go to **Settings → Dev 
 
 ## Security
 
-The endpoints are only accessible from local tools making direct HTTP requests. Any request that includes an `Origin` header (which browsers automatically attach) is rejected with a `403` error, preventing cross-site access from web pages.
+The endpoints are meant to be accessible programmatically and reject any request that includes the `Origin` header (which browsers automatically attach), preventing cross-site access from web pages.
+
+Furthermore, the Livebook CLI and the Desktop app bind to localhost by default, meaning Livebook and these routes are only available locally. However, beware! If you expose the Livebook application to the network and enable these endpoints at the same time, then they will become publicly available.
 
 ## Endpoints
 
