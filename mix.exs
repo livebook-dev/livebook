@@ -1,5 +1,5 @@
-if System.otp_release() < "25" do
-  Mix.raise("Livebook requires Erlang/OTP 25+")
+if System.otp_release() < "27" do
+  Mix.raise("Livebook requires Erlang/OTP 27+")
 end
 
 defmodule Livebook.MixProject do
