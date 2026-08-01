@@ -38,7 +38,7 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
         {@error_message}
       </div>
       <p class="text-gray-700" id="import-from-url">
-        Paste the URL to a .livemd file, to a GitHub file, or to a Gist.
+        Paste the URL to a .livemd file, to a GitHub file, or to a Gist. Import only URLs you trust.
       </p>
       <.form
         :let={f}
