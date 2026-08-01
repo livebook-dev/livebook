@@ -2,6 +2,10 @@
 
 A Livebook runtime consists of a set of processes responsible for evaluating notebook code.
 
+Runtimes are trusted peers of the Livebook server. Livebook communicates with
+runtimes over Erlang distribution, so code running in a notebook is trusted within
+that connected runtime system.
+
 Livebook offers four types of runtimes:
 
 - Standalone
@@ -26,7 +30,7 @@ graph LR
     livebook_node -.->|starts and clusters with| standalone_node
 ```
 
-The code inside your notebook runs in the context of this specific node started for your notebook, isolated from Livebook and other running notebook sessions.
+The code inside your notebook runs in the context of this specific node started for your notebook, separate from other running notebook sessions.
 
 Since your notebook has its own node, it can declare its own package dependencies via `Mix.install/2`.
 
