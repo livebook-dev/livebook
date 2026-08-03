@@ -38,7 +38,7 @@
     "hast-util-to-text": "^4.0.0",
     "hyperlist": "^1.0.0",
     "katex": "^0.16.28",
-    "mermaid": "^11.3.0",
+    "mermaid": "^11.14.0",
     "morphdom": "^2.6.1",
     "phoenix": "file:../deps/phoenix",
     "phoenix_html": "file:../deps/phoenix_html",
