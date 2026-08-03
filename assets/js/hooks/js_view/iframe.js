@@ -33,7 +33,7 @@ export function initializeIframeSource(iframe, iframePort, iframeUrl) {
 
   return verifyIframeSource(url).then(() => {
     iframe.sandbox =
-      "allow-scripts allow-same-origin allow-downloads allow-forms allow-modals allow-popups allow-top-navigation";
+      "allow-scripts allow-same-origin allow-downloads allow-forms allow-modals allow-popups allow-top-navigation-by-user-activation";
     iframe.allow =
       "accelerometer; ambient-light-sensor; camera; display-capture; encrypted-media; fullscreen; geolocation; gyroscope; microphone; midi; usb; xr-spatial-tracking; clipboard-read; clipboard-write; bluetooth; serial; local-network-access";
     iframe.src = url;
