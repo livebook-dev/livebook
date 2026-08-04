@@ -30,15 +30,19 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
       assert html_response(conn, 200) =~ "teams_redirect"
 
+      session = get_session(conn)
+      assert state = session["teams_auth_state"]
+
       redirect_to =
         LivebookWeb.Endpoint.url()
         |> URI.new!()
-        |> URI.append_query("teams_identity")
+        |> URI.append_query(URI.encode_query(%{"teams_identity" => "", "teams_state" => state}))
+        |> URI.to_string()
 
       # Step 2: Checks if the given request belongs to a browser
       conn =
-        build_conn(:get, "/", %{teams_redirect: "", redirect_to: URI.to_string(redirect_to)})
-        |> init_test_session(%{})
+        build_conn(:get, "/", %{teams_redirect: "", redirect_to: redirect_to})
+        |> init_test_session(session)
 
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
 
@@ -46,14 +50,14 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       location = Phoenix.ConnTest.redirected_to(conn)
       uri = URI.parse(location)
       assert uri.path == "/identity/authorize"
-      assert %{"token" => token} = URI.decode_query(uri.query)
+      assert %{"token" => token, "redirect_to" => ^redirect_to} = URI.decode_query(uri.query)
 
       %{code: code} = TeamsRPC.allow_auth_request(node, token)
 
       # Step 4: Emulate the redirect back with the code for validation
       conn =
-        build_conn(:get, "/", %{teams_identity: "", code: code})
-        |> init_test_session(Plug.Conn.get_session(conn))
+        build_conn(:get, "/", %{teams_identity: "", teams_state: state, code: code})
+        |> init_test_session(session)
 
       assert {conn, %{id: _id, name: _, email: _, payload: %{}} = metadata} =
                LivebookTeams.authenticate(test, conn, [])
@@ -68,21 +72,82 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert {%{halted: false}, ^metadata} = LivebookTeams.authenticate(test, conn, [])
     end
 
-    test "shows an error when the user does not belong to the org", %{conn: conn, test: test} do
-      # Step 1: Emulate a request coming from Teams saying the user does belong to the org
-      conn = init_test_session(conn, %{})
+    test "does not accept a code obtained in another authentication flow",
+         %{conn: conn, node: node, test: test} do
+      # Someone goes through the authentication flow themselves, up to
+      # the point where they have a code for their own identity
+      attacker_conn = init_test_session(conn, %{})
+      {attacker_conn, nil} = LivebookTeams.authenticate(test, attacker_conn, [])
+      assert attacker_state = get_session(attacker_conn, :teams_auth_state)
 
+      redirect_to =
+        LivebookWeb.Endpoint.url()
+        |> URI.new!()
+        |> URI.append_query(
+          URI.encode_query(%{"teams_identity" => "", "teams_state" => attacker_state})
+        )
+
+      attacker_conn =
+        build_conn(:get, "/", %{teams_redirect: "", redirect_to: URI.to_string(redirect_to)})
+        |> init_test_session(get_session(attacker_conn))
+
+      {attacker_conn, nil} = LivebookTeams.authenticate(test, attacker_conn, [])
+
+      uri = attacker_conn |> Phoenix.ConnTest.redirected_to() |> URI.parse()
+      assert %{"token" => token} = URI.decode_query(uri.query)
+
+      %{code: code} = TeamsRPC.allow_auth_request(node, token)
+
+      # Meanwhile the victim visits Livebook and starts their own flow
+      victim_conn = init_test_session(conn, %{})
+      {victim_conn, nil} = LivebookTeams.authenticate(test, victim_conn, [])
+      victim_session = get_session(victim_conn)
+
+      # Making the victim's browser complete the flow with the code has
+      # no effect, no matter which state it is presented with
+      for params <- [
+            %{teams_identity: "", teams_state: attacker_state, code: code},
+            %{teams_identity: "", code: code}
+          ] do
+        conn =
+          build_conn(:get, "/", params)
+          |> init_test_session(victim_session)
+
+        assert {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+        assert redirected_to(conn, 302) == "/"
+        refute get_session(conn, :livebook_teams_access_token)
+
+        # Following the redirect starts the authentication flow over
+        conn =
+          build_conn(:get, "/")
+          |> init_test_session(get_session(conn))
+
+        assert {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+        assert html_response(conn, 200) =~ "teams_redirect"
+      end
+    end
+
+    test "shows an error when the user does not belong to the org", %{conn: conn, test: test} do
+      # Step 1: Start the authentication flow, which stores the state in the session
+      conn = init_test_session(conn, %{})
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert state = get_session(conn, :teams_auth_state)
+
+      # Step 2: Emulate a request coming from Teams saying the user does not belong to the org
       params_from_teams = %{
         "teams_identity" => "",
+        "teams_state" => state,
         "failed_reason" => "you do not belong to this org"
       }
 
-      conn = %{conn | params: params_from_teams}
+      conn =
+        build_conn(:get, "/", params_from_teams)
+        |> init_test_session(get_session(conn))
 
       {conn, nil} = LivebookTeams.authenticate(test, conn, [])
       assert conn.status == 302
 
-      # Step 2: follow the redirect keeping the session set in previous request
+      # Step 3: follow the redirect keeping the session set in previous request
       conn =
         build_conn(:get, redirected_to(conn))
         |> init_test_session(get_session(conn))
@@ -91,6 +156,40 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
 
       assert html_response(conn, 403) =~
                "Failed to authenticate with Livebook Teams: you do not belong to this org"
+    end
+
+    test "starts over when the callback carries neither code nor failure reason",
+         %{conn: conn, test: test} do
+      conn = init_test_session(conn, %{})
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert state = get_session(conn, :teams_auth_state)
+
+      conn =
+        build_conn(:get, "/", %{teams_identity: "", teams_state: state})
+        |> init_test_session(get_session(conn))
+
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert redirected_to(conn, 302) == "/"
+    end
+
+    test "ignores a failure reason from an unknown authentication flow",
+         %{conn: conn, test: test} do
+      conn = init_test_session(conn, %{})
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+
+      params_from_teams = %{
+        "teams_identity" => "",
+        "teams_state" => "invalid",
+        "failed_reason" => "you do not belong to this org"
+      }
+
+      conn =
+        build_conn(:get, "/", params_from_teams)
+        |> init_test_session(get_session(conn))
+
+      {conn, nil} = LivebookTeams.authenticate(test, conn, [])
+      assert redirected_to(conn, 302) == "/"
+      refute get_session(conn, :teams_failed_reason)
     end
 
     test "deletes the cache if access token is invalid",

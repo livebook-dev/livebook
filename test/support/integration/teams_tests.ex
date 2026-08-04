@@ -186,10 +186,20 @@ defmodule Livebook.TeamsIntegrationHelper do
         "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
       )
 
+    # The page that starts the flow stores the state in the session,
+    # which we then need to pass back, as the browser would
+    session =
+      conn
+      |> LivebookWeb.ConnCase.with_authorization(team.id, name)
+      |> get("/")
+      |> Plug.Conn.get_session()
+
+    state = session["teams_auth_state"]
+
     redirect_to =
       LivebookWeb.Endpoint.url()
       |> URI.new!()
-      |> URI.append_query("teams_identity")
+      |> URI.append_query(URI.encode_query(%{"teams_identity" => "", "teams_state" => state}))
 
     uri =
       conn
@@ -203,8 +213,8 @@ defmodule Livebook.TeamsIntegrationHelper do
 
     session =
       conn
-      |> LivebookWeb.ConnCase.with_authorization(team.id, name)
-      |> get("/", %{teams_identity: "", code: code})
+      |> Plug.Test.init_test_session(session)
+      |> get("/", %{teams_identity: "", teams_state: state, code: code})
       |> Plug.Conn.get_session()
 
     authenticated_conn = Plug.Test.init_test_session(conn, session)
