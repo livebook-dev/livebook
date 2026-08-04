@@ -330,6 +330,34 @@ defmodule Livebook.Utils do
     end
   end
 
+  @doc ~S"""
+  Quotes the given string, such that POSIX shells treat it as a single
+  literal argument.
+
+  This should be used whenever building shell commands that include
+  arbitrary values.
+
+  ## Examples
+
+      iex> Livebook.Utils.shell_quote("value")
+      "'value'"
+
+      iex> Livebook.Utils.shell_quote("$(echo hi)")
+      "'$(echo hi)'"
+
+      iex> Livebook.Utils.shell_quote("it's")
+      "'it'\\''s'"
+
+  """
+  @spec shell_quote(String.t()) :: String.t()
+  def shell_quote(string) do
+    # Within single quotes the shell treats every character literally,
+    # so the only character we need to handle is the single quote
+    # itself. We close the quoted string, add an escaped single quote
+    # and open a new quoted string.
+    "'" <> String.replace(string, "'", "'\\''") <> "'"
+  end
+
   @doc """
   Changes the first letter in the given string to upper case.
 
