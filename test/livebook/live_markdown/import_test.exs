@@ -1510,5 +1510,44 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
       assert notebook.quarantine_file_entry_names == MapSet.new(["document1.pdf"])
     end
+
+    test "discards file entries with path traversal in the name" do
+      markdown = """
+      <!-- livebook:{"file_entries":[{"name":"image.jpg","type":"attachment"},{"name":"../secret.txt","type":"attachment"},{"file":{"file_system_id":"local","file_system_type":"local","path":"#{p("/document.pdf")}"},"name":"foo/bar.png","type":"file"},{"name":"../../tmp/payload.txt","type":"url","url":"https://example.com/payload.txt"}]} -->
+
+      # My Notebook
+      """
+
+      {notebook, %{warnings: warnings}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{file_entries: [%{type: :attachment, name: "image.jpg"}]} = notebook
+
+      assert notebook.quarantine_file_entry_names == MapSet.new()
+
+      assert warnings == [
+               ~s{discarding file entry with invalid name: "../../tmp/payload.txt"},
+               ~s{discarding file entry with invalid name: "foo/bar.png"},
+               ~s{discarding file entry with invalid name: "../secret.txt"}
+             ]
+    end
+
+    test "discards file entries with otherwise invalid name" do
+      markdown = """
+      <!-- livebook:{"file_entries":[{"name":"..","type":"attachment"},{"name":"document","type":"attachment"},{"name":"","type":"attachment"},{"name":42,"type":"attachment"}]} -->
+
+      # My Notebook
+      """
+
+      {notebook, %{warnings: warnings}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{file_entries: []} = notebook
+
+      assert warnings == [
+               "discarding file entry in invalid format",
+               ~s{discarding file entry with invalid name: ""},
+               ~s{discarding file entry with invalid name: "document"},
+               ~s{discarding file entry with invalid name: ".."}
+             ]
+    end
   end
 end

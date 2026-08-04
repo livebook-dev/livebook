@@ -947,16 +947,33 @@ defmodule Livebook.Notebook do
     do_prune_outputs(outputs, appendable?, acc)
   end
 
+  @file_entry_name_regex ~r/\A[\w\-\.]+\z/
+  @file_entry_name_extension_regex ~r/\.\w+\z/
+
   @doc """
   Validates a change is a valid file entry name.
   """
   @spec validate_file_entry_name(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
   def validate_file_entry_name(changeset, field) do
     changeset
-    |> Ecto.Changeset.validate_format(field, ~r/^[\w\-\.]+$/,
+    |> Ecto.Changeset.validate_format(field, @file_entry_name_regex,
       message: "should contain only alphanumeric characters, dash, underscore and dot"
     )
-    |> Ecto.Changeset.validate_format(field, ~r/\.\w+$/, message: "should end with an extension")
+    |> Ecto.Changeset.validate_format(field, @file_entry_name_extension_regex,
+      message: "should end with an extension"
+    )
+  end
+
+  @doc """
+  Checks if the given term is a valid file entry name.
+
+  File entry names are flat logical file names, they must not include
+  path separators, so that they can be safely resolved against the
+  notebook files directory.
+  """
+  @spec valid_file_entry_name?(String.t()) :: boolean()
+  def valid_file_entry_name?(name) when is_binary(name) do
+    name =~ @file_entry_name_regex and name =~ @file_entry_name_extension_regex
   end
 
   @doc """

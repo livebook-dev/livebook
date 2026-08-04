@@ -506,8 +506,11 @@ defmodule Livebook.LiveMarkdown.Import do
     end)
   end
 
-  defp file_entry_metadata_to_attrs(%{"type" => "attachment", "name" => name}) do
-    {:ok, %{type: :attachment, name: name}}
+  defp file_entry_metadata_to_attrs(%{"type" => "attachment", "name" => name})
+       when is_binary(name) do
+    with :ok <- validate_file_entry_name(name) do
+      {:ok, %{type: :attachment, name: name}}
+    end
   end
 
   defp file_entry_metadata_to_attrs(%{
@@ -518,23 +521,38 @@ defmodule Livebook.LiveMarkdown.Import do
            "file_system_type" => file_system_type,
            "path" => path
          }
-       }) do
-    file = %Livebook.FileSystem.File{
-      file_system_id: file_system_id,
-      file_system_module: Livebook.FileSystems.type_to_module(file_system_type),
-      path: path,
-      origin_pid: self()
-    }
+       })
+       when is_binary(name) and is_binary(file_system_id) and is_binary(file_system_type) and
+              is_binary(path) do
+    with :ok <- validate_file_entry_name(name) do
+      file = %Livebook.FileSystem.File{
+        file_system_id: file_system_id,
+        file_system_module: Livebook.FileSystems.type_to_module(file_system_type),
+        path: path,
+        origin_pid: self()
+      }
 
-    {:ok, %{type: :file, name: name, file: file}}
+      {:ok, %{type: :file, name: name, file: file}}
+    end
   end
 
-  defp file_entry_metadata_to_attrs(%{"type" => "url", "name" => name, "url" => url}) do
-    {:ok, %{type: :url, name: name, url: url}}
+  defp file_entry_metadata_to_attrs(%{"type" => "url", "name" => name, "url" => url})
+       when is_binary(name) and is_binary(url) do
+    with :ok <- validate_file_entry_name(name) do
+      {:ok, %{type: :url, name: name, url: url}}
+    end
   end
 
   defp file_entry_metadata_to_attrs(_other) do
     {:error, "discarding file entry in invalid format"}
+  end
+
+  defp validate_file_entry_name(name) do
+    if Notebook.valid_file_entry_name?(name) do
+      :ok
+    else
+      {:error, "discarding file entry with invalid name: #{inspect(name)}"}
+    end
   end
 
   defp section_metadata_to_attrs(metadata) do
