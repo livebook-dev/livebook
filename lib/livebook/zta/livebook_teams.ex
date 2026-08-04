@@ -65,27 +65,13 @@ defmodule Livebook.ZTA.LivebookTeams do
     |> redirect(external: url)
   end
 
-  defp handle_request(conn, team, %{"teams_identity" => _, "code" => code}) do
-    with {:ok, access_token} <- retrieve_access_token(team, code),
-         {:ok, metadata} <- get_user_info(team, access_token) do
-      {conn
-       |> put_session(:livebook_teams_access_token, access_token)
-       |> redirect(to: conn.request_path)
-       |> halt(), metadata}
+  defp handle_request(conn, team, %{"teams_identity" => _} = params) do
+    if valid_auth_state?(conn, params) do
+      conn = delete_session(conn, :teams_auth_state)
+      handle_identity_callback(conn, team, params)
     else
-      _ ->
-        {conn
-         |> put_session(:teams_error, true)
-         |> redirect(to: conn.request_path)
-         |> halt(), nil}
+      restart_user_authentication(conn)
     end
-  end
-
-  defp handle_request(conn, _team, %{"teams_identity" => _, "failed_reason" => reason}) do
-    {conn
-     |> put_session(:teams_failed_reason, reason)
-     |> redirect(to: conn.request_path)
-     |> halt(), nil}
   end
 
   defp handle_request(conn, team, %{"teams_redirect" => _, "redirect_to" => redirect_to}) do
@@ -94,7 +80,7 @@ defmodule Livebook.ZTA.LivebookTeams do
         uri =
           authorize_uri
           |> URI.new!()
-          |> URI.append_query("redirect_to=#{redirect_to}")
+          |> URI.append_query(URI.encode_query(%{"redirect_to" => redirect_to}))
 
         {conn
          |> redirect(external: URI.to_string(uri))
@@ -138,6 +124,33 @@ defmodule Livebook.ZTA.LivebookTeams do
     end
   end
 
+  defp handle_identity_callback(conn, team, %{"code" => code}) do
+    with {:ok, access_token} <- retrieve_access_token(team, code),
+         {:ok, metadata} <- get_user_info(team, access_token) do
+      {conn
+       |> put_session(:livebook_teams_access_token, access_token)
+       |> redirect(to: conn.request_path)
+       |> halt(), metadata}
+    else
+      _ ->
+        {conn
+         |> put_session(:teams_error, true)
+         |> redirect(to: conn.request_path)
+         |> halt(), nil}
+    end
+  end
+
+  defp handle_identity_callback(conn, _team, %{"failed_reason" => reason}) do
+    {conn
+     |> put_session(:teams_failed_reason, reason)
+     |> redirect(to: conn.request_path)
+     |> halt(), nil}
+  end
+
+  defp handle_identity_callback(conn, _team, _params) do
+    restart_user_authentication(conn)
+  end
+
   defp validate_access_token(conn, team, access_token) do
     case get_user_info(team, access_token) do
       {:ok, metadata} -> {conn, metadata}
@@ -153,6 +166,13 @@ defmodule Livebook.ZTA.LivebookTeams do
   end
 
   defp request_user_authentication(conn) do
+    # The state binds the authentication flow to this browser session,
+    # so that we only accept a code that we asked Livebook Teams for.
+    # Otherwise anyone could get a code for their own identity and have
+    # the browser complete the flow with it, effectively signing the
+    # user into someone else's account.
+    state = Livebook.Utils.random_long_id()
+
     # We have the browser do the redirect because the browser
     # knows the current page location. Unfortunately, it is quite
     # complex to know the actual host on the server, because the
@@ -166,7 +186,8 @@ defmodule Livebook.ZTA.LivebookTeams do
         <title>Redirecting...</title>
         <script>
           const redirectTo = new URL(window.location.href);
-          redirectTo.searchParams.append("teams_identity", "");
+          redirectTo.searchParams.set("teams_identity", "");
+          redirectTo.searchParams.set("teams_state", "#{state}");
 
           const url = new URL(window.location.href);
           url.searchParams.set("redirect_to", redirectTo.toString());
@@ -178,7 +199,23 @@ defmodule Livebook.ZTA.LivebookTeams do
     </html>
     """
 
-    {conn |> html(html_document) |> halt(), nil}
+    {conn |> put_session(:teams_auth_state, state) |> html(html_document) |> halt(), nil}
+  end
+
+  defp valid_auth_state?(conn, params) do
+    with state when is_binary(state) <- get_session(conn, :teams_auth_state),
+         param when is_binary(param) <- params["teams_state"] do
+      Plug.Crypto.secure_compare(state, param)
+    else
+      _ -> false
+    end
+  end
+
+  defp restart_user_authentication(conn) do
+    # We redirect instead of rendering the authentication page right
+    # away, so that the parameters of the stale callback are not
+    # carried over into the new flow
+    {conn |> redirect(to: conn.request_path) |> halt(), nil}
   end
 
   defp get_user_info(team, access_token) do
