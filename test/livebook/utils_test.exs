@@ -51,4 +51,21 @@ defmodule Livebook.UtilsTest do
       end
     end
   end
+
+  describe "shell_quote/1" do
+    test "wraps the string in single quotes" do
+      assert Livebook.Utils.shell_quote("") == "''"
+      assert Livebook.Utils.shell_quote("value") == "'value'"
+      assert Livebook.Utils.shell_quote("with spaces") == "'with spaces'"
+      assert Livebook.Utils.shell_quote("new\nline") == "'new\nline'"
+      assert Livebook.Utils.shell_quote("back\\slash") == "'back\\slash'"
+      assert Livebook.Utils.shell_quote(~s/x" ; id ; echo "/) == ~s/'x" ; id ; echo "'/
+      assert Livebook.Utils.shell_quote("$HOME `id` $(id)") == "'$HOME `id` $(id)'"
+    end
+
+    test "escapes single quotes" do
+      assert Livebook.Utils.shell_quote("'") == "''\\'''"
+      assert Livebook.Utils.shell_quote("x' ; id ; echo '") == "'x'\\'' ; id ; echo '\\'''"
+    end
+  end
 end
