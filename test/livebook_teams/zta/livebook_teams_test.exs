@@ -111,6 +111,21 @@ defmodule Livebook.ZTA.LivebookTeamsTest do
       assert html_response(conn, 403) =~
                "Failed to authenticate with Livebook Teams: you do not belong to this org"
     end
+
+    @tag subscribe_to_teams_topics: [:clients, :agents, :deployment_groups]
+    test "shows pending connection error page once the deployment group is deleted",
+         %{conn: conn, node: node, test: test, deployment_group: deployment_group} do
+      id = to_string(deployment_group.id)
+      TeamsRPC.delete_deployment_group(node, deployment_group)
+      assert_receive {:deployment_group_deleted, %{id: ^id}}
+
+      conn = init_test_session(conn, %{})
+
+      assert {%{halted: true} = conn, nil} = LivebookTeams.authenticate(test, conn, [])
+
+      assert html_response(conn, 503) =~
+               "This Livebook instance cannot be accessed because it has not yet established a connection to Livebook Teams."
+    end
   end
 
   describe "logout/2" do

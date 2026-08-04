@@ -322,8 +322,15 @@ defmodule Livebook.Hubs.TeamClient do
       {:ok, %{teams_auth: true}} ->
         {:reply, :enabled, state}
 
-      _ ->
+      {:ok, %{teams_auth: false}} ->
+        # We only return disabled if we are certain, otherwise we might
+        # wrongly allow access.
         {:reply, :disabled, state}
+
+      _not_found ->
+        # We cannot find the deployment group, it may have been deleted,
+        # so we return :pending, similarly to the before-connected case.
+        {:reply, :pending, state}
     end
   end
 
