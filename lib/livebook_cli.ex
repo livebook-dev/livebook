@@ -61,16 +61,16 @@ defmodule LivebookCLI do
     archive_dir = Path.join(Livebook.Config.tmp_path(), "escript")
     extracted_path = Path.join(archive_dir, "extracted")
     in_archive_priv_path = ~c"livebook/priv"
+    priv_dir = Path.join(archive_dir, in_archive_priv_path)
 
     # In dev we want to extract fresh directory on every boot
     if Livebook.Config.app_version() =~ "-dev" do
       File.rm_rf!(archive_dir)
     end
 
-    # When temporary directory is cleaned by the OS, the directories
-    # may be left in place, so we use a regular file (extracted) to
-    # check if the extracted archive is already available
-    if not File.exists?(extracted_path) do
+    # The temporary directory may be partially cleaned by the OS, so we store
+    # a hash of all paths to check if the extracted archive is still complete
+    if File.read(extracted_path) != {:ok, priv_hash(priv_dir)} do
       {:ok, sections} = :escript.extract(:escript.script_name(), [])
       archive = Keyword.fetch!(sections, :archive)
 
@@ -84,10 +84,17 @@ defmodule LivebookCLI do
         raise "Livebook failed to extract archive files, reason: #{inspect(error)}"
       end
 
-      File.touch!(extracted_path)
+      File.write!(extracted_path, priv_hash(priv_dir))
     end
 
-    priv_dir = Path.join(archive_dir, in_archive_priv_path)
     Application.put_env(:livebook, :priv_dir, priv_dir, persistent: true)
+  end
+
+  defp priv_hash(priv_dir) do
+    priv_dir
+    |> Path.join("**/*")
+    |> Path.wildcard()
+    |> Enum.sort()
+    |> :erlang.md5()
   end
 end
