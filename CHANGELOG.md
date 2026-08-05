@@ -2,6 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.19.9](https://github.com/livebook-dev/livebook/tree/v0.19.9) (2026-08-05)
+
+### Fixed
+
+* Only proxy user-initiated events from JS widgets (CVE-2026-66298, GHSA-68c2-prqg-x62g)
+* Validate notebook file entry names on import to prevent path traversal reads and writes (CVE-2026-66881, GHSA-r4h8-2xpq-v48g)
+* Escape environment variables in app server shell instructions (CVE-2026-66297, GHSA-qpjc-w5mm-73mj)
+* App server Teams ZTA allowing access when its deployment group is removed (CVE-2026-68746, GHSA-74j5-6grg-g6wj)
+* Login CSRF in Teams identity callback (CVE-2026-66885, GHSA-pvvw-28fw-c6fg)
+
 ## [v0.19.8](https://github.com/livebook-dev/livebook/tree/v0.19.8) (2026-05-20)
 
 ### Added
