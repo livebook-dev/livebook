@@ -24,6 +24,7 @@ import { highlightSelectionMatches } from "@codemirror/search";
 import {
   autocompletion,
   closeBrackets,
+  moveCompletionSelection,
   snippetCompletion,
 } from "@codemirror/autocomplete";
 import { setDiagnostics } from "@codemirror/lint";
@@ -335,6 +336,8 @@ export default class LiveEditor {
     const customKeymap = [
       { key: "Escape", run: exitMulticursor },
       { key: "Alt-Enter", run: insertBlankLineAndCloseHints },
+      { mac: "Ctrl-n", run: moveCompletionSelection(true) },
+      { mac: "Ctrl-p", run: moveCompletionSelection(false) },
     ];
 
     // The VSCode keymap handles these keys, but if already at the
