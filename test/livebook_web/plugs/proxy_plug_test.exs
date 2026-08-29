@@ -45,6 +45,7 @@ defmodule LivebookWeb.ProxyPlugTest do
       assert text_response(put(conn, url), 200) == "used PUT method"
       assert text_response(patch(conn, url), 200) == "used PATCH method"
       assert text_response(delete(conn, url), 200) == "used DELETE method"
+      assert get_resp_header(get(conn, url), "x-request-path") == [url]
 
       Session.close(session.pid)
     end
@@ -80,11 +81,13 @@ defmodule LivebookWeb.ProxyPlugTest do
       assert text_response(put(conn, url), 200) == "used PUT method"
       assert text_response(patch(conn, url), 200) == "used PATCH method"
       assert text_response(delete(conn, url), 200) == "used DELETE method"
+      assert get_resp_header(get(conn, url), "x-request-path") == [url]
 
       # Generic path also works for single-session apps
       url = "/proxy/apps/#{slug}/"
 
       assert text_response(get(conn, url), 200) == "used GET method"
+      assert get_resp_header(get(conn, url), "x-request-path") == [url]
     end
 
     test "waits for the session to be executed before attempting the request", %{conn: conn} do
@@ -110,6 +113,7 @@ defmodule LivebookWeb.ProxyPlugTest do
       url = "/proxy/apps/#{slug}/"
 
       assert text_response(get(conn, url), 200) == "used GET method"
+      assert get_resp_header(get(conn, url), "x-request-path") == [url]
     end
 
     test "returns error when requesting generic path for multi-session app", %{conn: conn} do
@@ -142,6 +146,7 @@ defmodule LivebookWeb.ProxyPlugTest do
         | source: """
           Kino.Proxy.listen(fn conn ->
             conn
+            |> Plug.Conn.put_resp_header("x-request-path", conn.request_path)
             |> Plug.Conn.put_resp_header("content-type", "application/text;charset=utf-8")
             |> Plug.Conn.send_resp(200, "used " <> conn.method <> " method")
           end)\

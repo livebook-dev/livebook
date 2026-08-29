@@ -45,6 +45,7 @@ defmodule Livebook.Proxy.Server do
       path_info: conn.path_info,
       scheme: conn.scheme,
       script_name: conn.script_name,
+      request_path: conn.request_path,
       req_headers: conn.req_headers
     }
   end
