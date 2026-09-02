@@ -110,5 +110,51 @@ defmodule Livebook.Text.DeltaTest do
       assert Delta.diff("🚀 cats", " cats") ==
                Delta.new() |> Delta.delete(2)
     end
+
+    test "short-circuits large payloads with a single replace" do
+      # Regression test for livebook#2916. When either input exceeds the
+      # configured `large_payload_threshold/0`, diff/2 must bypass Myers
+      # entirely and emit a single replace. We verify three properties:
+      #   1. The returned delta still applies to the original and produces
+      #      the new string (semantic correctness).
+      #   2. The diff completes quickly (orders of magnitude faster than
+      #      the baseline Myers path used to take on similar inputs).
+      #   3. The delta is a single replace (no retains), confirming the
+      #      short-circuit is wired in.
+      threshold = Delta.large_payload_threshold()
+      base = String.duplicate("a", threshold + 1)
+      modified = String.replace_prefix(base, "a", "A")
+
+      {time_us, delta} = :timer.tc(fn -> Delta.diff(base, modified) end)
+
+      assert time_us < 1_000_000,
+             "expected diff/2 to finish quickly for a large payload, got #{div(time_us, 1000)}ms"
+
+      assert Delta.apply(delta, base) == modified
+
+      assert Delta.operations(delta) == [
+               {:insert, "A" <> String.duplicate("a", threshold)},
+               {:delete, threshold + 1}
+             ]
+    end
+
+    test "large payload edges keep the canonical ops shape" do
+      threshold = Delta.large_payload_threshold()
+      base = String.duplicate("a", threshold + 1)
+
+      # Identical large payloads produce an empty delta, like the Myers path.
+      assert Delta.diff(base, base) == Delta.new()
+
+      # A large deletion emits only the delete op, like the Myers path.
+      delta = Delta.diff(base, "")
+      assert Delta.apply(delta, base) == ""
+      assert Delta.operations(delta) == [{:delete, threshold + 1}]
+
+      # A large insertion into an empty string emits only the insert op,
+      # without a zero-length delete, like the Myers path.
+      delta = Delta.diff("", base)
+      assert Delta.apply(delta, "") == base
+      assert Delta.operations(delta) == [{:insert, base}]
+    end
   end
 end

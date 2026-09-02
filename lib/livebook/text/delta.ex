@@ -216,16 +216,60 @@ defmodule Livebook.Text.Delta do
   @doc """
   Computes Myers Difference between the given strings and returns its
   `Delta` representation.
+
+  For inputs above `large_payload_threshold/0` code units, returns a
+  single replace (delete + insert) instead of a fine-grained diff.
   """
   @spec diff(String.t(), String.t()) :: Delta.t()
   def diff(string1, string2) do
-    string1
-    |> String.myers_difference(string2)
-    |> Enum.reduce(Delta.new(), fn
-      {:eq, string}, delta -> Delta.retain(delta, Text.JS.length(string))
-      {:ins, string}, delta -> Delta.insert(delta, string)
-      {:del, string}, delta -> Delta.delete(delta, Text.JS.length(string))
-    end)
-    |> Delta.trim()
+    cond do
+      string1 == string2 ->
+        Delta.new()
+
+      large_payload?(string1) or large_payload?(string2) ->
+        # For very large payloads the Myers difference algorithm becomes
+        # prohibitively expensive (its cost grows with the edit distance, and
+        # on long inputs even small differences lead to multi-second hitches).
+        # See livebook#2916 for context. We short-circuit and emit a single
+        # replace: this trades wire-size efficiency for responsiveness, which
+        # is the right tradeoff when a cell source balloons to hundreds of
+        # KB (e.g. embedded Excalidraw JSON).
+        replace_diff(string1, string2)
+
+      true ->
+        string1
+        |> String.myers_difference(string2)
+        |> Enum.reduce(Delta.new(), fn
+          {:eq, string}, delta -> Delta.retain(delta, Text.JS.length(string))
+          {:ins, string}, delta -> Delta.insert(delta, string)
+          {:del, string}, delta -> Delta.delete(delta, Text.JS.length(string))
+        end)
+        |> Delta.trim()
+    end
+  end
+
+  # The threshold (in JavaScript UTF-16 code units) above which we
+  # short-circuit Myers and emit a single replace. Empirically the Myers
+  # implementation built into Elixir already takes seconds on inputs in
+  # the hundreds of KB once there is more than a trivial edit distance,
+  # so 100_000 units (≈100KB of ASCII) is a safe cutoff that still leaves
+  # plenty of room for fine-grained diffs of regular source code.
+  @large_payload_threshold 100_000
+
+  @doc false
+  @spec large_payload_threshold() :: pos_integer()
+  def large_payload_threshold, do: @large_payload_threshold
+
+  defp large_payload?(string) do
+    Text.JS.length(string) > @large_payload_threshold
+  end
+
+  defp replace_diff(string1, string2) do
+    # Built through the public constructors so that `append/2` normalization
+    # keeps the ops canonical (drops zero-length deletes/inserts and orders
+    # the adjacent pair as insert-then-delete, like every other producer).
+    Delta.new()
+    |> Delta.delete(Text.JS.length(string1))
+    |> Delta.insert(string2)
   end
 end
