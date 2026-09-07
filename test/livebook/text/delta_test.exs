@@ -110,5 +110,59 @@ defmodule Livebook.Text.DeltaTest do
       assert Delta.diff("🚀 cats", " cats") ==
                Delta.new() |> Delta.delete(2)
     end
+
+    test "diffs within changed lines" do
+      assert Delta.diff("cats\ndogs\nbirds", "cats\ndogs\nbirds") == Delta.new()
+
+      assert Delta.diff("cats\ndogs\nbirds", "cats\ndog\nbirds") ==
+               Delta.new() |> Delta.retain(8) |> Delta.delete(1)
+
+      assert Delta.diff("cats\ndogs", "cats\ndogs\n") ==
+               Delta.new() |> Delta.retain(9) |> Delta.insert("\n")
+
+      assert Delta.diff("cats\ndogs\nbirds", "cats\nbirds") ==
+               Delta.new() |> Delta.retain(5) |> Delta.delete(5)
+
+      assert Delta.diff("cats\nbirds", "cats\ndogs\nbirds") ==
+               Delta.new() |> Delta.retain(5) |> Delta.insert("dogs\n")
+    end
+
+    test "keeps common characters when lines are split" do
+      assert Delta.diff("foo(a, b)\nx", "foo(\n  a,\n  b\n)\nx") ==
+               Delta.new()
+               |> Delta.retain(4)
+               |> Delta.insert("\n  ")
+               |> Delta.retain(2)
+               |> Delta.insert("\n ")
+               |> Delta.retain(2)
+               |> Delta.insert("\n")
+    end
+
+    test "inserts or deletes everything for an empty string" do
+      assert Delta.diff("", "cats\ndogs") == Delta.new() |> Delta.insert("cats\ndogs")
+      assert Delta.diff("cats\ndogs", "") == Delta.new() |> Delta.delete(9)
+    end
+
+    test "replaces long lines as a whole" do
+      long_line = ~s(data = "#{String.duplicate("a", 2000)}"\n)
+      source = "x = 1\n" <> long_line <> "y = 2"
+
+      # Other lines are still diffed precisely.
+      assert Delta.diff(source, "x = 1\n" <> long_line <> "y = 3") ==
+               Delta.new() |> Delta.retain(2020) |> Delta.insert("3") |> Delta.delete(1)
+
+      new_long_line = String.replace(long_line, "aaaa", "aaba", global: false)
+
+      assert Delta.diff(source, "x = 1\n" <> new_long_line <> "y = 2") ==
+               Delta.new() |> Delta.retain(6) |> Delta.insert(new_long_line) |> Delta.delete(2010)
+    end
+
+    test "replaces the whole string when there are many lines" do
+      source1 = Enum.map_join(1..1500, "\n", &"x#{&1}")
+      source2 = Enum.map_join(1..1500, "\n", &"y#{&1}")
+
+      assert Delta.diff(source1, source2) ==
+               Delta.new() |> Delta.insert(source2) |> Delta.delete(String.length(source1))
+    end
   end
 end

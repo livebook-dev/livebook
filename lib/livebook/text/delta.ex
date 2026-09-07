@@ -213,19 +213,116 @@ defmodule Livebook.Text.Delta do
     <<result::binary, string::binary>>
   end
 
+  # The Myers algorithm is quadratic in the edit distance, so we emit
+  # a replace when the diff would be too expensive: for an empty string
+  # (the edit distance is the whole other string), for long lines and
+  # for long line lists
+  @max_diff_bytes 2_000
+  @max_lines 2_000
+
   @doc """
-  Computes Myers Difference between the given strings and returns its
+  Computes the difference between the given strings and returns its
   `Delta` representation.
+
+  The difference is computed on lines and then within each changed
+  block of lines, so a single long line does not affect the diff of
+  the other lines. Blocks over #{@max_diff_bytes} bytes are diffed
+  line by line, lines over that size are replaced as a whole, and so
+  are strings with over #{@max_lines} lines. All sizes count both
+  strings together.
   """
   @spec diff(String.t(), String.t()) :: Delta.t()
   def diff(string1, string2) do
+    lines1 = split_lines(string1)
+    lines2 = split_lines(string2)
+
+    delta =
+      if lines1 == [] or lines2 == [] or length(lines1) + length(lines2) > @max_lines do
+        replace(string1, string2, Delta.new())
+      else
+        lines1
+        |> List.myers_difference(lines2)
+        |> script_to_delta(Delta.new())
+      end
+
+    Delta.trim(delta)
+  end
+
+  defp split_lines(string) do
+    line_ends = for {offset, _length} <- :binary.matches(string, "\n"), do: offset + 1
+    split_lines(string, 0, line_ends)
+  end
+
+  defp split_lines(string, start, [line_end | line_ends]) do
+    [binary_part(string, start, line_end - start) | split_lines(string, line_end, line_ends)]
+  end
+
+  defp split_lines(string, start, []) when start == byte_size(string), do: []
+  defp split_lines(string, start, []), do: [binary_part(string, start, byte_size(string) - start)]
+
+  # Deleted lines followed by inserted lines are diffed as one block,
+  # so that changes such as line splits keep the common characters.
+  defp script_to_delta([{:del, deleted}, {:ins, inserted} | script], delta) do
+    script_to_delta(script, diff_blocks(deleted, inserted, delta))
+  end
+
+  defp script_to_delta([{:eq, lines} | script], delta) do
+    script_to_delta(script, Delta.retain(delta, lines_length(lines)))
+  end
+
+  defp script_to_delta([{:ins, lines} | script], delta) do
+    script_to_delta(script, Delta.insert(delta, IO.iodata_to_binary(lines)))
+  end
+
+  defp script_to_delta([{:del, lines} | script], delta) do
+    script_to_delta(script, Delta.delete(delta, lines_length(lines)))
+  end
+
+  defp script_to_delta([], delta), do: delta
+
+  defp diff_blocks(deleted, inserted, delta) do
+    string1 = IO.iodata_to_binary(deleted)
+    string2 = IO.iodata_to_binary(inserted)
+
+    if byte_size(string1) + byte_size(string2) > @max_diff_bytes do
+      diff_line_pairs(deleted, inserted, delta)
+    else
+      diff_strings(string1, string2, delta)
+    end
+  end
+
+  defp diff_line_pairs([line1 | lines1], [line2 | lines2], delta) do
+    diff_line_pairs(lines1, lines2, diff_line(line1, line2, delta))
+  end
+
+  defp diff_line_pairs([], [], delta), do: delta
+  defp diff_line_pairs(lines1, [], delta), do: Delta.delete(delta, lines_length(lines1))
+  defp diff_line_pairs([], lines2, delta), do: Delta.insert(delta, IO.iodata_to_binary(lines2))
+
+  defp diff_line(line1, line2, delta)
+       when byte_size(line1) + byte_size(line2) > @max_diff_bytes do
+    replace(line1, line2, delta)
+  end
+
+  defp diff_line(line1, line2, delta), do: diff_strings(line1, line2, delta)
+
+  defp diff_strings(string1, string2, delta) do
     string1
     |> String.myers_difference(string2)
-    |> Enum.reduce(Delta.new(), fn
+    |> Enum.reduce(delta, fn
       {:eq, string}, delta -> Delta.retain(delta, Text.JS.length(string))
       {:ins, string}, delta -> Delta.insert(delta, string)
       {:del, string}, delta -> Delta.delete(delta, Text.JS.length(string))
     end)
-    |> Delta.trim()
+  end
+
+  defp replace(string1, string2, delta) do
+    delta
+    |> Delta.delete(Text.JS.length(string1))
+    |> Delta.insert(string2)
+  end
+
+  defp lines_length(lines) do
+    Enum.sum_by(lines, &Text.JS.length/1)
   end
 end
