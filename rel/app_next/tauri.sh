@@ -15,6 +15,8 @@ main() {
   mix_project_dir="${root_dir}/../.."
   app="Livebook"
 
+  (cd "$mix_project_dir" && mix deps.get)
+
   case "$(uname -s)" in
     MINGW*|MSYS*|CYGWIN*)
       # When testing in Windows VM and sharing the source code directory with the host,
