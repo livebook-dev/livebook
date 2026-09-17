@@ -2,6 +2,21 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.19.10](https://github.com/livebook-dev/livebook/tree/v0.19.9) (2026-09-18)
+
+### Added
+
+* Added `request_path` to Kino proxy conn ([#3211](https://github.com/livebook-dev/livebook/pull/3211))
+
+### Changed
+
+* Updated Mermaid version used for diagrams in Markdown cell
+
+### Fixed
+
+* Escript assets returning 404 after tmpdir cleanup ([#3207](https://github.com/livebook-dev/livebook/pull/3207))
+* Fixed monospace fallback font ([#3213](https://github.com/livebook-dev/livebook/pull/3213))
+
 ## [v0.19.9](https://github.com/livebook-dev/livebook/tree/v0.19.9) (2026-08-05)
 
 ### Fixed
