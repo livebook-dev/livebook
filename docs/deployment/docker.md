@@ -42,6 +42,12 @@ services:
       - LIVEBOOK_IFRAME_PORT=8091
 ```
 
+### Easypanel
+
+[Easypanel](https://easypanel.io) is a self-hosted Docker deployment platform, and it maintains a one-click deployment template for Livebook:
+
+[![Deploy on Easypanel](https://easypanel.io/img/deploy-on-easypanel-40.svg)](https://easypanel.io/templates/livebook)
+
 ### Kubernetes
 
 If using k8s the following template is a good starting point. It includes a load balancer and preset clustering:
