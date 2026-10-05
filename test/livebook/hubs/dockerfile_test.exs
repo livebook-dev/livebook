@@ -212,7 +212,9 @@ defmodule Livebook.Hubs.DockerfileTest do
             {"LIVEBOOK_IDENTITY_PROVIDER", "cloudflare:foobar"},
             {"LIVEBOOK_TEAMS_URL", "http://localhost:8000"},
             {"MY_JSON", ~S|{"foo": "bar"}|},
-            {"MY_PATH", "C:\\dir\\"}
+            {"MY_PATH", "C:\\dir\\"},
+            {"MY_PASSWORD", "pa$$word"},
+            {"MY_MULTILINE", "line1\nRUN echo injected"}
           ]
       }
 
@@ -226,8 +228,12 @@ defmodule Livebook.Hubs.DockerfileTest do
              ENV LIVEBOOK_IDENTITY_PROVIDER="cloudflare:foobar"
              ENV LIVEBOOK_TEAMS_URL="http://localhost:8000"
              ENV MY_JSON="{\\"foo\\": \\"bar\\"}"
+             ENV MY_PASSWORD="pa\\$\\$word"
              ENV MY_PATH="C:\\\\dir\\\\"\
              """
+
+      refute dockerfile =~ "MY_MULTILINE"
+      refute dockerfile =~ "RUN echo injected"
     end
   end
 
@@ -385,6 +391,22 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
       assert warning =~ "This app has no password configuration"
+    end
+
+    test "warns when environment variables contain invalid characters" do
+      config =
+        %{
+          dockerfile_config(%{clustering: :auto})
+          | environment_variables: [{"VALID", "value"}, {"MULTILINE", "line1\nline2"}]
+        }
+
+      hub = team_hub()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :private}
+
+      assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
+      assert warning =~ "contain invalid characters"
+      assert warning =~ "MULTILINE"
+      refute warning =~ "VALID"
     end
 
     test "warns when no clustering is configured" do

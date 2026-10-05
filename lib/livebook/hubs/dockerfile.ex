@@ -250,13 +250,23 @@ defmodule Livebook.Hubs.Dockerfile do
   defp format_envs([]), do: nil
 
   defp format_envs(list) do
-    Enum.map_join(list, fn {key, value} ->
+    list
+    |> Enum.reject(&invalid_env?/1)
+    |> Enum.map_join(fn {key, value} ->
       ~s/ENV #{key}="#{escape_dockerfile_value(value)}"\n/
     end)
   end
 
+  # Dockerfile has no way to represent line breaks in ENV, so we skip
+  # such variables and show a warning instead
+  @invalid_env_chars ["\n", "\r"]
+
+  defp invalid_env?({key, value}) do
+    String.contains?(key, @invalid_env_chars) or String.contains?(value, @invalid_env_chars)
+  end
+
   defp escape_dockerfile_value(value) do
-    String.replace(value, ["\\", ~S["]], &("\\" <> &1))
+    String.replace(value, ["\\", ~S["], "$"], &("\\" <> &1))
   end
 
   defp encrypt_secrets_to_dockerfile(secrets, hub) do
@@ -389,7 +399,8 @@ defmodule Livebook.Hubs.Dockerfile do
         if Livebook.Session.Data.session_secrets(secrets, hub.id) != [] do
           "The notebook uses session secrets, but those are not available to deployed apps." <>
             " Convert them to Workspace secrets instead."
-        end
+        end,
+        invalid_envs_warning(config.environment_variables)
       ] ++ config_warnings(config)
 
     hub_warnings =
@@ -399,6 +410,7 @@ defmodule Livebook.Hubs.Dockerfile do
           used_hub_file_systems = used_hub_file_systems(config, hub_file_systems, file_entries)
 
           [
+            invalid_envs_warning(Enum.map(used_hub_secrets, &{"LB_" <> &1.name, &1.value})),
             if used_hub_secrets != [] do
               "You are deploying an app with secrets and the secrets are included in the Dockerfile" <>
                 " as environment variables. If someone else deploys this app, they must also set the" <>
@@ -432,6 +444,19 @@ defmodule Livebook.Hubs.Dockerfile do
       end
 
     Enum.reject(common_warnings ++ hub_warnings, &is_nil/1)
+  end
+
+  defp invalid_envs_warning(envs) do
+    case for({key, _} = env <- envs, invalid_env?(env), do: key) do
+      [] ->
+        nil
+
+      keys ->
+        keys =
+          keys |> Enum.join(", ") |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+
+        "The following environment variables contain invalid characters, so they are skipped: #{keys}."
+    end
   end
 
   defp config_warnings(config) do
