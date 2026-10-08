@@ -57,7 +57,7 @@ jobs:
       - name: Authenticate with Tuist
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
-        run: mix do deps.compile tuist_ex + tuist.login
+        run: mix tuist.login
 
       - name: Check formatting
         run: mix format --check-formatted
@@ -137,7 +137,7 @@ jobs:
 
       - name: Authenticate with Tuist
         continue-on-error: true
-        run: mix do deps.compile tuist_ex + tuist.login
+        run: mix tuist.login
 
       - name: Run tests
         run: mix test
