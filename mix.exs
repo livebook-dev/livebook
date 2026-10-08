@@ -88,14 +88,8 @@ defmodule Livebook.MixProject do
         fn _ -> Mix.ensure_application!(:hex) end,
         "hex.publish"
       ]
-    ] ++ tuist_aliases(Mix.env())
+    ]
   end
-
-  # Report builds and test runs to Tuist (https://tuist.dev/livebook-dev/livebook).
-  # Reporting is skipped silently unless authenticated with `mix tuist.login`
-  # or the TUIST_TOKEN environment variable, and never changes the exit code.
-  defp tuist_aliases(:test), do: [compile: "tuist.compile", test: "tuist.test"]
-  defp tuist_aliases(_env), do: []
 
   defp escript do
     [
