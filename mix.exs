@@ -27,6 +27,7 @@ defmodule Livebook.MixProject do
       package: package(),
       default_release: :livebook,
       releases: releases(),
+      tuist: [project: "livebook-dev/livebook"],
 
       # Docs
       homepage_url: "https://livebook.dev",
@@ -87,8 +88,14 @@ defmodule Livebook.MixProject do
         fn _ -> Mix.ensure_application!(:hex) end,
         "hex.publish"
       ]
-    ]
+    ] ++ tuist_aliases(Mix.env())
   end
+
+  # Report builds and test runs to Tuist (https://tuist.dev/livebook-dev/livebook).
+  # Reporting is skipped silently unless authenticated with `mix tuist.login`
+  # or the TUIST_TOKEN environment variable, and never changes the exit code.
+  defp tuist_aliases(:test), do: [compile: "tuist.compile", test: "tuist.test"]
+  defp tuist_aliases(_env), do: []
 
   defp escript do
     [
@@ -148,6 +155,7 @@ defmodule Livebook.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:pythonx, "~> 0.4.2", only: :test},
       {:kino, "~> 0.18.0", only: :test},
+      {:tuist_ex, "~> 0.3.0", only: [:dev, :test], runtime: false},
       # Docs
       {:ex_doc, "~> 0.39", only: :dev, runtime: false}
     ]

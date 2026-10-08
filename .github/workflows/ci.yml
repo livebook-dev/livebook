@@ -10,6 +10,10 @@ jobs:
   linux:
     name: Linux
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Authenticates with Tuist through OpenID Connect
+      id-token: write
     env:
       MIX_ENV: test
     steps:
@@ -48,6 +52,13 @@ jobs:
       - name: Install mix dependencies
         run: mix deps.get
 
+      # Pull requests from forks get no OpenID Connect token, so their
+      # builds and test runs are not reported to Tuist
+      - name: Authenticate with Tuist
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        run: mix do deps.compile tuist_ex + tuist.login
+
       - name: Check formatting
         run: mix format --check-formatted
 
@@ -74,6 +85,10 @@ jobs:
     name: Windows
     runs-on: windows-2022
     if: github.event_name == 'push'
+    permissions:
+      contents: read
+      # Authenticates with Tuist through OpenID Connect
+      id-token: write
     env:
       MIX_ENV: test
 
@@ -119,6 +134,10 @@ jobs:
 
       - name: Install mix dependencies
         run: mix deps.get
+
+      - name: Authenticate with Tuist
+        continue-on-error: true
+        run: mix do deps.compile tuist_ex + tuist.login
 
       - name: Run tests
         run: mix test
