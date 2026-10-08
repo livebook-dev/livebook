@@ -149,7 +149,7 @@ defmodule Livebook.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:pythonx, "~> 0.4.2", only: :test},
       {:kino, "~> 0.18.0", only: :test},
-      {:tuist_ex, "~> 0.3.0", only: [:dev, :test], runtime: false},
+      {:tuist_ex, "~> 0.3.0", only: :test, runtime: false},
       # Docs
       {:ex_doc, "~> 0.39", only: :dev, runtime: false}
     ]
