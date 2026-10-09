@@ -225,12 +225,37 @@ defmodule Livebook.Runtime.Standalone do
     # we could persist it to priv/ at build time, however for Escript
     # priv/ is packaged into the archive, so it is not accessible in
     # the file system.
+    #
+    # Multiple runtimes may be starting concurrently, so we must never
+    # remove or truncate a file that another child node may be loading.
+    # To that end, the directory is keyed by the module checksum and
+    # the file is written atomically via rename.
 
-    epmd_path = Path.join(Livebook.Config.tmp_path(), "epmd")
-    File.rm_rf!(epmd_path)
-    File.mkdir_p!(epmd_path)
     {_module, binary, path} = :code.get_object_code(Livebook.Runtime.EPMD)
-    File.write!(Path.join(epmd_path, Path.basename(path)), binary)
+    checksum = :erlang.md5(binary) |> Base.encode16(case: :lower)
+    epmd_path = Path.join([Livebook.Config.tmp_path(), "epmd", checksum])
+    beam_path = Path.join(epmd_path, Path.basename(path))
+
+    unless File.exists?(beam_path) do
+      File.mkdir_p!(epmd_path)
+      tmp_beam_path = beam_path <> ".#{System.unique_integer([:positive])}.tmp"
+      File.write!(tmp_beam_path, binary)
+
+      with {:error, reason} <- File.rename(tmp_beam_path, beam_path) do
+        File.rm(tmp_beam_path)
+
+        # The rename may fail if another process created the file in
+        # the meantime (for example, on Windows), which is fine
+        unless File.exists?(beam_path) do
+          raise File.RenameError,
+            reason: reason,
+            action: "rename file",
+            source: tmp_beam_path,
+            destination: beam_path
+        end
+      end
+    end
+
     epmd_path
   end
 end
