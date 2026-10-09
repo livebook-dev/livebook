@@ -77,7 +77,8 @@ Livebook.TeamsServer.setup()
 
 windows? = match?({:win32, _}, :os.type())
 without_docs? = match?({:error, _}, Code.fetch_docs(:gen_server))
-git_ssh_key? = System.get_env("TEST_GIT_SSH_KEY") != nil
+# Pull requests from forks get secrets as empty strings
+git_ssh_key? = System.get_env("TEST_GIT_SSH_KEY") not in [nil, ""]
 fly_api_token? = System.get_env("TEST_FLY_API_TOKEN") != nil
 
 ExUnit.start(
