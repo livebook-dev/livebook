@@ -16,6 +16,9 @@ jobs:
       id-token: write
     env:
       MIX_ENV: test
+      # Tuist runners don't set ImageOS, which setup-beam uses to pick
+      # the OTP build. The tuist-linux image is based on Ubuntu 22.04
+      ImageOS: ubuntu22
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v6
