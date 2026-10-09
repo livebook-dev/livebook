@@ -9,7 +9,7 @@ on:
 jobs:
   linux:
     name: Linux
-    runs-on: ubuntu-latest
+    runs-on: tuist-linux
     permissions:
       contents: read
       # Authenticates with Tuist through OpenID Connect
