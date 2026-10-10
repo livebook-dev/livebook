@@ -9,7 +9,7 @@ on:
 jobs:
   linux:
     name: Linux
-    runs-on: ubuntu-latest
+    runs-on: tuist-linux
     permissions:
       contents: read
       # Authenticates with Tuist through OpenID Connect
@@ -32,22 +32,25 @@ jobs:
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
 
-      - name: Cache Mix
-        uses: actions/cache@v4
+      # Tuist cache volumes are saved after successful runs on main,
+      # and pull requests start from the latest saved copy
+      - name: Attach deps volume
+        uses: tuist/cache-volume@v1
         with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
+          key: mix-deps
+          path: deps
 
-      - name: Restore bun cache
-        uses: actions/cache@v4
+      - name: Attach _build volume
+        uses: tuist/cache-volume@v1
         with:
-          path: |
-            ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('assets/bun.lock') }}
+          key: mix-build-${{ env.elixir }}-${{ env.otp }}
+          path: _build
+
+      - name: Attach bun cache volume
+        uses: tuist/cache-volume@v1
+        with:
+          key: bun-install-cache
+          path: ~/.bun/install/cache
 
       - name: Install mix dependencies
         run: mix deps.get
