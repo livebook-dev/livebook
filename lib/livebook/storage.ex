@@ -77,8 +77,6 @@ defmodule Livebook.Storage do
         :error
 
       entries ->
-        # Entries are ordered by insertion, so if an attribute is being
-        # replaced, the latest value wins
         entries
         |> Enum.map(fn {_key, attr, val, _timestamp} -> {attr, val} end)
         |> Map.new()
@@ -110,16 +108,14 @@ defmodule Livebook.Storage do
   @spec fetch_key(namespace(), entity_id(), attribute()) :: {:ok, value()} | :error
   def fetch_key(namespace, entity_id, key) do
     table_name()
-    |> :ets.lookup({namespace, entity_id})
-    |> Enum.filter(&match?({_key, ^key, _val, _timestamp}, &1))
+    |> :ets.match({{namespace, entity_id}, key, :"$1", :_})
     |> case do
       [] ->
         :error
 
-      # Entries are ordered by insertion, so if the attribute is being
-      # replaced, we take the latest value
-      entries ->
-        {_key, _attr, value, _timestamp} = List.last(entries)
+      # While the key is being replaced, the latest value is last
+      matches ->
+        [value] = List.last(matches)
         {:ok, value}
     end
   end

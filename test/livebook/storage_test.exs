@@ -51,7 +51,7 @@ defmodule Livebook.StorageTest do
           end
         end)
 
-      assert_consistent_reads(writer.pid)
+      assert_consistent_reads(writer.pid, 0)
 
       Task.await(writer)
     end
@@ -118,11 +118,17 @@ defmodule Livebook.StorageTest do
     end
   end
 
-  defp assert_consistent_reads(writer_pid) do
+  # Values only increase, so a read must never return an older value
+  # than the previous read
+  defp assert_consistent_reads(writer_pid, last_value) do
     if Process.alive?(writer_pid) do
       assert {:ok, %{key1: value, key2: value}} = Storage.fetch(:insert, "concurrent")
-      assert {:ok, _value} = Storage.fetch_key(:insert, "concurrent", :key1)
-      assert_consistent_reads(writer_pid)
+      assert value >= last_value
+
+      assert {:ok, key_value} = Storage.fetch_key(:insert, "concurrent", :key1)
+      assert key_value >= value
+
+      assert_consistent_reads(writer_pid, key_value)
     end
   end
 end
