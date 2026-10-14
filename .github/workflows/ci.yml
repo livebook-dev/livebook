@@ -68,6 +68,7 @@ jobs:
       # cannot authenticate with Tuist, so they skip this step
       - name: Mark coverage as complete
         if: ${{ !cancelled() && steps.tests.outcome != 'skipped' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
         run: mix tuist.coverage.complete
 
       - name: Install bun dependencies
