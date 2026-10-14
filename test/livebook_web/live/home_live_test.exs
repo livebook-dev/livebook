@@ -51,18 +51,14 @@ defmodule LivebookWeb.HomeLiveTest do
 
     test "updates UI whenever a session is added or deleted", %{conn: conn} do
       {:ok, view, _} = live(conn, ~p"/")
-
-      # Subscribing to the sessions topic is not enough, because the
-      # broadcast may reach the test before it reaches the LiveView.
-      # Instead, we trace the messages received by the LiveView itself
-      :erlang.trace(view.pid, true, [:receive])
+      trace_view_messages(view)
 
       {:ok, %{id: id} = session} = Sessions.create_session()
-      assert_receive {:trace, _, :receive, {:session_created, %{id: ^id}}}
+      assert_view_receive(view, {:session_created, %{id: ^id}})
       assert render(view) =~ id
 
       Session.close(session.pid)
-      assert_receive {:trace, _, :receive, {:session_closed, %{id: ^id}}}
+      assert_view_receive(view, {:session_closed, %{id: ^id}})
       refute render(view) =~ id
     end
 
@@ -113,11 +109,11 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element(~s{[data-test-session-id="#{session.id}"] button}, "Close")
       |> render_click()
 
-      Sessions.subscribe()
+      trace_view_messages(view)
 
       render_confirm(view)
 
-      assert_receive {:session_closed, %{id: ^id}}
+      assert_view_receive(view, {:session_closed, %{id: ^id}})
 
       refute render(view) =~ session.id
     end
@@ -142,13 +138,13 @@ defmodule LivebookWeb.HomeLiveTest do
 
       assert render(view) =~ "Are you sure you want to close 3 sessions?"
 
-      Sessions.subscribe()
+      trace_view_messages(view)
 
       render_confirm(view)
 
-      assert_receive {:session_closed, %{id: ^id1}}
-      assert_receive {:session_closed, %{id: ^id2}}
-      assert_receive {:session_closed, %{id: ^id3}}
+      assert_view_receive(view, {:session_closed, %{id: ^id1}})
+      assert_view_receive(view, {:session_closed, %{id: ^id2}})
+      assert_view_receive(view, {:session_closed, %{id: ^id3}})
 
       refute render(view) =~ session1.id
       refute render(view) =~ session2.id
@@ -170,17 +166,15 @@ defmodule LivebookWeb.HomeLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/")
 
-      Livebook.NotebookManager.subscribe_starred_notebooks()
-
       Livebook.NotebookManager.add_starred_notebook(file, "Special notebook")
-      assert_receive {:starred_notebooks_updated, _}
+      wait_for_starred_notebooks_update()
 
       assert view
              |> element(~s/#starred-notebooks/, "Special notebook")
              |> has_element?()
 
       Livebook.NotebookManager.remove_starred_notebook(file)
-      assert_receive {:starred_notebooks_updated, _}
+      wait_for_starred_notebooks_update()
 
       refute view
              |> element(~s/#starred-notebooks/, "Special notebook")
@@ -250,5 +244,12 @@ defmodule LivebookWeb.HomeLiveTest do
   defp close_session_by_path("/sessions/" <> session_id) do
     {:ok, session} = Sessions.fetch_session(session_id)
     Session.close(session.pid)
+  end
+
+  defp wait_for_starred_notebooks_update() do
+    # The manager broadcasts while handling the previous request, so
+    # once this call returns, the update is already sent to the LiveView
+    Livebook.NotebookManager.starred_notebooks()
+    :ok
   end
 end

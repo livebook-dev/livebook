@@ -6,7 +6,6 @@ defmodule LivebookWeb.AppsDashboardLiveTest do
   import Livebook.AppHelpers
 
   alias Livebook.App
-  alias Livebook.Apps
   alias Livebook.Notebook
   alias Livebook.Utils
 
@@ -19,15 +18,15 @@ defmodule LivebookWeb.AppsDashboardLiveTest do
 
     refute render(view) =~ slug
 
-    Apps.subscribe()
+    trace_view_messages(view)
     app_pid = deploy_notebook_sync(notebook)
 
-    assert_receive {:app_created, %{pid: ^app_pid}}
+    assert_view_receive(view, {:app_created, %{pid: ^app_pid}})
     assert render(view) =~ "My app #{slug}"
 
     App.close(app_pid)
 
-    assert_receive {:app_closed, %{pid: ^app_pid}}
+    assert_view_receive(view, {:app_closed, %{pid: ^app_pid}})
     refute render(view) =~ slug
   end
 
@@ -38,10 +37,10 @@ defmodule LivebookWeb.AppsDashboardLiveTest do
 
     {:ok, view, _} = live(conn, ~p"/apps-dashboard")
 
-    Apps.subscribe()
+    trace_view_messages(view)
     app_pid = deploy_notebook_sync(notebook)
 
-    assert_receive {:app_created, %{pid: ^app_pid}}
+    assert_view_receive(view, {:app_created, %{pid: ^app_pid}})
 
     view
     |> element(~s/[data-app-slug="#{slug}"] button[aria-label="terminate app"]/)
@@ -49,7 +48,7 @@ defmodule LivebookWeb.AppsDashboardLiveTest do
 
     render_confirm(view)
 
-    assert_receive {:app_closed, %{pid: ^app_pid}}
+    assert_view_receive(view, {:app_closed, %{pid: ^app_pid}})
   end
 
   test "deactivating and terminating an app session", %{conn: conn} do
@@ -59,26 +58,30 @@ defmodule LivebookWeb.AppsDashboardLiveTest do
 
     {:ok, view, _} = live(conn, ~p"/apps-dashboard")
 
-    Apps.subscribe()
+    trace_view_messages(view)
     app_pid = deploy_notebook_sync(notebook)
 
-    assert_receive {:app_created, %{pid: ^app_pid}}
+    assert_view_receive(view, {:app_created, %{pid: ^app_pid}})
 
-    assert_receive {:app_updated,
-                    %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
+    assert_view_receive(
+      view,
+      {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
+    )
 
     view
     |> element(~s/[data-app-slug="#{slug}"] button[aria-label="deactivate app session"]/)
     |> render_click()
 
-    assert_receive {:app_updated,
-                    %{pid: ^app_pid, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
+    assert_view_receive(
+      view,
+      {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
+    )
 
     view
     |> element(~s/[data-app-slug="#{slug}"] button[aria-label="terminate app session"]/)
     |> render_click()
 
-    assert_receive {:app_updated, %{pid: ^app_pid, sessions: []}}
+    assert_view_receive(view, {:app_updated, %{pid: ^app_pid, sessions: []}})
 
     App.close(app_pid)
   end
