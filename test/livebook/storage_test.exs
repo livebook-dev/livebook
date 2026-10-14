@@ -40,6 +40,21 @@ defmodule Livebook.StorageTest do
 
       assert {:ok, "updated_val1"} = Storage.fetch_key(:insert, "replace", :key1)
     end
+
+    test "concurrent reads never observe a partially replaced entity" do
+      :ok = Storage.insert(:insert, "concurrent", key1: 0, key2: 0)
+
+      writer =
+        Task.async(fn ->
+          for i <- 1..1000 do
+            :ok = Storage.insert(:insert, "concurrent", key1: i, key2: i)
+          end
+        end)
+
+      assert_consistent_reads(writer.pid)
+
+      Task.await(writer)
+    end
   end
 
   describe "fetch_key/3" do
@@ -100,6 +115,14 @@ defmodule Livebook.StorageTest do
 
     test "returns an empty list if no entities exist for given namespace" do
       assert [] = Storage.all(:unknown_namespace)
+    end
+  end
+
+  defp assert_consistent_reads(writer_pid) do
+    if Process.alive?(writer_pid) do
+      assert {:ok, %{key1: value, key2: value}} = Storage.fetch(:insert, "concurrent")
+      assert {:ok, _value} = Storage.fetch_key(:insert, "concurrent", :key1)
+      assert_consistent_reads(writer_pid)
     end
   end
 end
