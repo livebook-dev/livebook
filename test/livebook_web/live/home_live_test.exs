@@ -179,6 +179,8 @@ defmodule LivebookWeb.HomeLiveTest do
       refute view
              |> element(~s/#starred-notebooks/, "Special notebook")
              |> has_element?()
+
+      Session.close(session.pid)
     end
 
     @tag :tmp_dir
