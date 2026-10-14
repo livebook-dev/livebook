@@ -59,9 +59,17 @@ jobs:
         run: mix tuist.compile --warnings-as-errors
 
       - name: Run tests
-        run: mix tuist.test
+        id: tests
+        run: mix tuist.test --cover
         env:
           TEST_GIT_SSH_KEY: ${{ secrets.TEST_GIT_SSH_KEY }}
+
+      # Coverage is reported even when tests fail. Pull requests from forks
+      # cannot authenticate with Tuist, so they skip this step
+      - name: Mark coverage as complete
+        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
+        run: mix tuist.coverage.complete
 
       - name: Install bun dependencies
         run: |
