@@ -50,16 +50,19 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "updates UI whenever a session is added or deleted", %{conn: conn} do
-      Sessions.subscribe()
-
       {:ok, view, _} = live(conn, ~p"/")
 
+      # Subscribing to the sessions topic is not enough, because the
+      # broadcast may reach the test before it reaches the LiveView.
+      # Instead, we trace the messages received by the LiveView itself
+      :erlang.trace(view.pid, true, [:receive])
+
       {:ok, %{id: id} = session} = Sessions.create_session()
-      assert_receive {:session_created, %{id: ^id}}
+      assert_receive {:trace, _, :receive, {:session_created, %{id: ^id}}}
       assert render(view) =~ id
 
       Session.close(session.pid)
-      assert_receive {:session_closed, %{id: ^id}}
+      assert_receive {:trace, _, :receive, {:session_closed, %{id: ^id}}}
       refute render(view) =~ id
     end
 
