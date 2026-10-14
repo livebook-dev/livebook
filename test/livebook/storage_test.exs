@@ -42,17 +42,13 @@ defmodule Livebook.StorageTest do
     end
 
     test "concurrent reads never observe a partially replaced entity" do
-      :ok = Storage.insert(:insert, "concurrent", key1: 0, key2: 0)
+      :ok = Storage.insert(:insert, "concurrent", attributes(0))
 
-      writer =
-        Task.async(fn ->
-          for i <- 1..1000 do
-            :ok = Storage.insert(:insert, "concurrent", key1: i, key2: i)
-          end
-        end)
+      writer = Task.async(fn -> keep_replacing("concurrent", 1) end)
 
-      assert_consistent_reads(writer.pid, 0)
+      assert_consistent_reads("concurrent", 0, 2000)
 
+      send(writer.pid, :stop)
       Task.await(writer)
     end
   end
@@ -118,17 +114,33 @@ defmodule Livebook.StorageTest do
     end
   end
 
-  # Values only increase, so a read must never return an older value
-  # than the previous read
-  defp assert_consistent_reads(writer_pid, last_value) do
-    if Process.alive?(writer_pid) do
-      assert {:ok, %{key1: value, key2: value}} = Storage.fetch(:insert, "concurrent")
-      assert value >= last_value
+  # Many attributes, so that replacing them takes a while
+  @keys Enum.map(1..64, &:"key#{&1}")
 
-      assert {:ok, key_value} = Storage.fetch_key(:insert, "concurrent", :key1)
-      assert key_value >= value
+  defp attributes(value), do: Enum.map(@keys, &{&1, value})
 
-      assert_consistent_reads(writer_pid, key_value)
+  defp keep_replacing(entity_id, i) do
+    receive do
+      :stop -> :ok
+    after
+      0 ->
+        :ok = Storage.insert(:insert, entity_id, attributes(i))
+        keep_replacing(entity_id, i + 1)
     end
+  end
+
+  # Values only increase, so all attributes must have the same value
+  # and a read must never return an older value than the previous read
+  defp assert_consistent_reads(_entity_id, _last_value, 0), do: :ok
+
+  defp assert_consistent_reads(entity_id, last_value, reads) do
+    assert {:ok, entity} = Storage.fetch(:insert, entity_id)
+    assert [value] = entity |> Map.delete(:id) |> Map.values() |> Enum.uniq()
+    assert value >= last_value
+
+    assert {:ok, key_value} = Storage.fetch_key(:insert, entity_id, List.last(@keys))
+    assert key_value >= value
+
+    assert_consistent_reads(entity_id, key_value, reads - 1)
   end
 end
