@@ -30,5 +30,5 @@ tracing-subscriber = "0.3"
 tao = "0.34"
 
 [patch.crates-io]
-# TODO: upstream
+# TODO: https://github.com/tauri-apps/tao/pull/1369
 tao = { git = "https://github.com/wojtekmach/tao.git", branch = "wm-bundled-activation-policy" }
