@@ -3,6 +3,7 @@ defmodule LivebookWeb.AppLiveTest do
 
   import Phoenix.LiveViewTest
   import Livebook.AppHelpers
+  import Livebook.TestHelpers
 
   alias Livebook.App
   alias Livebook.Apps
@@ -61,6 +62,7 @@ defmodule LivebookWeb.AppLiveTest do
                       }}
 
       {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
+      trace_view_messages(view)
 
       assert render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id1}"
       refute render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id2}"
@@ -68,19 +70,21 @@ defmodule LivebookWeb.AppLiveTest do
       # Create a new app session
       session_id3 = App.get_session_id(app_pid)
 
-      assert_receive {:app_updated,
-                      %{pid: ^app_pid, sessions: [%{id: ^session_id3, pid: session_pid3}, _, _]}}
+      assert_view_receive(
+        view,
+        {:app_updated, %{pid: ^app_pid, sessions: [%{id: ^session_id3, pid: session_pid3}, _, _]}}
+      )
 
       assert render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id3}"
 
       # Deactivate the app session
       Livebook.Session.app_deactivate(session_pid3)
 
-      assert_receive {:app_updated,
-                      %{
-                        pid: ^app_pid,
-                        sessions: [%{app_status: %{lifecycle: :deactivated}}, _, _]
-                      }}
+      assert_view_receive(
+        view,
+        {:app_updated,
+         %{pid: ^app_pid, sessions: [%{app_status: %{lifecycle: :deactivated}}, _, _]}}
+      )
 
       assert render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id1}"
       refute render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id3}"

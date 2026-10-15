@@ -73,6 +73,33 @@ defmodule Livebook.TestHelpers do
   end
 
   @doc """
+  Starts tracing messages received by the given LiveView.
+
+  Use `assert_view_receive/2` to wait until the LiveView receives
+  a PubSub broadcast, before asserting on the rendered content.
+  Subscribing to the same topic in the test is not enough, because
+  the broadcast may reach the test before it reaches the LiveView.
+  """
+  def trace_view_messages(view) do
+    :erlang.trace(view.pid, true, [:receive])
+    :ok
+  end
+
+  @doc """
+  Asserts that the LiveView traced with `trace_view_messages/1`
+  received a message matching the given pattern.
+
+  Once this returns, any subsequent render is processed by the
+  LiveView only after handling the matched message.
+  """
+  defmacro assert_view_receive(view, pattern) do
+    quote do
+      view_pid = unquote(view).pid
+      assert_receive {:trace, ^view_pid, :receive, unquote(pattern)}
+    end
+  end
+
+  @doc """
   Builds code that awaits for a messages before finishing.
 
   Returns `{code, continue_fun}`, where calling `continue_fun` should

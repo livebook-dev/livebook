@@ -110,8 +110,13 @@ defmodule Livebook.Storage do
     table_name()
     |> :ets.match({{namespace, entity_id}, key, :"$1", :_})
     |> case do
-      [[value]] -> {:ok, value}
-      [] -> :error
+      [] ->
+        :error
+
+      # While the key is being replaced, the latest value is last
+      matches ->
+        [value] = List.last(matches)
+        {:ok, value}
     end
   end
 
@@ -195,18 +200,27 @@ defmodule Livebook.Storage do
 
   @impl true
   def handle_call({:insert, namespace, entity_id, attributes}, _from, %{table: table} = state) do
-    keys_to_delete = Enum.map(attributes, fn {key, _val} -> key end)
-
-    delete_keys(table, namespace, entity_id, keys_to_delete)
+    keys = Enum.map(attributes, fn {key, _val} -> key end)
+    old_entries = select_keys(table, namespace, entity_id, keys)
 
     timestamp = System.os_time(:millisecond)
 
-    attributes =
+    new_entries =
       Enum.map(attributes, fn {attr, val} ->
         {{namespace, entity_id}, attr, val, timestamp}
       end)
 
-    :ets.insert(table, attributes)
+    # Lookups access the table directly, so we insert the new entries
+    # before deleting the old ones. Otherwise, a concurrent lookup could
+    # see the entity with missing attributes, or not see it at all.
+    # Unchanged entries are kept as is, since delete_object/2 removes
+    # all identical objects
+    :ets.insert(table, new_entries -- old_entries)
+
+    for entry <- old_entries -- new_entries do
+      :ets.delete_object(table, entry)
+    end
+
     {:reply, :ok, state, {:continue, :save_to_file}}
   end
 
@@ -257,7 +271,15 @@ defmodule Livebook.Storage do
     tab || :ets.new(__MODULE__, [:protected, :duplicate_bag])
   end
 
+  defp select_keys(table, namespace, entity_id, keys) do
+    :ets.select(table, [keys_match_spec(namespace, entity_id, keys, :"$_")])
+  end
+
   defp delete_keys(table, namespace, entity_id, keys) do
+    :ets.select_delete(table, [keys_match_spec(namespace, entity_id, keys, true)])
+  end
+
+  defp keys_match_spec(namespace, entity_id, keys, result) do
     match_head = {{namespace, entity_id}, :"$1", :_, :_}
 
     guard =
@@ -265,6 +287,6 @@ defmodule Livebook.Storage do
       |> Enum.map(&{:==, :"$1", &1})
       |> Enum.reduce(&{:orelse, &1, &2})
 
-    :ets.select_delete(table, [{match_head, [guard], [true]}])
+    {match_head, [guard], [result]}
   end
 end
