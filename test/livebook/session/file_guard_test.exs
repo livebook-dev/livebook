@@ -36,13 +36,7 @@ defmodule Livebook.Session.FileGuardTest do
   test "file is automatically unlocked when the owner process terminates" do
     file = FileSystem.File.local(p("/some/path"))
 
-    owner =
-      spawn(fn ->
-        receive do
-          :stop -> :ok
-        end
-      end)
-
+    owner = spawn_link(fn -> receive do: (:stop -> :ok) end)
     ref = Process.monitor(owner)
     :ok = FileGuard.lock(file, owner)
 
