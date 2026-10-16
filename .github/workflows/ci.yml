@@ -58,9 +58,11 @@ jobs:
       - name: Check warnings
         run: mix tuist.compile --warnings-as-errors
 
+      # Pull requests from forks cannot report coverage to Tuist, so they
+      # skip collecting it
       - name: Run tests
         id: tests
-        run: mix tuist.test --cover
+        run: mix tuist.test ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && '--cover' || '' }}
         env:
           TEST_GIT_SSH_KEY: ${{ secrets.TEST_GIT_SSH_KEY }}
 
