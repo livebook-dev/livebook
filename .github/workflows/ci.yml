@@ -46,12 +46,6 @@ jobs:
           key: mix-build-${{ env.elixir }}-${{ env.otp }}
           path: _build
 
-      - name: Attach bun cache volume
-        uses: tuist/cache-volume@v1
-        with:
-          key: bun-install-cache
-          path: ~/.bun/install/cache
-
       - name: Install mix dependencies
         run: mix deps.get
 
