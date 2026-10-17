@@ -9,7 +9,8 @@ on:
 jobs:
   linux:
     name: Linux
-    runs-on: tuist-linux
+    # 4 vCPU / 8 GB Tuist runner profile
+    runs-on: tuist-linux-4vcpu
     permissions:
       contents: read
       # Authenticates with Tuist through OpenID Connect
