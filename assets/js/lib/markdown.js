@@ -43,6 +43,7 @@ class Markdown {
     this.emptyText = emptyText;
     this.allowedUriSchemes = allowedUriSchemes;
     this.useDarkTheme = useDarkTheme;
+    this.renderId = 0;
 
     this.render();
   }
@@ -57,7 +58,14 @@ class Markdown {
 
   /** @private */
   render() {
+    const renderId = ++this.renderId;
+
     this.getHtml().then((html) => {
+      // Rendering is asynchronous (for example, mermaid graphs), so
+      // an older render may finish after a newer one, in which case
+      // we ignore it
+      if (renderId !== this.renderId) return;
+
       // Wrap the HTML in another element, so that we
       // can use morphdom's childrenOnly option
       const wrappedHtml = `<div>${html}</div>`;
