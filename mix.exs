@@ -27,7 +27,9 @@ defmodule Livebook.MixProject do
       package: package(),
       default_release: :livebook,
       releases: releases(),
-      tuist: [project: "livebook-dev/livebook"],
+      # Failed tests are retried, so flaky ones don't fail the run.
+      # Tuist still reports them as flaky
+      tuist: [project: "livebook-dev/livebook", test_retries: 2],
       # Coverage is reported to Tuist, we don't enforce a threshold
       test_coverage: [summary: [threshold: 0]],
 
