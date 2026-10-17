@@ -165,6 +165,19 @@ defmodule Livebook.Hubs.DockerfileTest do
              """
     end
 
+    test "deploying a notebook with whitespace in the file name" do
+      config = dockerfile_config()
+      hub = personal_hub()
+      file = Livebook.FileSystem.File.local(p("/my notebook.livemd"))
+
+      dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
+
+      assert dockerfile =~ """
+             # Notebook
+             COPY ["my notebook.livemd","/apps/"]
+             """
+    end
+
     test "deploying with file entries" do
       config = dockerfile_config()
       hub = personal_hub()
