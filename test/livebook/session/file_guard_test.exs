@@ -33,11 +33,18 @@ defmodule Livebook.Session.FileGuardTest do
     assert :ok = FileGuard.lock(file, self())
   end
 
-  test "file is automatically unloacked when the owner process terminates" do
+  test "file is automatically unlocked when the owner process terminates" do
     file = FileSystem.File.local(p("/some/path"))
 
-    owner = spawn(fn -> :ok end)
+    owner = spawn_link(fn -> receive do: (:stop -> :ok) end)
+    ref = Process.monitor(owner)
     :ok = FileGuard.lock(file, owner)
+
+    send(owner, :stop)
+    assert_receive {:DOWN, ^ref, :process, ^owner, _}
+
+    # Once the owner is down, its :DOWN message is already in the guard's
+    # mailbox, so the synchronous lock call below is processed after it
     assert :ok = FileGuard.lock(file, self())
   end
 end

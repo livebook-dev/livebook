@@ -28,6 +28,8 @@ defmodule Livebook.MixProject do
       default_release: :livebook,
       releases: releases(),
       tuist: [project: "livebook-dev/livebook"],
+      # Coverage is reported to Tuist, we don't enforce a threshold
+      test_coverage: [summary: [threshold: 0]],
 
       # Docs
       homepage_url: "https://livebook.dev",
@@ -149,7 +151,7 @@ defmodule Livebook.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:pythonx, "~> 0.4.2", only: :test},
       {:kino, "~> 0.18.0", only: :test},
-      {:tuist_ex, "~> 0.4.1", only: :test, runtime: false},
+      {:tuist_ex, "~> 0.5.0", only: :test, runtime: false},
       # Docs
       {:ex_doc, "~> 0.39", only: :dev, runtime: false}
     ]
