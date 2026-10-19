@@ -151,10 +151,18 @@ defmodule Livebook.Hubs.Dockerfile do
       else
         notebook_file_name = Livebook.FileSystem.File.name(file)
 
+        # Paths with whitespace are only supported in the JSON form
+        copy_args =
+          if String.match?(notebook_file_name, ~r/\s/) do
+            JSON.encode!([notebook_file_name, "/apps/"])
+          else
+            "#{notebook_file_name} /apps/"
+          end
+
         notebook =
           """
           # Notebook
-          COPY #{notebook_file_name} /apps/
+          COPY #{copy_args}
           """
 
         attachments =
