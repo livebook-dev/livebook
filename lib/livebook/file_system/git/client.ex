@@ -92,10 +92,8 @@ defmodule Livebook.FileSystem.Git.Client do
     end
   end
 
-  @ls_tree_format "--format=%(objecttype) %(path)"
-
   defp ls_tree(git_dir, branch, path) do
-    with {:ok, result} <- git(git_dir, ["ls-tree", @ls_tree_format, branch, path]) do
+    with {:ok, result} <- git(git_dir, ["ls-tree", branch, path]) do
       {:ok,
        result
        |> String.split("\n", trim: true)
@@ -183,8 +181,15 @@ defmodule Livebook.FileSystem.Git.Client do
     result
   end
 
-  defp normalize_dir_path(<<"blob ", path::binary>>), do: "/" <> path
-  defp normalize_dir_path(<<"tree ", path::binary>>), do: "/" <> path <> "/"
+  # Each line has the format: <mode> <type> <hash>\t<path>
+  defp normalize_dir_path(line) do
+    [info, path] = String.split(line, "\t", parts: 2)
+
+    case String.split(info, " ") do
+      [_mode, "blob", _hash] -> "/" <> path
+      [_mode, "tree", _hash] -> "/" <> path <> "/"
+    end
+  end
 
   defp relative_path("/"), do: "."
   defp relative_path("/" <> path), do: path
