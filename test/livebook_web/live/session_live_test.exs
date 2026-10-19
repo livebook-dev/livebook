@@ -2841,13 +2841,16 @@ defmodule LivebookWeb.SessionLiveTest do
                       }}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      trace_view_messages(view)
 
       view
       |> element(~s/[data-el-app-info] button[aria-label="deactivate app session"]/)
       |> render_click()
 
-      assert_receive {:app_updated,
-                      %{slug: ^slug, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
+      assert_view_receive(
+        view,
+        {:app_updated, %{slug: ^slug, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
+      )
 
       assert render(view) =~ "/apps/#{slug}/sessions/#{app_session.id}"
 
@@ -2855,7 +2858,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-app-info] button[aria-label="terminate app session"]/)
       |> render_click()
 
-      assert_receive {:app_updated, %{slug: ^slug, sessions: []}}
+      assert_view_receive(view, {:app_updated, %{slug: ^slug, sessions: []}})
 
       refute render(view) =~ "/apps/#{slug}/sessions/#{app_session.id}"
 
