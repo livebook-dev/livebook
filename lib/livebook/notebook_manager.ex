@@ -49,7 +49,7 @@ defmodule Livebook.NotebookManager do
     * `{:recent_notebooks_updated, recent_notebooks}`
 
   """
-  @spec subscribe_recent_notebooks() :: :ok
+  @spec subscribe_recent_notebooks() :: :ok | {:error, term()}
   def subscribe_recent_notebooks() do
     Phoenix.PubSub.subscribe(Livebook.PubSub, "notebook_manager:recent_notebooks")
   end
@@ -62,7 +62,7 @@ defmodule Livebook.NotebookManager do
     * `{:starred_notebooks_updated, starred_notebooks}`
 
   """
-  @spec subscribe_starred_notebooks() :: :ok
+  @spec subscribe_starred_notebooks() :: :ok | {:error, term()}
   def subscribe_starred_notebooks() do
     Phoenix.PubSub.subscribe(Livebook.PubSub, "notebook_manager:starred_notebooks")
   end

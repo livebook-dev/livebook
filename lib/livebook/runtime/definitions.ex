@@ -484,7 +484,6 @@ defmodule Livebook.Runtime.Definitions do
   """
   @spec example_snippet_definitions() ::
           list(%{
-            type: :example,
             name: String.t(),
             icon: String.t(),
             variants:
@@ -511,6 +510,7 @@ defmodule Livebook.Runtime.Definitions do
   """
   @spec file_action_snippet_definitions() ::
           list(%{
+            type: :file_action,
             file_types: :any | list(String.t()),
             description: String.t(),
             source: String.t(),
