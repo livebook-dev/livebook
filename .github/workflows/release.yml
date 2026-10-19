@@ -19,7 +19,7 @@ jobs:
     name: "Create release"
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+    runs-on: tuist-linux
     env:
       GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
     steps:
@@ -72,9 +72,10 @@ jobs:
             gui_target: "x86_64-apple-darwin"
           - platform: windows-2022
             gui_target: "x86_64-pc-windows-msvc"
+          # Tuist runners are x86_64 only
           - platform: ubuntu-22.04-arm
             gui_target: "aarch64-unknown-linux-gnu"
-          - platform: ubuntu-22.04
+          - platform: tuist-linux
             gui_target: "x86_64-unknown-linux-gnu"
     runs-on: ${{ matrix.platform }}
     steps:
@@ -222,7 +223,7 @@ jobs:
     permissions:
       contents: read
       packages: write # Required for pushing to ghcr.io
-    runs-on: ubuntu-latest
+    runs-on: tuist-linux
     strategy:
       fail-fast: false
       matrix:
