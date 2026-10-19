@@ -84,20 +84,6 @@ defmodule Livebook.HubsTest do
       refute secret in Hubs.get_secrets(team)
       assert updated_secret in Hubs.get_secrets(team)
     end
-
-    test "returns changeset errors when data is invalid", %{team: team} do
-      name = secret_name(team)
-      value = team.id
-      secret = build(:secret, name: name, value: value, hub_id: team.id)
-
-      assert Hubs.create_secret(team, secret) == :ok
-      assert_receive {:secret_created, %{name: ^name, value: ^value}}
-
-      updated_secret = Map.replace!(secret, :value, "")
-
-      assert {:error, errors} = Hubs.update_secret(team, updated_secret)
-      assert "can't be blank" in errors[:value]
-    end
   end
 
   test "delete_secret/2 deletes a secret", %{team: team} do

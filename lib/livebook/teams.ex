@@ -109,9 +109,7 @@ defmodule Livebook.Teams do
   @doc """
   Encrypts the given value with Teams key derived keys.
   """
-  @spec encrypt(String.t() | nil, bitstring()) :: String.t() | nil
-  def encrypt(value, _secret) when value in ["", nil], do: value
-
+  @spec encrypt(String.t(), bitstring()) :: String.t()
   def encrypt(value, secret) do
     Plug.Crypto.MessageEncryptor.encrypt(value, secret, "unused")
   end
@@ -119,9 +117,7 @@ defmodule Livebook.Teams do
   @doc """
   Decrypts the given encrypted value with Teams key derived keys.
   """
-  @spec decrypt(String.t() | nil, bitstring()) :: {:ok, String.t()} | :error | String.t() | nil
-  def decrypt(value, _secret) when value in ["", nil], do: value
-
+  @spec decrypt(String.t(), bitstring()) :: {:ok, String.t()} | :error
   def decrypt(encrypted_value, secret) do
     Plug.Crypto.MessageEncryptor.decrypt(encrypted_value, secret, "unused")
   end
