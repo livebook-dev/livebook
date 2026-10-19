@@ -3310,7 +3310,8 @@ defmodule Livebook.Session do
 
   The file is fetched into the notebook files directory.
   """
-  @spec to_attachment_file_entry(t(), Notebook.file_entry()) :: {:ok, Notebook.file_entry()}
+  @spec to_attachment_file_entry(t(), Notebook.file_entry()) ::
+          {:ok, Notebook.file_entry()} | {:error, String.t()}
   def to_attachment_file_entry(session, file_entry)
 
   def to_attachment_file_entry(session, %{type: :file} = file_entry) do

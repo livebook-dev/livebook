@@ -2,7 +2,7 @@ defmodule Livebook.K8sAPI do
   # Calls to the Kubernetes API.
 
   @type kubeconfig :: Kubereq.Kubeconfig.t()
-  @type error :: %{message: String.t(), status: pos_integer() | nil}
+  @type error :: {:error, %{message: String.t(), status: pos_integer() | nil}}
 
   @doc """
   Creates a new Pod.
