@@ -94,6 +94,12 @@ To try out features from the main branch you can alternatively
 use the `ghcr.io/livebook-dev/livebook:nightly` image.
 See [Livebook images](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
 
+### One-click deploy
+
+<a href="https://repocloud.io/details/Livebook/"><img src="https://d16t0pc4846x52.cloudfront.net/deploylobe.svg" alt="Deploy on RepoCloud" height="42"></a>
+<a href="https://railway.com/deploy/livebook"><img src="https://railway.com/button.svg" alt="Deploy on Railway" height="42"></a>
+<a href="https://www.koyeb.com/deploy/livebook"><img src="https://www.koyeb.com/static/images/deploy/button.svg" alt="Deploy on Koyeb" height="42"></a>
+
 ### Embedded devices
 
 If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
