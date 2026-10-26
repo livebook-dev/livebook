@@ -138,6 +138,7 @@ jobs:
             librsvg2-dev \
             patchelf \
             libwxgtk3.0-gtk3-dev \
+            libodbc2 \
             xdg-utils
 
       - name: Install Tauri CLI
