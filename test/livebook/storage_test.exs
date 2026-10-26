@@ -40,6 +40,17 @@ defmodule Livebook.StorageTest do
 
       assert {:ok, "updated_val1"} = Storage.fetch_key(:insert, "replace", :key1)
     end
+
+    test "concurrent reads never observe a partially replaced entity" do
+      :ok = Storage.insert(:insert, "concurrent", attributes(0))
+
+      writer = Task.async(fn -> keep_replacing("concurrent", 1) end)
+
+      assert_consistent_reads("concurrent", 0, 2000)
+
+      send(writer.pid, :stop)
+      Task.await(writer)
+    end
   end
 
   describe "fetch_key/3" do
@@ -101,5 +112,35 @@ defmodule Livebook.StorageTest do
     test "returns an empty list if no entities exist for given namespace" do
       assert [] = Storage.all(:unknown_namespace)
     end
+  end
+
+  # Many attributes, so that replacing them takes a while
+  @keys Enum.map(1..64, &:"key#{&1}")
+
+  defp attributes(value), do: Enum.map(@keys, &{&1, value})
+
+  defp keep_replacing(entity_id, i) do
+    receive do
+      :stop -> :ok
+    after
+      0 ->
+        :ok = Storage.insert(:insert, entity_id, attributes(i))
+        keep_replacing(entity_id, i + 1)
+    end
+  end
+
+  # Values only increase, so all attributes must have the same value
+  # and a read must never return an older value than the previous read
+  defp assert_consistent_reads(_entity_id, _last_value, 0), do: :ok
+
+  defp assert_consistent_reads(entity_id, last_value, reads) do
+    assert {:ok, entity} = Storage.fetch(:insert, entity_id)
+    assert [value] = entity |> Map.delete(:id) |> Map.values() |> Enum.uniq()
+    assert value >= last_value
+
+    assert {:ok, key_value} = Storage.fetch_key(:insert, entity_id, List.last(@keys))
+    assert key_value >= value
+
+    assert_consistent_reads(entity_id, key_value, reads - 1)
   end
 end
