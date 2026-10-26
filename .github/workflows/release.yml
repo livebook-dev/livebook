@@ -203,7 +203,7 @@ jobs:
         with:
           projectPath: rel/app
           tauriScript: ./tauri.sh
-          args: --target ${{ matrix.gui_target }}
+          args: --verbose --target ${{ matrix.gui_target }}
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'nightly' }}
           releaseName: ${{ github.ref_type == 'tag' && github.ref_name || 'nightly' }}
           releaseDraft: true
