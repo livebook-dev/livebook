@@ -1009,6 +1009,11 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign_private(socket, data: data)}
   end
 
+  def handle_info({:smart_cell_diagnostics, cell_id, code_markers}, socket) do
+    {:noreply,
+     push_event(socket, "code_markers:#{cell_id}:secondary", %{code_markers: code_markers})}
+  end
+
   def handle_info({:session_updated, session}, socket) do
     {:noreply, assign(socket, :session, session)}
   end

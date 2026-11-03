@@ -283,22 +283,34 @@ export default class LiveEditor {
     if (this.isMounted()) {
       const doc = this.view.state.doc;
 
-      const diagnostics = codeMarkers.map((marker) => {
-        const line = doc.line(marker.line);
+      // Markers may be stale with respect to the current source, so
+      // we drop or clamp positions outside of the document
+      const diagnostics = codeMarkers
+        .filter((marker) => marker.line <= doc.lines)
+        .map((marker) => {
+          const line = doc.line(marker.line);
+          const endLine = doc.line(
+            Math.min(marker.end_line || marker.line, doc.lines),
+          );
 
-        const [, leadingWhitespace, trailingWhitespace] =
-          line.text.match(/^(\s*).*?(\s*)$/);
+          const [, leadingWhitespace] = line.text.match(/^(\s*)/);
+          const [, trailingWhitespace] = endLine.text.match(/(\s*)$/);
 
-        const from = line.from + leadingWhitespace.length;
-        const to = line.to - trailingWhitespace.length;
+          const from = marker.column
+            ? Math.min(line.from + marker.column - 1, line.to)
+            : line.from + leadingWhitespace.length;
 
-        return {
-          from,
-          to,
-          severity: marker.severity,
-          message: marker.description,
-        };
-      });
+          const to = marker.end_column
+            ? Math.min(endLine.from + marker.end_column - 1, endLine.to)
+            : endLine.to - trailingWhitespace.length;
+
+          return {
+            from,
+            to: Math.max(from, to),
+            severity: marker.severity,
+            message: marker.description,
+          };
+        });
 
       this.view.dispatch(setDiagnostics(this.view.state, diagnostics));
     } else {
