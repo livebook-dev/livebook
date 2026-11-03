@@ -30,6 +30,7 @@
         "@replit/codemirror-vim": "^6.1.0",
         "@replit/codemirror-vscode-keymap": "^6.0.2",
         "codemirror-lang-elixir": "^4.0.0",
+        "codemirror-lang-tptp": "^0.1.1",
         "crypto-js": "^4.0.0",
         "hast-util-to-text": "^4.0.0",
         "hyperlist": "^1.0.0",
@@ -938,6 +939,8 @@
     "co": ["co@4.6.0", "", {}, "sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ=="],
 
     "codemirror-lang-elixir": ["codemirror-lang-elixir@4.0.0", "", { "dependencies": { "@codemirror/language": "^6.0.0", "lezer-elixir": "^1.0.0" } }, "sha512-mzFesxo/t6KOxwnkqVd34R/q7yk+sMtHh6vUKGAvjwHmpL7bERHB+vQAsmU/nqrndkwVeJEHWGw/z/ybfdiudA=="],
+
+    "codemirror-lang-tptp": ["codemirror-lang-tptp@0.1.1", "", { "dependencies": { "@codemirror/language": "^6.0.0", "@lezer/common": "^1.5.3", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0" } }, "sha512-5stX607PUfo3X8yxtZk71WkyPFN5/qy8QqtJQcftSJnvTTpPRbu6twFUUpG1EXHOprM3l+jZp7RQG7Y7OBPZxw=="],
 
     "collect-v8-coverage": ["collect-v8-coverage@1.0.3", "", {}, "sha512-1L5aqIkwPfiodaMgQunkF1zRhNqifHBmtbbbxcr6yVxxBnliw4TDOW6NxpO8DJLgJ16OT+Y4ztZqP6p/FtXnAw=="],
 
@@ -2170,6 +2173,8 @@
     "cliui/string-width": ["string-width@4.2.3", "", { "dependencies": { "emoji-regex": "^8.0.0", "is-fullwidth-code-point": "^3.0.0", "strip-ansi": "^6.0.1" } }, "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g=="],
 
     "cliui/strip-ansi": ["strip-ansi@6.0.1", "", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
+
+    "codemirror-lang-tptp/@lezer/common": ["@lezer/common@1.5.5", "", {}, "sha512-Pw7PVCndruF1pb3ebCxpSVpkMHSDjwRCLcTRw+RizUKco5QbWylwq2g4lnG/RYN7yTTQDXE9F77MwtkAyphrjg=="],
 
     "cytoscape-fcose/cose-base": ["cose-base@2.2.0", "", { "dependencies": { "layout-base": "^2.0.0" } }, "sha512-AzlgcsCbUMymkADOJtQm3wO9S3ltPfYOFD5033keQn9NJzIbtnZj+UdBJe7DYml/8TdbtHJW3j58SOnKhWY/5g=="],
 
