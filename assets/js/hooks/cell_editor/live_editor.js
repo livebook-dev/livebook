@@ -286,7 +286,7 @@ export default class LiveEditor {
       // Markers may be stale with respect to the current source, so
       // we drop or clamp positions outside of the document
       const diagnostics = codeMarkers
-        .filter((marker) => marker.line <= doc.lines)
+        .filter((marker) => marker.line >= 1 && marker.line <= doc.lines)
         .map((marker) => {
           const line = doc.line(marker.line);
           const endLine = doc.line(

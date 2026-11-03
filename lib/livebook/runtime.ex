@@ -608,7 +608,8 @@ defprotocol Livebook.Runtime do
   Without `:column`, the marker starts at the beginning of the line.
   Without `:end_column`, it spans until the end of `:end_line`, which
   defaults to `:line`. Columns are 1-based and the end column is
-  exclusive.
+  exclusive. Columns count UTF-16 code units, which equal code
+  points except for characters outside the Basic Multilingual Plane.
   """
   @type code_marker :: %{
           required(:line) => pos_integer(),

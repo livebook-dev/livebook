@@ -4,10 +4,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
 
-### Added
-
-* Support for smart cells setting editor diagnostics with line and column ranges
-
 ## v0.19
 
 The CHANGELOG for v0.19 releases can be found in the [v0.19](https://github.com/livebook-dev/livebook/blob/v0.19/CHANGELOG.md) branch.
