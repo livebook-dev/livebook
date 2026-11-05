@@ -2030,6 +2030,14 @@ defmodule Livebook.Session do
               state
           end
 
+        case options do
+          %{diagnostics: diagnostics} ->
+            broadcast_message(state.session_id, {:smart_cell_diagnostics, cell.id, diagnostics})
+
+          %{} ->
+            :ok
+        end
+
         {:noreply, state}
 
       _ ->

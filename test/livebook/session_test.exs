@@ -1206,6 +1206,17 @@ defmodule Livebook.SessionTest do
                  sections: [%{cells: [%{editor: %{visible: false}}]}]
                }
              } = Session.get_data(session.pid)
+
+      # Update diagnostics
+      diagnostics = [%{line: 1, column: 5, description: "error", severity: :error}]
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_editor_update, smart_cell.id, %{diagnostics: diagnostics}}
+      )
+
+      cell_id = smart_cell.id
+      assert_receive {:smart_cell_diagnostics, ^cell_id, ^diagnostics}
     end
 
     test "pings the smart cell before evaluation to await all incoming messages" do
