@@ -561,6 +561,13 @@ function buildHighlightStyle({
 
     // CSS specific
     { tag: t.className, color: peach },
+
+    // TPTP specific
+    { tag: t.modifier, color: purple },
+    { tag: t.labelName, color: lightRed },
+    { tag: t.typeName, color: teal },
+    { tag: t.standard(t.variableName), color: blue },
+    { tag: t.logicOperator, color: peach },
   ]);
 }
 

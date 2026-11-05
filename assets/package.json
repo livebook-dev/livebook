@@ -34,6 +34,7 @@
     "@replit/codemirror-vim": "^6.1.0",
     "@replit/codemirror-vscode-keymap": "^6.0.2",
     "codemirror-lang-elixir": "^4.0.0",
+    "codemirror-lang-tptp": "^0.1.1",
     "crypto-js": "^4.0.0",
     "hast-util-to-text": "^4.0.0",
     "hyperlist": "^1.0.0",

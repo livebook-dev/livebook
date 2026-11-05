@@ -16,6 +16,7 @@ import { erlang } from "@codemirror/legacy-modes/mode/erlang";
 import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { toml } from "@codemirror/legacy-modes/mode/toml";
+import { tptp } from "codemirror-lang-tptp";
 import { elixir } from "codemirror-lang-elixir";
 
 export const elixirDesc = LanguageDescription.of({
@@ -84,6 +85,11 @@ const tomlDesc = LanguageDescription.of({
   support: new LanguageSupport(StreamLanguage.define(toml)),
 });
 
+const tptpDesc = LanguageDescription.of({
+  name: "TPTP",
+  support: tptp(),
+});
+
 const markdownDesc = LanguageDescription.of({
   name: "Markdown",
   support: markdown({
@@ -102,6 +108,7 @@ const markdownDesc = LanguageDescription.of({
       dockerfileDesc,
       shellDesc,
       tomlDesc,
+      tptpDesc,
     ],
   }),
 });
@@ -120,5 +127,6 @@ export const languages = [
   dockerfileDesc,
   shellDesc,
   tomlDesc,
+  tptpDesc,
   markdownDesc,
 ];
