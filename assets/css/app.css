@@ -13,6 +13,17 @@
 @import "./tooltips.css";
 @import "./notebook.css";
 
+/* JetBrains Mono 2.304, from the GitHub release. The @fontsource
+   subsets do not have all its characters, such as box drawing, so
+   those came from a fallback font with other widths. */
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("../fonts/JetBrainsMono-Regular.woff2") format("woff2");
+}
+
 /* Add variants based on LiveView classes. */
 @custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
 @custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
