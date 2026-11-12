@@ -26,7 +26,6 @@
     "@codemirror/state": "^6.4.0",
     "@codemirror/view": "^6.23.0",
     "@fontsource/inter": "^5.0.1",
-    "@fontsource/jetbrains-mono": "^5.0.1",
     "@fontsource/red-hat-text": "^5.0.1",
     "@lezer/highlight": "^1.2.3",
     "@picmo/popup-picker": "^5.7.6",

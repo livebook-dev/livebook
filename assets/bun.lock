@@ -22,7 +22,6 @@
         "@codemirror/state": "^6.4.0",
         "@codemirror/view": "^6.23.0",
         "@fontsource/inter": "^5.0.1",
-        "@fontsource/jetbrains-mono": "^5.0.1",
         "@fontsource/red-hat-text": "^5.0.1",
         "@lezer/highlight": "^1.2.3",
         "@picmo/popup-picker": "^5.7.6",
@@ -424,8 +423,6 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
     "@fontsource/inter": ["@fontsource/inter@5.2.8", "", {}, "sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg=="],
-
-    "@fontsource/jetbrains-mono": ["@fontsource/jetbrains-mono@5.2.8", "", {}, "sha512-6w8/SG4kqvIMu7xd7wt6x3idn1Qux3p9N62s6G3rfldOUYHpWcc2FKrqf+Vo44jRvqWj2oAtTHrZXEP23oSKwQ=="],
 
     "@fontsource/red-hat-text": ["@fontsource/red-hat-text@5.2.8", "", {}, "sha512-tIHFmGAXxHcDErF8+szaJ3yaujPxjmYi9CdavtxCXik75LfUlldunRawycL0xF7KPrnakO2tVY1iQ1+PPrA8vw=="],
 
