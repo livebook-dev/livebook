@@ -1216,7 +1216,9 @@ defmodule Livebook.SessionTest do
       )
 
       cell_id = smart_cell.id
-      assert_receive {:smart_cell_diagnostics, ^cell_id, ^diagnostics}
+
+      assert %{cell_infos: %{^cell_id => %{editor_code_markers: ^diagnostics}}} =
+               Session.get_data(session.pid)
     end
 
     test "pings the smart cell before evaluation to await all incoming messages" do

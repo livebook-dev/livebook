@@ -1009,11 +1009,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign_private(socket, data: data)}
   end
 
-  def handle_info({:smart_cell_diagnostics, cell_id, code_markers}, socket) do
-    {:noreply,
-     push_event(socket, "code_markers:#{cell_id}:secondary", %{code_markers: code_markers})}
-  end
-
   def handle_info({:session_updated, session}, socket) do
     {:noreply, assign(socket, :session, session)}
   end
@@ -1518,6 +1513,14 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:set_smart_cell_editor_code_markers, _client_id, cell_id, diagnostics}
+       ) do
+    push_event(socket, "code_markers:#{cell_id}:secondary", %{code_markers: diagnostics})
+  end
+
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
@@ -1800,7 +1803,7 @@ defmodule LivebookWeb.SessionLive do
           secondary: %{
             source: cell.editor.source,
             revision: cell_info.sources.secondary.revision,
-            code_markers: [],
+            code_markers: cell_info.editor_code_markers,
             doctest_reports: []
           }
         ]

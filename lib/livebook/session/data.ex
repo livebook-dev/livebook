@@ -97,7 +97,8 @@ defmodule Livebook.Session.Data do
   @type smart_cell_info :: %{
           sources: %{primary: cell_source_info(), secondary: cell_source_info()},
           eval: cell_eval_info(),
-          status: smart_cell_status()
+          status: smart_cell_status(),
+          editor_code_markers: list(Runtime.code_marker())
         }
 
   @type cell_source_tag :: atom()
@@ -218,6 +219,8 @@ defmodule Livebook.Session.Data do
           | {:update_smart_cell, client_id(), Cell.id(), Cell.Smart.attrs(), Text.Delta.t(),
              Runtime.chunks() | nil}
           | {:queue_smart_cell_reevaluation, client_id(), Cell.id()}
+          | {:set_smart_cell_editor_code_markers, client_id(), Cell.id(),
+             list(Runtime.code_marker())}
           | {:smart_cell_down, client_id(), Cell.id()}
           | {:recover_smart_cell, client_id(), Cell.id()}
           | {:erase_outputs, client_id()}
@@ -764,6 +767,18 @@ defmodule Livebook.Session.Data do
       |> queue_cell_evaluation(cell, section)
       |> queue_prerequisite_cells_evaluation([cell.id])
       |> maybe_evaluate_queued()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:set_smart_cell_editor_code_markers, _client_id, id, diagnostics}) do
+    with {:ok, %Cell.Smart{} = cell, _section} <-
+           Notebook.fetch_cell_and_section(data.notebook, id) do
+      data
+      |> with_actions()
+      |> update_cell_info!(cell.id, &%{&1 | editor_code_markers: diagnostics})
       |> wrap_ok()
     else
       _ -> :error
@@ -1908,7 +1923,7 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
     |> update_cell_info!(cell.id, &%{&1 | status: :started})
     |> update_cell_info!(cell.id, fn info ->
-      info = %{info | status: :started}
+      info = %{info | status: :started, editor_code_markers: []}
       info = put_in(info.sources.primary, source_info)
       put_in(info.sources.secondary, new_source_info(editor && editor.source, data.clients_map))
     end)
@@ -2471,7 +2486,8 @@ defmodule Livebook.Session.Data do
         secondary: new_source_info(cell.editor && cell.editor.source, clients_map)
       },
       eval: new_eval_info(),
-      status: :dead
+      status: :dead,
+      editor_code_markers: []
     }
   end
 

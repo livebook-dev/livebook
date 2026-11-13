@@ -2030,13 +2030,17 @@ defmodule Livebook.Session do
               state
           end
 
-        case options do
-          %{diagnostics: diagnostics} ->
-            broadcast_message(state.session_id, {:smart_cell_diagnostics, cell.id, diagnostics})
+        state =
+          case options do
+            %{diagnostics: diagnostics} ->
+              operation =
+                {:set_smart_cell_editor_code_markers, @client_id, cell.id, diagnostics}
 
-          %{} ->
-            :ok
-        end
+              handle_operation(state, operation)
+
+            %{} ->
+              state
+          end
 
         {:noreply, state}
 
