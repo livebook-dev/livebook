@@ -2030,6 +2030,18 @@ defmodule Livebook.Session do
               state
           end
 
+        state =
+          case options do
+            %{diagnostics: diagnostics} ->
+              operation =
+                {:set_smart_cell_editor_code_markers, @client_id, cell.id, diagnostics}
+
+              handle_operation(state, operation)
+
+            %{} ->
+              state
+          end
+
         {:noreply, state}
 
       _ ->

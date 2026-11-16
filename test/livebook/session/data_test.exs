@@ -3224,6 +3224,43 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :set_smart_cell_editor_code_markers" do
+    test "stores the diagnostics in cell info" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}}
+        ])
+
+      diagnostics = [%{line: 1, description: "error", severity: :error}]
+      operation = {:set_smart_cell_editor_code_markers, @cid, "c1", diagnostics}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{editor_code_markers: ^diagnostics}}}, _actions} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "the diagnostics are cleared when the smart cell restarts" do
+      diagnostics = [%{line: 1, description: "error", severity: :error}]
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          connect_noop_runtime_operations(),
+          {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
+          {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
+          {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{}, nil},
+          {:set_smart_cell_editor_code_markers, @cid, "c1", diagnostics},
+          {:smart_cell_down, @cid, "c1"},
+          {:recover_smart_cell, @cid, "c1"}
+        ])
+
+      operation = {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{}, nil}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{editor_code_markers: []}}}, _actions} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :smart_cell_down" do
     test "updates the smart cell status" do
       data =

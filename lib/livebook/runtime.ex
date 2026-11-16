@@ -603,12 +603,21 @@ defprotocol Livebook.Runtime do
         }
 
   @typedoc """
-  A descriptive error or warning pointing to a specific line in the code.
+  A descriptive diagnostic pointing to a specific location in the code.
+
+  Without `:column`, the marker starts at the beginning of the line.
+  Without `:end_column`, it spans until the end of `:end_line`, which
+  defaults to `:line`. Columns are 1-based and the end column is
+  exclusive. Columns count UTF-16 code units, which equal code
+  points except for characters outside the Basic Multilingual Plane.
   """
   @type code_marker :: %{
-          line: pos_integer(),
-          description: String.t(),
-          severity: :error | :warning
+          required(:line) => pos_integer(),
+          optional(:column) => pos_integer(),
+          optional(:end_line) => pos_integer(),
+          optional(:end_column) => pos_integer(),
+          required(:description) => String.t(),
+          required(:severity) => :error | :warning | :info | :hint
         }
 
   @typedoc """
@@ -1012,7 +1021,7 @@ defprotocol Livebook.Runtime do
   The cell can also update some of the editor configuration or source
   by sending:
 
-    * `{:runtime_smart_cell_editor_update, ref, %{optional(:source) => String.t(), optional(:intellisense_node) => {atom(), atom()} | nil}, optional(:visible) => boolean()}`
+    * `{:runtime_smart_cell_editor_update, ref, %{optional(:source) => String.t(), optional(:intellisense_node) => {atom(), atom()} | nil, optional(:visible) => boolean(), optional(:diagnostics) => list(code_marker())}}`
 
   """
   @spec start_smart_cell(

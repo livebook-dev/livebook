@@ -79,6 +79,15 @@ const CellEditor = {
         });
       },
     );
+
+    this.handleEvent(
+      `code_markers:${this.props.cellId}:${this.props.tag}`,
+      ({ code_markers }) => {
+        if (this.liveEditor) {
+          this.liveEditor.setCodeMarkers(code_markers);
+        }
+      },
+    );
   },
 
   disconnected() {
