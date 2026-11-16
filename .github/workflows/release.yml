@@ -19,7 +19,7 @@ jobs:
     name: "Create release"
     permissions:
       contents: write
-    runs-on: tuist-linux
+    runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
     steps:
@@ -74,10 +74,9 @@ jobs:
             gui_target: "x86_64-apple-darwin"
           - platform: windows-2022
             gui_target: "x86_64-pc-windows-msvc"
-          # Tuist runners are x86_64 only
           - platform: ubuntu-22.04-arm
             gui_target: "aarch64-unknown-linux-gnu"
-          - platform: tuist-linux
+          - platform: ubuntu-22.04
             gui_target: "x86_64-unknown-linux-gnu"
     runs-on: ${{ matrix.platform }}
     steps:
@@ -138,7 +137,6 @@ jobs:
             librsvg2-dev \
             patchelf \
             libwxgtk3.0-gtk3-dev \
-            libodbc2 \
             xdg-utils
 
       - name: Install Tauri CLI
@@ -200,7 +198,7 @@ jobs:
         with:
           projectPath: rel/app
           tauriScript: ./tauri.sh
-          args: --verbose --target ${{ matrix.gui_target }}
+          args: --target ${{ matrix.gui_target }}
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'nightly' }}
           releaseName: ${{ github.ref_type == 'tag' && github.ref_name || 'nightly' }}
           releaseDraft: true
@@ -220,7 +218,7 @@ jobs:
     permissions:
       contents: read
       packages: write # Required for pushing to ghcr.io
-    runs-on: tuist-linux
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
