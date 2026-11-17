@@ -35,7 +35,7 @@ There are more resources for those who are ready to dig deeper:
 
   * [Our Integrations page](https://livebook.dev/integrations/) covering the languages, data sources, and libraries that Livebook works with out-of-the-box
 
-  * [Our blog](https://news.livebook.dev/) with news, posts, and screencasts
+  * [Our blog](https://livebook.dev/blog/) with news, posts, and screencasts
 
 ## Installation
 
