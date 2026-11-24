@@ -127,7 +127,7 @@ defmodule Standalone do
       end
 
     release_hex_path =
-      Path.join(release_archives_dir, "hex-#{hex_version}-otp-#{System.otp_release()}")
+      Path.join(release_archives_dir, "hex-#{hex_version}")
 
     cp_r!(source_hex_path, release_hex_path)
 
