@@ -2,7 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [v0.19.10](https://github.com/livebook-dev/livebook/tree/v0.19.9) (2026-09-18)
+## [v0.19.11](https://github.com/livebook-dev/livebook/tree/v0.19.11) (2026-11-24)
+
+### Fixed
+
+* (Desktop) `Mix.install/1` crashing inside Linux AppImage due to missing hex archive
+
+## [v0.19.10](https://github.com/livebook-dev/livebook/tree/v0.19.10) (2026-09-18)
 
 ### Added
 
